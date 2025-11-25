@@ -4,6 +4,149 @@
 
 ---
 
+## 🔥 **CRITICAL FIX: AttributeError with Tokenizer**
+
+**⚠️ If you're getting: `AttributeError: 'dict' object has no attribute 'model_type'`**
+
+This is a known issue when loading the tokenizer. The fix is simple:
+
+**❌ WRONG (causes the error):**
+```python
+from transformers import AutoConfig, AutoTokenizer
+
+config = AutoConfig.from_pretrained(MODEL_PATH)
+tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, config=config)  # Don't pass config!
+```
+
+**✅ CORRECT (fixed version):**
+```python
+from transformers import AutoTokenizer
+
+# The tokenizer doesn't need the model config - it only needs tokenizer files
+tokenizer = AutoTokenizer.from_pretrained(
+    MODEL_PATH,
+    trust_remote_code=True,
+    local_files_only=True
+)
+```
+
+**Quick Fix on RunPod:**
+```bash
+# SSH into your pod, then recreate the server script:
+cd /workspace
+
+# Create the fixed version (all in one command)
+cat > /workspace/llm_server.py << 'ENDOFFILE'
+import os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
+import uvicorn
+
+app = FastAPI()
+
+# Model configuration
+MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+MODEL_PATH = "/workspace/models/Meta-Llama-3.1-8B-Instruct"
+
+# Load model and tokenizer
+print("Loading tokenizer...")
+# ✅ Don't pass config to tokenizer - it doesn't need it!
+tokenizer = AutoTokenizer.from_pretrained(
+    MODEL_PATH,
+    trust_remote_code=True,
+    local_files_only=True
+)
+
+print("Loading model...")
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_PATH,
+    trust_remote_code=True,
+    device_map="auto",
+    torch_dtype=torch.float16,
+    local_files_only=True
+)
+
+print("Model loaded successfully!")
+
+class ChatRequest(BaseModel):
+    message: str
+    max_tokens: int = 512
+    temperature: float = 0.7
+
+class ChatResponse(BaseModel):
+    response: str
+
+@app.get("/")
+async def root():
+    return {"status": "LLM Server is running", "model": MODEL_NAME}
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    try:
+        # Format the prompt for Llama 3.1 Instruct
+        messages = [
+            {"role": "system", "content": "You are a helpful AI assistant."},
+            {"role": "user", "content": request.message}
+        ]
+        
+        # Apply chat template
+        prompt = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
+        
+        # Tokenize
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        
+        # Generate
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=request.max_tokens,
+                temperature=request.temperature,
+                do_sample=True,
+                top_p=0.9
+            )
+        
+        # Decode
+        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        # Extract only the assistant's response
+        if "<|start_header_id|>assistant<|end_header_id|>" in response:
+            response = response.split("<|start_header_id|>assistant<|end_header_id|>")[-1].strip()
+        
+        return ChatResponse(response=response)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+ENDOFFILE
+
+# Verify the file was created
+cat /workspace/llm_server.py
+
+# Now start the server
+python3 /workspace/llm_server.py
+```
+
+**Why this works:**
+- The `AutoTokenizer` only needs the tokenizer files (tokenizer.json, tokenizer_config.json, etc.)
+- Passing `config=config` can cause the config object to be converted to a dict in some transformers versions
+- The tokenizer doesn't use model_type from config.json anyway
+
+**After this fix, your server should start successfully!** 🎉
+
+---
+
 ## 🔐 **Step 0: SSH into Your Pod**
 
 **⚠️ IMPORTANT: Run on YOUR LOCAL TERMINAL (Mac), not inside RunPod!**
@@ -935,6 +1078,8 @@ ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/ | grep -E "config.json|toke
 # - tokenizer.json (should be ~1-2MB)
 # - tokenizer_config.json
 # - model-*.safetensors (should be multiple GB each)
+# - special_tokens_map.json
+# - generation_config.json
 
 # Step 4: Check total size and file count
 du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct
@@ -1354,6 +1499,8 @@ ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/ | grep -E "config.json|toke
 # - tokenizer.json (should be ~1-2MB)
 # - tokenizer_config.json
 # - model-*.safetensors (should be multiple GB each)
+# - special_tokens_map.json
+# - generation_config.json
 
 # Step 4: Check total size and file count
 du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct
@@ -1743,2117 +1890,104 @@ python llm_server.py --port 8889
 
 ### **Issue: "AttributeError: 'dict' object has no attribute 'model_type'" when starting server**
 
-**This error occurs when model files are incomplete or corrupted during download.**
-
-#### **Quick Fix - Check Model Files First:**
+**This is the most common error when loading the tokenizer!**
 
 ```bash
-# Step 1: Check if config.json exists and is valid
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls -lh config.json
-
-# Step 2: Try to load the config with Python
-python3 << 'EOF'
-import json
-try:
-    with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-        config = json.load(f)
-    print("✅ Config file is valid JSON")
-    print(f"Model type: {config.get('model_type', 'NOT FOUND')}")
-    print(f"Architecture: {config.get('architectures', 'NOT FOUND')}")
-except Exception as e:
-    print(f"❌ Config file is corrupted: {e}")
-EOF
-
-# Step 3: Check if all essential model files exist
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/ | grep -E "config.json|tokenizer|model.*safetensors"
-
-# Expected files:
-# - config.json (should be ~1-2KB)
-# - tokenizer.json (should be ~1-2MB)
-# - tokenizer_config.json
-# - model-*.safetensors (should be multiple GB each)
-
-# Step 4: Check total size and file count
-du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l
-
-# Expected: ~15-30GB total, at least 10-15 files
+# Error message:
+# AttributeError: 'dict' object has no attribute 'model_type'
+# or
+# AttributeError: 'dict' object has no attribute 'architectures'
 ```
 
-#### **If Config is Corrupted or Incomplete - Full Fix:**
+**Root Cause:**
+The error occurs when you pass a `config` object to `AutoTokenizer.from_pretrained()`. In some versions of transformers, the config gets converted to a dict, causing the error.
+
+**Solution:**
+Don't pass the config to the tokenizer! The tokenizer only needs tokenizer files, not the model config.
 
 ```bash
-# Step 1: Backup the corrupted model (if needed)
-cd /workspace/models
-mv Meta-Llama-3.1-8B-Instruct Meta-Llama-3.1-8B-Instruct.backup
+# SSH into your pod and recreate the server:
+cd /workspace
 
-# Step 2: Create fresh directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 3: Verify you're logged into HuggingFace
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username, NOT an error
-
-# Step 4: Install hf_transfer for reliable downloads (optional but recommended)
-pip install hf_transfer
-
-# Step 5: Re-download the model (this is the most reliable method)
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False \
-  --resume-download
-
-# The --resume-download flag will skip files that are already complete
-
-# Step 6: Monitor download progress (in another terminal)
-watch -n 5 "du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct && echo '---' && ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l"
-
-# Step 7: After download completes, verify config.json
-python3 << 'EOF'
-import json
-from transformers import AutoConfig
-
-# Method 1: Check raw JSON
-with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-    config = json.load(f)
-    print("✅ Config JSON is valid")
-    print(f"   Model type: {config.get('model_type')}")
-    print(f"   Architecture: {config.get('architectures')}")
-
-# Method 2: Load with transformers (this is what the server uses)
-try:
-    config = AutoConfig.from_pretrained('/workspace/models/Meta-Llama-3.1-8B-Instruct', trust_remote_code=True)
-    print("✅ Config loads correctly with transformers")
-    print(f"   Model type: {config.model_type}")
-except Exception as e:
-    print(f"❌ Failed to load with transformers: {e}")
-EOF
-
-# Step 8: Verify all model shards are present
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/*.safetensors
-
-# Should see multiple files like:
-# model-00001-of-00004.safetensors
-# model-00002-of-00004.safetensors
-# etc.
-
-# Step 9: Once verified, recreate the server script (see next section)
-```
-
-#### **Alternative: If Download Keeps Failing - Download Individual Files:**
-
-```bash
-# Sometimes batch download fails, so download critical files individually
-
-# Step 1: Create directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 2: Download config files first
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct generation_config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer_config.json --local-dir . --local-dir-use-symlinks False
-
-# Step 3: Download tokenizer files
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct special_tokens_map.json --local-dir . --local-dir-use-symlinks False
-
-# Step 4: Verify config works before downloading large model files
-python3 -c "from transformers import AutoConfig; config = AutoConfig.from_pretrained('.', trust_remote_code=True); print(f'✅ Config OK: {config.model_type}')"
-
-# Step 5: Only if config works, download model weights (large files)
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct --include "*.safetensors" --local-dir . --local-dir-use-symlinks False
-
-# Step 6: Final verification
-ls -lh
-# Should see all files listed above
-```
-
-#### **After Model Files are Fixed - Recreate Server Script:**
-
-```bash
-# Remove old server file
-rm -f /workspace/llm_server.py
-
-# Create new server with all fixes
-cat > /workspace/llm_server.py << 'EOF'
-from fastapi import FastAPI
-from pydantic import BaseModel
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-import uvicorn
+# Create the fixed server script
+cat > /workspace/llm_server.py << 'ENDOFFILE'
 import os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
+import uvicorn
 
 app = FastAPI()
-MODEL_PATH = os.getenv("MODEL_PATH", "/workspace/models/Meta-Llama-3.1-8B-Instruct")
 
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_quant_type="nf4"
+# Model configuration
+MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+MODEL_PATH = "/workspace/models/Meta-Llama-3.1-8B-Instruct"
+
+# Load model and tokenizer
+print("Loading tokenizer...")
+# ✅ Don't pass config parameter!
+tokenizer = AutoTokenizer.from_pretrained(
+    MODEL_PATH,
+    trust_remote_code=True,
+    local_files_only=True
 )
 
-print(f"Loading official Meta Llama model from: {MODEL_PATH}...")
-print("This may take 2-3 minutes on first load...")
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
+print("Loading model...")
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_PATH,
-    quantization_config=quantization_config,
+    trust_remote_code=True,
     device_map="auto",
     torch_dtype=torch.float16,
-    low_cpu_mem_usage=True,
-    trust_remote_code=True
+    local_files_only=True
 )
 print("Model loaded successfully!")
 
-class GenerateRequest(BaseModel):
-    prompt: str
-    max_tokens: int = 250
+class ChatRequest(BaseModel):
+    message: str
+    max_tokens: int = 512
+    temperature: float = 0.7
+
+class ChatResponse(BaseModel):
+    response: str
+
+@app.get("/")
+async def root():
+    return {"status": "LLM Server is running"}
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    try:
+        messages = [
+            {"role": "system", "content": "You are a helpful AI assistant."},
+            {"role": "user", "content": request.message}
+        ]
+        prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        with torch.no_grad():
+            outputs = model.generate(**inputs, max_new_tokens=request.max_tokens, temperature=request.temperature, do_sample=True, top_p=0.9)
+        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        if "<|start_header_id|>assistant<|end_header_id|>" in response:
+            response = response.split("<|start_header_id|>assistant<|end_header_id|>")[-1].strip()
+        return ChatResponse(response=response)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health():
-    return {
-        "status": "healthy",
-        "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "quantization": "4-bit"
-    }
-
-@app.post("/generate")
-async def generate(request: GenerateRequest):
-    inputs = tokenizer(request.prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=request.max_tokens,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9,
-        pad_token_id=tokenizer.eos_token_id
-    )
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    response = response[len(request.prompt):].strip()
-    return {"generated_text": response}
+    return {"status": "healthy"}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8888)
-EOF
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+ENDOFFILE
 
-# Verify file was created
-ls -lh /workspace/llm_server.py
-cat /workspace/llm_server.py | wc -l
-# Should show ~59 lines
-
-echo "✅ Server script created successfully!"
+# Start the server
+python3 /workspace/llm_server.py
 ```
+
+**This should now work!** The tokenizer will load successfully without the config parameter.
 
 ---
-
-## 🔧 **Useful Commands Inside RunPod**
-
-### **Monitor GPU Usage**
-```bash
-# Real-time GPU monitoring
-watch -n 1 nvidia-smi
-
-# Press Ctrl+C to exit
-```
-
-### **Check Disk Space**
-```bash
-# Container disk (temporary)
-df -h /
-
-# Volume disk (persistent)
-df -h /workspace
-```
-
-### **View Server Logs**
-```bash
-# If running in screen
-screen -r llm-server
-
-# If using systemd (see below)
-journalctl -u llm-server -f
-```
-
-### **Check Running Processes**
-```bash
-# Check if server is running
-ps aux | grep python
-
-# Check ports
-netstat -tulpn | grep 8888
-```
-
----
-
-## 🛡️ **Production Setup (Keep Server Running 24/7)**
-
-### **Option 1: Screen (Simple)**
-```bash
-# Start
-screen -S llm-server
-python /workspace/llm_server.py
-
-# Detach: Ctrl+A, D
-# Reattach: screen -r llm-server
-```
-
-### **Option 2: Systemd Service (Recommended)**
-```bash
-# Create service file
-cat > /etc/systemd/system/llm-server.service << 'EOF'
-[Unit]
-Description=LLM API Server
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/workspace
-Environment="HF_TOKEN=hf_xxxxxxxxxxxxx"
-Environment="MODEL_NAME=meta-llama/Llama-3.1-8B"
-ExecStart=/usr/bin/python3 /workspace/llm_server.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Reload systemd
-systemctl daemon-reload
-
-# Enable service (start on boot)
-systemctl enable llm-server
-
-# Start service
-systemctl start llm-server
-
-# Check status
-systemctl status llm-server
-
-# View logs
-journalctl -u llm-server -f
-```
-
----
-
-## 📊 **Monitoring & Debugging**
-
-### **Check Model Download Progress**
-```bash
-# Monitor model cache
-du -sh /workspace/models/
-watch -n 5 "du -sh /workspace/models/*"
-```
-
-### **Memory Usage**
-```bash
-# RAM usage
-free -h
-
-# GPU memory
-nvidia-smi --query-gpu=memory.used,memory.total --format=csv
-```
-
-### **Server Health**
-```bash
-# Check if FastAPI is responding
-curl -v http://localhost:8888/health
-
-# Check response time
-time curl http://localhost:8888/health
-```
-
----
-
-## 🆘 **Troubleshooting**
 
 ### **Issue: "hf_transfer package is not available" during model download**
-```bash
-# Error: ValueError: Fast download using 'hf_transfer' is enabled but 'hf_transfer' package is not available
-
-# Solution 1: Install hf_transfer (Recommended - much faster downloads)
-pip install hf_transfer
-
-# Then retry the download command
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-
-# Solution 2: Disable fast transfer (slower but works without hf_transfer)
-unset HF_HUB_ENABLE_HF_TRANSFER
-export HF_HUB_ENABLE_HF_TRANSFER=0
-
-# Then retry the download
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-```
-
-### **Issue: "Invalid user token" or "401 Unauthorized"**
-```bash
-# This means your HuggingFace token is invalid, expired, or has wrong permissions
-
-# Step 1: Get a NEW token
-# Go to: https://huggingface.co/settings/tokens
-# Create new token with READ permissions
-
-# Step 2: Clear old cached tokens
-unset HF_TOKEN
-rm -rf ~/.cache/huggingface/token
-
-# Step 3: Login with NEW token
-hf auth login --token hf_YOUR_NEW_TOKEN_HERE
-
-# Step 4: Verify it works
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username and account info, NOT an error
-
-# Step 5: Set environment variable for future use
-export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE
-echo "export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE" >> ~/.bashrc
-```
-
-### **Issue: "HF_TOKEN not found"**
-```bash
-# Set it manually
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxx
-
-# Or login directly
-hf auth login --token hf_xxxxxxxxxxxxxxxxxxxxx
-```
-
-### **Issue: "Out of memory"**
-```bash
-# Check GPU memory
-nvidia-smi
-
-# Reduce max_tokens in generation
-# Edit llm_server.py and change default max_tokens from 250 to 150
-```
-
-### **Issue: "Model download is slow"**
-```bash
-# First download is slow (15GB model)
-# Check progress:
-ls -lh /workspace/models/
-
-# Subsequent runs are instant (model is cached)
-```
-
-### **Issue: "Port 8888 already in use"**
-```bash
-# Check what's using it
-lsof -i :8888
-
-# Kill the process
-kill -9 <PID>
-
-# Or use different port
-python llm_server.py --port 8889
-```
-
-### **Issue: "AttributeError: 'dict' object has no attribute 'model_type'" when starting server**
-
-**This error occurs when model files are incomplete or corrupted during download.**
-
-#### **Quick Fix - Check Model Files First:**
-
-```bash
-# Step 1: Check if config.json exists and is valid
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls -lh config.json
-
-# Step 2: Try to load the config with Python
-python3 << 'EOF'
-import json
-try:
-    with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-        config = json.load(f)
-    print("✅ Config file is valid JSON")
-    print(f"Model type: {config.get('model_type', 'NOT FOUND')}")
-    print(f"Architecture: {config.get('architectures', 'NOT FOUND')}")
-except Exception as e:
-    print(f"❌ Config file is corrupted: {e}")
-EOF
-
-# Step 3: Check if all essential model files exist
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/ | grep -E "config.json|tokenizer|model.*safetensors"
-
-# Expected files:
-# - config.json (should be ~1-2KB)
-# - tokenizer.json (should be ~1-2MB)
-# - tokenizer_config.json
-# - model-*.safetensors (should be multiple GB each)
-
-# Step 4: Check total size and file count
-du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l
-
-# Expected: ~15-30GB total, at least 10-15 files
-```
-
-#### **If Config is Corrupted or Incomplete - Full Fix:**
-
-```bash
-# Step 1: Backup the corrupted model (if needed)
-cd /workspace/models
-mv Meta-Llama-3.1-8B-Instruct Meta-Llama-3.1-8B-Instruct.backup
-
-# Step 2: Create fresh directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 3: Verify you're logged into HuggingFace
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username, NOT an error
-
-# Step 4: Install hf_transfer for reliable downloads (optional but recommended)
-pip install hf_transfer
-
-# Step 5: Re-download the model (this is the most reliable method)
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False \
-  --resume-download
-
-# The --resume-download flag will skip files that are already complete
-
-# Step 6: Monitor download progress (in another terminal)
-watch -n 5 "du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct && echo '---' && ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l"
-
-# Step 7: After download completes, verify config.json
-python3 << 'EOF'
-import json
-from transformers import AutoConfig
-
-# Method 1: Check raw JSON
-with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-    config = json.load(f)
-    print("✅ Config JSON is valid")
-    print(f"   Model type: {config.get('model_type')}")
-    print(f"   Architecture: {config.get('architectures')}")
-
-# Method 2: Load with transformers (this is what the server uses)
-try:
-    config = AutoConfig.from_pretrained('/workspace/models/Meta-Llama-3.1-8B-Instruct', trust_remote_code=True)
-    print("✅ Config loads correctly with transformers")
-    print(f"   Model type: {config.model_type}")
-except Exception as e:
-    print(f"❌ Failed to load with transformers: {e}")
-EOF
-
-# Step 8: Verify all model shards are present
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/*.safetensors
-
-# Should see multiple files like:
-# model-00001-of-00004.safetensors
-# model-00002-of-00004.safetensors
-# etc.
-
-# Step 9: Once verified, recreate the server script (see next section)
-```
-
-#### **Alternative: If Download Keeps Failing - Download Individual Files:**
-
-```bash
-# Sometimes batch download fails, so download critical files individually
-
-# Step 1: Create directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 2: Download config files first
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct generation_config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer_config.json --local-dir . --local-dir-use-symlinks False
-
-# Step 3: Download tokenizer files
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct special_tokens_map.json --local-dir . --local-dir-use-symlinks False
-
-# Step 4: Verify config works before downloading large model files
-python3 -c "from transformers import AutoConfig; config = AutoConfig.from_pretrained('.', trust_remote_code=True); print(f'✅ Config OK: {config.model_type}')"
-
-# Step 5: Only if config works, download model weights (large files)
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct --include "*.safetensors" --local-dir . --local-dir-use-symlinks False
-
-# Step 6: Final verification
-ls -lh
-# Should see all files listed above
-```
-
-#### **After Model Files are Fixed - Recreate Server Script:**
-
-```bash
-# Remove old server file
-rm -f /workspace/llm_server.py
-
-# Create new server with all fixes
-cat > /workspace/llm_server.py << 'EOF'
-from fastapi import FastAPI
-from pydantic import BaseModel
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-import uvicorn
-import os
-
-app = FastAPI()
-MODEL_PATH = os.getenv("MODEL_PATH", "/workspace/models/Meta-Llama-3.1-8B-Instruct")
-
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_quant_type="nf4"
-)
-
-print(f"Loading official Meta Llama model from: {MODEL_PATH}...")
-print("This may take 2-3 minutes on first load...")
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH,
-    quantization_config=quantization_config,
-    device_map="auto",
-    torch_dtype=torch.float16,
-    low_cpu_mem_usage=True,
-    trust_remote_code=True
-)
-print("Model loaded successfully!")
-
-class GenerateRequest(BaseModel):
-    prompt: str
-    max_tokens: int = 250
-
-@app.get("/health")
-async def health():
-    return {
-        "status": "healthy",
-        "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "quantization": "4-bit"
-    }
-
-@app.post("/generate")
-async def generate(request: GenerateRequest):
-    inputs = tokenizer(request.prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=request.max_tokens,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9,
-        pad_token_id=tokenizer.eos_token_id
-    )
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    response = response[len(request.prompt):].strip()
-    return {"generated_text": response}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8888)
-EOF
-
-# Verify file was created
-ls -lh /workspace/llm_server.py
-cat /workspace/llm_server.py | wc -l
-# Should show ~59 lines
-
-echo "✅ Server script created successfully!"
-```
-
----
-
-## 🔧 **Useful Commands Inside RunPod**
-
-### **Monitor GPU Usage**
-```bash
-# Real-time GPU monitoring
-watch -n 1 nvidia-smi
-
-# Press Ctrl+C to exit
-```
-
-### **Check Disk Space**
-```bash
-# Container disk (temporary)
-df -h /
-
-# Volume disk (persistent)
-df -h /workspace
-```
-
-### **View Server Logs**
-```bash
-# If running in screen
-screen -r llm-server
-
-# If using systemd (see below)
-journalctl -u llm-server -f
-```
-
-### **Check Running Processes**
-```bash
-# Check if server is running
-ps aux | grep python
-
-# Check ports
-netstat -tulpn | grep 8888
-```
-
----
-
-## 🛡️ **Production Setup (Keep Server Running 24/7)**
-
-### **Option 1: Screen (Simple)**
-```bash
-# Start
-screen -S llm-server
-python /workspace/llm_server.py
-
-# Detach: Ctrl+A, D
-# Reattach: screen -r llm-server
-```
-
-### **Option 2: Systemd Service (Recommended)**
-```bash
-# Create service file
-cat > /etc/systemd/system/llm-server.service << 'EOF'
-[Unit]
-Description=LLM API Server
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/workspace
-Environment="HF_TOKEN=hf_xxxxxxxxxxxxx"
-Environment="MODEL_NAME=meta-llama/Llama-3.1-8B"
-ExecStart=/usr/bin/python3 /workspace/llm_server.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Reload systemd
-systemctl daemon-reload
-
-# Enable service (start on boot)
-systemctl enable llm-server
-
-# Start service
-systemctl start llm-server
-
-# Check status
-systemctl status llm-server
-
-# View logs
-journalctl -u llm-server -f
-```
-
----
-
-## 📊 **Monitoring & Debugging**
-
-### **Check Model Download Progress**
-```bash
-# Monitor model cache
-du -sh /workspace/models/
-watch -n 5 "du -sh /workspace/models/*"
-```
-
-### **Memory Usage**
-```bash
-# RAM usage
-free -h
-
-# GPU memory
-nvidia-smi --query-gpu=memory.used,memory.total --format=csv
-```
-
-### **Server Health**
-```bash
-# Check if FastAPI is responding
-curl -v http://localhost:8888/health
-
-# Check response time
-time curl http://localhost:8888/health
-```
-
----
-
-## 🆘 **Troubleshooting**
-
-### **Issue: "hf_transfer package is not available" during model download**
-```bash
-# Error: ValueError: Fast download using 'hf_transfer' is enabled but 'hf_transfer' package is not available
-
-# Solution 1: Install hf_transfer (Recommended - much faster downloads)
-pip install hf_transfer
-
-# Then retry the download command
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-
-# Solution 2: Disable fast transfer (slower but works without hf_transfer)
-unset HF_HUB_ENABLE_HF_TRANSFER
-export HF_HUB_ENABLE_HF_TRANSFER=0
-
-# Then retry the download
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-```
-
-### **Issue: "Invalid user token" or "401 Unauthorized"**
-```bash
-# This means your HuggingFace token is invalid, expired, or has wrong permissions
-
-# Step 1: Get a NEW token
-# Go to: https://huggingface.co/settings/tokens
-# Create new token with READ permissions
-
-# Step 2: Clear old cached tokens
-unset HF_TOKEN
-rm -rf ~/.cache/huggingface/token
-
-# Step 3: Login with NEW token
-hf auth login --token hf_YOUR_NEW_TOKEN_HERE
-
-# Step 4: Verify it works
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username and account info, NOT an error
-
-# Step 5: Set environment variable for future use
-export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE
-echo "export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE" >> ~/.bashrc
-```
-
-### **Issue: "HF_TOKEN not found"**
-```bash
-# Set it manually
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxx
-
-# Or login directly
-hf auth login --token hf_xxxxxxxxxxxxxxxxxxxxx
-```
-
-### **Issue: "Out of memory"**
-```bash
-# Check GPU memory
-nvidia-smi
-
-# Reduce max_tokens in generation
-# Edit llm_server.py and change default max_tokens from 250 to 150
-```
-
-### **Issue: "Model download is slow"**
-```bash
-# First download is slow (15GB model)
-# Check progress:
-ls -lh /workspace/models/
-
-# Subsequent runs are instant (model is cached)
-```
-
-### **Issue: "Port 8888 already in use"**
-```bash
-# Check what's using it
-lsof -i :8888
-
-# Kill the process
-kill -9 <PID>
-
-# Or use different port
-python llm_server.py --port 8889
-```
-
-### **Issue: "AttributeError: 'dict' object has no attribute 'model_type'" when starting server**
-
-**This error occurs when model files are incomplete or corrupted during download.**
-
-#### **Quick Fix - Check Model Files First:**
-
-```bash
-# Step 1: Check if config.json exists and is valid
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls -lh config.json
-
-# Step 2: Try to load the config with Python
-python3 << 'EOF'
-import json
-try:
-    with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-        config = json.load(f)
-    print("✅ Config file is valid JSON")
-    print(f"Model type: {config.get('model_type', 'NOT FOUND')}")
-    print(f"Architecture: {config.get('architectures', 'NOT FOUND')}")
-except Exception as e:
-    print(f"❌ Config file is corrupted: {e}")
-EOF
-
-# Step 3: Check if all essential model files exist
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/ | grep -E "config.json|tokenizer|model.*safetensors"
-
-# Expected files:
-# - config.json (should be ~1-2KB)
-# - tokenizer.json (should be ~1-2MB)
-# - tokenizer_config.json
-# - model-*.safetensors (should be multiple GB each)
-
-# Step 4: Check total size and file count
-du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l
-
-# Expected: ~15-30GB total, at least 10-15 files
-```
-
-#### **If Config is Corrupted or Incomplete - Full Fix:**
-
-```bash
-# Step 1: Backup the corrupted model (if needed)
-cd /workspace/models
-mv Meta-Llama-3.1-8B-Instruct Meta-Llama-3.1-8B-Instruct.backup
-
-# Step 2: Create fresh directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 3: Verify you're logged into HuggingFace
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username, NOT an error
-
-# Step 4: Install hf_transfer for reliable downloads (optional but recommended)
-pip install hf_transfer
-
-# Step 5: Re-download the model (this is the most reliable method)
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False \
-  --resume-download
-
-# The --resume-download flag will skip files that are already complete
-
-# Step 6: Monitor download progress (in another terminal)
-watch -n 5 "du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct && echo '---' && ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l"
-
-# Step 7: After download completes, verify config.json
-python3 << 'EOF'
-import json
-from transformers import AutoConfig
-
-# Method 1: Check raw JSON
-with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-    config = json.load(f)
-    print("✅ Config JSON is valid")
-    print(f"   Model type: {config.get('model_type')}")
-    print(f"   Architecture: {config.get('architectures')}")
-
-# Method 2: Load with transformers (this is what the server uses)
-try:
-    config = AutoConfig.from_pretrained('/workspace/models/Meta-Llama-3.1-8B-Instruct', trust_remote_code=True)
-    print("✅ Config loads correctly with transformers")
-    print(f"   Model type: {config.model_type}")
-except Exception as e:
-    print(f"❌ Failed to load with transformers: {e}")
-EOF
-
-# Step 8: Verify all model shards are present
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/*.safetensors
-
-# Should see multiple files like:
-# model-00001-of-00004.safetensors
-# model-00002-of-00004.safetensors
-# etc.
-
-# Step 9: Once verified, recreate the server script (see next section)
-```
-
-#### **Alternative: If Download Keeps Failing - Download Individual Files:**
-
-```bash
-# Sometimes batch download fails, so download critical files individually
-
-# Step 1: Create directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 2: Download config files first
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct generation_config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer_config.json --local-dir . --local-dir-use-symlinks False
-
-# Step 3: Download tokenizer files
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct special_tokens_map.json --local-dir . --local-dir-use-symlinks False
-
-# Step 4: Verify config works before downloading large model files
-python3 -c "from transformers import AutoConfig; config = AutoConfig.from_pretrained('.', trust_remote_code=True); print(f'✅ Config OK: {config.model_type}')"
-
-# Step 5: Only if config works, download model weights (large files)
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct --include "*.safetensors" --local-dir . --local-dir-use-symlinks False
-
-# Step 6: Final verification
-ls -lh
-# Should see all files listed above
-```
-
-#### **After Model Files are Fixed - Recreate Server Script:**
-
-```bash
-# Remove old server file
-rm -f /workspace/llm_server.py
-
-# Create new server with all fixes
-cat > /workspace/llm_server.py << 'EOF'
-from fastapi import FastAPI
-from pydantic import BaseModel
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-import uvicorn
-import os
-
-app = FastAPI()
-MODEL_PATH = os.getenv("MODEL_PATH", "/workspace/models/Meta-Llama-3.1-8B-Instruct")
-
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_quant_type="nf4"
-)
-
-print(f"Loading official Meta Llama model from: {MODEL_PATH}...")
-print("This may take 2-3 minutes on first load...")
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH,
-    quantization_config=quantization_config,
-    device_map="auto",
-    torch_dtype=torch.float16,
-    low_cpu_mem_usage=True,
-    trust_remote_code=True
-)
-print("Model loaded successfully!")
-
-class GenerateRequest(BaseModel):
-    prompt: str
-    max_tokens: int = 250
-
-@app.get("/health")
-async def health():
-    return {
-        "status": "healthy",
-        "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "quantization": "4-bit"
-    }
-
-@app.post("/generate")
-async def generate(request: GenerateRequest):
-    inputs = tokenizer(request.prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=request.max_tokens,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9,
-        pad_token_id=tokenizer.eos_token_id
-    )
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    response = response[len(request.prompt):].strip()
-    return {"generated_text": response}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8888)
-EOF
-
-# Verify file was created
-ls -lh /workspace/llm_server.py
-cat /workspace/llm_server.py | wc -l
-# Should show ~59 lines
-
-echo "✅ Server script created successfully!"
-```
-
----
-
-## 🔧 **Useful Commands Inside RunPod**
-
-### **Monitor GPU Usage**
-```bash
-# Real-time GPU monitoring
-watch -n 1 nvidia-smi
-
-# Press Ctrl+C to exit
-```
-
-### **Check Disk Space**
-```bash
-# Container disk (temporary)
-df -h /
-
-# Volume disk (persistent)
-df -h /workspace
-```
-
-### **View Server Logs**
-```bash
-# If running in screen
-screen -r llm-server
-
-# If using systemd (see below)
-journalctl -u llm-server -f
-```
-
-### **Check Running Processes**
-```bash
-# Check if server is running
-ps aux | grep python
-
-# Check ports
-netstat -tulpn | grep 8888
-```
-
----
-
-## 🛡️ **Production Setup (Keep Server Running 24/7)**
-
-### **Option 1: Screen (Simple)**
-```bash
-# Start
-screen -S llm-server
-python /workspace/llm_server.py
-
-# Detach: Ctrl+A, D
-# Reattach: screen -r llm-server
-```
-
-### **Option 2: Systemd Service (Recommended)**
-```bash
-# Create service file
-cat > /etc/systemd/system/llm-server.service << 'EOF'
-[Unit]
-Description=LLM API Server
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/workspace
-Environment="HF_TOKEN=hf_xxxxxxxxxxxxx"
-Environment="MODEL_NAME=meta-llama/Llama-3.1-8B"
-ExecStart=/usr/bin/python3 /workspace/llm_server.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Reload systemd
-systemctl daemon-reload
-
-# Enable service (start on boot)
-systemctl enable llm-server
-
-# Start service
-systemctl start llm-server
-
-# Check status
-systemctl status llm-server
-
-# View logs
-journalctl -u llm-server -f
-```
-
----
-
-## 📊 **Monitoring & Debugging**
-
-### **Check Model Download Progress**
-```bash
-# Monitor model cache
-du -sh /workspace/models/
-watch -n 5 "du -sh /workspace/models/*"
-```
-
-### **Memory Usage**
-```bash
-# RAM usage
-free -h
-
-# GPU memory
-nvidia-smi --query-gpu=memory.used,memory.total --format=csv
-```
-
-### **Server Health**
-```bash
-# Check if FastAPI is responding
-curl -v http://localhost:8888/health
-
-# Check response time
-time curl http://localhost:8888/health
-```
-
----
-
-## 🆘 **Troubleshooting**
-
-### **Issue: "hf_transfer package is not available" during model download**
-```bash
-# Error: ValueError: Fast download using 'hf_transfer' is enabled but 'hf_transfer' package is not available
-
-# Solution 1: Install hf_transfer (Recommended - much faster downloads)
-pip install hf_transfer
-
-# Then retry the download command
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-
-# Solution 2: Disable fast transfer (slower but works without hf_transfer)
-unset HF_HUB_ENABLE_HF_TRANSFER
-export HF_HUB_ENABLE_HF_TRANSFER=0
-
-# Then retry the download
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-```
-
-### **Issue: "Invalid user token" or "401 Unauthorized"**
-```bash
-# This means your HuggingFace token is invalid, expired, or has wrong permissions
-
-# Step 1: Get a NEW token
-# Go to: https://huggingface.co/settings/tokens
-# Create new token with READ permissions
-
-# Step 2: Clear old cached tokens
-unset HF_TOKEN
-rm -rf ~/.cache/huggingface/token
-
-# Step 3: Login with NEW token
-hf auth login --token hf_YOUR_NEW_TOKEN_HERE
-
-# Step 4: Verify it works
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username and account info, NOT an error
-
-# Step 5: Set environment variable for future use
-export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE
-echo "export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE" >> ~/.bashrc
-```
-
-### **Issue: "HF_TOKEN not found"**
-```bash
-# Set it manually
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxx
-
-# Or login directly
-hf auth login --token hf_xxxxxxxxxxxxxxxxxxxxx
-```
-
-### **Issue: "Out of memory"**
-```bash
-# Check GPU memory
-nvidia-smi
-
-# Reduce max_tokens in generation
-# Edit llm_server.py and change default max_tokens from 250 to 150
-```
-
-### **Issue: "Model download is slow"**
-```bash
-# First download is slow (15GB model)
-# Check progress:
-ls -lh /workspace/models/
-
-# Subsequent runs are instant (model is cached)
-```
-
-### **Issue: "Port 8888 already in use"**
-```bash
-# Check what's using it
-lsof -i :8888
-
-# Kill the process
-kill -9 <PID>
-
-# Or use different port
-python llm_server.py --port 8889
-```
-
-### **Issue: "AttributeError: 'dict' object has no attribute 'model_type'" when starting server**
-
-**This error occurs when model files are incomplete or corrupted during download.**
-
-#### **Quick Fix - Check Model Files First:**
-
-```bash
-# Step 1: Check if config.json exists and is valid
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls -lh config.json
-
-# Step 2: Try to load the config with Python
-python3 << 'EOF'
-import json
-try:
-    with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-        config = json.load(f)
-    print("✅ Config file is valid JSON")
-    print(f"Model type: {config.get('model_type', 'NOT FOUND')}")
-    print(f"Architecture: {config.get('architectures', 'NOT FOUND')}")
-except Exception as e:
-    print(f"❌ Config file is corrupted: {e}")
-EOF
-
-# Step 3: Check if all essential model files exist
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/ | grep -E "config.json|tokenizer|model.*safetensors"
-
-# Expected files:
-# - config.json (should be ~1-2KB)
-# - tokenizer.json (should be ~1-2MB)
-# - tokenizer_config.json
-# - model-*.safetensors (should be multiple GB each)
-
-# Step 4: Check total size and file count
-du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l
-
-# Expected: ~15-30GB total, at least 10-15 files
-```
-
-#### **If Config is Corrupted or Incomplete - Full Fix:**
-
-```bash
-# Step 1: Backup the corrupted model (if needed)
-cd /workspace/models
-mv Meta-Llama-3.1-8B-Instruct Meta-Llama-3.1-8B-Instruct.backup
-
-# Step 2: Create fresh directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 3: Verify you're logged into HuggingFace
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username, NOT an error
-
-# Step 4: Install hf_transfer for reliable downloads (optional but recommended)
-pip install hf_transfer
-
-# Step 5: Re-download the model (this is the most reliable method)
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False \
-  --resume-download
-
-# The --resume-download flag will skip files that are already complete
-
-# Step 6: Monitor download progress (in another terminal)
-watch -n 5 "du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct && echo '---' && ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l"
-
-# Step 7: After download completes, verify config.json
-python3 << 'EOF'
-import json
-from transformers import AutoConfig
-
-# Method 1: Check raw JSON
-with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-    config = json.load(f)
-    print("✅ Config JSON is valid")
-    print(f"   Model type: {config.get('model_type')}")
-    print(f"   Architecture: {config.get('architectures')}")
-
-# Method 2: Load with transformers (this is what the server uses)
-try:
-    config = AutoConfig.from_pretrained('/workspace/models/Meta-Llama-3.1-8B-Instruct', trust_remote_code=True)
-    print("✅ Config loads correctly with transformers")
-    print(f"   Model type: {config.model_type}")
-except Exception as e:
-    print(f"❌ Failed to load with transformers: {e}")
-EOF
-
-# Step 8: Verify all model shards are present
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/*.safetensors
-
-# Should see multiple files like:
-# model-00001-of-00004.safetensors
-# model-00002-of-00004.safetensors
-# etc.
-
-# Step 9: Once verified, recreate the server script (see next section)
-```
-
-#### **Alternative: If Download Keeps Failing - Download Individual Files:**
-
-```bash
-# Sometimes batch download fails, so download critical files individually
-
-# Step 1: Create directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 2: Download config files first
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct generation_config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer_config.json --local-dir . --local-dir-use-symlinks False
-
-# Step 3: Download tokenizer files
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct special_tokens_map.json --local-dir . --local-dir-use-symlinks False
-
-# Step 4: Verify config works before downloading large model files
-python3 -c "from transformers import AutoConfig; config = AutoConfig.from_pretrained('.', trust_remote_code=True); print(f'✅ Config OK: {config.model_type}')"
-
-# Step 5: Only if config works, download model weights (large files)
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct --include "*.safetensors" --local-dir . --local-dir-use-symlinks False
-
-# Step 6: Final verification
-ls -lh
-# Should see all files listed above
-```
-
-#### **After Model Files are Fixed - Recreate Server Script:**
-
-```bash
-# Remove old server file
-rm -f /workspace/llm_server.py
-
-# Create new server with all fixes
-cat > /workspace/llm_server.py << 'EOF'
-from fastapi import FastAPI
-from pydantic import BaseModel
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-import uvicorn
-import os
-
-app = FastAPI()
-MODEL_PATH = os.getenv("MODEL_PATH", "/workspace/models/Meta-Llama-3.1-8B-Instruct")
-
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_quant_type="nf4"
-)
-
-print(f"Loading official Meta Llama model from: {MODEL_PATH}...")
-print("This may take 2-3 minutes on first load...")
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH,
-    quantization_config=quantization_config,
-    device_map="auto",
-    torch_dtype=torch.float16,
-    low_cpu_mem_usage=True,
-    trust_remote_code=True
-)
-print("Model loaded successfully!")
-
-class GenerateRequest(BaseModel):
-    prompt: str
-    max_tokens: int = 250
-
-@app.get("/health")
-async def health():
-    return {
-        "status": "healthy",
-        "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "quantization": "4-bit"
-    }
-
-@app.post("/generate")
-async def generate(request: GenerateRequest):
-    inputs = tokenizer(request.prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=request.max_tokens,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9,
-        pad_token_id=tokenizer.eos_token_id
-    )
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    response = response[len(request.prompt):].strip()
-    return {"generated_text": response}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8888)
-EOF
-
-# Verify file was created
-ls -lh /workspace/llm_server.py
-cat /workspace/llm_server.py | wc -l
-# Should show ~59 lines
-
-echo "✅ Server script created successfully!"
-```
-
----
-
-## 🔧 **Useful Commands Inside RunPod**
-
-### **Monitor GPU Usage**
-```bash
-# Real-time GPU monitoring
-watch -n 1 nvidia-smi
-
-# Press Ctrl+C to exit
-```
-
-### **Check Disk Space**
-```bash
-# Container disk (temporary)
-df -h /
-
-# Volume disk (persistent)
-df -h /workspace
-```
-
-### **View Server Logs**
-```bash
-# If running in screen
-screen -r llm-server
-
-# If using systemd (see below)
-journalctl -u llm-server -f
-```
-
-### **Check Running Processes**
-```bash
-# Check if server is running
-ps aux | grep python
-
-# Check ports
-netstat -tulpn | grep 8888
-```
-
----
-
-## 🛡️ **Production Setup (Keep Server Running 24/7)**
-
-### **Option 1: Screen (Simple)**
-```bash
-# Start
-screen -S llm-server
-python /workspace/llm_server.py
-
-# Detach: Ctrl+A, D
-# Reattach: screen -r llm-server
-```
-
-### **Option 2: Systemd Service (Recommended)**
-```bash
-# Create service file
-cat > /etc/systemd/system/llm-server.service << 'EOF'
-[Unit]
-Description=LLM API Server
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/workspace
-Environment="HF_TOKEN=hf_xxxxxxxxxxxxx"
-Environment="MODEL_NAME=meta-llama/Llama-3.1-8B"
-ExecStart=/usr/bin/python3 /workspace/llm_server.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Reload systemd
-systemctl daemon-reload
-
-# Enable service (start on boot)
-systemctl enable llm-server
-
-# Start service
-systemctl start llm-server
-
-# Check status
-systemctl status llm-server
-
-# View logs
-journalctl -u llm-server -f
-```
-
----
-
-## 📊 **Monitoring & Debugging**
-
-### **Check Model Download Progress**
-```bash
-# Monitor model cache
-du -sh /workspace/models/
-watch -n 5 "du -sh /workspace/models/*"
-```
-
-### **Memory Usage**
-```bash
-# RAM usage
-free -h
-
-# GPU memory
-nvidia-smi --query-gpu=memory.used,memory.total --format=csv
-```
-
-### **Server Health**
-```bash
-# Check if FastAPI is responding
-curl -v http://localhost:8888/health
-
-# Check response time
-time curl http://localhost:8888/health
-```
-
----
-
-## 🆘 **Troubleshooting**
-
-### **Issue: "hf_transfer package is not available" during model download**
-```bash
-# Error: ValueError: Fast download using 'hf_transfer' is enabled but 'hf_transfer' package is not available
-
-# Solution 1: Install hf_transfer (Recommended - much faster downloads)
-pip install hf_transfer
-
-# Then retry the download command
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-
-# Solution 2: Disable fast transfer (slower but works without hf_transfer)
-unset HF_HUB_ENABLE_HF_TRANSFER
-export HF_HUB_ENABLE_HF_TRANSFER=0
-
-# Then retry the download
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-```
-
-### **Issue: "Invalid user token" or "401 Unauthorized"**
-```bash
-# This means your HuggingFace token is invalid, expired, or has wrong permissions
-
-# Step 1: Get a NEW token
-# Go to: https://huggingface.co/settings/tokens
-# Create new token with READ permissions
-
-# Step 2: Clear old cached tokens
-unset HF_TOKEN
-rm -rf ~/.cache/huggingface/token
-
-# Step 3: Login with NEW token
-hf auth login --token hf_YOUR_NEW_TOKEN_HERE
-
-# Step 4: Verify it works
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username and account info, NOT an error
-
-# Step 5: Set environment variable for future use
-export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE
-echo "export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE" >> ~/.bashrc
-```
-
-### **Issue: "HF_TOKEN not found"**
-```bash
-# Set it manually
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxx
-
-# Or login directly
-hf auth login --token hf_xxxxxxxxxxxxxxxxxxxxx
-```
-
-### **Issue: "Out of memory"**
-```bash
-# Check GPU memory
-nvidia-smi
-
-# Reduce max_tokens in generation
-# Edit llm_server.py and change default max_tokens from 250 to 150
-```
-
-### **Issue: "Model download is slow"**
-```bash
-# First download is slow (15GB model)
-# Check progress:
-ls -lh /workspace/models/
-
-# Subsequent runs are instant (model is cached)
-```
-
-### **Issue: "Port 8888 already in use"**
-```bash
-# Check what's using it
-lsof -i :8888
-
-# Kill the process
-kill -9 <PID>
-
-# Or use different port
-python llm_server.py --port 8889
-```
-
-### **Issue: "AttributeError: 'dict' object has no attribute 'model_type'" when starting server**
-
-**This error occurs when model files are incomplete or corrupted during download.**
-
-#### **Quick Fix - Check Model Files First:**
-
-```bash
-# Step 1: Check if config.json exists and is valid
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls -lh config.json
-
-# Step 2: Try to load the config with Python
-python3 << 'EOF'
-import json
-try:
-    with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-        config = json.load(f)
-    print("✅ Config file is valid JSON")
-    print(f"Model type: {config.get('model_type', 'NOT FOUND')}")
-    print(f"Architecture: {config.get('architectures', 'NOT FOUND')}")
-except Exception as e:
-    print(f"❌ Config file is corrupted: {e}")
-EOF
-
-# Step 3: Check if all essential model files exist
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/ | grep -E "config.json|tokenizer|model.*safetensors"
-
-# Expected files:
-# - config.json (should be ~1-2KB)
-# - tokenizer.json (should be ~1-2MB)
-# - tokenizer_config.json
-# - model-*.safetensors (should be multiple GB each)
-
-# Step 4: Check total size and file count
-du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l
-
-# Expected: ~15-30GB total, at least 10-15 files
-```
-
-#### **If Config is Corrupted or Incomplete - Full Fix:**
-
-```bash
-# Step 1: Backup the corrupted model (if needed)
-cd /workspace/models
-mv Meta-Llama-3.1-8B-Instruct Meta-Llama-3.1-8B-Instruct.backup
-
-# Step 2: Create fresh directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 3: Verify you're logged into HuggingFace
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username, NOT an error
-
-# Step 4: Install hf_transfer for reliable downloads (optional but recommended)
-pip install hf_transfer
-
-# Step 5: Re-download the model (this is the most reliable method)
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False \
-  --resume-download
-
-# The --resume-download flag will skip files that are already complete
-
-# Step 6: Monitor download progress (in another terminal)
-watch -n 5 "du -sh /workspace/models/Meta-Llama-3.1-8B-Instruct && echo '---' && ls /workspace/models/Meta-Llama-3.1-8B-Instruct | wc -l"
-
-# Step 7: After download completes, verify config.json
-python3 << 'EOF'
-import json
-from transformers import AutoConfig
-
-# Method 1: Check raw JSON
-with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-    config = json.load(f)
-    print("✅ Config JSON is valid")
-    print(f"   Model type: {config.get('model_type')}")
-    print(f"   Architecture: {config.get('architectures')}")
-
-# Method 2: Load with transformers (this is what the server uses)
-try:
-    config = AutoConfig.from_pretrained('/workspace/models/Meta-Llama-3.1-8B-Instruct', trust_remote_code=True)
-    print("✅ Config loads correctly with transformers")
-    print(f"   Model type: {config.model_type}")
-except Exception as e:
-    print(f"❌ Failed to load with transformers: {e}")
-EOF
-
-# Step 8: Verify all model shards are present
-ls -lh /workspace/models/Meta-Llama-3.1-8B-Instruct/*.safetensors
-
-# Should see multiple files like:
-# model-00001-of-00004.safetensors
-# model-00002-of-00004.safetensors
-# etc.
-
-# Step 9: Once verified, recreate the server script (see next section)
-```
-
-#### **Alternative: If Download Keeps Failing - Download Individual Files:**
-
-```bash
-# Sometimes batch download fails, so download critical files individually
-
-# Step 1: Create directory
-mkdir -p /workspace/models/Meta-Llama-3.1-8B-Instruct
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-
-# Step 2: Download config files first
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct generation_config.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer_config.json --local-dir . --local-dir-use-symlinks False
-
-# Step 3: Download tokenizer files
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct tokenizer.json --local-dir . --local-dir-use-symlinks False
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct special_tokens_map.json --local-dir . --local-dir-use-symlinks False
-
-# Step 4: Verify config works before downloading large model files
-python3 -c "from transformers import AutoConfig; config = AutoConfig.from_pretrained('.', trust_remote_code=True); print(f'✅ Config OK: {config.model_type}')"
-
-# Step 5: Only if config works, download model weights (large files)
-huggingface-cli download meta-llama/Meta-Llama-3.1-8B-Instruct --include "*.safetensors" --local-dir . --local-dir-use-symlinks False
-
-# Step 6: Final verification
-ls -lh
-# Should see all files listed above
-```
-
-#### **After Model Files are Fixed - Recreate Server Script:**
-
-```bash
-# Remove old server file
-rm -f /workspace/llm_server.py
-
-# Create new server with all fixes
-cat > /workspace/llm_server.py << 'EOF'
-from fastapi import FastAPI
-from pydantic import BaseModel
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-import uvicorn
-import os
-
-app = FastAPI()
-MODEL_PATH = os.getenv("MODEL_PATH", "/workspace/models/Meta-Llama-3.1-8B-Instruct")
-
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_quant_type="nf4"
-)
-
-print(f"Loading official Meta Llama model from: {MODEL_PATH}...")
-print("This may take 2-3 minutes on first load...")
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH,
-    quantization_config=quantization_config,
-    device_map="auto",
-    torch_dtype=torch.float16,
-    low_cpu_mem_usage=True,
-    trust_remote_code=True
-)
-print("Model loaded successfully!")
-
-class GenerateRequest(BaseModel):
-    prompt: str
-    max_tokens: int = 250
-
-@app.get("/health")
-async def health():
-    return {
-        "status": "healthy",
-        "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "quantization": "4-bit"
-    }
-
-@app.post("/generate")
-async def generate(request: GenerateRequest):
-    inputs = tokenizer(request.prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=request.max_tokens,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9,
-        pad_token_id=tokenizer.eos_token_id
-    )
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    response = response[len(request.prompt):].strip()
-    return {"generated_text": response}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8888)
-EOF
-
-# Verify file was created
-ls -lh /workspace/llm_server.py
-cat /workspace/llm_server.py | wc -l
-# Should show ~59 lines
-
-echo "✅ Server script created successfully!"
-```
-
----
-
-## 🔧 **Useful Commands Inside RunPod**
-
-### **Monitor GPU Usage**
-```bash
-# Real-time GPU monitoring
-watch -n 1 nvidia-smi
-
-# Press Ctrl+C to exit
-```
-
-### **Check Disk Space**
-```bash
-# Container disk (temporary)
-df -h /
-
-# Volume disk (persistent)
-df -h /workspace
-```
-
-### **View Server Logs**
-```bash
-# If running in screen
-screen -r llm-server
-
-# If using systemd (see below)
-journalctl -u llm-server -f
-```
-
-### **Check Running Processes**
-```bash
-# Check if server is running
-ps aux | grep python
-
-# Check ports
-netstat -tulpn | grep 8888
-```
-
----
-
-## 🛡️ **Production Setup (Keep Server Running 24/7)**
-
-### **Option 1: Screen (Simple)**
-```bash
-# Start
-screen -S llm-server
-python /workspace/llm_server.py
-
-# Detach: Ctrl+A, D
-# Reattach: screen -r llm-server
-```
-
-### **Option 2: Systemd Service (Recommended)**
-```bash
-# Create service file
-cat > /etc/systemd/system/llm-server.service << 'EOF'
-[Unit]
-Description=LLM API Server
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/workspace
-Environment="HF_TOKEN=hf_xxxxxxxxxxxxx"
-Environment="MODEL_NAME=meta-llama/Llama-3.1-8B"
-ExecStart=/usr/bin/python3 /workspace/llm_server.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Reload systemd
-systemctl daemon-reload
-
-# Enable service (start on boot)
-systemctl enable llm-server
-
-# Start service
-systemctl start llm-server
-
-# Check status
-systemctl status llm-server
-
-# View logs
-journalctl -u llm-server -f
-```
-
----
-
-## 📊 **Monitoring & Debugging**
-
-### **Check Model Download Progress**
-```bash
-# Monitor model cache
-du -sh /workspace/models/
-watch -n 5 "du -sh /workspace/models/*"
-```
-
-### **Memory Usage**
-```bash
-# RAM usage
-free -h
-
-# GPU memory
-nvidia-smi --query-gpu=memory.used,memory.total --format=csv
-```
-
-### **Server Health**
-```bash
-# Check if FastAPI is responding
-curl -v http://localhost:8888/health
-
-# Check response time
-time curl http://localhost:8888/health
-```
-
----
-
-## 🆘 **Troubleshooting**
-
-### **Issue: "hf_transfer package is not available" during model download**
-```bash
-# Error: ValueError: Fast download using 'hf_transfer' is enabled but 'hf_transfer' package is not available
-
-# Solution 1: Install hf_transfer (Recommended - much faster downloads)
-pip install hf_transfer
-
-# Then retry the download command
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-
-# Solution 2: Disable fast transfer (slower but works without hf_transfer)
-unset HF_HUB_ENABLE_HF_TRANSFER
-export HF_HUB_ENABLE_HF_TRANSFER=0
-
-# Then retry the download
-huggingface-cli download \
-  meta-llama/Meta-Llama-3.1-8B-Instruct \
-  --local-dir /workspace/models/Meta-Llama-3.1-8B-Instruct \
-  --local-dir-use-symlinks False
-```
-
-### **Issue: "Invalid user token" or "401 Unauthorized"**
-```bash
-# This means your HuggingFace token is invalid, expired, or has wrong permissions
-
-# Step 1: Get a NEW token
-# Go to: https://huggingface.co/settings/tokens
-# Create new token with READ permissions
-
-# Step 2: Clear old cached tokens
-unset HF_TOKEN
-rm -rf ~/.cache/huggingface/token
-
-# Step 3: Login with NEW token
-hf auth login --token hf_YOUR_NEW_TOKEN_HERE
-
-# Step 4: Verify it works
-python3 -c "from huggingface_hub import HfApi; api = HfApi(); print(api.whoami())"
-# Should show your username and account info, NOT an error
-
-# Step 5: Set environment variable for future use
-export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE
-echo "export HF_TOKEN=hf_YOUR_NEW_TOKEN_HERE" >> ~/.bashrc
-```
-
-### **Issue: "HF_TOKEN not found"**
-```bash
-# Set it manually
-export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxx
-
-# Or login directly
-hf auth login --token hf_xxxxxxxxxxxxxxxxxxxxx
-```
-
-### **Issue: "Out of memory"**
-```bash
-# Check GPU memory
-nvidia-smi
-
-# Reduce max_tokens in generation
-# Edit llm_server.py and change default max_tokens from 250 to 150
-```
-
-### **Issue: "Model download is slow"**
-```bash
-# First download is slow (15GB model)
-# Check progress:
-ls -lh /workspace/models/
-
-# Subsequent runs are instant (model is cached)
-```
-
-### **Issue: "Port 8888 already in use"**
-```bash
-# Check what's using it
-lsof -i :8888
-
-# Kill the process
-kill -9 <PID>
-
-# Or use different port
-python llm_server.py --port 8889
-```
-
-### **Issue: "AttributeError: 'dict' object has no attribute 'model_type'" when starting server**
-
-**This error occurs when model files are incomplete or corrupted during download.**
-
-#### **Quick Fix - Check Model Files First:**
-
-```bash
-# Step 1: Check if config.json exists and is valid
-cd /workspace/models/Meta-Llama-3.1-8B-Instruct
-ls -lh config.json
-
-# Step 2: Try to load the config with Python
-python3 << 'EOF'
-import json
-try:
-    with open('/workspace/models/Meta-Llama-3.1-8B-Instruct/config.json', 'r') as f:
-        config = json.load(f)
-    print("✅ Config file is valid JSON")
-    print(f"Model type: {config.get('model_type', 'NOT FOUND')}")
-    print(f"Architecture: {config.get('architectures', 'NOT FOUND')}")
-except Exception as e:
+````
