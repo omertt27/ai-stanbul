@@ -53,7 +53,7 @@ class StartupManager:
             from services.llm import PureLLMCore
             
             try:
-                from backend.services.runpod_llm_client import get_llm_client
+                from services.runpod_llm_client import get_llm_client
                 import os
                 llm_url = os.getenv("LLM_API_URL")
                 logger.info(f"   🔍 LLM_API_URL from env: {llm_url}")
