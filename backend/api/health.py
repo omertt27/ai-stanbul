@@ -101,6 +101,22 @@ async def detailed_health_check():
             "error": str(e)
         }
     
+    # Check Redis Cache
+    try:
+        from services.redis_cache import get_cache_service
+        cache = get_cache_service()
+        cache_stats = await cache.get_stats()
+        health_status["subsystems"]["cache_service"] = {
+            "status": "healthy" if cache_stats.get("enabled") else "degraded",
+            "stats": cache_stats
+        }
+    except Exception as e:
+        logger.error(f"Cache health check failed: {e}")
+        health_status["subsystems"]["cache_service"] = {
+            "status": "unavailable",
+            "error": str(e)
+        }
+    
     return health_status
 
 

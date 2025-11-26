@@ -71,6 +71,7 @@ pydantic-settings>=2.1.0
 
 # Redis with proper version compatibility
 redis==4.6.0
+redis[hiredis]>=4.6.0  # Async support with performance boost
 
 # Structured logging
 structlog==23.2.0

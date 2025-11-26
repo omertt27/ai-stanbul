@@ -18,6 +18,7 @@ class StartupManager:
         self.pure_llm_core = None
         self.recommendation_engine = None
         self.service_manager = None
+        self.redis_cache = None
         self.initialized = False
     
     async def initialize(self):
@@ -26,6 +27,7 @@ class StartupManager:
         logger.info("=" * 60)
         
         try:
+            await self._initialize_redis_cache()
             await self._initialize_service_manager()
             await self._initialize_pure_llm()
             await self._initialize_recommendation_engine()
@@ -38,6 +40,24 @@ class StartupManager:
         except Exception as e:
             logger.error(f"❌ Startup failed: {e}", exc_info=True)
             raise
+    
+    async def _initialize_redis_cache(self):
+        """Initialize Redis cache"""
+        try:
+            logger.info("🔄 Initializing Redis Cache...")
+            from config.settings import settings
+            from services.redis_cache import init_cache
+            
+            self.redis_cache = await init_cache(settings.REDIS_URL)
+            
+            if self.redis_cache.enabled:
+                logger.info("✅ Redis cache initialized successfully")
+            else:
+                logger.warning("⚠️ Redis unavailable - using in-memory cache")
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Redis initialization failed: {e} - using in-memory cache")
+            self.redis_cache = None
     
     async def _initialize_service_manager(self):
         """Initialize service manager with all local services"""
@@ -185,6 +205,17 @@ class StartupManager:
     def get_recommendation_engine(self):
         """Get recommendation engine instance"""
         return self.recommendation_engine
+    
+    async def shutdown(self):
+        """Shutdown all services"""
+        logger.info("👋 Shutting down services...")
+        try:
+            if self.redis_cache:
+                from services.redis_cache import shutdown_cache
+                await shutdown_cache()
+                logger.info("✅ Redis cache closed")
+        except Exception as e:
+            logger.error(f"Error during shutdown: {e}")
 
 
 # Global startup manager

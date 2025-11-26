@@ -77,7 +77,8 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown"""
-    logger.info("👋 Shutting down AI Istanbul Backend")
+    await startup_manager.shutdown()
+    logger.info("👋 AI Istanbul Backend shut down complete")
 
 
 @app.get("/")
