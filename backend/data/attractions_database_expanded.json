@@ -1,0 +1,2302 @@
+{
+  "metadata": {
+    "total_attractions": 60,
+    "categories": [
+      "waterfront",
+      "viewpoint",
+      "art_gallery",
+      "workshop",
+      "cultural_center",
+      "market",
+      "rooftop_bar",
+      "nightlife",
+      "hammam",
+      "hidden_cafe"
+    ],
+    "districts_covered": 15,
+    "last_updated": "2025-10-06",
+    "source": "Istanbul AI Niche Attractions Generator v2.0"
+  },
+  "niche_attractions": [
+    {
+      "id": "attraction_1",
+      "name": "Heritage Spa",
+      "category": "hammam",
+      "district": "Sultanahmet",
+      "address": "Caddesi No:55, Sultanahmet/İstanbul",
+      "latitude": 41.004560808176336,
+      "longitude": 28.969114630553005,
+      "description": "Ottoman-era bathing ritual in the heart of Sultanahmet. Authentic Ottoman experience",
+      "price_range": "moderate-upscale",
+      "rating": 4.4,
+      "opening_hours": "06:00-22:00",
+      "tags": [
+        "hammam",
+        "Sultanahmet",
+        "Istanbul",
+        "traditional",
+        "spa",
+        "authentic",
+        "relaxation"
+      ],
+      "best_time_to_visit": "Morning or early afternoon",
+      "insider_tips": [
+        "Bring your own towel or rent one",
+        "Best to visit during weekdays",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": false,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 282 10 30",
+        "website": null,
+        "social_media": "@heritagespa_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Perfect for winter warmth"
+    },
+    {
+      "id": "attraction_2",
+      "name": "Underground Coffee",
+      "category": "hidden_cafe",
+      "district": "Beyoğlu",
+      "address": "Sokak No:53, Beyoğlu/İstanbul",
+      "latitude": 41.03606609724715,
+      "longitude": 28.978511353021734,
+      "description": "Secret garden setting in the heart of Beyoğlu. Vintage interior design",
+      "price_range": "budget-moderate",
+      "rating": 4.1,
+      "opening_hours": "08:00-22:00",
+      "tags": [
+        "hidden cafe",
+        "Beyoğlu",
+        "Istanbul",
+        "coffee",
+        "local",
+        "cozy",
+        "authentic"
+      ],
+      "best_time_to_visit": "Morning or afternoon",
+      "insider_tips": [
+        "Try the Turkish coffee - it's made traditionally",
+        "Perfect photo opportunity",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 518 52 30",
+        "website": null,
+        "social_media": "@undergroundcoffee_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_3",
+      "name": "Artist Collective",
+      "category": "art_gallery",
+      "district": "Beyoğlu",
+      "address": "Sokak No:89, Beyoğlu/İstanbul",
+      "latitude": 41.03555326996376,
+      "longitude": 28.973747221706567,
+      "description": "International exhibitions in the heart of Beyoğlu. Local and international artists",
+      "price_range": "moderate",
+      "rating": 4.9,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "art gallery",
+        "Beyoğlu",
+        "Istanbul",
+        "art",
+        "culture",
+        "contemporary",
+        "exhibitions"
+      ],
+      "best_time_to_visit": "Weekday afternoons",
+      "insider_tips": [
+        "Check for opening night events",
+        "Ask about seasonal specialties",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 290 58 48",
+        "website": null,
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Special exhibitions during cultural season"
+    },
+    {
+      "id": "attraction_4",
+      "name": "Contemporary Gallery",
+      "category": "art_gallery",
+      "district": "Beyoğlu",
+      "address": "Sokak No:1, Beyoğlu/İstanbul",
+      "latitude": 41.04353679534955,
+      "longitude": 28.99953849051213,
+      "description": "International exhibitions in the heart of Beyoğlu. Artist meet-and-greets",
+      "price_range": "moderate",
+      "rating": 4.4,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "art gallery",
+        "Beyoğlu",
+        "Istanbul",
+        "art",
+        "culture",
+        "contemporary",
+        "exhibitions"
+      ],
+      "best_time_to_visit": "Weekday afternoons",
+      "insider_tips": [
+        "Check for opening night events",
+        "Ask about seasonal specialties",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 233 69 34",
+        "website": null,
+        "social_media": "@contemporarygallery_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Special exhibitions during cultural season"
+    },
+    {
+      "id": "attraction_5",
+      "name": "Traditional Crafts",
+      "category": "workshop",
+      "district": "Galata",
+      "address": "Mahallesi No:37, Galata/İstanbul",
+      "latitude": 41.01585288505582,
+      "longitude": 28.97184998614521,
+      "description": "Learn traditional crafts in the heart of Galata. Expert instruction",
+      "price_range": "moderate",
+      "rating": 4.6,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "workshop",
+        "Galata",
+        "Istanbul",
+        "hands-on",
+        "learning",
+        "crafts",
+        "experience"
+      ],
+      "best_time_to_visit": "Weekends or evenings",
+      "insider_tips": [
+        "Book in advance as spaces are limited",
+        "Best to visit during weekdays",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 324 33 74",
+        "website": "www.traditionalcrafts.com",
+        "social_media": "@traditionalcrafts_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_6",
+      "name": "Rooftop Hideaway",
+      "category": "hidden_cafe",
+      "district": "Galata",
+      "address": "Caddesi No:18, Galata/İstanbul",
+      "latitude": 41.02645360337906,
+      "longitude": 28.975926542075236,
+      "description": "Secret garden setting in the heart of Galata. Features locally roasted coffee",
+      "price_range": "budget-moderate",
+      "rating": 4.2,
+      "opening_hours": "08:00-22:00",
+      "tags": [
+        "hidden cafe",
+        "Galata",
+        "Istanbul",
+        "coffee",
+        "local",
+        "cozy",
+        "authentic"
+      ],
+      "best_time_to_visit": "Morning or afternoon",
+      "insider_tips": [
+        "Try the Turkish coffee - it's made traditionally",
+        "Popular with locals in Galata",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 516 71 79",
+        "website": "www.rooftophideaway.com",
+        "social_media": "@rooftophideaway_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_7",
+      "name": "Secret Garden Cafe Galata",
+      "category": "hidden_cafe",
+      "district": "Galata",
+      "address": "Sokak No:2, Galata/İstanbul",
+      "latitude": 41.01516841500564,
+      "longitude": 28.965373688067835,
+      "description": "Local favorite coffee spot in the heart of Galata. Vintage interior design",
+      "price_range": "budget-moderate",
+      "rating": 4.3,
+      "opening_hours": "08:00-22:00",
+      "tags": [
+        "hidden cafe",
+        "Galata",
+        "Istanbul",
+        "coffee",
+        "local",
+        "cozy",
+        "authentic"
+      ],
+      "best_time_to_visit": "Morning or afternoon",
+      "insider_tips": [
+        "Try the Turkish coffee - it's made traditionally",
+        "Unique to this neighborhood",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 224 14 61",
+        "website": null,
+        "social_media": "@secretgardencafegalata_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_8",
+      "name": "Pottery Studio Galata",
+      "category": "workshop",
+      "district": "Galata",
+      "address": "Sokak No:47, Galata/İstanbul",
+      "latitude": 41.015170855771636,
+      "longitude": 28.969603113315777,
+      "description": "Hands-on cultural experience in the heart of Galata. Take home your creations",
+      "price_range": "moderate",
+      "rating": 4.1,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "workshop",
+        "Galata",
+        "Istanbul",
+        "hands-on",
+        "learning",
+        "crafts",
+        "experience"
+      ],
+      "best_time_to_visit": "Weekends or evenings",
+      "insider_tips": [
+        "Book in advance as spaces are limited",
+        "Unique to this neighborhood",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 291 76 61",
+        "website": null,
+        "social_media": "@potterystudiogalata_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_9",
+      "name": "Panoramic Viewpoint Galata",
+      "category": "viewpoint",
+      "district": "Galata",
+      "address": "Caddesi No:68, Galata/İstanbul",
+      "latitude": 41.031414737145404,
+      "longitude": 28.977572569645957,
+      "description": "Breathtaking city views in the heart of Galata. Popular photography spot",
+      "price_range": "free-budget",
+      "rating": 4.7,
+      "opening_hours": "24 hours",
+      "tags": [
+        "viewpoint",
+        "Galata",
+        "Istanbul",
+        "photography",
+        "views",
+        "scenic",
+        "free"
+      ],
+      "best_time_to_visit": "Sunset or sunrise",
+      "insider_tips": [
+        "Golden hour provides the best lighting",
+        "Popular with locals in Galata",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 340 77 74",
+        "website": null,
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Clear views best in autumn and winter"
+    },
+    {
+      "id": "attraction_10",
+      "name": "Coastal Trail",
+      "category": "waterfront",
+      "district": "Karaköy",
+      "address": "Mahallesi No:98, Karaköy/İstanbul",
+      "latitude": 41.01470813859381,
+      "longitude": 28.971341554226825,
+      "description": "Harbor views in the heart of Karaköy. Maritime views",
+      "price_range": "free",
+      "rating": 4.7,
+      "opening_hours": "24 hours",
+      "tags": [
+        "waterfront",
+        "Karaköy",
+        "Istanbul",
+        "scenic",
+        "walking",
+        "peaceful",
+        "maritime"
+      ],
+      "best_time_to_visit": "Any time",
+      "insider_tips": [
+        "Perfect for a peaceful morning walk",
+        "Perfect photo opportunity",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 590 32 24",
+        "website": null,
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Beautiful in spring and summer"
+    },
+    {
+      "id": "attraction_11",
+      "name": "Underground Club Karaköy",
+      "category": "nightlife",
+      "district": "Karaköy",
+      "address": "Caddesi No:66, Karaköy/İstanbul",
+      "latitude": 41.02757787870956,
+      "longitude": 28.964183026708437,
+      "description": "Live music performances in the heart of Karaköy. Local crowd",
+      "price_range": "moderate-upscale",
+      "rating": 4.1,
+      "opening_hours": "20:00-04:00",
+      "tags": [
+        "nightlife",
+        "Karaköy",
+        "Istanbul",
+        "music",
+        "drinks",
+        "entertainment",
+        "social"
+      ],
+      "best_time_to_visit": "Evening or night",
+      "insider_tips": [
+        "Arrives after 22:00 for the best atmosphere",
+        "Popular with locals in Karaköy",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 372 55 37",
+        "website": "www.undergroundclubkaraköy.com",
+        "social_media": "@undergroundclubkaraköy_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_12",
+      "name": "Bosphorus Views Karaköy",
+      "category": "rooftop_bar",
+      "district": "Karaköy",
+      "address": "Sokak No:36, Karaköy/İstanbul",
+      "latitude": 41.01881306098959,
+      "longitude": 28.98065777052886,
+      "description": "Stunning city views in the heart of Karaköy. DJ performances on weekends",
+      "price_range": "upscale-luxury",
+      "rating": 4.6,
+      "opening_hours": "17:00-02:00",
+      "tags": [
+        "rooftop bar",
+        "Karaköy",
+        "Istanbul",
+        "views",
+        "cocktails",
+        "nightlife",
+        "romantic"
+      ],
+      "best_time_to_visit": "Sunset or evening",
+      "insider_tips": [
+        "Make a reservation for sunset views",
+        "Popular with locals in Karaköy",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 280 37 83",
+        "website": "www.bosphorusviewskaraköy.com",
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Outdoor seating available April-October"
+    },
+    {
+      "id": "attraction_13",
+      "name": "Sky Lounge",
+      "category": "rooftop_bar",
+      "district": "Beşiktaş",
+      "address": "Sokak No:25, Beşiktaş/İstanbul",
+      "latitude": 41.03993976032087,
+      "longitude": 28.996360091345277,
+      "description": "Stunning city views in the heart of Beşiktaş. 360-degree city views",
+      "price_range": "upscale-luxury",
+      "rating": 4.9,
+      "opening_hours": "17:00-02:00",
+      "tags": [
+        "rooftop bar",
+        "Beşiktaş",
+        "Istanbul",
+        "views",
+        "cocktails",
+        "nightlife",
+        "romantic"
+      ],
+      "best_time_to_visit": "Sunset or evening",
+      "insider_tips": [
+        "Make a reservation for sunset views",
+        "Ask about seasonal specialties",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 527 93 49",
+        "website": null,
+        "social_media": "@skylounge_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Outdoor seating available April-October"
+    },
+    {
+      "id": "attraction_14",
+      "name": "Cloud Nine",
+      "category": "rooftop_bar",
+      "district": "Beşiktaş",
+      "address": "Sokak No:61, Beşiktaş/İstanbul",
+      "latitude": 41.03056382063563,
+      "longitude": 29.009845821286326,
+      "description": "Bosphorus panorama in the heart of Beşiktaş. Craft cocktails",
+      "price_range": "upscale-luxury",
+      "rating": 4.2,
+      "opening_hours": "17:00-02:00",
+      "tags": [
+        "rooftop bar",
+        "Beşiktaş",
+        "Istanbul",
+        "views",
+        "cocktails",
+        "nightlife",
+        "romantic"
+      ],
+      "best_time_to_visit": "Sunset or evening",
+      "insider_tips": [
+        "Make a reservation for sunset views",
+        "Best to visit during weekdays",
+        "Popular with locals in Beşiktaş"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 238 64 74",
+        "website": "www.cloudnine.com",
+        "social_media": "@cloudnine_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Outdoor seating available April-October"
+    },
+    {
+      "id": "attraction_15",
+      "name": "Neighborhood Market Kadıköy",
+      "category": "market",
+      "district": "Kadıköy",
+      "address": "Caddesi No:29, Kadıköy/İstanbul",
+      "latitude": 40.97003202460402,
+      "longitude": 29.043247263315358,
+      "description": "Traditional market atmosphere in the heart of Kadıköy. Traditional atmosphere",
+      "price_range": "budget",
+      "rating": 4.3,
+      "opening_hours": "08:00-19:00",
+      "tags": [
+        "market",
+        "Kadıköy",
+        "Istanbul",
+        "shopping",
+        "local",
+        "authentic",
+        "traditional"
+      ],
+      "best_time_to_visit": "Morning hours",
+      "insider_tips": [
+        "Bargaining is expected and welcomed",
+        "Perfect photo opportunity",
+        "Popular with locals in Kadıköy"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 324 46 50",
+        "website": "www.neighborhoodmarketkadıköy.com",
+        "social_media": "@neighborhoodmarketkadıköy_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Busiest during summer tourist season"
+    },
+    {
+      "id": "attraction_16",
+      "name": "Modern Art Space",
+      "category": "art_gallery",
+      "district": "Kadıköy",
+      "address": "Caddesi No:50, Kadıköy/İstanbul",
+      "latitude": 40.98552212162838,
+      "longitude": 29.034265278195814,
+      "description": "Local artist showcase in the heart of Kadıköy. Local and international artists",
+      "price_range": "moderate",
+      "rating": 4.5,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "art gallery",
+        "Kadıköy",
+        "Istanbul",
+        "art",
+        "culture",
+        "contemporary",
+        "exhibitions"
+      ],
+      "best_time_to_visit": "Weekday afternoons",
+      "insider_tips": [
+        "Check for opening night events",
+        "Popular with locals in Kadıköy",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 525 80 78",
+        "website": null,
+        "social_media": "@modernartspace_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Special exhibitions during cultural season"
+    },
+    {
+      "id": "attraction_17",
+      "name": "Artisan Bazaar",
+      "category": "market",
+      "district": "Kadıköy",
+      "address": "Caddesi No:33, Kadıköy/İstanbul",
+      "latitude": 40.99218307861336,
+      "longitude": 29.02876865059692,
+      "description": "Authentic shopping experience in the heart of Kadıköy. Traditional atmosphere",
+      "price_range": "budget",
+      "rating": 4.4,
+      "opening_hours": "08:00-19:00",
+      "tags": [
+        "market",
+        "Kadıköy",
+        "Istanbul",
+        "shopping",
+        "local",
+        "authentic",
+        "traditional"
+      ],
+      "best_time_to_visit": "Morning hours",
+      "insider_tips": [
+        "Bargaining is expected and welcomed",
+        "Perfect photo opportunity",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 567 27 18",
+        "website": "www.artisanbazaar.com",
+        "social_media": "@artisanbazaar_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Busiest during summer tourist season"
+    },
+    {
+      "id": "attraction_18",
+      "name": "Underground Coffee",
+      "category": "hidden_cafe",
+      "district": "Kadıköy",
+      "address": "Sokak No:82, Kadıköy/İstanbul",
+      "latitude": 40.99478222868121,
+      "longitude": 29.019181755838563,
+      "description": "Secret garden setting in the heart of Kadıköy. Vintage interior design",
+      "price_range": "budget-moderate",
+      "rating": 4.8,
+      "opening_hours": "08:00-22:00",
+      "tags": [
+        "hidden cafe",
+        "Kadıköy",
+        "Istanbul",
+        "coffee",
+        "local",
+        "cozy",
+        "authentic"
+      ],
+      "best_time_to_visit": "Morning or afternoon",
+      "insider_tips": [
+        "Try the Turkish coffee - it's made traditionally",
+        "Unique to this neighborhood",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 477 38 54",
+        "website": "www.undergroundcoffee.com",
+        "social_media": "@undergroundcoffee_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_19",
+      "name": "Creative Hub",
+      "category": "art_gallery",
+      "district": "Kadıköy",
+      "address": "Mahallesi No:89, Kadıköy/İstanbul",
+      "latitude": 40.99465800027716,
+      "longitude": 29.027648611180606,
+      "description": "International exhibitions in the heart of Kadıköy. Rotating monthly exhibitions",
+      "price_range": "moderate",
+      "rating": 4.6,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "art gallery",
+        "Kadıköy",
+        "Istanbul",
+        "art",
+        "culture",
+        "contemporary",
+        "exhibitions"
+      ],
+      "best_time_to_visit": "Weekday afternoons",
+      "insider_tips": [
+        "Check for opening night events",
+        "Popular with locals in Kadıköy",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 528 97 54",
+        "website": "www.creativehub.com",
+        "social_media": "@creativehub_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Special exhibitions during cultural season"
+    },
+    {
+      "id": "attraction_20",
+      "name": "Panoramic Viewpoint",
+      "category": "viewpoint",
+      "district": "Üsküdar",
+      "address": "Caddesi No:43, Üsküdar/İstanbul",
+      "latitude": 41.030161329369655,
+      "longitude": 28.992467517282403,
+      "description": "Sunset watching spot in the heart of Üsküdar. Popular photography spot",
+      "price_range": "free-budget",
+      "rating": 4.7,
+      "opening_hours": "24 hours",
+      "tags": [
+        "viewpoint",
+        "Üsküdar",
+        "Istanbul",
+        "photography",
+        "views",
+        "scenic",
+        "free"
+      ],
+      "best_time_to_visit": "Sunset or sunrise",
+      "insider_tips": [
+        "Golden hour provides the best lighting",
+        "Unique to this neighborhood",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 270 40 63",
+        "website": "www.panoramicviewpoint.com",
+        "social_media": "@panoramicviewpoint_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Clear views best in autumn and winter"
+    },
+    {
+      "id": "attraction_21",
+      "name": "Observation Deck Üsküdar",
+      "category": "viewpoint",
+      "district": "Üsküdar",
+      "address": "Sokak No:25, Üsküdar/İstanbul",
+      "latitude": 41.02269674141555,
+      "longitude": 29.015118686811928,
+      "description": "Perfect for photography in the heart of Üsküdar. Best sunset views in the area",
+      "price_range": "free-budget",
+      "rating": 4.2,
+      "opening_hours": "24 hours",
+      "tags": [
+        "viewpoint",
+        "Üsküdar",
+        "Istanbul",
+        "photography",
+        "views",
+        "scenic",
+        "free"
+      ],
+      "best_time_to_visit": "Sunset or sunrise",
+      "insider_tips": [
+        "Golden hour provides the best lighting",
+        "Unique to this neighborhood",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 523 40 23",
+        "website": "www.observationdecküsküdar.com",
+        "social_media": "@observationdecküsküdar_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Clear views best in autumn and winter"
+    },
+    {
+      "id": "attraction_22",
+      "name": "Heritage Center",
+      "category": "cultural_center",
+      "district": "Üsküdar",
+      "address": "Caddesi No:26, Üsküdar/İstanbul",
+      "latitude": 41.011852154693486,
+      "longitude": 28.994715601539784,
+      "description": "Local cultural activities in the heart of Üsküdar. Community gathering place",
+      "price_range": "budget-moderate",
+      "rating": 4.2,
+      "opening_hours": "09:00-17:00",
+      "tags": [
+        "cultural center",
+        "Üsküdar",
+        "Istanbul",
+        "culture",
+        "community",
+        "events",
+        "workshops"
+      ],
+      "best_time_to_visit": "Check event schedule",
+      "insider_tips": [
+        "Join workshops to meet locals",
+        "Perfect photo opportunity",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 556 44 98",
+        "website": "www.heritagecenter.com",
+        "social_media": "@heritagecenter_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_23",
+      "name": "Heritage Spa",
+      "category": "hammam",
+      "district": "Üsküdar",
+      "address": "Sokak No:63, Üsküdar/İstanbul",
+      "latitude": 41.01883647560963,
+      "longitude": 28.992363823214948,
+      "description": "Ottoman-era bathing ritual in the heart of Üsküdar. Professional masseurs",
+      "price_range": "moderate-upscale",
+      "rating": 4.4,
+      "opening_hours": "06:00-22:00",
+      "tags": [
+        "hammam",
+        "Üsküdar",
+        "Istanbul",
+        "traditional",
+        "spa",
+        "authentic",
+        "relaxation"
+      ],
+      "best_time_to_visit": "Morning or early afternoon",
+      "insider_tips": [
+        "Bring your own towel or rent one",
+        "Popular with locals in Üsküdar",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": false,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 388 69 57",
+        "website": null,
+        "social_media": "@heritagespa_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Perfect for winter warmth"
+    },
+    {
+      "id": "attraction_24",
+      "name": "Panoramic Viewpoint Üsküdar",
+      "category": "viewpoint",
+      "district": "Üsküdar",
+      "address": "Sokak No:28, Üsküdar/İstanbul",
+      "latitude": 41.00806686974753,
+      "longitude": 29.013671306971382,
+      "description": "Perfect for photography in the heart of Üsküdar. Popular photography spot",
+      "price_range": "free-budget",
+      "rating": 4.1,
+      "opening_hours": "24 hours",
+      "tags": [
+        "viewpoint",
+        "Üsküdar",
+        "Istanbul",
+        "photography",
+        "views",
+        "scenic",
+        "free"
+      ],
+      "best_time_to_visit": "Sunset or sunrise",
+      "insider_tips": [
+        "Golden hour provides the best lighting",
+        "Ask about seasonal specialties",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 468 74 58",
+        "website": "www.panoramicviewpointüsküdar.com",
+        "social_media": "@panoramicviewpointüsküdar_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Clear views best in autumn and winter"
+    },
+    {
+      "id": "attraction_25",
+      "name": "Live Music Venue",
+      "category": "nightlife",
+      "district": "Şişli",
+      "address": "Caddesi No:59, Şişli/İstanbul",
+      "latitude": 41.062898655229844,
+      "longitude": 28.974515573916328,
+      "description": "Live music performances in the heart of Şişli. Local crowd",
+      "price_range": "moderate-upscale",
+      "rating": 4.4,
+      "opening_hours": "20:00-04:00",
+      "tags": [
+        "nightlife",
+        "Şişli",
+        "Istanbul",
+        "music",
+        "drinks",
+        "entertainment",
+        "social"
+      ],
+      "best_time_to_visit": "Evening or night",
+      "insider_tips": [
+        "Arrives after 22:00 for the best atmosphere",
+        "Best to visit during weekdays",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 356 57 26",
+        "website": null,
+        "social_media": "@livemusicvenue_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_26",
+      "name": "Vista Bar Şişli",
+      "category": "rooftop_bar",
+      "district": "Şişli",
+      "address": "Caddesi No:12, Şişli/İstanbul",
+      "latitude": 41.069059131172715,
+      "longitude": 28.99561471901195,
+      "description": "Stunning city views in the heart of Şişli. Craft cocktails",
+      "price_range": "upscale-luxury",
+      "rating": 4.1,
+      "opening_hours": "17:00-02:00",
+      "tags": [
+        "rooftop bar",
+        "Şişli",
+        "Istanbul",
+        "views",
+        "cocktails",
+        "nightlife",
+        "romantic"
+      ],
+      "best_time_to_visit": "Sunset or evening",
+      "insider_tips": [
+        "Make a reservation for sunset views",
+        "Unique to this neighborhood",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 341 71 35",
+        "website": "www.vistabarşişli.com",
+        "social_media": "@vistabarşişli_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Outdoor seating available April-October"
+    },
+    {
+      "id": "attraction_27",
+      "name": "Secret Garden Cafe Şişli",
+      "category": "hidden_cafe",
+      "district": "Şişli",
+      "address": "Caddesi No:60, Şişli/İstanbul",
+      "latitude": 41.05886557778723,
+      "longitude": 28.980202087763598,
+      "description": "Local favorite coffee spot in the heart of Şişli. Vintage interior design",
+      "price_range": "budget-moderate",
+      "rating": 4.1,
+      "opening_hours": "08:00-22:00",
+      "tags": [
+        "hidden cafe",
+        "Şişli",
+        "Istanbul",
+        "coffee",
+        "local",
+        "cozy",
+        "authentic"
+      ],
+      "best_time_to_visit": "Morning or afternoon",
+      "insider_tips": [
+        "Try the Turkish coffee - it's made traditionally",
+        "Popular with locals in Şişli",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 222 74 25",
+        "website": null,
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_28",
+      "name": "Jazz Lounge Şişli",
+      "category": "nightlife",
+      "district": "Şişli",
+      "address": "Sokak No:39, Şişli/İstanbul",
+      "latitude": 41.06205761700364,
+      "longitude": 28.99785497621413,
+      "description": "Live music performances in the heart of Şişli. Unique atmosphere",
+      "price_range": "moderate-upscale",
+      "rating": 4.7,
+      "opening_hours": "20:00-04:00",
+      "tags": [
+        "nightlife",
+        "Şişli",
+        "Istanbul",
+        "music",
+        "drinks",
+        "entertainment",
+        "social"
+      ],
+      "best_time_to_visit": "Evening or night",
+      "insider_tips": [
+        "Arrives after 22:00 for the best atmosphere",
+        "Ask about seasonal specialties",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 488 95 58",
+        "website": "www.jazzloungeşişli.com",
+        "social_media": "@jazzloungeşişli_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_29",
+      "name": "Contemporary Gallery",
+      "category": "art_gallery",
+      "district": "Nişantaşı",
+      "address": "Mahallesi No:54, Nişantaşı/İstanbul",
+      "latitude": 41.05604685920952,
+      "longitude": 28.981231469122946,
+      "description": "Local artist showcase in the heart of Nişantaşı. Artist meet-and-greets",
+      "price_range": "moderate",
+      "rating": 4.3,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "art gallery",
+        "Nişantaşı",
+        "Istanbul",
+        "art",
+        "culture",
+        "contemporary",
+        "exhibitions"
+      ],
+      "best_time_to_visit": "Weekday afternoons",
+      "insider_tips": [
+        "Check for opening night events",
+        "Ask about seasonal specialties",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 249 56 57",
+        "website": "www.contemporarygallery.com",
+        "social_media": "@contemporarygallery_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Special exhibitions during cultural season"
+    },
+    {
+      "id": "attraction_30",
+      "name": "Cloud Nine",
+      "category": "rooftop_bar",
+      "district": "Nişantaşı",
+      "address": "Sokak No:53, Nişantaşı/İstanbul",
+      "latitude": 41.03789813540884,
+      "longitude": 28.981025357794618,
+      "description": "Stunning city views in the heart of Nişantaşı. DJ performances on weekends",
+      "price_range": "upscale-luxury",
+      "rating": 4.6,
+      "opening_hours": "17:00-02:00",
+      "tags": [
+        "rooftop bar",
+        "Nişantaşı",
+        "Istanbul",
+        "views",
+        "cocktails",
+        "nightlife",
+        "romantic"
+      ],
+      "best_time_to_visit": "Sunset or evening",
+      "insider_tips": [
+        "Make a reservation for sunset views",
+        "Unique to this neighborhood",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 405 87 62",
+        "website": "www.cloudnine.com",
+        "social_media": "@cloudnine_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Outdoor seating available April-October"
+    },
+    {
+      "id": "attraction_31",
+      "name": "Contemporary Gallery",
+      "category": "art_gallery",
+      "district": "Nişantaşı",
+      "address": "Sokak No:24, Nişantaşı/İstanbul",
+      "latitude": 41.04098203552847,
+      "longitude": 28.99325470938415,
+      "description": "International exhibitions in the heart of Nişantaşı. Artist meet-and-greets",
+      "price_range": "moderate",
+      "rating": 4.7,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "art gallery",
+        "Nişantaşı",
+        "Istanbul",
+        "art",
+        "culture",
+        "contemporary",
+        "exhibitions"
+      ],
+      "best_time_to_visit": "Weekday afternoons",
+      "insider_tips": [
+        "Check for opening night events",
+        "Popular with locals in Nişantaşı",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 220 87 29",
+        "website": null,
+        "social_media": "@contemporarygallery_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Special exhibitions during cultural season"
+    },
+    {
+      "id": "attraction_32",
+      "name": "Artist Collective",
+      "category": "art_gallery",
+      "district": "Nişantaşı",
+      "address": "Caddesi No:26, Nişantaşı/İstanbul",
+      "latitude": 41.045237809721584,
+      "longitude": 28.982712322952658,
+      "description": "Local artist showcase in the heart of Nişantaşı. Local and international artists",
+      "price_range": "moderate",
+      "rating": 4.8,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "art gallery",
+        "Nişantaşı",
+        "Istanbul",
+        "art",
+        "culture",
+        "contemporary",
+        "exhibitions"
+      ],
+      "best_time_to_visit": "Weekday afternoons",
+      "insider_tips": [
+        "Check for opening night events",
+        "Ask about seasonal specialties",
+        "Popular with locals in Nişantaşı"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 230 99 95",
+        "website": "www.artistcollective.com",
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Special exhibitions during cultural season"
+    },
+    {
+      "id": "attraction_33",
+      "name": "Creative Hub",
+      "category": "art_gallery",
+      "district": "Nişantaşı",
+      "address": "Sokak No:6, Nişantaşı/İstanbul",
+      "latitude": 41.053877901936225,
+      "longitude": 28.99631431123603,
+      "description": "Local artist showcase in the heart of Nişantaşı. Rotating monthly exhibitions",
+      "price_range": "moderate",
+      "rating": 4.6,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "art gallery",
+        "Nişantaşı",
+        "Istanbul",
+        "art",
+        "culture",
+        "contemporary",
+        "exhibitions"
+      ],
+      "best_time_to_visit": "Weekday afternoons",
+      "insider_tips": [
+        "Check for opening night events",
+        "Ask about seasonal specialties",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 328 36 84",
+        "website": "www.creativehub.com",
+        "social_media": "@creativehub_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Special exhibitions during cultural season"
+    },
+    {
+      "id": "attraction_34",
+      "name": "Sunset Terrace",
+      "category": "rooftop_bar",
+      "district": "Nişantaşı",
+      "address": "Caddesi No:39, Nişantaşı/İstanbul",
+      "latitude": 41.04264691610956,
+      "longitude": 29.00025130763753,
+      "description": "Bosphorus panorama in the heart of Nişantaşı. Craft cocktails",
+      "price_range": "upscale-luxury",
+      "rating": 4.7,
+      "opening_hours": "17:00-02:00",
+      "tags": [
+        "rooftop bar",
+        "Nişantaşı",
+        "Istanbul",
+        "views",
+        "cocktails",
+        "nightlife",
+        "romantic"
+      ],
+      "best_time_to_visit": "Sunset or evening",
+      "insider_tips": [
+        "Make a reservation for sunset views",
+        "Best to visit during weekdays",
+        "Popular with locals in Nişantaşı"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 281 97 55",
+        "website": null,
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Outdoor seating available April-October"
+    },
+    {
+      "id": "attraction_35",
+      "name": "Craft Workshop",
+      "category": "workshop",
+      "district": "Nişantaşı",
+      "address": "Sokak No:80, Nişantaşı/İstanbul",
+      "latitude": 41.0527615251765,
+      "longitude": 28.97894792593581,
+      "description": "Hands-on cultural experience in the heart of Nişantaşı. Take home your creations",
+      "price_range": "moderate",
+      "rating": 4.7,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "workshop",
+        "Nişantaşı",
+        "Istanbul",
+        "hands-on",
+        "learning",
+        "crafts",
+        "experience"
+      ],
+      "best_time_to_visit": "Weekends or evenings",
+      "insider_tips": [
+        "Book in advance as spaces are limited",
+        "Popular with locals in Nişantaşı",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 580 14 11",
+        "website": "www.craftworkshop.com",
+        "social_media": "@craftworkshop_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_36",
+      "name": "Hidden Vista",
+      "category": "viewpoint",
+      "district": "Ortaköy",
+      "address": "Caddesi No:12, Ortaköy/İstanbul",
+      "latitude": 41.05242902819693,
+      "longitude": 29.036430372443643,
+      "description": "Breathtaking city views in the heart of Ortaköy. Best sunset views in the area",
+      "price_range": "free-budget",
+      "rating": 4.7,
+      "opening_hours": "24 hours",
+      "tags": [
+        "viewpoint",
+        "Ortaköy",
+        "Istanbul",
+        "photography",
+        "views",
+        "scenic",
+        "free"
+      ],
+      "best_time_to_visit": "Sunset or sunrise",
+      "insider_tips": [
+        "Golden hour provides the best lighting",
+        "Perfect photo opportunity",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 219 49 66",
+        "website": null,
+        "social_media": "@hiddenvista_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Clear views best in autumn and winter"
+    },
+    {
+      "id": "attraction_37",
+      "name": "Artisan Bazaar",
+      "category": "market",
+      "district": "Ortaköy",
+      "address": "Mahallesi No:16, Ortaköy/İstanbul",
+      "latitude": 41.06763899745225,
+      "longitude": 29.02270912195808,
+      "description": "Local produce and crafts in the heart of Ortaköy. Handmade crafts",
+      "price_range": "budget",
+      "rating": 4.2,
+      "opening_hours": "08:00-19:00",
+      "tags": [
+        "market",
+        "Ortaköy",
+        "Istanbul",
+        "shopping",
+        "local",
+        "authentic",
+        "traditional"
+      ],
+      "best_time_to_visit": "Morning hours",
+      "insider_tips": [
+        "Bargaining is expected and welcomed",
+        "Best to visit during weekdays",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 442 78 19",
+        "website": null,
+        "social_media": "@artisanbazaar_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Busiest during summer tourist season"
+    },
+    {
+      "id": "attraction_38",
+      "name": "Marble Bath Ortaköy",
+      "category": "hammam",
+      "district": "Ortaköy",
+      "address": "Sokak No:45, Ortaköy/İstanbul",
+      "latitude": 41.042183908600556,
+      "longitude": 29.024966503949653,
+      "description": "Traditional marble hammam in the heart of Ortaköy. Traditional marble construction",
+      "price_range": "moderate-upscale",
+      "rating": 4.8,
+      "opening_hours": "06:00-22:00",
+      "tags": [
+        "hammam",
+        "Ortaköy",
+        "Istanbul",
+        "traditional",
+        "spa",
+        "authentic",
+        "relaxation"
+      ],
+      "best_time_to_visit": "Morning or early afternoon",
+      "insider_tips": [
+        "Bring your own towel or rent one",
+        "Perfect photo opportunity",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 435 87 15",
+        "website": "www.marblebathortaköy.com",
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Perfect for winter warmth"
+    },
+    {
+      "id": "attraction_39",
+      "name": "City Overlook",
+      "category": "viewpoint",
+      "district": "Ortaköy",
+      "address": "Sokak No:31, Ortaköy/İstanbul",
+      "latitude": 41.04143437364013,
+      "longitude": 29.02919421540851,
+      "description": "Sunset watching spot in the heart of Ortaköy. Best sunset views in the area",
+      "price_range": "free-budget",
+      "rating": 4.3,
+      "opening_hours": "24 hours",
+      "tags": [
+        "viewpoint",
+        "Ortaköy",
+        "Istanbul",
+        "photography",
+        "views",
+        "scenic",
+        "free"
+      ],
+      "best_time_to_visit": "Sunset or sunrise",
+      "insider_tips": [
+        "Golden hour provides the best lighting",
+        "Perfect photo opportunity",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 313 39 79",
+        "website": "www.cityoverlook.com",
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Clear views best in autumn and winter"
+    },
+    {
+      "id": "attraction_40",
+      "name": "Artisan Bazaar Ortaköy",
+      "category": "market",
+      "district": "Ortaköy",
+      "address": "Caddesi No:93, Ortaköy/İstanbul",
+      "latitude": 41.050619135414934,
+      "longitude": 29.040968606648292,
+      "description": "Local produce and crafts in the heart of Ortaköy. Fresh local produce",
+      "price_range": "budget",
+      "rating": 4.1,
+      "opening_hours": "08:00-19:00",
+      "tags": [
+        "market",
+        "Ortaköy",
+        "Istanbul",
+        "shopping",
+        "local",
+        "authentic",
+        "traditional"
+      ],
+      "best_time_to_visit": "Morning hours",
+      "insider_tips": [
+        "Bargaining is expected and welcomed",
+        "Ask about seasonal specialties",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 441 94 17",
+        "website": "www.artisanbazaarortaköy.com",
+        "social_media": "@artisanbazaarortaköy_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Busiest during summer tourist season"
+    },
+    {
+      "id": "attraction_41",
+      "name": "Heritage Spa",
+      "category": "hammam",
+      "district": "Ortaköy",
+      "address": "Caddesi No:46, Ortaköy/İstanbul",
+      "latitude": 41.06690257772539,
+      "longitude": 29.040405517493326,
+      "description": "Traditional marble hammam in the heart of Ortaköy. Traditional marble construction",
+      "price_range": "moderate-upscale",
+      "rating": 4.9,
+      "opening_hours": "06:00-22:00",
+      "tags": [
+        "hammam",
+        "Ortaköy",
+        "Istanbul",
+        "traditional",
+        "spa",
+        "authentic",
+        "relaxation"
+      ],
+      "best_time_to_visit": "Morning or early afternoon",
+      "insider_tips": [
+        "Bring your own towel or rent one",
+        "Unique to this neighborhood",
+        "Popular with locals in Ortaköy"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": true,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 324 56 41",
+        "website": "www.heritagespa.com",
+        "social_media": "@heritagespa_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Perfect for winter warmth"
+    },
+    {
+      "id": "attraction_42",
+      "name": "Arts Center",
+      "category": "cultural_center",
+      "district": "Balat",
+      "address": "Caddesi No:95, Balat/İstanbul",
+      "latitude": 41.038086555202845,
+      "longitude": 28.961431994259137,
+      "description": "Traditional workshops in the heart of Balat. Community gathering place",
+      "price_range": "budget-moderate",
+      "rating": 4.8,
+      "opening_hours": "09:00-17:00",
+      "tags": [
+        "cultural center",
+        "Balat",
+        "Istanbul",
+        "culture",
+        "community",
+        "events",
+        "workshops"
+      ],
+      "best_time_to_visit": "Check event schedule",
+      "insider_tips": [
+        "Join workshops to meet locals",
+        "Ask about seasonal specialties",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 321 81 90",
+        "website": null,
+        "social_media": "@artscenter_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_43",
+      "name": "Rooftop Hideaway",
+      "category": "hidden_cafe",
+      "district": "Balat",
+      "address": "Sokak No:79, Balat/İstanbul",
+      "latitude": 41.027517612007664,
+      "longitude": 28.948009209754186,
+      "description": "Local favorite coffee spot in the heart of Balat. Vintage interior design",
+      "price_range": "budget-moderate",
+      "rating": 4.4,
+      "opening_hours": "08:00-22:00",
+      "tags": [
+        "hidden cafe",
+        "Balat",
+        "Istanbul",
+        "coffee",
+        "local",
+        "cozy",
+        "authentic"
+      ],
+      "best_time_to_visit": "Morning or afternoon",
+      "insider_tips": [
+        "Try the Turkish coffee - it's made traditionally",
+        "Best to visit during weekdays",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 208 27 92",
+        "website": null,
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_44",
+      "name": "Avant-Garde",
+      "category": "art_gallery",
+      "district": "Balat",
+      "address": "Caddesi No:92, Balat/İstanbul",
+      "latitude": 41.03859476190577,
+      "longitude": 28.949857491284067,
+      "description": "Local artist showcase in the heart of Balat. Rotating monthly exhibitions",
+      "price_range": "moderate",
+      "rating": 4.3,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "art gallery",
+        "Balat",
+        "Istanbul",
+        "art",
+        "culture",
+        "contemporary",
+        "exhibitions"
+      ],
+      "best_time_to_visit": "Weekday afternoons",
+      "insider_tips": [
+        "Check for opening night events",
+        "Ask about seasonal specialties",
+        "Popular with locals in Balat"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 396 15 76",
+        "website": "www.avant-garde.com",
+        "social_media": "@avant-garde_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Special exhibitions during cultural season"
+    },
+    {
+      "id": "attraction_45",
+      "name": "Traditional Crafts",
+      "category": "workshop",
+      "district": "Balat",
+      "address": "Mahallesi No:20, Balat/İstanbul",
+      "latitude": 41.04207118563981,
+      "longitude": 28.934748818442767,
+      "description": "Learn traditional crafts in the heart of Balat. Expert instruction",
+      "price_range": "moderate",
+      "rating": 4.6,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "workshop",
+        "Balat",
+        "Istanbul",
+        "hands-on",
+        "learning",
+        "crafts",
+        "experience"
+      ],
+      "best_time_to_visit": "Weekends or evenings",
+      "insider_tips": [
+        "Book in advance as spaces are limited",
+        "Ask about seasonal specialties",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 417 72 94",
+        "website": null,
+        "social_media": "@traditionalcrafts_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_46",
+      "name": "Textile Workshop",
+      "category": "workshop",
+      "district": "Balat",
+      "address": "Mahallesi No:31, Balat/İstanbul",
+      "latitude": 41.02848071936859,
+      "longitude": 28.959574071087587,
+      "description": "Hands-on cultural experience in the heart of Balat. Expert instruction",
+      "price_range": "moderate",
+      "rating": 4.9,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "workshop",
+        "Balat",
+        "Istanbul",
+        "hands-on",
+        "learning",
+        "crafts",
+        "experience"
+      ],
+      "best_time_to_visit": "Weekends or evenings",
+      "insider_tips": [
+        "Book in advance as spaces are limited",
+        "Perfect photo opportunity",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": true,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 403 37 88",
+        "website": null,
+        "social_media": "@textileworkshop_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_47",
+      "name": "Pottery Studio",
+      "category": "workshop",
+      "district": "Fener",
+      "address": "Caddesi No:58, Fener/İstanbul",
+      "latitude": 41.035386731319704,
+      "longitude": 28.942108759930825,
+      "description": "Learn traditional crafts in the heart of Fener. Expert instruction",
+      "price_range": "moderate",
+      "rating": 4.4,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "workshop",
+        "Fener",
+        "Istanbul",
+        "hands-on",
+        "learning",
+        "crafts",
+        "experience"
+      ],
+      "best_time_to_visit": "Weekends or evenings",
+      "insider_tips": [
+        "Book in advance as spaces are limited",
+        "Popular with locals in Fener",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 493 44 26",
+        "website": null,
+        "social_media": "@potterystudio_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_48",
+      "name": "Panoramic Viewpoint",
+      "category": "viewpoint",
+      "district": "Fener",
+      "address": "Mahallesi No:63, Fener/İstanbul",
+      "latitude": 41.01967290072986,
+      "longitude": 28.94492538613656,
+      "description": "Perfect for photography in the heart of Fener. Best sunset views in the area",
+      "price_range": "free-budget",
+      "rating": 4.4,
+      "opening_hours": "24 hours",
+      "tags": [
+        "viewpoint",
+        "Fener",
+        "Istanbul",
+        "photography",
+        "views",
+        "scenic",
+        "free"
+      ],
+      "best_time_to_visit": "Sunset or sunrise",
+      "insider_tips": [
+        "Golden hour provides the best lighting",
+        "Popular with locals in Fener",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 465 78 52",
+        "website": null,
+        "social_media": null
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Clear views best in autumn and winter"
+    },
+    {
+      "id": "attraction_49",
+      "name": "Artisan Studio",
+      "category": "workshop",
+      "district": "Fener",
+      "address": "Mahallesi No:60, Fener/İstanbul",
+      "latitude": 41.037482669165364,
+      "longitude": 28.947482469358565,
+      "description": "Master artisan instruction in the heart of Fener. Small group sessions",
+      "price_range": "moderate",
+      "rating": 4.7,
+      "opening_hours": "10:00-18:00",
+      "tags": [
+        "workshop",
+        "Fener",
+        "Istanbul",
+        "hands-on",
+        "learning",
+        "crafts",
+        "experience"
+      ],
+      "best_time_to_visit": "Weekends or evenings",
+      "insider_tips": [
+        "Book in advance as spaces are limited",
+        "Unique to this neighborhood",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 232 96 30",
+        "website": null,
+        "social_media": "@artisanstudio_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_50",
+      "name": "Marble Bath",
+      "category": "hammam",
+      "district": "Eminönü",
+      "address": "Sokak No:54, Eminönü/İstanbul",
+      "latitude": 41.00853039192462,
+      "longitude": 28.971550857020947,
+      "description": "Traditional marble hammam in the heart of Eminönü. Professional masseurs",
+      "price_range": "moderate-upscale",
+      "rating": 4.0,
+      "opening_hours": "06:00-22:00",
+      "tags": [
+        "hammam",
+        "Eminönü",
+        "Istanbul",
+        "traditional",
+        "spa",
+        "authentic",
+        "relaxation"
+      ],
+      "best_time_to_visit": "Morning or early afternoon",
+      "insider_tips": [
+        "Bring your own towel or rent one",
+        "Unique to this neighborhood",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 274 14 81",
+        "website": "www.marblebath.com",
+        "social_media": "@marblebath_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Perfect for winter warmth"
+    },
+    {
+      "id": "attraction_51",
+      "name": "Fresh Market Eminönü",
+      "category": "market",
+      "district": "Eminönü",
+      "address": "Caddesi No:1, Eminönü/İstanbul",
+      "latitude": 41.01865471590816,
+      "longitude": 28.98370302408689,
+      "description": "Local produce and crafts in the heart of Eminönü. Handmade crafts",
+      "price_range": "budget",
+      "rating": 4.6,
+      "opening_hours": "08:00-19:00",
+      "tags": [
+        "market",
+        "Eminönü",
+        "Istanbul",
+        "shopping",
+        "local",
+        "authentic",
+        "traditional"
+      ],
+      "best_time_to_visit": "Morning hours",
+      "insider_tips": [
+        "Bargaining is expected and welcomed",
+        "Ask about seasonal specialties",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 344 40 21",
+        "website": null,
+        "social_media": "@freshmarketeminönü_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Busiest during summer tourist season"
+    },
+    {
+      "id": "attraction_52",
+      "name": "Fresh Market",
+      "category": "market",
+      "district": "Eminönü",
+      "address": "Mahallesi No:98, Eminönü/İstanbul",
+      "latitude": 41.01353088256719,
+      "longitude": 28.966837097735134,
+      "description": "Local produce and crafts in the heart of Eminönü. Traditional atmosphere",
+      "price_range": "budget",
+      "rating": 4.8,
+      "opening_hours": "08:00-19:00",
+      "tags": [
+        "market",
+        "Eminönü",
+        "Istanbul",
+        "shopping",
+        "local",
+        "authentic",
+        "traditional"
+      ],
+      "best_time_to_visit": "Morning hours",
+      "insider_tips": [
+        "Bargaining is expected and welcomed",
+        "Ask about seasonal specialties",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 229 85 69",
+        "website": "www.freshmarket.com",
+        "social_media": "@freshmarket_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Busiest during summer tourist season"
+    },
+    {
+      "id": "attraction_53",
+      "name": "Waterfront Promenade",
+      "category": "waterfront",
+      "district": "Eminönü",
+      "address": "Caddesi No:32, Eminönü/İstanbul",
+      "latitude": 41.027065477509296,
+      "longitude": 28.98344857787759,
+      "description": "Maritime atmosphere in the heart of Eminönü. Scenic walking paths",
+      "price_range": "free",
+      "rating": 4.9,
+      "opening_hours": "24 hours",
+      "tags": [
+        "waterfront",
+        "Eminönü",
+        "Istanbul",
+        "scenic",
+        "walking",
+        "peaceful",
+        "maritime"
+      ],
+      "best_time_to_visit": "Any time",
+      "insider_tips": [
+        "Perfect for a peaceful morning walk",
+        "Ask about seasonal specialties",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 501 99 36",
+        "website": null,
+        "social_media": "@waterfrontpromenade_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Beautiful in spring and summer"
+    },
+    {
+      "id": "attraction_54",
+      "name": "Artisan Bazaar Eminönü",
+      "category": "market",
+      "district": "Eminönü",
+      "address": "Mahallesi No:52, Eminönü/İstanbul",
+      "latitude": 41.00294008323959,
+      "longitude": 28.97037886678696,
+      "description": "Authentic shopping experience in the heart of Eminönü. Fresh local produce",
+      "price_range": "budget",
+      "rating": 4.2,
+      "opening_hours": "08:00-19:00",
+      "tags": [
+        "market",
+        "Eminönü",
+        "Istanbul",
+        "shopping",
+        "local",
+        "authentic",
+        "traditional"
+      ],
+      "best_time_to_visit": "Morning hours",
+      "insider_tips": [
+        "Bargaining is expected and welcomed",
+        "Unique to this neighborhood",
+        "Popular with locals in Eminönü"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 591 57 48",
+        "website": null,
+        "social_media": "@artisanbazaareminönü_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Busiest during summer tourist season"
+    },
+    {
+      "id": "attraction_55",
+      "name": "Marina Walk",
+      "category": "waterfront",
+      "district": "Eminönü",
+      "address": "Caddesi No:18, Eminönü/İstanbul",
+      "latitude": 41.02319999019601,
+      "longitude": 28.9580000444797,
+      "description": "Harbor views in the heart of Eminönü. Scenic walking paths",
+      "price_range": "free",
+      "rating": 4.7,
+      "opening_hours": "24 hours",
+      "tags": [
+        "waterfront",
+        "Eminönü",
+        "Istanbul",
+        "scenic",
+        "walking",
+        "peaceful",
+        "maritime"
+      ],
+      "best_time_to_visit": "Any time",
+      "insider_tips": [
+        "Perfect for a peaceful morning walk",
+        "Ask about seasonal specialties",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 530 99 82",
+        "website": "www.marinawalk.com",
+        "social_media": "@marinawalk_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Beautiful in spring and summer"
+    },
+    {
+      "id": "attraction_56",
+      "name": "Authentic Turkish Bath",
+      "category": "hammam",
+      "district": "Fatih",
+      "address": "Caddesi No:51, Fatih/İstanbul",
+      "latitude": 41.01038091837233,
+      "longitude": 28.96116809281731,
+      "description": "Ottoman-era bathing ritual in the heart of Fatih. Professional masseurs",
+      "price_range": "moderate-upscale",
+      "rating": 4.4,
+      "opening_hours": "06:00-22:00",
+      "tags": [
+        "hammam",
+        "Fatih",
+        "Istanbul",
+        "traditional",
+        "spa",
+        "authentic",
+        "relaxation"
+      ],
+      "best_time_to_visit": "Morning or early afternoon",
+      "insider_tips": [
+        "Bring your own towel or rent one",
+        "Popular with locals in Fatih",
+        "Perfect photo opportunity"
+      ],
+      "accessibility": "Limited",
+      "photography_allowed": false,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 204 93 71",
+        "website": "www.authenticturkishbath.com",
+        "social_media": "@authenticturkishbath_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Perfect for winter warmth"
+    },
+    {
+      "id": "attraction_57",
+      "name": "Cultural Foundation",
+      "category": "cultural_center",
+      "district": "Fatih",
+      "address": "Caddesi No:71, Fatih/İstanbul",
+      "latitude": 41.02437186980884,
+      "longitude": 28.94514980257878,
+      "description": "Community events in the heart of Fatih. Community gathering place",
+      "price_range": "budget-moderate",
+      "rating": 4.8,
+      "opening_hours": "09:00-17:00",
+      "tags": [
+        "cultural center",
+        "Fatih",
+        "Istanbul",
+        "culture",
+        "community",
+        "events",
+        "workshops"
+      ],
+      "best_time_to_visit": "Check event schedule",
+      "insider_tips": [
+        "Join workshops to meet locals",
+        "Perfect photo opportunity",
+        "Ask about seasonal specialties"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 361 27 78",
+        "website": "www.culturalfoundation.com",
+        "social_media": "@culturalfoundation_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Open year-round"
+    },
+    {
+      "id": "attraction_58",
+      "name": "Heritage Spa Fatih",
+      "category": "hammam",
+      "district": "Fatih",
+      "address": "Caddesi No:59, Fatih/İstanbul",
+      "latitude": 41.00457651770696,
+      "longitude": 28.962767188868607,
+      "description": "Authentic Turkish bath experience in the heart of Fatih. Traditional marble construction",
+      "price_range": "moderate-upscale",
+      "rating": 4.7,
+      "opening_hours": "06:00-22:00",
+      "tags": [
+        "hammam",
+        "Fatih",
+        "Istanbul",
+        "traditional",
+        "spa",
+        "authentic",
+        "relaxation"
+      ],
+      "best_time_to_visit": "Morning or early afternoon",
+      "insider_tips": [
+        "Bring your own towel or rent one",
+        "Ask about seasonal specialties",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": false,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 201 86 62",
+        "website": "www.heritagespafatih.com",
+        "social_media": "@heritagespafatih_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Perfect for winter warmth"
+    },
+    {
+      "id": "attraction_59",
+      "name": "Heritage Spa",
+      "category": "hammam",
+      "district": "Fatih",
+      "address": "Caddesi No:38, Fatih/İstanbul",
+      "latitude": 41.02070077086613,
+      "longitude": 28.949009055231535,
+      "description": "Traditional marble hammam in the heart of Fatih. Traditional marble construction",
+      "price_range": "moderate-upscale",
+      "rating": 4.4,
+      "opening_hours": "06:00-22:00",
+      "tags": [
+        "hammam",
+        "Fatih",
+        "Istanbul",
+        "traditional",
+        "spa",
+        "authentic",
+        "relaxation"
+      ],
+      "best_time_to_visit": "Morning or early afternoon",
+      "insider_tips": [
+        "Bring your own towel or rent one",
+        "Perfect photo opportunity",
+        "Unique to this neighborhood"
+      ],
+      "accessibility": "Partial",
+      "photography_allowed": true,
+      "reservation_required": true,
+      "contact": {
+        "phone": "(0212) 415 85 95",
+        "website": "www.heritagespa.com",
+        "social_media": "@heritagespa_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Perfect for winter warmth"
+    },
+    {
+      "id": "attraction_60",
+      "name": "Seaside Path",
+      "category": "waterfront",
+      "district": "Bakırköy",
+      "address": "Sokak No:93, Bakırköy/İstanbul",
+      "latitude": 40.987352599487515,
+      "longitude": 28.869615873498308,
+      "description": "Maritime atmosphere in the heart of Bakırköy. Scenic walking paths",
+      "price_range": "free",
+      "rating": 4.4,
+      "opening_hours": "24 hours",
+      "tags": [
+        "waterfront",
+        "Bakırköy",
+        "Istanbul",
+        "scenic",
+        "walking",
+        "peaceful",
+        "maritime"
+      ],
+      "best_time_to_visit": "Any time",
+      "insider_tips": [
+        "Perfect for a peaceful morning walk",
+        "Perfect photo opportunity",
+        "Best to visit during weekdays"
+      ],
+      "accessibility": "Full",
+      "photography_allowed": true,
+      "reservation_required": false,
+      "contact": {
+        "phone": "(0212) 495 21 89",
+        "website": "www.seasidepath.com",
+        "social_media": "@seasidepath_istanbul"
+      },
+      "nearby_attractions": [],
+      "seasonal_notes": "Beautiful in spring and summer"
+    }
+  ]
+}
