@@ -212,10 +212,10 @@ class RunPodLLMClient:
     ) -> Optional[Dict[str, Any]]:
         """Generate using OpenAI-compatible API format (vLLM, RunPod, etc.)"""
         
-        # For Instruct models, use chat completions format
+        # Use standard completions format for vLLM
         payload = {
             "model": self.model_name,
-            "messages": [{"role": "user", "content": prompt}],
+            "prompt": prompt,  # vLLM uses 'prompt' not 'messages'
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": temperature,
             "top_p": top_p
@@ -225,13 +225,15 @@ class RunPodLLMClient:
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         
-        # Use chat/completions endpoint for Instruct models
+        # Use /completions endpoint (vLLM standard)
         url = self.api_url
-        if not url.endswith('/chat/completions'):
+        if not url.endswith('/completions'):
             if '/v1' in url:
-                url = url.rstrip('/') + '/chat/completions'
+                url = url.rstrip('/') + '/completions'
             else:
-                url = url.rstrip('/') + '/v1/chat/completions'
+                url = url.rstrip('/') + '/v1/completions'
+        
+        logger.info(f"🔄 Calling LLM at: {url}")
         
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(
@@ -242,10 +244,10 @@ class RunPodLLMClient:
             response.raise_for_status()
             result = response.json()
             
-            # Extract text from OpenAI chat format
+            # Extract text from vLLM completions format
             if 'choices' in result and len(result['choices']) > 0:
-                message = result['choices'][0].get('message', {})
-                generated_text = message.get('content', '')
+                # vLLM uses 'text' not 'message.content'
+                generated_text = result['choices'][0].get('text', '')
                 logger.info(f"✅ LLM generated {len(generated_text)} chars")
                 return {"generated_text": generated_text, "raw": result}
             else:
