@@ -171,11 +171,16 @@ async def chat(
     # Check if Pure LLM is enabled
     pure_llm_core = startup_manager.get_pure_llm_core()
     
+    logger.info(f"🔍 Chat endpoint called - pure_llm_core exists: {pure_llm_core is not None}")
+    if pure_llm_core:
+        logger.info(f"🔍 LLM client exists: {hasattr(pure_llm_core, 'llm_client') and pure_llm_core.llm_client is not None}")
+    
     if pure_llm_core:
         # Use Pure LLM
         return await pure_llm_chat(request, db)
     else:
         # Fallback to basic response
+        logger.warning("⚠️ Pure LLM Core not available, using fallback")
         return ChatResponse(
             response="Welcome to Istanbul! How can I help you today?",
             session_id=request.session_id or "new",
