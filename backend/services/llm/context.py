@@ -50,6 +50,7 @@ class ContextBuilder:
         events_service=None,
         hidden_gems_service=None,
         map_service=None,
+        service_manager=None,
         circuit_breakers=None,
         timeout_manager=None,
         retry_strategy=None
@@ -64,6 +65,7 @@ class ContextBuilder:
             events_service: Events service
             hidden_gems_service: Hidden gems service
             map_service: Map generation service
+            service_manager: Service Manager with all local services
             circuit_breakers: Dict of circuit breakers for services
             timeout_manager: Timeout manager instance
             retry_strategy: Retry strategy for transient failures
@@ -74,11 +76,14 @@ class ContextBuilder:
         self.events_service = events_service
         self.hidden_gems_service = hidden_gems_service
         self.map_service = map_service
+        self.service_manager = service_manager  # Service Manager for local services
         self.circuit_breakers = circuit_breakers or {}
         self.timeout_manager = timeout_manager
         self.retry_strategy = retry_strategy or RetryStrategy(max_retries=2, base_delay=0.5)
         
         logger.info("✅ Context Builder initialized")
+        if service_manager:
+            logger.info("   📦 Service Manager available for enhanced context building")
     
     async def build_context(
         self,

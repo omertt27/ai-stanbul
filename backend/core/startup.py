@@ -17,6 +17,7 @@ class StartupManager:
     def __init__(self):
         self.pure_llm_core = None
         self.recommendation_engine = None
+        self.service_manager = None
         self.initialized = False
     
     async def initialize(self):
@@ -25,6 +26,7 @@ class StartupManager:
         logger.info("=" * 60)
         
         try:
+            await self._initialize_service_manager()
             await self._initialize_pure_llm()
             await self._initialize_recommendation_engine()
             await self._check_ml_service()
@@ -36,6 +38,24 @@ class StartupManager:
         except Exception as e:
             logger.error(f"❌ Startup failed: {e}", exc_info=True)
             raise
+    
+    async def _initialize_service_manager(self):
+        """Initialize service manager with all local services"""
+        try:
+            logger.info("🔧 Initializing Service Manager...")
+            from services.service_manager import service_manager
+            
+            service_manager.initialize_all()
+            self.service_manager = service_manager
+            
+            # Report status
+            status = service_manager.get_service_status()
+            active_count = sum(1 for v in status.values() if v)
+            logger.info(f"✅ Service Manager ready: {active_count}/{len(status)} services active")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Service Manager initialization failed: {e}")
+            self.service_manager = None
     
     async def _initialize_pure_llm(self):
         """Initialize Pure LLM Handler with resilience features"""
@@ -97,14 +117,15 @@ class StartupManager:
                 }
             }
             
-            # Create Pure LLM Core with circuit breakers, retry, and timeout management
+            # Create Pure LLM Core with circuit breakers, retry, and service manager
             self.pure_llm_core = PureLLMCore(
                 llm_client=llm_client,
                 db_connection=db,
-                config=config
+                config=config,
+                services=self.service_manager  # ← Pass service manager to LLM Core
             )
             
-            logger.info("✅ Pure LLM Core initialized with circuit breakers and resilience patterns")
+            logger.info("✅ Pure LLM Core initialized with circuit breakers, resilience patterns, and local services")
             
         except Exception as e:
             logger.error(f"❌ Failed to initialize Pure LLM: {e}")

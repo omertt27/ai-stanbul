@@ -16,7 +16,8 @@ const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
 
 // Pure LLM API endpoints
 const API_URL = `${cleanBaseUrl}/api/chat`;  // Pure LLM chat endpoint
-const STREAM_API_URL = `${cleanBaseUrl}/api/stream`;  // Streaming endpoint
+// STREAMING NOT IMPLEMENTED IN BACKEND YET
+// const STREAM_API_URL = `${cleanBaseUrl}/api/stream`;  // Streaming endpoint
 const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/v2/restaurants`; // ✅ Fixed: correct endpoint
 const PLACES_API_URL = `${cleanBaseUrl}/api/places`;
 // Chat history endpoints  
@@ -44,7 +45,7 @@ export const clearSession = () => {
 console.log('API Configuration:', {
   BASE_URL: cleanBaseUrl,
   API_URL,
-  STREAM_API_URL,
+  // STREAM_API_URL,  // Not implemented in backend
   RESTAURANTS_API_URL,
   PLACES_API_URL,
   CHAT_HISTORY_API_URL,
@@ -189,6 +190,23 @@ export const fetchUnifiedChat = async (query, options = {}) => {
 };
 
 export const fetchStreamingResults = async (query, onChunk, onComplete = null, onError = null, locationContext = null) => {
+  // STREAMING NOT IMPLEMENTED IN BACKEND YET
+  // Fallback to regular chat API
+  console.warn('⚠️ Streaming not available, using regular chat endpoint');
+  
+  try {
+    const result = await fetchResults(query);
+    if (onChunk) onChunk(result.response || result.message);
+    if (onComplete) onComplete(result.response || result.message);
+    return result;
+  } catch (error) {
+    if (onError) onError(error);
+    throw error;
+  }
+};
+
+/* ORIGINAL STREAMING CODE - COMMENTED OUT UNTIL BACKEND IMPLEMENTS IT
+export const fetchStreamingResults_ORIGINAL = async (query, onChunk, onComplete = null, onError = null, locationContext = null) => {
   return chatCircuitBreaker.call(async () => {
     try {
       console.log('🌊 Starting streaming request to:', STREAM_API_URL);
@@ -301,6 +319,7 @@ export const fetchStreamingResults = async (query, onChunk, onComplete = null, o
     }
   });
 };
+*/
 
 // New chat history management functions
 export const fetchChatHistory = async (sessionId) => {

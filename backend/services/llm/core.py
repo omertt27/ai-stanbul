@@ -90,7 +90,8 @@ class PureLLMCore:
         self,
         llm_client,
         db_connection,
-        config: Optional[Dict[str, Any]] = None
+        config: Optional[Dict[str, Any]] = None,
+        services=None
     ):
         """
         Initialize the Pure LLM Core orchestrator.
@@ -99,15 +100,21 @@ class PureLLMCore:
             llm_client: LLM API client (RunPod, OpenAI, etc.)
             db_connection: Database connection
             config: Configuration dictionary
+            services: Service Manager instance with all local services
         """
         self.llm = llm_client
         self.db = db_connection
         self.config = config or {}
+        self.services = services  # Service Manager for local services
         
         # Initialize all subsystems
         self._initialize_subsystems()
         
         logger.info("🚀 Pure LLM Core initialized successfully")
+        if services:
+            status = services.get_service_status()
+            active = sum(1 for v in status.values() if v)
+            logger.info(f"   📦 Service Manager: {active}/{len(status)} services available")
     
     def _initialize_subsystems(self):
         """Initialize all subsystem modules."""
@@ -182,6 +189,7 @@ class PureLLMCore:
             events_service=self.config.get('events_service'),
             hidden_gems_service=self.config.get('hidden_gems_service'),
             map_service=self.config.get('map_service') or self.config.get('routing_service'),
+            service_manager=self.services,  # Pass service manager for local services
             circuit_breakers=self.circuit_breakers,
             timeout_manager=self.timeout_manager
         )

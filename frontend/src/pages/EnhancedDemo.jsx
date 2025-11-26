@@ -46,11 +46,9 @@ const EnhancedDemo = () => {
 
   const fetchContext = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
-      const response = await fetch(`${cleanApiUrl}/ai/context/${sessionId}`);
-      const data = await response.json();
-      setContext(data);
+      // Context tracking not implemented in backend yet
+      // Using session-based context via chat endpoint instead
+      setContext({ session_id: sessionId, message_count: messages.length });
     } catch (error) {
       console.error('Error fetching context:', error);
     }
@@ -63,12 +61,12 @@ const EnhancedDemo = () => {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
-      const response = await fetch(`${cleanApiUrl}/ai`, {
+      const cleanApiUrl = apiUrl.replace(/\/$/, '');
+      const response = await fetch(`${cleanApiUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          query: message, 
+          message: message,  // backend expects 'message' not 'query'
           session_id: sessionId 
         })
       });
@@ -76,13 +74,14 @@ const EnhancedDemo = () => {
       const data = await response.json();
       const botMessage = { 
         type: 'bot', 
-        content: data.message, 
+        content: data.response || data.message,  // handle both response formats
         timestamp: new Date() 
       };
       
       setMessages(prev => [...prev, botMessage]);
       await fetchContext(); // Update context after each message
     } catch (error) {
+      console.error('Chat error:', error);
       const errorMessage = { 
         type: 'error', 
         content: 'Failed to get response. Please try again.', 
