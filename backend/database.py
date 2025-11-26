@@ -36,6 +36,11 @@ if not DATABASE_URL:
 else:
     print(f"🔒 Using PostgreSQL database connection: {DATABASE_URL[:50]}...")
     # PostgreSQL configuration with connection pooling and security settings
+    # SSL configuration for Render PostgreSQL
+    connect_args = {}
+    if 'render.com' in DATABASE_URL:
+        connect_args['sslmode'] = 'require'
+    
     engine = create_engine(
         DATABASE_URL,
         poolclass=QueuePool,
@@ -43,7 +48,8 @@ else:
         max_overflow=20,  # Additional connections when needed
         pool_pre_ping=True,  # Validate connections before use
         pool_recycle=3600,  # Recycle connections every hour
-        echo=False  # Never log SQL in production
+        echo=False,  # Never log SQL in production
+        connect_args=connect_args
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
