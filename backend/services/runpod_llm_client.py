@@ -99,28 +99,50 @@ class RunPodLLMClient:
                 headers["Authorization"] = f"Bearer {self.api_key}"
             
             async with httpx.AsyncClient(timeout=10.0) as client:
-                # Try common health check endpoints
-                for endpoint in ["/health", "/v1/models", "/"]:
+                # Determine base URL and endpoints to try
+                base_url = self.api_url.rstrip('/')
+                
+                # If URL ends with /v1, try models endpoint directly
+                if base_url.endswith('/v1'):
+                    endpoints = ["/models", "/health", ""]
+                else:
+                    endpoints = ["/v1/models", "/health", "/v1", ""]
+                
+                for endpoint in endpoints:
                     try:
-                        response = await client.get(
-                            f"{self.api_url}{endpoint}",
-                            headers=headers
-                        )
+                        url = f"{base_url}{endpoint}"
+                        logger.debug(f"Trying health check at: {url}")
+                        response = await client.get(url, headers=headers)
                         if response.status_code == 200:
-                            logger.info(f"✅ RunPod health check OK via {endpoint}")
+                            logger.info(f"✅ LLM health check OK via {url}")
+                            
+                            # Try to parse JSON response
+                            try:
+                                response_data = response.json()
+                            except:
+                                response_data = "OK"
+                            
                             return {
                                 "status": "healthy",
+                                "llm_available": True,
                                 "endpoint": self.api_url,
-                                "response": response.json() if response.headers.get("content-type", "").startswith("application/json") else "OK"
+                                "model": self.model_name,
+                                "api_type": self.api_type,
+                                "response": response_data
                             }
-                    except:
+                    except Exception as e:
+                        logger.debug(f"Health check failed at {endpoint}: {e}")
                         continue
                 
-                return {"status": "unknown", "message": "No valid health endpoint found"}
+                return {
+                    "status": "unknown",
+                    "message": f"No valid health endpoint found at {base_url}",
+                    "endpoint": self.api_url
+                }
                 
         except Exception as e:
-            logger.error(f"❌ RunPod LLM health check failed: {e}")
-            return {"status": "unhealthy", "error": str(e)}
+            logger.error(f"❌ LLM health check failed: {e}")
+            return {"status": "unhealthy", "error": str(e), "endpoint": self.api_url}
     
     async def generate(
         self,
