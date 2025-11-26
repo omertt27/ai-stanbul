@@ -42,20 +42,26 @@ def load_restaurants():
             for rest_data in restaurants:
                 try:
                     # Map JSON fields to model fields
+                    # Combine district and address into location
+                    district = rest_data.get('district', '')
+                    address = rest_data.get('address', '')
+                    location_str = f"{district}, {address}" if district and address else (district or address or 'Istanbul')
+                    
+                    # Map budget/price_range to price_level (convert $$$ to 1-4 scale)
+                    budget = rest_data.get('budget') or rest_data.get('price_range', '')
+                    price_level_map = {'$': 1, '$$': 2, '$$$': 3, '$$$$': 4}
+                    price_level = price_level_map.get(budget, 2)  # Default to 2
+                    
                     restaurant = Restaurant(
                         name=rest_data.get('name'),
                         cuisine=rest_data.get('cuisine_type') or rest_data.get('cuisine'),
-                        district=rest_data.get('district'),
-                        address=rest_data.get('address'),
-                        price_range=rest_data.get('budget') or rest_data.get('price_range'),  # $, $$, $$$
+                        location=location_str,
                         rating=float(rest_data.get('rating', 0)) if rest_data.get('rating') else None,
-                        reviews_count=rest_data.get('reviews_count'),
-                        latitude=rest_data.get('latitude'),
-                        longitude=rest_data.get('longitude'),
+                        source='local_database',
+                        description=rest_data.get('description'),
                         phone=rest_data.get('phone'),
                         website=rest_data.get('website'),
-                        description=rest_data.get('description'),
-                        language='en'
+                        price_level=price_level
                     )
                     db.add(restaurant)
                     count += 1
@@ -98,17 +104,42 @@ def load_attractions():
             
             for attr_data in attractions:
                 try:
+                    # Map JSON fields to model fields
+                    # Combine district and address into location
+                    district = attr_data.get('district', '')
+                    address = attr_data.get('address', '')
+                    location_str = f"{district}, {address}" if district and address else (district or address or 'Istanbul')
+                    
+                    # Combine category and description into highlights
+                    category = attr_data.get('category') or attr_data.get('type', '')
+                    description = attr_data.get('description', '')
+                    highlights_str = f"{category}: {description}" if category and description else (description or category)
+                    
+                    # Parse entry fee to float
+                    entry_fee = attr_data.get('entry_fee') or attr_data.get('price')
+                    ticket_price = None
+                    if entry_fee:
+                        try:
+                            # Try to extract numeric value from strings like "150 TL" or "Free"
+                            if isinstance(entry_fee, str):
+                                if 'free' in entry_fee.lower():
+                                    ticket_price = 0.0
+                                else:
+                                    import re
+                                    numbers = re.findall(r'\d+', entry_fee)
+                                    if numbers:
+                                        ticket_price = float(numbers[0])
+                            else:
+                                ticket_price = float(entry_fee)
+                        except:
+                            pass
+                    
                     museum = Museum(
                         name=attr_data.get('name'),
-                        category=attr_data.get('category') or attr_data.get('type'),
-                        district=attr_data.get('district'),
-                        address=attr_data.get('address'),
-                        entry_fee=attr_data.get('entry_fee') or attr_data.get('price'),
-                        rating=float(attr_data.get('rating', 0)) if attr_data.get('rating') else None,
-                        description=attr_data.get('description'),
-                        opening_hours=attr_data.get('opening_hours'),
-                        latitude=attr_data.get('latitude'),
-                        longitude=attr_data.get('longitude')
+                        location=location_str,
+                        hours=attr_data.get('opening_hours'),
+                        ticket_price=ticket_price,
+                        highlights=highlights_str
                     )
                     db.add(museum)
                     count += 1
@@ -144,15 +175,27 @@ def load_events():
         
         for event_data in ISTANBUL_EVENTS:
             try:
+                # Map JSON fields to model fields
+                event_name = event_data.get('name') or event_data.get('title')
+                venue_str = event_data.get('venue') or event_data.get('location')
+                
+                # Use start_date if available, otherwise fall back to 'date'
+                event_date = event_data.get('start_date') or event_data.get('date')
+                
+                # Convert date string to datetime if needed
+                if isinstance(event_date, str):
+                    try:
+                        from datetime import datetime
+                        event_date = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
+                    except:
+                        event_date = None
+                
                 event = Event(
-                    title=event_data.get('name') or event_data.get('title'),
-                    category=event_data.get('category'),
-                    venue=event_data.get('venue') or event_data.get('location'),
-                    district=event_data.get('district'),
-                    start_date=event_data.get('start_date'),
-                    end_date=event_data.get('end_date'),
-                    price=event_data.get('price') or event_data.get('entry_fee'),
-                    description=event_data.get('description')
+                    name=event_name,
+                    venue=venue_str,
+                    date=event_date,
+                    genre=event_data.get('category') or event_data.get('genre'),
+                    biletix_id=event_data.get('event_id') or event_data.get('biletix_id')
                 )
                 db.add(event)
                 count += 1
