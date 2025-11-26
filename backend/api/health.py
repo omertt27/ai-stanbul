@@ -74,11 +74,12 @@ async def detailed_health_check():
     # Check database
     try:
         from database import engine
+        from sqlalchemy import text
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         health_status["subsystems"]["database"] = {
             "status": "healthy",
-            "type": "sqlite"
+            "type": "postgresql"
         }
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
