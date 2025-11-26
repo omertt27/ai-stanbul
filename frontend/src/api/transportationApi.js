@@ -22,7 +22,7 @@
 import { fetchWithRetry, handleApiError } from '../utils/errorHandler';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const CHAT_API_URL = `${BASE_URL}/ai/chat`;
+const CHAT_API_URL = `${BASE_URL}/api/chat`;
 
 /**
  * Get transportation directions between two points

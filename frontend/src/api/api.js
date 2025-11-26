@@ -16,10 +16,11 @@ const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
 
 // Pure LLM API endpoints
 const API_URL = `${cleanBaseUrl}/api/chat`;  // Pure LLM chat endpoint
+const STREAM_API_URL = `${cleanBaseUrl}/api/stream`;  // Streaming endpoint
 const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/v2/restaurants`; // ✅ Fixed: correct endpoint
-const PLACES_API_URL = `${cleanBaseUrl}/places/`;
+const PLACES_API_URL = `${cleanBaseUrl}/api/places`;
 // Chat history endpoints  
-const CHAT_HISTORY_API_URL = `${cleanBaseUrl}/chat/history`;
+const CHAT_HISTORY_API_URL = `${cleanBaseUrl}/api/chat/history`;
 
 // Session management
 export const generateSessionId = () => {
@@ -43,6 +44,7 @@ export const clearSession = () => {
 console.log('API Configuration:', {
   BASE_URL: cleanBaseUrl,
   API_URL,
+  STREAM_API_URL,
   RESTAURANTS_API_URL,
   PLACES_API_URL,
   CHAT_HISTORY_API_URL,
