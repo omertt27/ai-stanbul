@@ -100,7 +100,8 @@ def load_attractions():
     try:
         with open(data_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            attractions = data.get('attractions', [])
+            # Try both 'attractions' and 'niche_attractions' keys
+            attractions = data.get('attractions', []) or data.get('niche_attractions', [])
             
             for attr_data in attractions:
                 try:
@@ -168,34 +169,76 @@ def load_events():
     print("\n🎉 Loading events...")
     
     try:
-        from data.events_database import ISTANBUL_EVENTS
+        # Import available event lists from events_database
+        from data.events_database import WEEKLY_EVENTS, SEASONAL_EVENTS, MONTHLY_EVENTS
         
         db = SessionLocal()
         count = 0
         
-        for event_data in ISTANBUL_EVENTS:
+        # Combine all event sources
+        all_events = []
+        
+        # Process weekly events
+        for event in WEEKLY_EVENTS:
+            name = event.get('name', {})
+            if isinstance(name, dict):
+                name = name.get('en') or name.get('tr', 'Unknown Event')
+            
+            description = event.get('description', {})
+            if isinstance(description, dict):
+                description = description.get('en') or description.get('tr', '')
+            
+            all_events.append({
+                'name': name,
+                'location': event.get('location', 'Istanbul'),
+                'category': event.get('type', 'event'),
+                'description': description
+            })
+        
+        # Process seasonal events
+        for event in SEASONAL_EVENTS:
+            name = event.get('name', {})
+            if isinstance(name, dict):
+                name = name.get('en') or name.get('tr', 'Unknown Event')
+            
+            description = event.get('description', {})
+            if isinstance(description, dict):
+                description = description.get('en') or description.get('tr', '')
+            
+            all_events.append({
+                'name': name,
+                'location': event.get('location', 'Istanbul'),
+                'category': event.get('type', 'event'),
+                'description': description,
+                'month': event.get('month')
+            })
+        
+        # Process monthly events
+        for event in MONTHLY_EVENTS:
+            name = event.get('name', {})
+            if isinstance(name, dict):
+                name = name.get('en') or name.get('tr', 'Unknown Event')
+            
+            description = event.get('description', {})
+            if isinstance(description, dict):
+                description = description.get('en') or description.get('tr', '')
+            
+            all_events.append({
+                'name': name,
+                'location': event.get('location', 'Istanbul'),
+                'category': event.get('type', 'event'),
+                'description': description
+            })
+        
+        # Insert events into database
+        for event_data in all_events:
             try:
-                # Map JSON fields to model fields
-                event_name = event_data.get('name') or event_data.get('title')
-                venue_str = event_data.get('venue') or event_data.get('location')
-                
-                # Use start_date if available, otherwise fall back to 'date'
-                event_date = event_data.get('start_date') or event_data.get('date')
-                
-                # Convert date string to datetime if needed
-                if isinstance(event_date, str):
-                    try:
-                        from datetime import datetime
-                        event_date = datetime.fromisoformat(event_date.replace('Z', '+00:00'))
-                    except:
-                        event_date = None
-                
                 event = Event(
-                    name=event_name,
-                    venue=venue_str,
-                    date=event_date,
-                    genre=event_data.get('category') or event_data.get('genre'),
-                    biletix_id=event_data.get('event_id') or event_data.get('biletix_id')
+                    name=event_data.get('name'),
+                    venue=event_data.get('location'),
+                    date=None,  # These are recurring/seasonal events
+                    genre=event_data.get('category'),
+                    biletix_id=None
                 )
                 db.add(event)
                 count += 1
