@@ -54,9 +54,19 @@ class StartupManager:
             
             try:
                 from backend.services.runpod_llm_client import get_llm_client
+                import os
+                llm_url = os.getenv("LLM_API_URL")
+                logger.info(f"   🔍 LLM_API_URL from env: {llm_url}")
                 llm_client = get_llm_client()
-            except:
-                logger.warning("   ⚠️ RunPod LLM not available")
+                if llm_client and llm_client.enabled:
+                    logger.info(f"   ✅ RunPod LLM Client initialized: {llm_client.api_url}")
+                else:
+                    logger.warning(f"   ⚠️ RunPod LLM Client created but disabled (no URL)")
+                    llm_client = None
+            except Exception as e:
+                logger.error(f"   ❌ RunPod LLM initialization failed: {e}")
+                import traceback
+                traceback.print_exc()
                 llm_client = None
             
             # Get database
