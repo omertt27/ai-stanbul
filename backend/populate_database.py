@@ -181,6 +181,9 @@ def get_table_counts():
         museum_count = db.query(Museum).count()
         event_count = db.query(Event).count()
         return restaurant_count, museum_count, event_count
+    except Exception as e:
+        # Tables don't exist yet
+        return 0, 0, 0
     finally:
         db.close()
 
@@ -198,14 +201,14 @@ def main():
         print("\nGet the URL from: Render Dashboard → PostgreSQL → Internal Database URL")
         sys.exit(1)
     
+    # Create tables first
+    create_tables()
+    
     print(f"\n📊 Current database state:")
     before_restaurants, before_museums, before_events = get_table_counts()
     print(f"  Restaurants: {before_restaurants}")
     print(f"  Museums/Attractions: {before_museums}")
     print(f"  Events: {before_events}")
-    
-    # Create tables
-    create_tables()
     
     # Load data
     restaurants_loaded = load_restaurants()
