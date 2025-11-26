@@ -107,7 +107,7 @@ Guidelines:
 - DISTINGUISH between database facts and general knowledge
 - Be honest about data sources and uncertainty
 - Keep responses concise but comprehensive
-- Use natural, conversational language
+- Use natural, conversational language""",
 
             'tr': """Istanbul AI'sınız, İstanbul için uzman bir seyahat asistanısınız.
 
