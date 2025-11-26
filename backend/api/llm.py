@@ -35,23 +35,33 @@ class LLMTestResponse(BaseModel):
 async def llm_health_check():
     """Check RunPod LLM service health"""
     try:
-        from backend.services.runpod_llm_client import get_llm_client
+        from services.runpod_llm_client import get_llm_client
         
         llm_client = get_llm_client()
+        
+        if not llm_client or not llm_client.enabled:
+            return {
+                "status": "unavailable",
+                "message": "LLM client disabled or not configured",
+                "endpoint": os.getenv("LLM_API_URL", "Not configured")
+            }
+        
         health = await llm_client.health_check()
         return health
         
-    except ImportError:
+    except ImportError as ie:
+        logger.error(f"LLM import error: {ie}")
         return {
             "status": "unavailable",
-            "message": "RunPod LLM client not loaded",
+            "message": f"RunPod LLM client import failed: {str(ie)}",
             "endpoint": os.getenv("LLM_API_URL", "Not configured")
         }
     except Exception as e:
-        logger.error(f"LLM health check error: {e}")
+        logger.error(f"LLM health check error: {e}", exc_info=True)
         return {
             "status": "error",
-            "error": str(e)
+            "error": str(e),
+            "endpoint": os.getenv("LLM_API_URL", "Not configured")
         }
 
 
@@ -59,7 +69,7 @@ async def llm_health_check():
 async def llm_generate_test(request: LLMTestRequest):
     """Test RunPod LLM generation"""
     try:
-        from backend.services.runpod_llm_client import get_llm_client
+        from services.runpod_llm_client import get_llm_client
         
         llm_client = get_llm_client()
         result = await llm_client.generate(
@@ -97,7 +107,7 @@ async def llm_generate_test(request: LLMTestRequest):
 async def llm_istanbul_query(request: LLMTestRequest):
     """Generate Istanbul-specific response using RunPod LLM"""
     try:
-        from backend.services.runpod_llm_client import generate_llm_response
+        from services.runpod_llm_client import generate_llm_response
         
         response_text = await generate_llm_response(
             query=request.prompt,
