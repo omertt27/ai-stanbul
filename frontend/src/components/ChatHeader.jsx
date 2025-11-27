@@ -52,8 +52,8 @@ const ChatHeader = ({
         ? 'bg-gray-900/80 border-gray-700 backdrop-blur-md backdrop-saturate-150' 
         : 'bg-white/80 border-gray-200 backdrop-blur-md backdrop-saturate-150'
     }`}>
-      {/* Left side - Control buttons (ChatGPT style) */}
-      <div className="flex items-center space-x-2">
+      {/* Left side - Control buttons and title (ChatGPT style) */}
+      <div className="flex items-center space-x-3">
         {/* Chat Sessions Button */}
         <button
           onClick={onToggleSessionsPanel}
@@ -153,15 +153,6 @@ const ChatHeader = ({
             </div>
           )}
         </div>
-      </div>
-
-      {/* Center - Title */}
-      <div className="absolute left-1/2 transform -translate-x-1/2">
-        <h1 className={`text-base font-semibold transition-colors duration-200 whitespace-nowrap ${
-          darkMode ? 'text-white' : 'text-gray-900'
-        }`}>
-          KAM Assistant
-        </h1>
       </div>
 
       {/* Right side - Status and dark mode */}
