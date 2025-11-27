@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   fetchUnifiedChat,
@@ -26,10 +27,8 @@ import ChatHeader from './components/ChatHeader';
 import ChatSessionsPanel from './components/ChatSessionsPanel';
 import MapVisualization from './components/MapVisualization';
 import SimpleChatInput from './components/SimpleChatInput';
-import LLMBackendToggle from './components/LLMBackendToggle';
-import LanguageSelector from './components/LanguageSelector';
 
-console.log('🔄 Chatbot component loaded with Pure LLM backend and multi-language support');
+console.log('🔄 Chatbot component loaded');
 
 // Input security and normalization functions - ENHANCED SECURITY
 const sanitizeInput = (input) => {
@@ -476,17 +475,11 @@ const isExplicitPlacesRequest = (userInput) => {
 function Chatbot({ userLocation: propUserLocation }) {
   // Initialize i18next for multi-language support
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   
-  // Pure LLM backend toggle state
-  const [usePureLLM, setUsePureLLM] = useState(() => {
-    try {
-      const saved = localStorage.getItem('use-pure-llm');
-      return saved ? JSON.parse(saved) : false;
-    } catch (error) {
-      console.error('Failed to load Pure LLM preference:', error);
-      return false;
-    }
-  });
+  // Use standard backend (not Pure LLM mode)
+  const usePureLLM = false;
   
   // GPS location state (use prop if provided, otherwise null)
   const [userLocation] = useState(propUserLocation || null);
@@ -688,16 +681,6 @@ function Chatbot({ userLocation: propUserLocation }) {
 
   // Enhanced effect hooks
   useEffect(() => {
-    // Persist Pure LLM preference
-    try {
-      localStorage.setItem('use-pure-llm', JSON.stringify(usePureLLM));
-      console.log(`🦙 Pure LLM mode ${usePureLLM ? 'enabled' : 'disabled'}`);
-    } catch (error) {
-      console.error('Failed to save Pure LLM preference:', error);
-    }
-  }, [usePureLLM]);
-
-  useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
     scrollToBottom();
   }, [messages, isTyping]);
@@ -721,6 +704,24 @@ function Chatbot({ userLocation: propUserLocation }) {
       return () => clearTimeout(timeoutId);
     }
   }, [messages, currentSessionId]);
+
+  // Handle initial query from navigation state (from main page search)
+  useEffect(() => {
+    const initialQuery = location.state?.initialQuery;
+    if (initialQuery && !loading && messages.length === 0) {
+      console.log('🔍 Processing initial query from navigation:', initialQuery);
+      setInput(initialQuery);
+      
+      // Auto-submit the query after a short delay
+      setTimeout(() => {
+        const event = { preventDefault: () => {} };
+        handleSendMessage(event, initialQuery);
+        
+        // Clear the navigation state to prevent resubmission
+        navigate(location.pathname, { replace: true, state: {} });
+      }, 500);
+    }
+  }, [location.state, loading, messages.length]);
 
   useEffect(() => {
     // Monitor scroll position for scroll-to-bottom button
@@ -762,6 +763,18 @@ function Chatbot({ userLocation: propUserLocation }) {
     const interval = setInterval(checkHealth, 30000); // Check every 30 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Handle initial query from navigation state
+  useEffect(() => {
+    const initialQuery = location.state?.from?.search || '';
+    if (initialQuery) {
+      console.log('🔍 Initial query from navigation state:', initialQuery);
+      setInput(initialQuery);
+      
+      // Optionally, you can auto-submit the query
+      // handleSend(initialQuery);
+    }
+  }, [location.state]);
 
   // Enhanced error handling
   const handleError = (error, context = 'unknown', failedMessage = null) => {
@@ -1002,15 +1015,6 @@ function Chatbot({ userLocation: propUserLocation }) {
         onNewSession={handleNewSession}
         onSelectSession={handleSelectSession}
       />
-      
-      {/* Pure LLM Backend Toggle - positioned at top right */}
-      <div className="fixed top-20 right-4 z-40 flex flex-col gap-3">
-        <LanguageSelector darkMode={darkMode} />
-        <LLMBackendToggle
-          usePureLLM={usePureLLM}
-          onToggle={setUsePureLLM}
-        />
-      </div>
       
       {/* Enhanced Header with chat management */}
       <ChatHeader

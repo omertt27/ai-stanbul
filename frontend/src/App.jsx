@@ -153,80 +153,19 @@ const App = () => {
     e.preventDefault();
     if (!query.trim()) return;
     
-    setSearchLoading(true);
-    
     // Track the search event
     trackChatEvent('search_initiated', query);
     
+    // Navigate to chat page with the query
+    navigate('/chat', { state: { initialQuery: query } });
     
-    try {
-      const newMessage = { id: Date.now(), sender: "user", content: query, timestamp: new Date().toISOString() };
-      const updatedMessages = [...messages, newMessage];
-      setMessages(updatedMessages);
-      
-      // Prepare request with user location if available
-      const requestData = { 
-        message: query,
-        user_id: userId || 'anonymous_' + sessionId,
-        session_id: sessionId
-      };
-      
-      // Include GPS location if available
-      if (currentLocation) {
-        requestData.user_location = {
-          lat: currentLocation.lat,
-          lon: currentLocation.lon
-        };
-        console.log('📍 Including GPS location in request:', currentLocation);
-      }
-      
-      // Use new /api/v1/chat endpoint with map support
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_BASE_URL}/api/v1/chat`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ Chat API response:', data);
-      
-      const assistantMessage = {
-        id: Date.now() + 1,
-        sender: "assistant",
-        content: data.response,
-        metadata: data.metadata,
-        map_data: data.map_data, // Include map data
-        timestamp: new Date().toISOString()
-      };
-      
-      setMessages([...updatedMessages, assistantMessage]);
-    } catch (error) {
-      console.error("Chat error:", error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        sender: "assistant",
-        content: "Sorry, there was an error processing your request. Please try again.",
-        timestamp: new Date().toISOString()
-      };
-      setMessages([...messages, newMessage, errorMessage]);
-    }
-
-    // Reset loading state after navigation
-    setTimeout(() => setSearchLoading(false), 1000);
+    // Clear the query after navigation
+    setQuery('');
   };
 
   const handleQuickStart = (quickQuery) => {
-    setQuery(quickQuery);
-    // Store the query for the chat page
-    localStorage.setItem('pending_chat_query', quickQuery);
+    // Navigate to chat page with the quick query
+    navigate('/chat', { state: { initialQuery: quickQuery } });
   };
 
   // Location-based feature handlers
