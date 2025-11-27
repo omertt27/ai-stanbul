@@ -39,10 +39,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "app/api/health.js": {
-      "maxDuration": 10
-    }
-  }
+  ]
 }
