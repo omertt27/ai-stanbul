@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useLocation as useLocationContext } from './contexts/LocationContext';
 import { 
   fetchUnifiedChat,
   fetchUnifiedChatV2,
@@ -28,6 +29,7 @@ import ChatSessionsPanel from './components/ChatSessionsPanel';
 import MapVisualization from './components/MapVisualization';
 import SimpleChatInput from './components/SimpleChatInput';
 import RestaurantCard from './components/RestaurantCard';
+import GPSLocationStatus from './components/GPSLocationStatus';
 
 console.log('🔄 Chatbot component loaded');
 
@@ -482,8 +484,39 @@ function Chatbot({ userLocation: propUserLocation }) {
   // Use standard backend (not Pure LLM mode)
   const usePureLLM = false;
   
-  // GPS location state (use prop if provided, otherwise null)
-  const [userLocation] = useState(propUserLocation || null);
+  // 🌍 GPS Location Context Integration
+  // Get real-time GPS location from LocationContext
+  const {
+    currentLocation,
+    hasLocation,
+    locationLoading,
+    locationError,
+    gpsPermission,
+    neighborhood,
+    locationSource,
+    gpsAccuracy,
+    locationTimestamp,
+    isTracking,
+    requestGPSLocation,
+    formatLocationForAI
+  } = useLocationContext();
+  
+  // GPS location state (prefer LocationContext, fallback to prop)
+  const userLocation = currentLocation || propUserLocation || null;
+  
+  // Log GPS state for debugging
+  useEffect(() => {
+    console.log('🌍 GPS Location State:', {
+      hasLocation,
+      currentLocation,
+      neighborhood,
+      locationSource,
+      gpsAccuracy,
+      gpsPermission,
+      isTracking,
+      locationError: locationError?.message
+    });
+  }, [currentLocation, hasLocation, neighborhood, locationSource, gpsAccuracy, gpsPermission, isTracking, locationError]);
   
   // Enhanced state management
   const [messages, setMessages] = useState(() => {
@@ -954,11 +987,36 @@ function Chatbot({ userLocation: propUserLocation }) {
       console.log('🛡️ Sending SANITIZED input to chat API:', sanitizedInput);
       console.log('🌍 Current language:', i18n.language);
       console.log('🦙 Using Pure LLM:', usePureLLM);
+      console.log('📍 GPS Location data:', {
+        hasLocation,
+        currentLocation,
+        neighborhood,
+        locationSource,
+        gpsAccuracy,
+        timestamp: locationTimestamp
+      });
+      
+      // Prepare comprehensive location data for LLM
+      let locationData = null;
+      if (userLocation && hasLocation) {
+        locationData = {
+          coordinates: userLocation,
+          neighborhood: neighborhood || 'Unknown',
+          source: locationSource || 'manual',
+          accuracy: gpsAccuracy || null,
+          timestamp: locationTimestamp || new Date().toISOString(),
+          // Format for AI consumption
+          formatted: formatLocationForAI ? formatLocationForAI() : null
+        };
+        console.log('📍 Sending location context to LLM:', locationData);
+      } else {
+        console.log('⚠️ No GPS location available for LLM');
+      }
       
       // Use unified chat API V2 which supports backend switching and language
       const chatResponse = await fetchUnifiedChatV2(sanitizedInput, {
         sessionId: getSessionId(),
-        gpsLocation: userLocation, // Pass GPS location if available
+        gpsLocation: locationData, // Pass comprehensive GPS location data
         language: i18n.language, // Pass current language from i18next
         usePureLLM: usePureLLM // Use Pure LLM backend if enabled
       });
@@ -1004,7 +1062,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   };
 
   return (
-    <div className={`flex flex-col h-screen w-full pt-[60px] transition-colors duration-200 ${
+    <div className={`flex flex-col h-screen w-full transition-colors duration-200 ${
       darkMode ? 'bg-gray-900' : 'bg-gray-100'
     }`}>
       
@@ -1018,7 +1076,7 @@ function Chatbot({ userLocation: propUserLocation }) {
         onSelectSession={handleSelectSession}
       />
       
-      {/* Enhanced Header with chat management */}
+      {/* Enhanced Header - Mobile Optimized */}
       <ChatHeader
         darkMode={darkMode}
         onDarkModeToggle={() => setDarkMode(!darkMode)}
@@ -1030,8 +1088,8 @@ function Chatbot({ userLocation: propUserLocation }) {
         sessionId={currentSessionId}
       />
 
-      {/* Chat Messages Container - Full screen like ChatGPT */}
-      <div className="flex-1 overflow-y-auto chat-messages pb-20 md:pb-0" id="chat-messages">
+      {/* Chat Messages Container - Full screen like ChatGPT, adjusted for new header */}
+      <div className="flex-1 overflow-y-auto chat-messages pb-24 md:pb-4 pt-[57px]" id="chat-messages">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center px-4">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
@@ -1046,12 +1104,20 @@ function Chatbot({ userLocation: propUserLocation }) {
             <h2 className={`text-3xl font-bold mb-4 transition-colors duration-200 ${
               darkMode ? 'text-white' : 'text-gray-900'
             }`}>How can I help you today?</h2>
-            <p className={`text-center max-w-2xl text-lg leading-relaxed mb-8 transition-colors duration-200 ${
+            <p className={`text-center max-w-2xl text-lg leading-relaxed mb-4 transition-colors duration-200 ${
               darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               I'm your KAM assistant for exploring Istanbul. Ask me about restaurants, attractions, 
               neighborhoods, culture, history, or anything else about this amazing city!
             </p>
+            
+            {/* GPS Location Status - Compact Mode */}
+            <div className="mb-8 w-full max-w-2xl px-4">
+              <GPSLocationStatus 
+                showDetails={false}
+                className={`justify-center ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}
+              />
+            </div>
             
             {/* Enhanced Sample Cards with Better Light Mode Styling */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full px-4 md:grid md:gap-4 flex md:flex-none overflow-x-auto md:overflow-visible snap-x snap-mandatory scroll-smooth pb-4">
@@ -1122,14 +1188,14 @@ function Chatbot({ userLocation: propUserLocation }) {
           </div>
         )}
             
-        {/* Message Display Area */}
-        <div className="max-w-3xl mx-auto px-4 w-full">
+        {/* Message Display Area - Wider like ChatGPT/Gemini */}
+        <div className="max-w-4xl mx-auto px-4 w-full">
           {messages.map((msg, index) => (
             <div key={msg.id || index} className="group py-6">
               {msg.sender === 'user' ? (
                 // USER MESSAGE - RIGHT ALIGNED (ChatGPT Style)
-                <div className="flex justify-end px-4">
-                  <div className="flex flex-row-reverse items-start gap-3 max-w-[80%]">
+                <div className="flex justify-end">
+                  <div className="flex flex-row-reverse items-start gap-3 max-w-[80%] md:max-w-[70%]">
                     {/* Avatar on right side */}
                     <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                       darkMode 
@@ -1177,8 +1243,8 @@ function Chatbot({ userLocation: propUserLocation }) {
                 </div>
               ) : (
                 // AI MESSAGE - FULL WIDTH (ChatGPT Style)
-                <div className="flex justify-start px-4 md:px-8">
-                  <div className="flex items-start gap-3 w-full max-w-4xl">
+                <div className="flex justify-start">
+                  <div className="flex items-start gap-3 w-full max-w-full">
                     {/* Avatar */}
                     <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
                       darkMode 
@@ -1220,6 +1286,39 @@ function Chatbot({ userLocation: propUserLocation }) {
                               />
                             ))}
                           </div>
+                        </div>
+                      )}
+                      
+                      {/* Map Visualization - Display when message has map/route data */}
+                      {msg.mapData && (msg.mapData.coordinates || msg.mapData.markers || msg.mapData.routes) && (
+                        <div className="mt-4 rounded-xl overflow-hidden border" style={{
+                          borderColor: darkMode ? '#374151' : '#e5e7eb'
+                        }}>
+                          <div className={`px-4 py-3 border-b ${
+                            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                          }`}>
+                            <div className="flex items-center gap-2">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                              </svg>
+                              <span className={`font-medium ${
+                                darkMode ? 'text-gray-200' : 'text-gray-800'
+                              }`}>
+                                {msg.mapData.type === 'route' ? '🗺️ Route Map' : '📍 Location Map'}
+                              </span>
+                              {msg.mapData.route_data && (
+                                <span className={`text-sm px-2 py-1 rounded ${
+                                  darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+                                }`}>
+                                  {msg.mapData.route_data.distance || 'N/A'} • {msg.mapData.route_data.duration || 'N/A'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <MapVisualization 
+                            mapData={msg.mapData}
+                            height="400px"
+                          />
                         </div>
                       )}
                       
@@ -1272,12 +1371,12 @@ function Chatbot({ userLocation: propUserLocation }) {
         darkMode={darkMode}
       />
 
-      {/* Enhanced Input Area - ChatGPT Style - Fixed at bottom on mobile */}
-      <div className={`border-t p-4 md:relative md:bottom-auto md:left-auto md:right-auto fixed bottom-0 left-0 right-0 z-50 transition-colors duration-200 ${
+      {/* Enhanced Input Area - Gemini Style Compact on Mobile */}
+      <div className={`border-t px-3 py-2 md:px-4 md:py-4 md:relative md:bottom-auto md:left-auto md:right-auto fixed bottom-0 left-0 right-0 z-50 transition-colors duration-200 ${
         darkMode 
-          ? 'bg-gray-900 border-gray-700' 
+          ? 'bg-gray-900 border-gray-800' 
           : 'bg-white border-gray-200'
-      }`} style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+      }`} style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
         <div className="max-w-4xl mx-auto">
           <SimpleChatInput
             value={input}
@@ -1287,7 +1386,7 @@ function Chatbot({ userLocation: propUserLocation }) {
             placeholder="Ask about Istanbul..."
             darkMode={darkMode}
           />
-          <div className={`text-xs text-center mt-2.5 opacity-50 transition-colors duration-200 ${
+          <div className={`text-xs text-center mt-1.5 md:mt-2.5 opacity-50 transition-colors duration-200 ${
             darkMode ? 'text-gray-400' : 'text-gray-500'
           }`}>
             AI-powered Istanbul travel assistant

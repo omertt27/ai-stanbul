@@ -15,7 +15,9 @@ Date: January 2025
 """
 
 import logging
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 # Configure logging
 logging.basicConfig(
@@ -52,6 +54,18 @@ app = FastAPI(
 
 # Setup middleware (CORS, logging, error handling)
 setup_middleware(app)
+
+# Mount static files for restaurant photos
+STATIC_DIR = Path(__file__).parent / 'static'
+RESTAURANT_PHOTOS_DIR = STATIC_DIR / 'restaurant_photos'
+
+# Create directories if they don't exist
+STATIC_DIR.mkdir(exist_ok=True)
+RESTAURANT_PHOTOS_DIR.mkdir(exist_ok=True)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+logger.info(f"✅ Static files mounted at /static -> {STATIC_DIR}")
 
 # Register API routers
 app.include_router(health.router)

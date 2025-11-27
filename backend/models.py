@@ -47,6 +47,8 @@ class Restaurant(Base):
     phone = Column(String)
     website = Column(String)
     price_level = Column(Integer)
+    photo_url = Column(String)  # Local or CDN URL to stored photo
+    photo_reference = Column(String)  # Google Places photo reference (for future updates)
 
 class Event(Base):
     __tablename__ = "events"

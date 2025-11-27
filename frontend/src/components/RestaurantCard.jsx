@@ -3,18 +3,48 @@ import React from 'react';
 /**
  * Restaurant Card Component
  * Displays restaurant information with photo in chat responses
+ * 
+ * Photo Strategy:
+ * 1. Use local photo_url if available (pre-fetched, faster, no API cost)
+ * 2. Fall back to Google Places API photo_reference (real-time, costs API quota)
+ * 3. Show placeholder if no photos available
  */
 const RestaurantCard = ({ restaurant, index }) => {
-  // Get photo URL from Google Places API
-  const getPhotoUrl = (photoReference) => {
-    if (!photoReference) return null;
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photoReference}&key=${apiKey}`;
+  // Get backend API URL
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://ai-stanbul.onrender.com';
+  
+  // Get photo URL - prioritize local stored photos
+  const getPhotoUrl = () => {
+    // 1. Try local stored photo (best: no API cost, faster)
+    if (restaurant.photo_url) {
+      // If it's a relative path, prepend backend URL
+      if (restaurant.photo_url.startsWith('/static/') || restaurant.photo_url.startsWith('/')) {
+        return `${API_BASE_URL}${restaurant.photo_url}`;
+      }
+      // If it's already a full URL, use it as-is
+      return restaurant.photo_url;
+    }
+    
+    // 2. Fall back to Google Places photo reference (costs API quota)
+    if (restaurant.photos && restaurant.photos.length > 0) {
+      const photoRef = restaurant.photos[0].photo_reference || restaurant.photos[0];
+      if (photoRef) {
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+        return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photoRef}&key=${apiKey}`;
+      }
+    }
+    
+    // 3. Try photo_reference field directly (legacy support)
+    if (restaurant.photo_reference) {
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${restaurant.photo_reference}&key=${apiKey}`;
+    }
+    
+    // 4. No photo available
+    return null;
   };
 
-  const photoUrl = restaurant.photos && restaurant.photos.length > 0 
-    ? getPhotoUrl(restaurant.photos[0].photo_reference || restaurant.photos[0])
-    : null;
+  const photoUrl = getPhotoUrl();
 
   const priceLevel = restaurant.price_level;
   const priceSymbols = ['💰', '💰💰', '💰💰💰', '💰💰💰💰'];
