@@ -431,10 +431,12 @@ const App = () => {
             </div>
           )}
           
-          {/* Interactive Main Page Content - Show on all devices including mobile */}
-          <div>
-            <InteractiveMainPage onQuickStart={handleQuickStart} />
-          </div>
+          {/* Interactive Main Page Content - Only show when no messages */}
+          {messages.length === 0 && (
+            <div>
+              <InteractiveMainPage onQuickStart={handleQuickStart} />
+            </div>
+          )}
           
           {/* Districts and interactive content now visible on all devices */}
         </div>
