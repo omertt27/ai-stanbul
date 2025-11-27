@@ -563,7 +563,7 @@ export const planJourneyFromGPS = async (gpsLat, gpsLng, destination, options = 
 // Health check utility
 export const checkApiHealth = async () => {
   try {
-    const healthUrl = `${cleanBaseUrl}/health`;
+    const healthUrl = `${cleanBaseUrl}/api/health`;
     const response = await fetchWithRetry(healthUrl, {
       method: 'GET',
       timeout: 5000

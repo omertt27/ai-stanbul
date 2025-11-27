@@ -26,7 +26,7 @@
 
 ## 📁 Files Ready to Commit
 
-### Code Changes (4 files)
+### Code Changes (5 files)
 ```
 1. ✅ frontend/src/Chatbot.jsx
    - Header padding: 60px
@@ -34,10 +34,10 @@
    - Smooth scroll for cards
 
 2. ✅ frontend/src/components/ChatHeader.jsx
+   - ChatGPT-style layout (buttons on left, title center)
    - Fixed height: 60px
    - Backdrop blur effect
    - 44px touch targets
-   - Larger icons
 
 3. ✅ frontend/src/index.css
    - Scrollbar hiding (mobile)
@@ -46,18 +46,22 @@
    - Touch manipulation
 
 4. ✅ frontend/vercel.json
-   - Fixed CSP policy
+   - Fixed CSP policy (Google Fonts added)
    - Fixed MIME types
    - Proper asset routing
+
+5. ✅ frontend/src/api/api.js
+   - Fixed health endpoint: /health → /api/health
 ```
 
-### Documentation (5 files)
+### Documentation (6 files)
 ```
 5. ✅ PHASE2_HEADER_UI_POLISH_COMPLETE.md (Technical details)
 6. ✅ PHASE2_QUICK_SUMMARY.md (Quick reference)
 7. ✅ PHASE2_COMPLETE_STATUS.md (Progress tracker)
 8. ✅ CSP_MIME_TYPE_FIX.md (Bug fix details)
 9. ✅ TESTING_DEPLOYMENT_CHECKLIST.md (Testing guide)
+10. ✅ BUGFIX_HEALTH_CSP.md (Latest bug fixes)
 ```
 
 ---
@@ -69,9 +73,9 @@
 - Not open? Launch it now
 
 ### Step 2: Review Changes
-You should see **9 modified files**:
-- ✅ 4 code files (green checkmarks)
-- ✅ 5 documentation files (green checkmarks)
+You should see **11 modified files**:
+- ✅ 5 code files (green checkmarks)
+- ✅ 6 documentation files (green checkmarks)
 
 ### Step 3: Stage All Files
 - Click "Commit to main" at bottom-left
@@ -79,13 +83,13 @@ You should see **9 modified files**:
 
 ### Step 4: Copy This Commit Message
 ```
-feat: Complete Phase 2 mobile enhancements + CSP fixes
+feat: Complete Phase 2 + ChatGPT header + critical bug fixes
 
 🎯 Phase 2 Header Optimization:
 - Reduced header height from 64px to 60px for more chat space
 - Added iOS-style backdrop blur effect (semi-transparent + blur)
 - Increased touch targets to 44px on mobile (Apple HIG compliant)
-- Made all icons larger (20px from 16px) for better visibility
+- ChatGPT-style layout: buttons left, title center, status right
 
 🎨 Phase 2 UI Polish:
 - Hide scrollbar on mobile while showing thin bar on desktop
@@ -94,11 +98,15 @@ feat: Complete Phase 2 mobile enhancements + CSP fixes
 - Implemented touch-manipulation for better mobile performance
 
 🔒 Security & Performance Fixes:
-- Fixed CSP violations (Google Analytics/Tag Manager now allowed)
+- Fixed CSP violations (Google Analytics/Tag Manager/Fonts now allowed)
 - Fixed MIME type issues (assets served with correct content-type)
 - Improved routing for proper asset handling
 - Added Vercel Live support for development tools
-- Added WebSocket support for real-time features
+
+🐛 Critical Bug Fixes:
+- Fixed health endpoint URL: /health → /api/health (eliminates 404 errors)
+- Fixed Google Fonts CSP violation (fonts.googleapis.com added)
+- Both fixes restore functionality to status indicator and Arabic fonts
 
 ✅ Quality:
 - All changes tested and error-free
@@ -106,7 +114,7 @@ feat: Complete Phase 2 mobile enhancements + CSP fixes
 - Follows Apple HIG and Material Design guidelines
 - 92% of Phase 2 plan complete
 
-Refs: MOBILE_ENHANCEMENT_PLAN_PHASE2.md, CSP_MIME_TYPE_FIX.md
+Refs: MOBILE_ENHANCEMENT_PLAN_PHASE2.md, BUGFIX_HEALTH_CSP.md
 See: PHASE2_COMPLETE_STATUS.md for full details
 ```
 

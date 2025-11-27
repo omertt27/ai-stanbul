@@ -52,58 +52,130 @@ const ChatHeader = ({
         ? 'bg-gray-900/80 border-gray-700 backdrop-blur-md backdrop-saturate-150' 
         : 'bg-white/80 border-gray-200 backdrop-blur-md backdrop-saturate-150'
     }`}>
-      {/* Left side - Logo and title */}
-      <div className="flex items-center space-x-3">
-        <div>
-          <h1 className={`text-lg font-semibold transition-colors duration-200 ${
-            darkMode ? 'text-white' : 'text-black'
-          }`}>
-            KAM - Istanbul Travel Guide
-          </h1>
-          <div className={`text-xs transition-colors duration-200 flex items-center space-x-2 ${
-            darkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            {messageCount > 0 && (
-              <span>{messageCount} messages</span>
-            )}
-            {isHistoryLoading && (
-              <span className="flex items-center space-x-1">
-                <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                <span>Loading history...</span>
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Right side - Status and controls */}
-      <div className="flex items-center space-x-3">
-        {/* Chat Sessions Button - Prominent like ChatGPT */}
+      {/* Left side - Control buttons (ChatGPT style) */}
+      <div className="flex items-center space-x-2">
+        {/* Chat Sessions Button */}
         <button
           onClick={onToggleSessionsPanel}
-          className={`flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 rounded-lg transition-all duration-200 font-medium border min-h-[44px] touch-manipulation ${
+          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 touch-manipulation ${
             darkMode 
-              ? 'bg-gray-800 hover:bg-gray-700 text-gray-200 border-gray-600 hover:border-gray-500' 
-              : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400 shadow-sm hover:shadow'
+              ? 'hover:bg-gray-700 text-gray-300' 
+              : 'hover:bg-gray-200 text-gray-600'
           }`}
           title="View and manage chat sessions"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
           </svg>
-          <span className="hidden sm:inline">Sessions</span>
         </button>
 
-        {/* Network status indicator - Enhanced */}
-        <div className={`flex items-center space-x-1 text-xs px-2 py-1 rounded-full transition-all ${
-          isHealthy
-            ? darkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-700'
-            : darkMode ? 'bg-red-900 text-red-300' : 'bg-red-100 text-red-700'
+        {/* Menu button with dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            disabled={clearingHistory}
+            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 touch-manipulation ${
+              darkMode 
+                ? 'hover:bg-gray-700 text-gray-300' 
+                : 'hover:bg-gray-200 text-gray-600'
+            } ${clearingHistory ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title="Chat options"
+          >
+            {clearingHistory ? (
+              <div className="w-5 h-5 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+            )}
+          </button>
+
+          {/* Menu dropdown */}
+          {showMenu && (
+            <div className={`absolute left-0 top-12 z-50 rounded-lg shadow-xl border min-w-64 ${
+              darkMode 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+            }`}>
+              <div className="py-1">
+                {/* New session button */}
+                <button
+                  onClick={handleNewSession}
+                  className={`w-full text-left px-4 py-2.5 text-sm flex items-center space-x-3 ${
+                    darkMode 
+                      ? 'hover:bg-gray-700 text-gray-200' 
+                      : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span>New chat</span>
+                </button>
+                
+                {/* Clear history button */}
+                <button
+                  onClick={handleClearHistory}
+                  className={`w-full text-left px-4 py-2.5 text-sm flex items-center space-x-3 ${
+                    darkMode 
+                      ? 'hover:bg-gray-700 text-gray-200' 
+                      : 'hover:bg-gray-100 text-gray-700'
+                  } ${messageCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={messageCount === 0 || clearingHistory}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Clear chat</span>
+                </button>
+
+                {/* Session info section */}
+                {sessionId && (
+                  <>
+                    <div className={`border-t my-1 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}></div>
+                    <div className={`px-4 py-2 text-xs ${
+                      darkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      <div className="mb-1 font-medium">Session ID:</div>
+                      <button
+                        onClick={copySessionId}
+                        className={`font-mono text-xs px-2 py-1 rounded w-full text-left ${
+                          darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                        }`}
+                        title="Click to copy"
+                      >
+                        {sessionId.slice(-12)}...
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Center - Title */}
+      <div className="absolute left-1/2 transform -translate-x-1/2">
+        <h1 className={`text-base font-semibold transition-colors duration-200 whitespace-nowrap ${
+          darkMode ? 'text-white' : 'text-gray-900'
         }`}>
-          <div className={`w-2 h-2 rounded-full ${
+          KAM Assistant
+        </h1>
+      </div>
+
+      {/* Right side - Status and dark mode */}
+      <div className="flex items-center space-x-2">
+        {/* Network status indicator */}
+        <div className={`hidden md:flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-full transition-all ${
+          isHealthy
+            ? darkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700'
+            : darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700'
+        }`}>
+          <div className={`w-1.5 h-1.5 rounded-full ${
             isHealthy ? 'bg-green-500 animate-pulse' : 'bg-red-500'
           }`}></div>
-          <span>
+          <span className="font-medium">
             {!isOnline 
               ? 'Offline' 
               : apiHealth === 'healthy' ? 'Online' : 
@@ -114,7 +186,7 @@ const ChatHeader = ({
         {/* Dark mode toggle */}
         <button
           onClick={onDarkModeToggle}
-          className={`w-10 h-10 md:w-9 md:h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 touch-manipulation ${
+          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 touch-manipulation ${
             darkMode 
               ? 'hover:bg-gray-700 text-gray-300' 
               : 'hover:bg-gray-200 text-gray-600'
@@ -131,97 +203,6 @@ const ChatHeader = ({
             </svg>
           )}
         </button>
-
-        {/* Enhanced menu button with loading state */}
-        <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            disabled={clearingHistory}
-            className={`w-10 h-10 md:w-9 md:h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 touch-manipulation ${
-              darkMode 
-                ? 'hover:bg-gray-700 text-gray-300' 
-                : 'hover:bg-gray-200 text-gray-600'
-            } ${clearingHistory ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title="Chat options"
-          >
-            {clearingHistory ? (
-              <div className="w-5 h-5 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-              </svg>
-            )}
-          </button>
-
-          {/* Enhanced menu dropdown */}
-          {showMenu && (
-            <div className={`absolute right-0 top-10 z-50 rounded-lg shadow-xl border min-w-56 ${
-              darkMode 
-                ? 'bg-gray-700 border-gray-600' 
-                : 'bg-white border-gray-200'
-            }`}>
-              <div className="py-1">
-                {/* New session button */}
-                <button
-                  onClick={handleNewSession}
-                  className={`w-full text-left px-4 py-2.5 text-sm flex items-center space-x-2 ${
-                    darkMode 
-                      ? 'hover:bg-gray-600 text-gray-200' 
-                      : 'hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span>New chat session</span>
-                </button>
-                
-                {/* Clear history button */}
-                <button
-                  onClick={handleClearHistory}
-                  className={`w-full text-left px-4 py-2.5 text-sm flex items-center space-x-2 ${
-                    darkMode 
-                      ? 'hover:bg-gray-600 text-gray-200' 
-                      : 'hover:bg-gray-100 text-gray-700'
-                  } ${messageCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={messageCount === 0 || clearingHistory}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  <span>Clear chat history</span>
-                </button>
-
-                {/* Session info section */}
-                {sessionId && (
-                  <div className={`border-t ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-                    <div className={`px-4 py-2 text-xs ${
-                      darkMode ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
-                      <div className="mb-2 font-medium">Session Info:</div>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span>ID:</span>
-                          <button
-                            onClick={copySessionId}
-                            className={`font-mono text-xs px-1 rounded hover:bg-opacity-20 ${
-                              darkMode ? 'hover:bg-gray-300' : 'hover:bg-gray-500'
-                            }`}
-                            title="Click to copy session ID"
-                          >
-                            {sessionId.slice(-8)}
-                          </button>
-                        </div>
-                        <div>Messages stored on server</div>
-                        <div>History auto-saved</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
