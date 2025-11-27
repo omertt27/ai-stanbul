@@ -27,6 +27,7 @@ import ChatHeader from './components/ChatHeader';
 import ChatSessionsPanel from './components/ChatSessionsPanel';
 import MapVisualization from './components/MapVisualization';
 import SimpleChatInput from './components/SimpleChatInput';
+import RestaurantCard from './components/RestaurantCard';
 
 console.log('🔄 Chatbot component loaded');
 
@@ -910,7 +911,8 @@ function Chatbot({ userLocation: propUserLocation }) {
           type: 'restaurant-recommendation',
           dataSource: 'google-places',
           resultCount: restaurantData.restaurants?.length || 0,
-          language: i18n.language
+          language: i18n.language,
+          restaurants: restaurantData.restaurants // Store raw restaurant data
         });
         
         // Clear failed message on success
@@ -1200,6 +1202,26 @@ function Chatbot({ userLocation: propUserLocation }) {
                       }`}>
                         {renderMessageContent(msg.text || msg.content, darkMode)}
                       </div>
+                      
+                      {/* Restaurant Cards - Display when message has restaurant data */}
+                      {msg.restaurants && msg.restaurants.length > 0 && (
+                        <div className="mt-4 space-y-4">
+                          <div className={`text-sm font-medium mb-3 ${
+                            darkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            📍 Restaurant Recommendations:
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {msg.restaurants.slice(0, 4).map((restaurant, idx) => (
+                              <RestaurantCard 
+                                key={restaurant.place_id || idx}
+                                restaurant={restaurant}
+                                index={idx}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       
                       {msg.timestamp && (
                         <div className={`text-xs mt-2 flex items-center space-x-2 transition-colors duration-200 ${
