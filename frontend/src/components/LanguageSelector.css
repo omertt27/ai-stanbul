@@ -18,6 +18,13 @@
   font-weight: 500;
 }
 
+/* Compact version - smaller button */
+.language-selector-btn.compact {
+  padding: 6px 10px;
+  gap: 4px;
+  border-radius: 6px;
+}
+
 .language-selector.dark .language-selector-btn {
   background: #374151;
   border-color: #4b5563;
@@ -31,12 +38,13 @@
 }
 
 .language-flag {
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
 }
 
 .language-name {
   font-weight: 600;
+  display: none; /* Hidden in compact mode */
 }
 
 .dropdown-arrow {

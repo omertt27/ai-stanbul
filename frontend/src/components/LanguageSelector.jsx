@@ -35,12 +35,11 @@ const LanguageSelector = ({ darkMode }) => {
   return (
     <div className={`language-selector ${darkMode ? 'dark' : 'light'}`}>
       <button 
-        className="language-selector-btn"
+        className="language-selector-btn compact"
         onClick={() => setIsOpen(!isOpen)}
         title="Select Language"
       >
         <span className="language-flag">{currentLanguage.flag}</span>
-        <span className="language-name">{currentLanguage.code.toUpperCase()}</span>
         <span className={`dropdown-arrow ${isOpen ? 'open' : ''}`}>▼</span>
       </button>
 
