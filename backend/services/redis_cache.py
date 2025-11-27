@@ -268,3 +268,104 @@ if __name__ == "__main__":
     print(f"✅ Cache stats: {stats}")
     
     print("\n🎉 All Redis cache tests passed!")
+
+
+# ============================================================
+# ASYNC WRAPPER FOR COMPATIBILITY WITH MODULAR ARCHITECTURE
+# ============================================================
+
+class AsyncRedisCache:
+    """Async wrapper around RedisCache for compatibility"""
+    
+    def __init__(self, redis_url: Optional[str] = None):
+        self.cache = RedisCache()
+        self.enabled = True
+        self.redis_url = redis_url
+        
+    async def connect(self):
+        """Initialize connection (sync cache auto-connects)"""
+        try:
+            self.cache.ping()
+            self.enabled = True
+            logger.info("✅ Redis cache connected")
+        except Exception as e:
+            logger.warning(f"⚠️ Redis unavailable, using fallback: {e}")
+            self.enabled = False
+    
+    async def disconnect(self):
+        """Close connection"""
+        pass  # Sync client handles this
+    
+    async def get(self, key: str) -> Optional[Any]:
+        """Get value from cache"""
+        try:
+            return self.cache.client.get(key)
+        except:
+            return None
+    
+    async def set(self, key: str, value: Any, ttl: int = 3600):
+        """Set value in cache"""
+        try:
+            serialized = json.dumps(value, ensure_ascii=False)
+            self.cache.client.setex(key, ttl, serialized)
+        except Exception as e:
+            logger.error(f"Cache set error: {e}")
+    
+    async def delete(self, key: str):
+        """Delete from cache"""
+        try:
+            self.cache.client.delete(key)
+        except:
+            pass
+    
+    async def clear_pattern(self, pattern: str):
+        """Clear keys matching pattern"""
+        try:
+            for key in self.cache.client.scan_iter(match=pattern):
+                self.cache.client.delete(key)
+        except:
+            pass
+    
+    async def get_stats(self) -> dict:
+        """Get cache statistics"""
+        try:
+            stats = self.cache.get_stats()
+            return {
+                "enabled": self.enabled,
+                "type": "redis" if self.enabled else "unavailable",
+                **stats
+            }
+        except Exception as e:
+            return {
+                "enabled": False,
+                "type": "unavailable",
+                "error": str(e)
+            }
+
+
+# Global cache instance
+_cache_service: Optional[AsyncRedisCache] = None
+
+
+def get_cache_service() -> AsyncRedisCache:
+    """Get the global cache service instance"""
+    global _cache_service
+    if _cache_service is None:
+        redis_url = os.getenv("REDIS_URL")
+        _cache_service = AsyncRedisCache(redis_url)
+    return _cache_service
+
+
+async def init_cache(redis_url: Optional[str] = None) -> AsyncRedisCache:
+    """Initialize the global cache service"""
+    global _cache_service
+    _cache_service = AsyncRedisCache(redis_url)
+    await _cache_service.connect()
+    return _cache_service
+
+
+async def shutdown_cache():
+    """Shutdown the global cache service"""
+    global _cache_service
+    if _cache_service:
+        await _cache_service.disconnect()
