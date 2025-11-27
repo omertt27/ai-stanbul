@@ -708,7 +708,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   // Handle initial query from navigation state (from main page search)
   useEffect(() => {
     const initialQuery = location.state?.initialQuery;
-    if (initialQuery && !loading && messages.length === 0) {
+    if (initialQuery && !loading) {
       console.log('🔍 Processing initial query from navigation:', initialQuery);
       setInput(initialQuery);
       
@@ -719,9 +719,9 @@ function Chatbot({ userLocation: propUserLocation }) {
         
         // Clear the navigation state to prevent resubmission
         navigate(location.pathname, { replace: true, state: {} });
-      }, 500);
+      }, 300);
     }
-  }, [location.state, loading, messages.length]);
+  }, [location.state?.initialQuery]);
 
   useEffect(() => {
     // Monitor scroll position for scroll-to-bottom button
@@ -1002,7 +1002,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   };
 
   return (
-    <div className={`flex flex-col h-screen w-full pt-16 transition-colors duration-200 ${
+    <div className={`flex flex-col h-screen w-full pt-[60px] transition-colors duration-200 ${
       darkMode ? 'bg-gray-900' : 'bg-gray-100'
     }`}>
       
@@ -1029,7 +1029,7 @@ function Chatbot({ userLocation: propUserLocation }) {
       />
 
       {/* Chat Messages Container - Full screen like ChatGPT */}
-      <div className="flex-1 overflow-y-auto chat-messages" id="chat-messages">
+      <div className="flex-1 overflow-y-auto chat-messages pb-20 md:pb-0" id="chat-messages">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center px-4">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
@@ -1052,10 +1052,10 @@ function Chatbot({ userLocation: propUserLocation }) {
             </p>
             
             {/* Enhanced Sample Cards with Better Light Mode Styling */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full px-4 md:grid md:gap-4 flex md:flex-none overflow-x-auto md:overflow-visible snap-x snap-mandatory scroll-smooth pb-4">
               <div 
                 onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
-                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`flex-shrink-0 w-80 md:w-auto snap-center p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
                     : 'bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-400 shadow-md hover:shadow-lg'
@@ -1071,7 +1071,7 @@ function Chatbot({ userLocation: propUserLocation }) {
               
               <div 
                 onClick={() => handleSampleClick('Give me restaurant advice - recommend 4 good restaurants')}
-                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`flex-shrink-0 w-80 md:w-auto snap-center p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
                     : 'bg-white border-red-200 hover:bg-red-50 hover:border-red-400 shadow-md hover:shadow-lg'
@@ -1087,7 +1087,7 @@ function Chatbot({ userLocation: propUserLocation }) {
               
               <div 
                 onClick={() => handleSampleClick('Tell me about Istanbul neighborhoods and districts to visit')}
-                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`flex-shrink-0 w-80 md:w-auto snap-center p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
                     : 'bg-white border-green-200 hover:bg-green-50 hover:border-green-400 shadow-md hover:shadow-lg'
@@ -1121,30 +1121,41 @@ function Chatbot({ userLocation: propUserLocation }) {
         )}
             
         {/* Message Display Area */}
-        <div className="max-w-full mx-auto px-4">
+        <div className="max-w-3xl mx-auto px-4 w-full">
           {messages.map((msg, index) => (
-            <div key={msg.id || index} className="group py-4">
-              <div className="flex items-start space-x-3">
-                {msg.sender === 'user' ? (
-                  <>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+            <div key={msg.id || index} className="group py-6">
+              {msg.sender === 'user' ? (
+                // USER MESSAGE - RIGHT ALIGNED (ChatGPT Style)
+                <div className="flex justify-end px-4">
+                  <div className="flex flex-row-reverse items-start gap-3 max-w-[80%]">
+                    {/* Avatar on right side */}
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                       darkMode 
                         ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500' 
                         : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
                     }`}>
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
-                    <div className="flex-1">
+                    
+                    {/* Message content - right aligned */}
+                    <div className="flex-1 text-right">
                       <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
                         darkMode ? 'text-gray-300' : 'text-gray-600'
                       }`}>You</div>
-                      <div className={`text-sm whitespace-pre-wrap transition-colors duration-200 ${
-                        darkMode ? 'text-white' : 'text-gray-900'
+                      
+                      {/* Blue bubble for user messages */}
+                      <div className={`inline-block px-4 py-3 rounded-2xl text-left ${
+                        darkMode
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-blue-500 text-white'
                       }`}>
-                        {msg.text}
+                        <div className="text-lg md:text-base font-medium leading-[1.6] whitespace-pre-wrap">
+                          {msg.text}
+                        </div>
                       </div>
+                      
                       {msg.timestamp && (
                         <div className={`text-xs mt-1 transition-colors duration-200 ${
                           darkMode ? 'text-gray-500' : 'text-gray-500'
@@ -1153,35 +1164,45 @@ function Chatbot({ userLocation: propUserLocation }) {
                         </div>
                       )}
                     </div>
+                    
                     <MessageActions 
                       message={msg}
                       onCopy={copyMessageToClipboard}
                       onShare={shareMessage}
                       darkMode={darkMode}
                     />
-                  </>
-                ) : (
-                  <>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                  </div>
+                </div>
+              ) : (
+                // AI MESSAGE - FULL WIDTH (ChatGPT Style)
+                <div className="flex justify-start px-4 md:px-8">
+                  <div className="flex items-start gap-3 w-full max-w-4xl">
+                    {/* Avatar */}
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
                       darkMode 
                         ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
                         : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
                     }`}>
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
                       </svg>
                     </div>
-                    <div className="flex-1">
-                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
+                    
+                    {/* Message content - NO BUBBLE, full width */}
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-xs font-semibold mb-2 transition-colors duration-200 ${
                         darkMode ? 'text-gray-300' : 'text-gray-600'
                       }`}>KAM Assistant</div>
-                      <div className={`text-sm whitespace-pre-wrap leading-relaxed transition-colors duration-200 ${
-                        darkMode ? 'text-white' : 'text-gray-900'
+                      
+                      {/* NO background, just text - ChatGPT style */}
+                      <div className={`text-base md:text-[15px] whitespace-pre-wrap leading-[1.6] transition-colors duration-200 ${
+                        darkMode ? 'text-gray-100' : 'text-gray-800'
                       }`}>
                         {renderMessageContent(msg.text || msg.content, darkMode)}
                       </div>
+                      
                       {msg.timestamp && (
-                        <div className={`text-xs mt-1 flex items-center space-x-2 transition-colors duration-200 ${
+                        <div className={`text-xs mt-2 flex items-center space-x-2 transition-colors duration-200 ${
                           darkMode ? 'text-gray-500' : 'text-gray-500'
                         }`}>
                           <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -1200,6 +1221,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                         </div>
                       )}
                     </div>
+                    
                     <MessageActions 
                       message={msg}
                       onCopy={copyMessageToClipboard}
@@ -1207,9 +1229,9 @@ function Chatbot({ userLocation: propUserLocation }) {
                       onRetry={msg.canRetry ? () => handleSend(msg.originalInput) : null}
                       darkMode={darkMode}
                     />
-                  </>
-                )}
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
           
@@ -1228,12 +1250,12 @@ function Chatbot({ userLocation: propUserLocation }) {
         darkMode={darkMode}
       />
 
-      {/* Enhanced Input Area - ChatGPT Style */}
-      <div className={`border-t p-4 transition-colors duration-200 ${
+      {/* Enhanced Input Area - ChatGPT Style - Fixed at bottom on mobile */}
+      <div className={`border-t p-4 md:relative md:bottom-auto md:left-auto md:right-auto fixed bottom-0 left-0 right-0 z-50 transition-colors duration-200 ${
         darkMode 
           ? 'bg-gray-900 border-gray-700' 
           : 'bg-white border-gray-200'
-      }`}>
+      }`} style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         <div className="max-w-4xl mx-auto">
           <SimpleChatInput
             value={input}

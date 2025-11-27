@@ -144,6 +144,91 @@ button:focus-visible {
   z-index: 1;
 }
 
+/* Chat messages scrollbar - Hide on mobile, show on desktop */
+.chat-messages {
+  -webkit-overflow-scrolling: touch;
+  
+  /* Hide scrollbar on mobile */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.chat-messages::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* Show thin scrollbar on desktop for better UX */
+@media (min-width: 768px) {
+  .chat-messages {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+  
+  .chat-messages::-webkit-scrollbar {
+    display: block;
+    width: 8px;
+  }
+  
+  .chat-messages::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 4px;
+  }
+  
+  .chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.7);
+  }
+}
+
+/* Snap scrolling utilities */
+.snap-x {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.snap-center {
+  scroll-snap-align: center;
+}
+
+.snap-mandatory {
+  scroll-snap-type: x mandatory;
+}
+
+/* Smooth scrolling */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+/* Touch manipulation for better mobile performance */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Backdrop blur support with fallbacks */
+@supports (backdrop-filter: blur(10px)) {
+  .backdrop-blur-md {
+    backdrop-filter: blur(10px);
+  }
+  
+  .backdrop-saturate-150 {
+    backdrop-filter: saturate(150%);
+  }
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not (backdrop-filter: blur(10px)) {
+  .bg-white\/80 {
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+  
+  .bg-gray-900\/80 {
+    background: rgba(17, 24, 39, 0.95) !important;
+  }
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

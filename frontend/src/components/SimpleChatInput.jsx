@@ -11,7 +11,7 @@
  * - Enter to send
  */
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 const SimpleChatInput = ({ 
   value, 
@@ -21,17 +21,58 @@ const SimpleChatInput = ({
   placeholder = "Message KAM...",
   darkMode = false 
 }) => {
+  const inputRef = useRef(null);
+
+  const handleSend = () => {
+    if (!value.trim() || loading) return;
+    
+    // Send the message
+    onSend();
+    
+    // CRITICAL: Immediately refocus the input (ChatGPT-style)
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !loading) {
       e.preventDefault();
-      onSend();
+      handleSend();
     }
   };
+
+  // Keep focus even when keyboard dismisses temporarily
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    
+    const handleBlur = (e) => {
+      const relatedTarget = e.relatedTarget;
+      
+      // If blur was to a button, allow it
+      if (relatedTarget?.tagName === 'BUTTON') {
+        return;
+      }
+      
+      // Otherwise, refocus after a short delay
+      setTimeout(() => {
+        if (document.activeElement !== input && 
+            !document.activeElement?.closest('.message-actions')) {
+          input.focus();
+        }
+      }, 100);
+    };
+    
+    input.addEventListener('blur', handleBlur, { passive: true });
+    return () => input.removeEventListener('blur', handleBlur);
+  }, []);
 
   return (
     <div className="simple-chat-input-container">
       <div className={`simple-chat-input-wrapper ${darkMode ? 'dark' : 'light'} ${loading ? 'disabled' : ''}`}>
         <input
+          ref={inputRef}
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -40,11 +81,14 @@ const SimpleChatInput = ({
           disabled={loading}
           className="simple-chat-input"
           autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="sentences"
+          spellCheck="true"
           autoFocus
         />
         
         <button
-          onClick={onSend}
+          onClick={handleSend}
           disabled={loading || !value.trim()}
           className="simple-send-button"
           aria-label="Send message"
@@ -86,9 +130,9 @@ const SimpleChatInput = ({
           align-items: center;
           gap: 8px;
           padding: 12px 16px;
-          border-radius: 24px;
+          border-radius: 28px; /* ChatGPT-style rounded pill */
           border: 1px solid;
-          transition: all 0.2s ease;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           background: white;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         }
@@ -105,7 +149,9 @@ const SimpleChatInput = ({
 
         .simple-chat-input-wrapper:focus-within {
           border-color: #3b82f6;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 
+                      0 4px 12px rgba(59, 130, 246, 0.15);
+          transform: translateY(-1px);
         }
 
         .simple-chat-input-wrapper.disabled {
@@ -157,7 +203,7 @@ const SimpleChatInput = ({
           background: #3b82f6;
           color: white;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           padding: 0;
           flex-shrink: 0;
         }
@@ -168,7 +214,7 @@ const SimpleChatInput = ({
         }
 
         .simple-send-button:active:not(:disabled) {
-          transform: scale(0.95);
+          transform: scale(0.92); /* ChatGPT bounce effect */
         }
 
         .simple-send-button:disabled {
@@ -220,22 +266,22 @@ const SimpleChatInput = ({
         /* Mobile Responsive */
         @media (max-width: 768px) {
           .simple-chat-input-wrapper {
-            padding: 10px 14px;
-            border-radius: 20px;
+            padding: 14px 18px;
+            border-radius: 32px; /* Even rounder on mobile */
           }
 
           .simple-chat-input {
-            font-size: 16px; /* Prevents iOS zoom */
+            font-size: 16px; /* Prevents iOS zoom - CRITICAL */
           }
 
           .simple-send-button {
-            width: 32px;
-            height: 32px;
+            width: 44px; /* Larger tap target */
+            height: 44px;
           }
 
           .send-icon {
-            width: 16px;
-            height: 16px;
+            width: 20px;
+            height: 20px;
           }
         }
 
