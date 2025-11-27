@@ -9,7 +9,7 @@ import {
 } from '../utils/errorHandler.js';
 
 // API utility that works for both local and deployed environments
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:8001' : 'https://ai-stanbul.onrender.com');
 
 // Clean up BASE_URL and construct proper endpoints
 const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
