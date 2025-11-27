@@ -1262,13 +1262,13 @@ function Chatbot({ userLocation: propUserLocation }) {
             onChange={setInput}
             onSend={handleSend}
             loading={loading}
-            placeholder="Message KAM..."
+            placeholder="Ask about Istanbul..."
             darkMode={darkMode}
           />
-          <div className={`text-xs text-center mt-2 opacity-60 transition-colors duration-200 ${
+          <div className={`text-xs text-center mt-2.5 opacity-50 transition-colors duration-200 ${
             darkMode ? 'text-gray-400' : 'text-gray-500'
           }`}>
-            Your KAM-powered Istanbul travel guide
+            AI-powered Istanbul travel assistant
           </div>
         </div>
       </div>

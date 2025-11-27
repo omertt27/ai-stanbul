@@ -9,7 +9,7 @@ import {
 // API configuration
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
-const BLOG_API_URL = `${cleanBaseUrl}/api/blog/posts/`;
+const BLOG_API_URL = `${cleanBaseUrl}/blog/`;
 
 // Debug logging
 console.log('🔧 API Configuration:');
@@ -49,10 +49,17 @@ const handleBlogApiError = (error, response = null, context = '') => {
 export const fetchBlogPosts = async (params = {}) => {
   return blogCircuitBreaker.call(async () => {
     try {
+      // Transform page to offset for backend compatibility
+      const backendParams = { ...params };
+      if (params.page && params.limit) {
+        backendParams.offset = (params.page - 1) * params.limit;
+        delete backendParams.page;
+      }
+      
       const searchParams = new URLSearchParams();
-      Object.keys(params).forEach(key => {
-        if (params[key] !== undefined && params[key] !== null) {
-          searchParams.append(key, params[key].toString());
+      Object.keys(backendParams).forEach(key => {
+        if (backendParams[key] !== undefined && backendParams[key] !== null) {
+          searchParams.append(key, backendParams[key].toString());
         }
       });
       

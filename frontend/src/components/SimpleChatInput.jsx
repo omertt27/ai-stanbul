@@ -1,13 +1,14 @@
 /**
  * SimpleChatInput Component
  * ==========================
- * ChatGPT-style minimalist chat input with clean design
+ * Ultra-modern ChatGPT-style chat input with sleek design
  * 
  * Features:
- * - Single-line input that expands
- * - Rounded send button
- * - Minimal border/shadow
- * - Focus state animation
+ * - Single-line input with smooth transitions
+ * - Modern pill-shaped design
+ * - Subtle shadows and borders
+ * - Smooth focus animations
+ * - Mobile-optimized touch targets
  * - Enter to send
  */
 
@@ -18,7 +19,7 @@ const SimpleChatInput = ({
   onChange, 
   onSend, 
   loading = false, 
-  placeholder = "Message KAM...",
+  placeholder = "Ask about Istanbul...",
   darkMode = false 
 }) => {
   const inputRef = useRef(null);
@@ -128,13 +129,14 @@ const SimpleChatInput = ({
         .simple-chat-input-wrapper {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 12px 16px;
-          border-radius: 28px; /* ChatGPT-style rounded pill */
-          border: 1px solid;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          gap: 10px;
+          padding: 10px 14px;
+          border-radius: 24px; /* Modern pill shape */
+          border: 1.5px solid;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           background: white;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          position: relative;
         }
 
         .simple-chat-input-wrapper.light {
@@ -149,13 +151,12 @@ const SimpleChatInput = ({
 
         .simple-chat-input-wrapper:focus-within {
           border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 
-                      0 4px 12px rgba(59, 130, 246, 0.15);
-          transform: translateY(-1px);
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08), 
+                      0 2px 8px rgba(59, 130, 246, 0.12);
         }
 
         .simple-chat-input-wrapper.disabled {
-          opacity: 0.6;
+          opacity: 0.5;
           cursor: not-allowed;
         }
 
@@ -164,12 +165,13 @@ const SimpleChatInput = ({
           border: none;
           outline: none;
           font-size: 15px;
-          line-height: 1.5;
+          line-height: 1.6;
           background: transparent;
           color: inherit;
-          padding: 0;
+          padding: 6px 0;
           margin: 0;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          font-weight: 400;
         }
 
         .simple-chat-input-wrapper.light .simple-chat-input {
@@ -182,6 +184,7 @@ const SimpleChatInput = ({
 
         .simple-chat-input::placeholder {
           color: #9ca3af;
+          font-weight: 400;
         }
 
         .simple-chat-input-wrapper.dark .simple-chat-input::placeholder {
@@ -196,31 +199,37 @@ const SimpleChatInput = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 36px;
-          height: 36px;
+          width: 32px;
+          height: 32px;
+          min-width: 32px;
+          min-height: 32px;
           border-radius: 50%;
           border: none;
-          background: #3b82f6;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
           color: white;
           cursor: pointer;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           padding: 0;
           flex-shrink: 0;
+          box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
         }
 
         .simple-send-button:hover:not(:disabled) {
-          background: #2563eb;
-          transform: scale(1.05);
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+          transform: scale(1.08);
+          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
         }
 
         .simple-send-button:active:not(:disabled) {
-          transform: scale(0.92); /* ChatGPT bounce effect */
+          transform: scale(0.95);
+          box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
         }
 
         .simple-send-button:disabled {
           background: #d1d5db;
           cursor: not-allowed;
-          opacity: 0.5;
+          opacity: 0.4;
+          box-shadow: none;
         }
 
         .simple-chat-input-wrapper.dark .simple-send-button:disabled {
@@ -228,13 +237,13 @@ const SimpleChatInput = ({
         }
 
         .send-icon {
-          width: 18px;
-          height: 18px;
+          width: 16px;
+          height: 16px;
         }
 
         .spinner {
-          width: 18px;
-          height: 18px;
+          width: 16px;
+          height: 16px;
           animation: spin 1s linear infinite;
         }
 
@@ -266,22 +275,45 @@ const SimpleChatInput = ({
         /* Mobile Responsive */
         @media (max-width: 768px) {
           .simple-chat-input-wrapper {
-            padding: 14px 18px;
-            border-radius: 32px; /* Even rounder on mobile */
+            padding: 12px 16px;
+            border-radius: 28px;
+            gap: 12px;
           }
 
           .simple-chat-input {
             font-size: 16px; /* Prevents iOS zoom - CRITICAL */
+            padding: 8px 0;
           }
 
           .simple-send-button {
-            width: 44px; /* Larger tap target */
-            height: 44px;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
           }
 
           .send-icon {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
+          }
+
+          .spinner {
+            width: 18px;
+            height: 18px;
+          }
+        }
+
+        /* Tablet optimization */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .simple-chat-input-wrapper {
+            padding: 11px 15px;
+          }
+
+          .simple-send-button {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            min-height: 36px;
           }
         }
 
@@ -293,6 +325,15 @@ const SimpleChatInput = ({
 
         .simple-chat-input:focus-visible {
           outline: none;
+        }
+
+        /* Smooth transitions for dark mode */
+        .simple-chat-input-wrapper,
+        .simple-chat-input,
+        .simple-send-button {
+          transition-property: all;
+          transition-duration: 0.2s;
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         }
       `}</style>
     </div>
