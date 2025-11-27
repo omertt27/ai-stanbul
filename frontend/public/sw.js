@@ -1,5 +1,5 @@
 // AI Istanbul - Service Worker for PWA functionality
-const CACHE_NAME = 'ai-istanbul-v1.2.0'; // Updated version to force cache refresh
+const CACHE_NAME = 'ai-istanbul-v1.3.0'; // Updated version to force cache refresh and fix MIME types
 const OFFLINE_URL = '/offline.html';
 
 // Resources to cache for offline functionality
@@ -48,10 +48,19 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve cached content when offline
 self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests (HEAD, POST, etc.)
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   const url = new URL(event.request.url);
   
-  // Skip caching for JavaScript modules to avoid MIME type issues
-  if (url.pathname.endsWith('.jsx') || url.pathname.endsWith('.js') || url.pathname.startsWith('/src/')) {
+  // Skip caching for JavaScript modules and assets to avoid MIME type issues
+  if (url.pathname.endsWith('.jsx') || 
+      url.pathname.endsWith('.js') || 
+      url.pathname.endsWith('.css') ||
+      url.pathname.startsWith('/src/') ||
+      url.pathname.startsWith('/assets/')) {
     event.respondWith(fetch(event.request));
     return;
   }

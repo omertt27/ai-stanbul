@@ -185,6 +185,11 @@ async function handleAPIRequest(request) {
  */
 async function handleStaticRequest(request) {
   try {
+    // Skip caching for HEAD requests
+    if (request.method !== 'GET') {
+      return fetch(request);
+    }
+
     // Try cache first
     const cache = await caches.open(STATIC_CACHE);
     const cachedResponse = await cache.match(request);
@@ -196,8 +201,8 @@ async function handleStaticRequest(request) {
     // Fetch from network
     const networkResponse = await fetch(request);
     
-    // Cache successful responses
-    if (networkResponse.ok) {
+    // Cache successful GET responses only
+    if (networkResponse.ok && request.method === 'GET') {
       try {
         const dynamicCache = await caches.open(DYNAMIC_CACHE);
         await dynamicCache.put(request, networkResponse.clone());
