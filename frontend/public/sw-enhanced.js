@@ -2,11 +2,12 @@
  * Enhanced Service Worker
  * Integrates map tile caching, periodic sync, and improved offline handling
  * 
- * @version 2.2.0
+ * @version 2.3.0
  * @features Map tiles, Periodic sync, Background sync, Push notifications, External resource bypass
+ * @updated 2025-11-28 - Force deployment fix
  */
 
-const CACHE_VERSION = 'ai-istanbul-v2.2.0';
+const CACHE_VERSION = 'ai-istanbul-v2.3.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const MAP_TILES_CACHE = 'map-tiles-v2';
