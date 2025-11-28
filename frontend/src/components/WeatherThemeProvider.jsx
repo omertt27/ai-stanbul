@@ -5,45 +5,25 @@ const WeatherThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState('default');
 
   useEffect(() => {
-    // Fetch weather data from our backend
+    // Weather feature temporarily disabled - using default theme
+    // This can be re-enabled when weather API endpoint is implemented
+    setTheme('default');
+    
+    // Optional: Add weather API call here in the future
+    /*
     const fetchWeather = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/blog/recommendations/weather?location=Istanbul&limit=1`);
-        
-        // Check if the endpoint exists
-        if (!response.ok) {
-          console.log('Weather recommendations endpoint not available, using default theme');
-          return;
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && data.recommendations && data.recommendations.length > 0) {
-          const weatherContext = data.recommendations[0].weather_context;
-          setWeatherData(weatherContext);
-          
-          // Determine theme based on weather
-          if (weatherContext.includes('rain') || weatherContext.includes('storm')) {
-            setTheme('rainy');
-          } else if (weatherContext.includes('cloud')) {
-            setTheme('cloudy');
-          } else if (weatherContext.includes('snow')) {
-            setTheme('snowy');
-          } else {
-            setTheme('sunny');
-          }
+        const response = await fetch(`${apiUrl}/api/weather?location=Istanbul`);
+        if (response.ok) {
+          const data = await response.json();
+          // Process weather data and set theme
         }
       } catch (error) {
         console.log('Weather fetch failed, using default theme');
-        setTheme('default');
       }
     };
-
-    fetchWeather();
-    // Refresh weather every 15 minutes
-    const interval = setInterval(fetchWeather, 15 * 60 * 1000);
-    return () => clearInterval(interval);
+    */
   }, []);
 
   // Apply theme to document root

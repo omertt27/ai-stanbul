@@ -715,8 +715,7 @@ function Chatbot({ userLocation: propUserLocation }) {
       
       // Auto-submit the query after a short delay
       setTimeout(() => {
-        const event = { preventDefault: () => {} };
-        handleSendMessage(event, initialQuery);
+        handleSend(initialQuery);
         
         // Clear the navigation state to prevent resubmission
         navigate(location.pathname, { replace: true, state: {} });

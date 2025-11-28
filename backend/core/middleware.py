@@ -82,9 +82,40 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             )
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers including CSP"""
+    
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Content Security Policy
+        csp_directives = [
+            "default-src 'self'",
+            "frame-src 'self' https://vercel.live https://*.vercel.live",
+            "connect-src 'self' https://ai-stanbul.onrender.com https://aistanbul.net https://images.unsplash.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://region1.google-analytics.com https://region1.analytics.google.com https://*.google-analytics.com https://*.analytics.google.com https://maps.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com https://vercel.live https://*.vercel.live https://vercel.com https://*.vercel.app wss://vercel.live wss://*.vercel.live",
+            "img-src 'self' https://images.unsplash.com https://*.unsplash.com data: blob:",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.live https://www.googletagmanager.com https://www.google-analytics.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com data:",
+            "media-src 'self' blob:",
+            "worker-src 'self' blob:"
+        ]
+        
+        response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
+        
+        # Other security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        return response
+
+
 def setup_middleware(app: FastAPI):
     """Setup all middleware"""
     setup_cors(app)
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(ErrorHandlingMiddleware)
     logger.info("✅ Middleware configured")
