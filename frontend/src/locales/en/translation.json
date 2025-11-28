@@ -154,7 +154,7 @@
         },
         "aiIntelligence": {
           "title": "AI Intelligence", 
-          "description": "OpenAI GPT-3.5 with context awareness, session memory, and intent recognition"
+          "description": "Llama 3.1 8B Instruct model with advanced context awareness, session memory, and intent recognition"
         },
         "security": {
           "title": "Security & Privacy",
@@ -482,8 +482,8 @@
     "dataSharingIntro": "We share limited data only with essential service providers:",
     "googleMaps": "Google Maps API",
     "googleMapsDesc": "Location queries for restaurant recommendations (US)",
-    "openaiApi": "OpenAI API",
-    "openaiApiDesc": "AI-powered chat responses (US)",
+    "openaiApi": "Llama 3.1 8B LLM",
+    "openaiApiDesc": "AI-powered chat responses (self-hosted)",
     "googleAnalytics": "Google Analytics",
     "googleAnalyticsDesc": "Anonymized usage statistics (US)",
     "renderCom": "Render.com",

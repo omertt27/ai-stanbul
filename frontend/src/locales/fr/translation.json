@@ -154,7 +154,7 @@
         },
         "aiIntelligence": {
           "title": "Intelligence IA",
-          "description": "OpenAI GPT-3.5 avec conscience contextuelle, mémoire de session et reconnaissance d'intention"
+          "description": "Modèle Llama 3.1 8B Instruct avec conscience contextuelle avancée, mémoire de session et reconnaissance d'intention"
         },
         "security": {
           "title": "Sécurité et Confidentialité",
@@ -473,8 +473,8 @@
     "dataSharingIntro": "Nous partageons des données limitées uniquement avec des fournisseurs de services essentiels :",
     "googleMaps": "Google Maps API",
     "googleMapsDesc": "Requêtes de localisation pour les recommandations de restaurants (États-Unis)",
-    "openaiApi": "OpenAI API",
-    "openaiApiDesc": "Réponses de chat alimentées par IA (États-Unis)",
+    "openaiApi": "Llama 3.1 8B LLM",
+    "openaiApiDesc": "Réponses de chat alimentées par IA (auto-hébergé)",
     "googleAnalytics": "Google Analytics",
     "googleAnalyticsDesc": "Statistiques d'utilisation anonymisées (États-Unis)",
     "renderCom": "Render.com",

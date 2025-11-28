@@ -154,7 +154,7 @@
         },
         "aiIntelligence": {
           "title": "ذكاء اصطناعي",
-          "description": "OpenAI GPT-3.5 مع الوعي بالسياق وذاكرة الجلسة والتعرف على القصد"
+          "description": "نموذج Llama 3.1 8B Instruct مع وعي متقدم بالسياق وذاكرة الجلسة والتعرف على القصد"
         },
         "security": {
           "title": "الأمان والخصوصية",
@@ -461,8 +461,8 @@
     "dataSharingIntro": "نشارك بيانات محدودة فقط مع مقدمي الخدمات الأساسيين:",
     "googleMaps": "Google Maps API",
     "googleMapsDesc": "استعلامات الموقع لتوصيات المطاعم (الولايات المتحدة)",
-    "openaiApi": "OpenAI API",
-    "openaiApiDesc": "استجابات المحادثة المدعومة بالذكاء الاصطناعي (الولايات المتحدة)",
+    "openaiApi": "Llama 3.1 8B LLM",
+    "openaiApiDesc": "استجابات المحادثة المدعومة بالذكاء الاصطناعي (مستضاف ذاتيًا)",
     "googleAnalytics": "Google Analytics",
     "googleAnalyticsDesc": "إحصائيات استخدام مجهولة (الولايات المتحدة)",
     "renderCom": "Render.com",

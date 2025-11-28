@@ -144,6 +144,36 @@
         "description": "Canlı vapur programları, metro bağlantıları ve semtler arası en hızlı rotalar."
       }
     },
+    "technicalInnovation": {
+      "title": "Teknik İnovasyon",
+      "subtitle": "Akıllı seyahat yardımını destekleyen en son teknoloji",
+      "features": {
+        "highPerformance": {
+          "title": "Yüksek Performans",
+          "description": "95+ Lighthouse skoru, bir saniyenin altında yanıt süreleri ve gerçek zamanlı akış"
+        },
+        "aiIntelligence": {
+          "title": "AI Zekası",
+          "description": "Gelişmiş bağlam farkındalığı, oturum hafızası ve niyet tanıma ile Llama 3.1 8B Instruct modeli"
+        },
+        "security": {
+          "title": "Güvenlik ve Gizlilik",
+          "description": "Kullanıcı onayı ve minimum veri toplama ile GDPR uyumlu veri işleme"
+        },
+        "responsive": {
+          "title": "Duyarlı Tasarım",
+          "description": "Progresif web uygulaması yetenekleri ile tüm cihazlar için optimize edilmiş"
+        },
+        "multilingual": {
+          "title": "Çok Dilli Motor",
+          "description": "İngilizce, Türkçe, Arapça, Rusça, Almanca ve Fransızca desteği ile gelişmiş i18n"
+        },
+        "realTimeApi": {
+          "title": "Gerçek Zamanlı API'ler",
+          "description": "Canlı veri ve konum hizmetleri ile Google Places entegrasyonu"
+        }
+      }
+    },
     "privacy": {
       "title": "Gizlilik ve Veri Koruması",
       "description": "Gizliliğiniz önceliğimizdir. AISTANBUL tamamen GDPR uyumludur ve veri haklarınıza saygı duyar.",
@@ -431,8 +461,8 @@
     "dataSharingIntro": "Sınırlı veriyi yalnızca temel hizmet sağlayıcılarla paylaşırız:",
     "googleMaps": "Google Maps API",
     "googleMapsDesc": "Restoran önerileri için konum sorguları (ABD)",
-    "openaiApi": "OpenAI API",
-    "openaiApiDesc": "AI destekli sohbet yanıtları (ABD)",
+    "openaiApi": "Llama 3.1 8B LLM",
+    "openaiApiDesc": "AI destekli sohbet yanıtları (kendi sunucumuzda)",
     "googleAnalytics": "Google Analytics",
     "googleAnalyticsDesc": "Anonimleştirilmiş kullanım istatistikleri (ABD)",
     "renderCom": "Render.com",

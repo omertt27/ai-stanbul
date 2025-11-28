@@ -179,16 +179,46 @@ async def chat(
         # Use Pure LLM
         return await pure_llm_chat(request, db)
     else:
-        # Fallback to basic response
-        logger.warning("⚠️ Pure LLM Core not available, using fallback")
+        # Fallback with basic intent detection
+        logger.warning("⚠️ Pure LLM Core not available, using basic fallback")
+        
+        query_lower = request.message.lower()
+        
+        # Try to detect transportation queries
+        transportation_keywords = ['how', 'get', 'go', 'travel', 'kadikoy', 'taksim', 'sultanahmet', 
+                                  'besiktas', 'uskudar', 'directions', 'way', 'route']
+        is_transport = any(keyword in query_lower for keyword in transportation_keywords)
+        
+        if is_transport:
+            response_text = (
+                "I can help you with directions! However, the AI service is currently unavailable. "
+                "Please try:\n\n"
+                "1. Use the interactive map on our homepage\n"
+                "2. Check Istanbul Metro/Tram routes\n"
+                "3. Use Google Maps for real-time directions\n\n"
+                "The AI service will be back shortly. Thank you for your patience!"
+            )
+            intent = "transportation"
+        else:
+            response_text = (
+                "Welcome to Istanbul! The AI assistant is temporarily unavailable, "
+                "but you can still explore our website for information about:\n\n"
+                "• Restaurants and dining\n"
+                "• Tourist attractions\n"
+                "• Neighborhoods and districts\n"
+                "• Transportation options\n\n"
+                "Please try again in a moment!"
+            )
+            intent = "greeting"
+        
         return ChatResponse(
-            response="Welcome to Istanbul! How can I help you today?",
+            response=response_text,
             session_id=request.session_id or "new",
-            intent="greeting",
-            confidence=0.5,
+            intent=intent,
+            confidence=0.3,
             suggestions=[
-                "Tell me about restaurants",
-                "Show me attractions",
-                "Help with transportation"
+                "Show me restaurants near me",
+                "What are the best attractions?",
+                "How do I use public transport?"
             ]
         )

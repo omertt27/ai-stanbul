@@ -48,7 +48,7 @@ function Source({ darkMode }) {
       <ul>
         <li><strong>FastAPI</strong> - High-performance async Python web framework</li>
         <li><strong>SQLAlchemy ORM</strong> - Database management with SQLite/PostgreSQL</li>
-        <li><strong>OpenAI GPT-3.5-turbo</strong> - Advanced AI conversation handling</li>
+        <li><strong>Llama 3.1 8B Instruct</strong> - Advanced AI conversation handling</li>
         <li><strong>Google Places API</strong> - Real-time restaurant and location data</li>
         <li><strong>Redis</strong> - AI response caching and rate limiting</li>
         <li><strong>Structured Logging</strong> - JSON-formatted performance monitoring</li>
@@ -123,7 +123,7 @@ function Source({ darkMode }) {
       <p>Special thanks to:</p>
       <ul>
         <li>Google Maps Platform for restaurant data</li>
-        <li>OpenAI for AI conversation capabilities</li>
+        <li>Meta AI for Llama 3.1 8B Instruct model</li>
         <li>Istanbul tourism authorities for cultural information</li>
         <li>Local contributors and beta testers</li>
         <li>Open source community for development tools</li>

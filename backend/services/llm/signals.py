@@ -144,9 +144,9 @@ class SignalDetector:
             },
             'needs_transportation': {
                 'en': [
-                    r'\b(how\s+to\s+get|how\s+do\s+i\s+get|directions?|route|way\s+to)\b',
-                    r'\b(metro|bus|tram|ferry|taxi|transport|travel)\b',
-                    r'\b(from.*to|navigate|reach)\b'
+                    r'\b(how\s+to\s+get|how\s+do\s+i\s+get|how\s+can\s+i\s+go|how.*go\s+to|directions?|route|way\s+to)\b',
+                    r'\b(metro|bus|tram|ferry|taxi|transport|travel|transit)\b',
+                    r'\b(from.*to|navigate|reach|get\s+to)\b'
                 ],
                 'tr': [
                     r'\b(nasıl\s+gidilir|nasıl\s+giderim|yol\s+tarifi)\b',
@@ -314,8 +314,14 @@ class SignalDetector:
         confidence_scores = {}
         detection_method = {}
         
-        # Detect each signal
-        for signal_name in thresholds.keys():
+        # Priority order: Check transportation/directions signals first
+        # This prevents "Kadikoy" from being detected as neighborhood when query is "how to go to Kadikoy"
+        priority_signals = ['needs_transportation', 'needs_gps_routing']
+        other_signals = [s for s in thresholds.keys() if s not in priority_signals]
+        signal_order = priority_signals + other_signals
+        
+        # Detect each signal in priority order
+        for signal_name in signal_order:
             # Get threshold (may be from A/B test)
             threshold = self._get_threshold(
                 signal_name=signal_name,

@@ -77,7 +77,7 @@ const Sources = () => {
             [
               'Google Maps Places API for live restaurant data',
               'Real-time ratings, reviews, and opening hours',
-              'OpenAI for intelligent recommendations',
+              'Llama 3.1 8B for intelligent recommendations',
               'Community feedback and user reviews'
             ],
             'from-orange-500 to-red-500'
@@ -103,7 +103,7 @@ const Sources = () => {
               'React 18 with Vite for lightning-fast development',
               'FastAPI with async support for high-performance backend',
               'SQLAlchemy ORM with SQLite/PostgreSQL database',
-              'OpenAI GPT-3.5-turbo for intelligent conversations',
+              'Llama 3.1 8B Instruct for intelligent conversations',
               'Redis caching with advanced rate limiting',
               'Structured logging with JSON format for monitoring'
             ],
@@ -330,7 +330,7 @@ const Sources = () => {
               <ul className={`space-y-2 text-sm transition-colors duration-300 ${
                 darkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
-                <li>• OpenAI GPT-3.5-turbo</li>
+                <li>• Llama 3.1 8B Instruct</li>
                 <li>• Context Awareness</li>
                 <li>• Fuzzy Matching</li>
                 <li>• Intent Recognition</li>

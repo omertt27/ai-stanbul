@@ -103,6 +103,7 @@ class PureLLMCore:
             services: Service Manager instance with all local services
         """
         self.llm = llm_client
+        self.llm_client = llm_client  # Alias for compatibility
         self.db = db_connection
         self.config = config or {}
         self.services = services  # Service Manager for local services

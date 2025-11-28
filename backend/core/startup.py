@@ -100,6 +100,13 @@ class StartupManager:
                 llm_client = get_llm_client()
                 if llm_client and llm_client.enabled:
                     logger.info(f"   ✅ RunPod LLM Client initialized: {llm_client.api_url}")
+                    # Test the LLM connection
+                    try:
+                        import asyncio
+                        health = asyncio.run(llm_client.health_check())
+                        logger.info(f"   🏥 LLM Health Check: {health.get('status', 'unknown')}")
+                    except Exception as health_err:
+                        logger.warning(f"   ⚠️ LLM Health Check failed: {health_err}")
                 else:
                     logger.warning(f"   ⚠️ RunPod LLM Client created but disabled (no URL)")
                     llm_client = None

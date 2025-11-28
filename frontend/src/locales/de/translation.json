@@ -154,7 +154,7 @@
         },
         "aiIntelligence": {
           "title": "KI-Intelligenz",
-          "description": "OpenAI GPT-3.5 mit Kontextbewusstsein, Sitzungsgedächtnis und Absichtserkennung"
+          "description": "Llama 3.1 8B Instruct-Modell mit fortgeschrittenem Kontextbewusstsein, Sitzungsgedächtnis und Absichtserkennung"
         },
         "security": {
           "title": "Sicherheit & Datenschutz",
@@ -473,8 +473,8 @@
     "dataSharingIntro": "Wir teilen begrenzte Daten nur mit wesentlichen Dienstanbietern:",
     "googleMaps": "Google Maps API",
     "googleMapsDesc": "Standortabfragen für Restaurantempfehlungen (USA)",
-    "openaiApi": "OpenAI API",
-    "openaiApiDesc": "KI-gestützte Chat-Antworten (USA)",
+    "openaiApi": "Llama 3.1 8B LLM",
+    "openaiApiDesc": "KI-gestützte Chat-Antworten (selbst gehostet)",
     "googleAnalytics": "Google Analytics",
     "googleAnalyticsDesc": "Anonymisierte Nutzungsstatistiken (USA)",
     "renderCom": "Render.com",
