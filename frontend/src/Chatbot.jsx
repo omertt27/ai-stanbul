@@ -1004,7 +1004,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   };
 
   return (
-    <div className={`flex flex-col h-screen w-full pt-[60px] transition-colors duration-200 ${
+    <div className={`flex flex-col h-screen w-full transition-colors duration-200 ${
       darkMode ? 'bg-gray-900' : 'bg-gray-100'
     }`}>
       
@@ -1031,7 +1031,7 @@ function Chatbot({ userLocation: propUserLocation }) {
       />
 
       {/* Chat Messages Container - Full screen like ChatGPT */}
-      <div className="flex-1 overflow-y-auto chat-messages pb-20 md:pb-0" id="chat-messages">
+      <div className="flex-1 overflow-y-auto chat-messages pb-20 md:pb-0 pt-[64px]" id="chat-messages">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center px-4">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
@@ -1053,11 +1053,11 @@ function Chatbot({ userLocation: propUserLocation }) {
               neighborhoods, culture, history, or anything else about this amazing city!
             </p>
             
-            {/* Enhanced Sample Cards with Better Light Mode Styling */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full px-4 md:grid md:gap-4 flex md:flex-none overflow-x-auto md:overflow-visible snap-x snap-mandatory scroll-smooth pb-4">
+            {/* Enhanced Sample Cards with Better Mobile Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl w-full px-4">
               <div 
                 onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
-                className={`flex-shrink-0 w-80 md:w-auto snap-center p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
                     : 'bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-400 shadow-md hover:shadow-lg'
@@ -1073,7 +1073,7 @@ function Chatbot({ userLocation: propUserLocation }) {
               
               <div 
                 onClick={() => handleSampleClick('Give me restaurant advice - recommend 4 good restaurants')}
-                className={`flex-shrink-0 w-80 md:w-auto snap-center p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
                     : 'bg-white border-red-200 hover:bg-red-50 hover:border-red-400 shadow-md hover:shadow-lg'
@@ -1089,7 +1089,7 @@ function Chatbot({ userLocation: propUserLocation }) {
               
               <div 
                 onClick={() => handleSampleClick('Tell me about Istanbul neighborhoods and districts to visit')}
-                className={`flex-shrink-0 w-80 md:w-auto snap-center p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
                     : 'bg-white border-green-200 hover:bg-green-50 hover:border-green-400 shadow-md hover:shadow-lg'

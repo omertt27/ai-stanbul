@@ -554,7 +554,8 @@ const NavBar = ({ hideLogo = false }) => {
       )}
 
       {/* Enhanced Mobile Bottom Tab Bar Navigation */}
-      {isMobile && (
+      {/* Hide on /chat page to prevent blocking the chat interface */}
+      {isMobile && location.pathname !== '/chat' && (
         <div className="mobile-navbar-glass mobile-gpu-accelerated mobile-safe-bottom" style={{
           position: 'fixed',
           bottom: '0px',
