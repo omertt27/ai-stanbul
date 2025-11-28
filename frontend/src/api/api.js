@@ -623,12 +623,14 @@ export const fetchPureLLMChat = async (message, options = {}) => {
     try {
       const sessionId = options.sessionId || getSessionId();
       const language = options.language || 'en';
+      const gpsLocation = options.gpsLocation || null;
       
       console.log('🦙 Making Pure LLM request:', {
         url: PURE_LLM_CHAT_URL,
         messageLength: message.length,
         sessionId,
-        language
+        language,
+        hasGPS: !!gpsLocation
       });
       
       const requestBody = {
@@ -636,6 +638,15 @@ export const fetchPureLLMChat = async (message, options = {}) => {
         session_id: sessionId,
         language: language
       };
+      
+      // Add GPS location if available
+      if (gpsLocation) {
+        requestBody.user_location = {
+          lat: gpsLocation.lat || gpsLocation.latitude,
+          lon: gpsLocation.lon || gpsLocation.lng || gpsLocation.longitude
+        };
+        console.log('📍 Including GPS location:', requestBody.user_location);
+      }
       
       const startTime = Date.now();
       
@@ -660,7 +671,8 @@ export const fetchPureLLMChat = async (message, options = {}) => {
         method: data.method,
         cached: data.cached,
         confidence: data.confidence,
-        contextCount: data.context_used?.length || 0
+        contextCount: data.context_used?.length || 0,
+        hasMapData: !!data.map_data
       });
       
       // Add frontend response time to metadata
@@ -742,7 +754,8 @@ export const fetchUnifiedChatV2 = async (query, options = {}) => {
       suggestions: result.data.suggestions || [],
       metadata: result.data.metadata,
       context_used: result.data.context_used || [],
-      response_time: result.responseTime
+      response_time: result.responseTime,
+      map_data: result.data.map_data // Include map data from backend
     };
   } else {
     // Use original backend

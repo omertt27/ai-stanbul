@@ -2,11 +2,11 @@
  * Enhanced Service Worker
  * Integrates map tile caching, periodic sync, and improved offline handling
  * 
- * @version 2.1.0
- * @features Map tiles, Periodic sync, Background sync, Push notifications
+ * @version 2.2.0
+ * @features Map tiles, Periodic sync, Background sync, Push notifications, External resource bypass
  */
 
-const CACHE_VERSION = 'ai-istanbul-v2.1.0';
+const CACHE_VERSION = 'ai-istanbul-v2.2.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const MAP_TILES_CACHE = 'map-tiles-v2';
@@ -82,6 +82,20 @@ self.addEventListener('fetch', (event) => {
   }
   
   const url = new URL(request.url);
+
+  // Bypass service worker for external analytics and fonts
+  const externalDomains = [
+    'google-analytics.com',
+    'googletagmanager.com', 
+    'analytics.google.com',
+    'fonts.googleapis.com',
+    'fonts.gstatic.com'
+  ];
+  
+  if (externalDomains.some(domain => url.hostname.includes(domain))) {
+    // Let browser handle these directly - don't intercept
+    return;
+  }
 
   // Handle map tiles separately
   if (MAP_TILE_PATTERN.test(request.url)) {
@@ -190,7 +204,25 @@ async function handleStaticRequest(request) {
       return fetch(request);
     }
 
-    // Try cache first
+    // Allow external resources (Google Analytics, Google Fonts, etc.) to bypass service worker
+    const url = new URL(request.url);
+    const externalDomains = [
+      'google-analytics.com',
+      'googletagmanager.com',
+      'analytics.google.com',
+      'fonts.googleapis.com',
+      'fonts.gstatic.com'
+    ];
+    
+    if (externalDomains.some(domain => url.hostname.includes(domain))) {
+      // Let browser handle these requests directly without service worker interference
+      return fetch(request, {
+        mode: 'cors',
+        credentials: 'omit'
+      });
+    }
+
+    // Try cache first for same-origin requests
     const cache = await caches.open(STATIC_CACHE);
     const cachedResponse = await cache.match(request);
     
@@ -201,8 +233,8 @@ async function handleStaticRequest(request) {
     // Fetch from network
     const networkResponse = await fetch(request);
     
-    // Cache successful GET responses only
-    if (networkResponse.ok && request.method === 'GET') {
+    // Cache successful GET responses only (only for same-origin)
+    if (networkResponse.ok && request.method === 'GET' && url.origin === self.location.origin) {
       try {
         const dynamicCache = await caches.open(DYNAMIC_CACHE);
         await dynamicCache.put(request, networkResponse.clone());

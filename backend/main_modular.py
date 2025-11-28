@@ -36,6 +36,15 @@ from core.startup import startup_manager
 # Import API routers
 from api import health, auth, chat, llm
 
+# Import blog API
+try:
+    from blog_api import router as blog_api_router
+    BLOG_API_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Blog API not available: {e}")
+    BLOG_API_AVAILABLE = False
+    blog_api_router = None
+
 # Import legacy routes
 try:
     from routes import museums, restaurants, places, blog
@@ -72,6 +81,11 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(llm.router)
+
+# Register Blog API if available
+if BLOG_API_AVAILABLE:
+    app.include_router(blog_api_router)
+    logger.info("✅ Blog API registered at /api/blog")
 
 # Register legacy routes if available
 if LEGACY_ROUTES_AVAILABLE:

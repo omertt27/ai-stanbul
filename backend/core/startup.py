@@ -112,12 +112,22 @@ class StartupManager:
             # Get database
             db = next(get_db())
             
+            # Initialize Map Visualization Service
+            map_service = None
+            try:
+                from services.map_visualization_service import MapVisualizationService
+                map_service = MapVisualizationService()
+                logger.info("   ✅ Map Visualization Service initialized")
+            except Exception as e:
+                logger.warning(f"   ⚠️ Map service unavailable: {e}")
+            
             # Configuration for Pure LLM Core
             config = {
                 'rag_service': None,
                 'redis_client': None,
                 'weather_service': None,
                 'events_service': None,
+                'map_service': map_service,  # Add map service
                 'enable_cache': True,
                 'enable_analytics': True,
                 'enable_experimentation': False,

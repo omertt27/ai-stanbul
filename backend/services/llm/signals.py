@@ -77,7 +77,7 @@ class SignalDetector:
                 'needs_weather': 0.30,
                 'needs_hidden_gems': 0.40,
                 'needs_map': 0.45,
-                'needs_gps_routing': 0.50,
+                'needs_gps_routing': 0.35,  # Lowered from 0.50
                 'needs_translation': 0.35,
                 'needs_shopping': 0.35,  # PHASE 3
                 'needs_nightlife': 0.35,  # PHASE 3
@@ -92,7 +92,7 @@ class SignalDetector:
                 'needs_weather': 0.25,
                 'needs_hidden_gems': 0.35,
                 'needs_map': 0.40,
-                'needs_gps_routing': 0.45,
+                'needs_gps_routing': 0.30,  # Lowered from 0.45
                 'needs_translation': 0.30,
                 'needs_shopping': 0.30,  # PHASE 3
                 'needs_nightlife': 0.30,  # PHASE 3
@@ -107,7 +107,7 @@ class SignalDetector:
                 'needs_weather': 0.30,
                 'needs_hidden_gems': 0.40,
                 'needs_map': 0.45,
-                'needs_gps_routing': 0.50,
+                'needs_gps_routing': 0.35,  # Lowered from 0.50
                 'needs_translation': 0.35,
                 'needs_shopping': 0.35,  # PHASE 3
                 'needs_nightlife': 0.35,  # PHASE 3
@@ -215,11 +215,15 @@ class SignalDetector:
             'needs_gps_routing': {
                 'en': [
                     r'\b(take\s+me|guide\s+me|navigate|gps|turn.*by.*turn)\b',
-                    r'\b(from\s+here|my\s+location|current\s+location)\b'
+                    r'\b(from\s+here|my\s+location|current\s+location)\b',
+                    r'\b(how\s+to\s+get|how\s+do\s+i\s+get|directions?|route|way\s+to)\b',
+                    r'\b(get\s+to|go\s+to|reach|travel\s+to)\b'
                 ],
                 'tr': [
                     r'\b(beni\s+götür|yol\s+göster|navigasyon|gps)\b',
-                    r'\b(buradan|konumum|bulunduğum)\b'
+                    r'\b(buradan|konumum|bulunduğum)\b',
+                    r'\b(nasıl\s+gidilir|nasıl\s+giderim|yol\s+tarifi)\b',
+                    r'\b(ulaşmak|varmak|gitmek)\b'
                 ]
             },
             'needs_translation': {

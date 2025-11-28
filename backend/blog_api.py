@@ -81,14 +81,17 @@ class BlogPostListResponse(BaseModel):
 # =============================
 
 @router.get("/posts", response_model=BlogPostListResponse)
+@router.get("/posts/", response_model=BlogPostListResponse)  # Support trailing slash
 async def get_blog_posts(
     request: Request,
     response: Response,
     page: int = Query(1, ge=1, description="Page number"),
-    per_page: int = Query(12, ge=1, le=50, description="Posts per page"),
+    per_page: Optional[int] = Query(None, ge=1, le=100, description="Posts per page"),
+    limit: Optional[int] = Query(None, ge=1, le=100, description="Posts per page (alias for per_page)"),
     district: Optional[str] = Query(None, description="Filter by district"),
     search: Optional[str] = Query(None, description="Search in title/content"),
-    sort: str = Query("newest", description="Sort by: newest, oldest, popular"),
+    sort: Optional[str] = Query(None, description="Sort by: newest, oldest, popular"),
+    sort_by: Optional[str] = Query(None, description="Sort by (alias for sort): newest, oldest, popular"),
     db: Session = Depends(get_db)
 ):
     """
@@ -96,13 +99,18 @@ async def get_blog_posts(
     ✅ Fixed N+1 query problem with subquery
     ✅ Added response caching headers
     ✅ Rate limited: 60/minute per IP
+    ✅ Supports both parameter naming conventions
     """
     try:
         from models import BlogPost, BlogComment
         
+        # Handle parameter aliases
+        actual_per_page = per_page or limit or 12
+        actual_sort = sort or sort_by or "newest"
+        
         # Add cache headers for public content (5 minutes)
         response.headers["Cache-Control"] = "public, max-age=300"
-        response.headers["ETag"] = f"posts-{page}-{district}-{sort}-{search}"
+        response.headers["ETag"] = f"posts-{page}-{district}-{actual_sort}-{search}"
         
         # Base query with eager loading
         query = db.query(BlogPost)
@@ -119,19 +127,19 @@ async def get_blog_posts(
             )
         
         # Apply sorting
-        if sort == "newest":
+        if actual_sort == "newest":
             query = query.order_by(BlogPost.created_at.desc())
-        elif sort == "oldest":
+        elif actual_sort == "oldest":
             query = query.order_by(BlogPost.created_at.asc())
-        elif sort == "popular":
+        elif actual_sort == "popular":
             query = query.order_by(BlogPost.likes_count.desc())
         
         # Get total count
         total = query.count()
         
         # Apply pagination
-        offset = (page - 1) * per_page
-        posts = query.offset(offset).limit(per_page).all()
+        offset = (page - 1) * actual_per_page
+        posts = query.offset(offset).limit(actual_per_page).all()
         
         # FIX: N+1 Query Problem - Get all comment counts in one query
         post_ids = [post.id for post in posts]
@@ -165,7 +173,7 @@ async def get_blog_posts(
             posts=formatted_posts,
             total=total,
             page=page,
-            pages=(total + per_page - 1) // per_page
+            pages=(total + actual_per_page - 1) // actual_per_page
         )
         
     except Exception as e:
