@@ -1017,20 +1017,16 @@ function Chatbot({ userLocation: propUserLocation }) {
         onSelectSession={handleSelectSession}
       />
       
-      {/* Enhanced Header with chat management */}
+      {/* Floating Action Button for chat controls */}
       <ChatHeader
         darkMode={darkMode}
         onDarkModeToggle={() => setDarkMode(!darkMode)}
         onClearHistory={clearChatHistory}
         onToggleSessionsPanel={toggleSessionsPanel}
-        messageCount={messages.length}
-        isOnline={isOnline}
-        apiHealth={apiHealth}
-        sessionId={currentSessionId}
       />
 
-      {/* Chat Messages Container - Full screen like ChatGPT */}
-      <div className="flex-1 overflow-y-auto chat-messages pb-20 md:pb-0 pt-[64px]" id="chat-messages">
+      {/* Chat Messages Container - Full screen with no top padding */}
+      <div className="flex-1 overflow-y-auto chat-messages pb-20 md:pb-0" id="chat-messages">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center px-4">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
