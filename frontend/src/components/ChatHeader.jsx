@@ -20,13 +20,13 @@ const ChatHeader = ({
   return (
     <>
       {/* Floating Action Button (FAB) - Bottom Right */}
-      <div className="fixed bottom-16 md:bottom-12 right-4 md:right-6 z-50">
+      <div className="fixed bottom-16 md:bottom-12 right-4 md:right-6 z-[9999]">
         {/* Action Menu - Shows when FAB is clicked */}
         {fabOpen && (
           <>
             {/* Backdrop for mobile */}
             <div 
-              className="fixed inset-0 bg-black/20 -z-10 md:hidden"
+              className="fixed inset-0 bg-black/20 z-[9998] md:hidden"
               onClick={() => setFabOpen(false)}
             />
             

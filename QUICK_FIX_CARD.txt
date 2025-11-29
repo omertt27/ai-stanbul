@@ -1,0 +1,98 @@
+┌─────────────────────────────────────────────────────────────┐
+│                  🔥 QUICK FIX CARD 🔥                       │
+│              vLLM Server Not Running                        │
+└─────────────────────────────────────────────────────────────┘
+
+PROBLEM:
+  Chat returns: "I apologize, but I'm having trouble..."
+  
+ROOT CAUSE:
+  vLLM server on RunPod stopped → Backend gets 404 error
+
+THE FIX (5 minutes):
+
+┌─────────────────────────────────────────────────────────────┐
+│ STEP 1: Access RunPod                                       │
+│ https://www.runpod.io/console/pods                          │
+│                                                             │
+│ STEP 2: Find Your Pod                                       │
+│ Pod ID: i6c58scsmccj2s                                      │
+│ Status: Should be 🟢 Running                                │
+│                                                             │
+│ STEP 3: SSH Into Pod                                        │
+│ (Get SSH command from RunPod console)                       │
+│                                                             │
+│ STEP 4: Start vLLM                                          │
+│                                                             │
+│ cd /workspace                                               │
+│                                                             │
+│ nohup python -m vllm.entrypoints.openai.api_server \       │
+│   --model /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 \ │
+│   --quantization awq \                                      │
+│   --dtype half \                                            │
+│   --gpu-memory-utilization 0.85 \                           │
+│   --max-model-len 2048 \                                    │
+│   --port 8888 \                                             │
+│   --host 0.0.0.0 \                                          │
+│   > /workspace/vllm.log 2>&1 &                              │
+│                                                             │
+│ tail -f /workspace/vllm.log                                 │
+│ (Wait for "Application startup complete" ~2-3 min)          │
+│ (Press Ctrl+C to exit)                                      │
+│                                                             │
+│ STEP 5: Test vLLM                                           │
+│                                                             │
+│ # From your Mac:                                            │
+│ curl https://i6c58scsmccj2s-8888.proxy.runpod.net/v1/models│
+│                                                             │
+│ Expected: JSON with model info ✅                           │
+│                                                             │
+│ STEP 6: Test Backend                                        │
+│                                                             │
+│ ./test_render_backend.sh                                    │
+│                                                             │
+│ Expected: "✅ SUCCESS - Backend is generating responses"    │
+│                                                             │
+│ STEP 7: Test Frontend                                       │
+│                                                             │
+│ Go to: https://aistanbul.net                                │
+│ Open chat → Type "Hello!"                                   │
+│ Expected: Real response, not fallback error                 │
+└─────────────────────────────────────────────────────────────┘
+
+PREVENTION:
+  
+  Option A: Use Screen (keeps running after disconnect)
+    screen -S vllm
+    (start vllm command)
+    Ctrl+A then D to detach
+    
+  Option B: Set Pod to "Always On"
+    RunPod console → Pod settings → Keep running
+    
+  Option C: Add auto-restart
+    Add startup script to /workspace/.profile
+
+DOCUMENTATION:
+  - /VLLM_404_FIX_NOW.md (detailed guide)
+  - /CRITICAL_ISSUE_DIAGNOSIS.md (full analysis)
+  - /RUNPOD_VLLM_SETUP.md (original setup)
+
+SUPPORT COMMANDS:
+  
+  Check if vLLM running:  ps aux | grep vllm
+  Check vLLM logs:        tail -f /workspace/vllm.log
+  Test endpoint:          curl localhost:8888/health
+  Kill vLLM:              pkill -f vllm
+
+TIMELINE:
+  ⏱️  Pod startup: 1-2 min
+  ⏱️  vLLM loading: 2-3 min
+  ⏱️  Testing: 1 min
+  ────────────────────────
+  📊 Total: ~5-6 minutes
+
+STATUS: ⚠️  WAITING FOR YOU TO RESTART vLLM
+
+👉 OPEN RUNPOD CONSOLE NOW 👈
+https://www.runpod.io/console/pods
