@@ -124,12 +124,14 @@ class PureLLMCore:
         logger.info("🛡️ Initializing resilience components...")
         
         # Circuit Breakers for each external service
+        # NOTE: LLM circuit breaker disabled for production (high MAU traffic)
+        # If LLM is down, we want to keep trying and return fallback per request
         self.circuit_breakers = {
             'llm': CircuitBreaker(
                 name='LLM Service',
-                failure_threshold=self.config.get('llm_failure_threshold', 5),
+                failure_threshold=self.config.get('llm_failure_threshold', 999999),  # Effectively disabled
                 success_threshold=2,
-                timeout=60.0  # 1 minute before retry
+                timeout=1.0  # Retry immediately - don't block traffic
             ),
             'database': CircuitBreaker(
                 name='Database',
