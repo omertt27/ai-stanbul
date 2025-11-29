@@ -14,6 +14,10 @@ backend/.env.*
 !backend/.env.template
 !backend/.env.example
 
+# Migration scripts with hardcoded credentials (SECURITY)
+backend/run_migration_now.py
+**/run_migration_now.py
+
 # Credentials and API Keys (CRITICAL)
 credentials/
 backend/credentials/
