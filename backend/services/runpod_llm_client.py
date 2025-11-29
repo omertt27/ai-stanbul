@@ -327,6 +327,89 @@ Provide a helpful response about Istanbul:"""
             return full_text
         
         return None
+    
+    async def generate_with_service_context(
+        self,
+        query: str,
+        intent: Optional[str] = None,
+        entities: Optional[Dict] = None,
+        service_context: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        """
+        Generate response using service context data
+        
+        Args:
+            query: User query
+            intent: Detected intent
+            entities: Extracted entities
+            service_context: Context from LLMContextBuilder with service data
+            
+        Returns:
+            Generated response text or None
+        """
+        if not service_context or not service_context.get("service_data"):
+            # No service data, fall back to basic generation
+            return await self.generate_istanbul_response(query, intent=intent)
+        
+        # Import here to avoid circular dependency
+        from services.llm_context_builder import get_context_builder
+        
+        context_builder = get_context_builder()
+        formatted_context = context_builder.format_context_for_llm(service_context)
+        
+        # Build enhanced prompt with service data
+        system_prompt = """You are an AI assistant specialized in Istanbul tourism with access to real-time data.
+
+IMPORTANT INSTRUCTIONS:
+1. Use the provided Context data to give accurate, specific recommendations
+2. Include specific names, ratings, locations, and practical details from the Context
+3. Be concise but informative
+4. Always mention specific options from the Context when available
+5. If Context is limited, acknowledge it and provide general guidance
+
+"""
+        
+        if formatted_context:
+            prompt = f"""{system_prompt}
+
+CONTEXT DATA:
+{formatted_context}
+
+USER QUESTION: {query}
+
+Provide a helpful, specific response using the Context data above:"""
+        else:
+            prompt = f"""{system_prompt}
+
+USER QUESTION: {query}
+
+Provide a helpful response about Istanbul:"""
+        
+        logger.info(f"🤖 Generating service-enhanced response for intent: {intent}")
+        logger.debug(f"Prompt length: {len(prompt)} chars")
+        
+        result = await self.generate(
+            prompt=prompt,
+            max_tokens=300,  # Allow longer responses with service data
+            temperature=0.7,
+            top_p=0.9
+        )
+        
+        if result and 'generated_text' in result:
+            full_text = result['generated_text']
+            
+            # Extract response after the prompt
+            if "Provide a helpful" in full_text:
+                response = full_text.split("Provide a helpful", 1)[-1]
+                # Remove the "response using..." part
+                response = response.split(":", 1)[-1] if ":" in response else response
+                response = response.strip()
+                return response
+            
+            return full_text
+        
+        return None
+    
 
 
 # Global instance
