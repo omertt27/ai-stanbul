@@ -18,6 +18,9 @@ backend/.env.*
 backend/run_migration_now.py
 **/run_migration_now.py
 
+# Status reports with sensitive configuration details
+COMPLETE_STATUS_REPORT.md
+
 # Credentials and API Keys (CRITICAL)
 credentials/
 backend/credentials/
