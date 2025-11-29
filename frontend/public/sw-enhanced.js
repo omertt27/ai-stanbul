@@ -450,4 +450,4 @@ function saveToIndexedDB(storeName, data) {
   });
 }
 
-console.log('✅ Enhanced Service Worker loaded (v2.0.0)');
+console.log('✅ Enhanced Service Worker loaded (v2.3.0)');
