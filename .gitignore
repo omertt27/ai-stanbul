@@ -540,3 +540,4 @@ LLAMA_NO_AWQ_FIX.md
 LLAMA_SETUP_STEPS.md
 RUNPOD_LLAMA_4BIT_SETUP.md
 TOKEN_FIX_NOW.md
+backend/run_migration_now.py
