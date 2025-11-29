@@ -1,6 +1,11 @@
 import React from 'react';
 
-const TypingIndicator = ({ message = "Thinking..." }) => {
+const TypingIndicator = ({ isTyping = false, message = "Thinking...", darkMode = false }) => {
+  // Only render when actually typing - prevents stray elements from appearing
+  if (!isTyping) {
+    return null;
+  }
+
   return (
     <div className="typing-indicator">
       <span className="typing-message">{message}</span>

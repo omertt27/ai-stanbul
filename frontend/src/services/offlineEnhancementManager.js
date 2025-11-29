@@ -142,15 +142,27 @@ class OfflineEnhancementManager {
       const registration = await navigator.serviceWorker.ready;
       
       if ('periodicSync' in registration) {
-        await registration.periodicSync.register('update-cache', {
-          minInterval: 24 * 60 * 60 * 1000 // 24 hours
-        });
-        console.log('✅ Periodic sync registered');
+        // Check if periodic sync permission is granted
+        const status = await navigator.permissions.query({ name: 'periodic-background-sync' }).catch(() => null);
+        
+        if (status && status.state === 'granted') {
+          await registration.periodicSync.register('update-cache', {
+            minInterval: 24 * 60 * 60 * 1000 // 24 hours
+          });
+          console.log('✅ Periodic sync registered');
+        } else {
+          console.log('ℹ️ Periodic sync permission not granted (this is optional)');
+        }
       } else {
-        console.log('⚠️ Periodic sync not supported');
+        console.log('ℹ️ Periodic sync not supported by this browser');
       }
     } catch (error) {
-      console.error('❌ Periodic sync setup failed:', error);
+      // Periodic sync is optional - fail silently
+      if (error.name === 'NotAllowedError') {
+        console.log('ℹ️ Periodic sync not allowed (this is optional and doesn\'t affect functionality)');
+      } else {
+        console.log('ℹ️ Periodic sync unavailable:', error.message);
+      }
     }
   }
 
