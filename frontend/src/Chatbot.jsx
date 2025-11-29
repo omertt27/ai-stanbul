@@ -1025,8 +1025,8 @@ function Chatbot({ userLocation: propUserLocation }) {
         onToggleSessionsPanel={toggleSessionsPanel}
       />
 
-      {/* Chat Messages Container - Full screen with no top padding */}
-      <div className="flex-1 overflow-y-auto chat-messages pb-20 md:pb-0" id="chat-messages">
+      {/* Chat Messages Container - With top padding for better UX */}
+      <div className="flex-1 overflow-y-auto chat-messages pb-24 md:pb-0 pt-4 md:pt-6" id="chat-messages">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center px-4">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
@@ -1123,7 +1123,7 @@ function Chatbot({ userLocation: propUserLocation }) {
             <div key={msg.id || index} className="group py-6">
               {msg.sender === 'user' ? (
                 // USER MESSAGE - RIGHT ALIGNED (ChatGPT Style)
-                <div className="flex justify-end px-4">
+                <div className="flex justify-end px-4 mt-2">
                   <div className="flex flex-row-reverse items-start gap-3 max-w-[85%]">
                     {/* Avatar on right side */}
                     <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -1267,8 +1267,8 @@ function Chatbot({ userLocation: propUserLocation }) {
         darkMode={darkMode}
       />
 
-      {/* Enhanced Input Area - ChatGPT Style - Fixed at bottom on mobile */}
-      <div className={`border-t p-4 md:relative md:bottom-auto md:left-auto md:right-auto fixed bottom-0 left-0 right-0 z-50 transition-colors duration-200 ${
+      {/* Enhanced Input Area - ChatGPT Style - Fixed at bottom on mobile with spacing */}
+      <div className={`border-t p-4 md:relative md:bottom-auto md:left-auto md:right-auto fixed bottom-4 left-0 right-0 z-50 transition-colors duration-200 ${
         darkMode 
           ? 'bg-gray-900 border-gray-700' 
           : 'bg-white border-gray-200'

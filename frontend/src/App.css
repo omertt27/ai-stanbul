@@ -1239,3 +1239,20 @@ body::before,
     border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
 }
+
+/* Fix for random typing indicator boxes appearing on main page */
+.main-page-background .typing-indicator,
+.main-page-background .typing-dots,
+.main-page-background .typing-dot {
+  display: none !important;
+}
+
+/* Ensure typing indicators only show in chat contexts */
+.typing-indicator-enhanced {
+  display: none;
+}
+
+.chatbot-page .typing-indicator-enhanced,
+.chat-container .typing-indicator-enhanced {
+  display: flex;
+}

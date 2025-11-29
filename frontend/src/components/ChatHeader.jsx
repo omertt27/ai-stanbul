@@ -20,7 +20,7 @@ const ChatHeader = ({
   return (
     <>
       {/* Floating Action Button (FAB) - Bottom Right */}
-      <div className="fixed bottom-32 md:bottom-24 right-4 md:right-6 z-50">
+      <div className="fixed bottom-16 md:bottom-12 right-4 md:right-6 z-50">
         {/* Action Menu - Shows when FAB is clicked */}
         {fabOpen && (
           <>

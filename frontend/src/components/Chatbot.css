@@ -374,6 +374,17 @@
   animation-delay: 0.4s;
 }
 
+/* Ensure typing indicators are scoped properly */
+.typing-indicator {
+  display: none; /* Hidden by default */
+}
+
+/* Only show when explicitly needed in chat context */
+.chat-container .typing-indicator,
+.chatbot-page .typing-indicator {
+  display: flex !important;
+}
+
 /* Animations */
 @keyframes fadeInUp {
   from {
