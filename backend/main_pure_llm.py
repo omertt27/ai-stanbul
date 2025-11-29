@@ -244,6 +244,72 @@ async def health_check():
     }
 
 
+@app.post("/api/admin/migrate-schema", tags=["Admin"])
+async def migrate_database_schema():
+    """
+    Emergency database schema migration endpoint
+    Adds missing photo_url and photo_reference columns to restaurants table
+    """
+    try:
+        from sqlalchemy import create_engine, text, inspect
+        from database import get_db_url
+        
+        database_url = get_db_url()
+        if not database_url:
+            raise HTTPException(
+                status_code=500,
+                detail="DATABASE_URL not configured"
+            )
+        
+        # Fix postgres:// to postgresql://
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        
+        engine = create_engine(database_url)
+        
+        # Check current schema
+        inspector = inspect(engine)
+        columns = [col['name'] for col in inspector.get_columns('restaurants')]
+        
+        changes_made = []
+        
+        with engine.connect() as conn:
+            # Add photo_url if missing
+            if 'photo_url' not in columns:
+                conn.execute(text("""
+                    ALTER TABLE restaurants 
+                    ADD COLUMN IF NOT EXISTS photo_url VARCHAR;
+                """))
+                conn.commit()
+                changes_made.append("Added photo_url column")
+            
+            # Add photo_reference if missing
+            if 'photo_reference' not in columns:
+                conn.execute(text("""
+                    ALTER TABLE restaurants 
+                    ADD COLUMN IF NOT EXISTS photo_reference VARCHAR;
+                """))
+                conn.commit()
+                changes_made.append("Added photo_reference column")
+        
+        # Verify final schema
+        inspector = inspect(engine)
+        final_columns = [col['name'] for col in inspector.get_columns('restaurants')]
+        
+        return {
+            "status": "success",
+            "changes": changes_made if changes_made else ["No changes needed - schema already up to date"],
+            "columns": final_columns
+        }
+        
+    except Exception as e:
+        logger.error(f"Migration failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Migration failed: {str(e)}"
+        )
+
+
 # =============================
 # PYDANTIC MODELS
 # =============================

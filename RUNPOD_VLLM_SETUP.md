@@ -42,47 +42,65 @@ Version: 0.11.2
 
 ---
 
-### **Step 3: Download Llama 3.1 8B AWQ Model**
+### **Step 3: Download Official Meta Llama 3.1 8B (4-bit AWQ)**
 
-**Option A: Direct Download (Recommended)**
+We'll use the **official Meta Llama 3.1 8B** model quantized to **4-bit AWQ** format.
+
+**Recommended Model:** `hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4`
+- ✅ Official Meta architecture
+- ✅ 4-bit quantization (uses ~5GB instead of 16GB)
+- ✅ AWQ format (optimized for vLLM)
+- ✅ No accuracy loss for chat tasks
+
+**Download Command:**
 
 ```bash
-# Download the AWQ quantized model (4-bit, much smaller!)
-huggingface-cli download casperhansen/llama-3.1-8b-instruct-awq \
-  --local-dir /workspace/llama-3.1-8b-awq \
+# Set HuggingFace token and cache
+export HF_TOKEN=AISTANBUL
+export HF_HOME=/workspace/.cache
+
+# Download official Meta Llama 3.1 8B in 4-bit AWQ
+huggingface-cli download hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 \
+  --local-dir /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 \
   --cache-dir /workspace/.cache
 
 # Check download progress
-ls -lh /workspace/llama-3.1-8b-awq/
-du -sh /workspace/llama-3.1-8b-awq/
+ls -lh /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4/
+du -sh /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4/
 ```
 
-**Option B: Use Python to Download**
+**Alternative: Use Python to Download**
 
 ```bash
 python3 << 'EOF'
 from huggingface_hub import snapshot_download
+import os
 
-print("Downloading Llama 3.1 8B AWQ...")
+os.environ['HF_TOKEN'] = 'AISTANBUL'
+
+print("Downloading official Meta Llama 3.1 8B (4-bit AWQ)...")
 snapshot_download(
-    repo_id="casperhansen/llama-3.1-8b-instruct-awq",
-    local_dir="/workspace/llama-3.1-8b-awq",
-    cache_dir="/workspace/.cache"
+    repo_id="hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+    local_dir="/workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+    cache_dir="/workspace/.cache",
+    token=os.environ['HF_TOKEN']
 )
-print("Download complete!")
+print("✅ Download complete!")
 EOF
 ```
 
-**Expected size:** ~5-6 GB (much smaller than 15GB full model!)
+**Expected size:** ~5GB (instead of 16GB for full precision model)
+
+**Download time:** 5-10 minutes depending on connection speed
 
 ---
 
-### **Step 4: Start vLLM Server**
+### **Step 4: Start vLLM Server with Official Meta Llama**
 
 ```bash
-# Start vLLM with AWQ quantization
+# Start vLLM with the official Meta Llama 3.1 8B (4-bit AWQ)
 python -m vllm.entrypoints.openai.api_server \
-  --model /workspace/llama-3.1-8b-awq \
+  --model /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 \
   --quantization awq \
   --dtype half \
   --gpu-memory-utilization 0.85 \
@@ -121,7 +139,7 @@ curl http://localhost:8888/v1/models
 curl -X POST http://localhost:8888/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "/workspace/llama-3.1-8b-awq",
+    "model": "/workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
     "messages": [
       {"role": "user", "content": "What is Istanbul?"}
     ],
@@ -178,7 +196,7 @@ curl $RUNPOD_ENDPOINT/v1/models
 curl -X POST $RUNPOD_ENDPOINT/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "/workspace/llama-3.1-8b-awq",
+    "model": "/workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
     "messages": [
       {"role": "user", "content": "What are the top 3 places to visit in Istanbul?"}
     ],
@@ -219,7 +237,7 @@ screen -S vllm-server
 
 # Inside screen, start vLLM:
 python -m vllm.entrypoints.openai.api_server \
-  --model /workspace/llama-3.1-8b-awq \
+  --model /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 \
   --quantization awq \
   --dtype half \
   --gpu-memory-utilization 0.85 \
@@ -237,7 +255,7 @@ python -m vllm.entrypoints.openai.api_server \
 
 ```bash
 nohup python -m vllm.entrypoints.openai.api_server \
-  --model /workspace/llama-3.1-8b-awq \
+  --model /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 \
   --quantization awq \
   --dtype half \
   --gpu-memory-utilization 0.85 \
@@ -278,13 +296,13 @@ python -c "import vllm"  # Should not error
 
 ```bash
 # Verify model files exist
-ls -lh /workspace/llama-3.1-8b-awq/
+ls -lh /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4/
 
 # Should show: config.json, tokenizer.json, *.safetensors files
 
 # If missing, re-download:
-huggingface-cli download casperhansen/llama-3.1-8b-instruct-awq \
-  --local-dir /workspace/llama-3.1-8b-awq
+huggingface-cli download hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 \
+  --local-dir /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4
 ```
 
 ### **Issue: "Address already in use (port 8888)"**
@@ -306,7 +324,7 @@ kill -9 <PID>
 
 - [ ] HuggingFace authentication working (`hf whoami` shows username)
 - [ ] vLLM installed (`pip show vllm` works)
-- [ ] Model downloaded (~5-6 GB in `/workspace/llama-3.1-8b-awq/`)
+- [ ] Official Meta Llama model downloaded (~5GB in `/workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4/`)
 - [ ] vLLM server started ("Application startup complete")
 - [ ] Local health check works (`curl http://localhost:8888/health`)
 - [ ] Local chat completion works
