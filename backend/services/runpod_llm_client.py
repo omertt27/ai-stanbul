@@ -240,7 +240,8 @@ class RunPodLLMClient:
             "prompt": prompt,  # vLLM uses 'prompt' not 'messages'
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": temperature,
-            "top_p": top_p
+            "top_p": top_p,
+            "stop": ["\n\nUser:", "\n\n---", "## User Question:", "## Your Response:"]  # Stop sequences to prevent extra generation
         }
         
         headers = {"Content-Type": "application/json"}

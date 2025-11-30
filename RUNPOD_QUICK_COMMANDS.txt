@@ -18,7 +18,7 @@ huggingface-cli download hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 --lo
 ──────────────────────────────────────────────────────
 STEP 3: Start vLLM (instant)
 ──────────────────────────────────────────────────────
-python -m vllm.entrypoints.openai.api_server --model /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 --quantization awq --dtype half --gpu-memory-utilization 0.85 --max-model-len 2048 --port 8888 --host 0.0.0.0 > /workspace/vllm.log 2>&1 &
+python -m vllm.entrypoints.openai.api_server --model /workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4 --quantization awq --dtype half --gpu-memory-utilization 0.85 --max-model-len 2048 --port 8000 --host 0.0.0.0 > /workspace/vllm.log 2>&1 &
 
 ──────────────────────────────────────────────────────
 STEP 4: Monitor Startup (3 min)
@@ -31,7 +31,7 @@ Press Ctrl+C when you see it
 ──────────────────────────────────────────────────────
 STEP 5: Test It
 ──────────────────────────────────────────────────────
-curl -X POST http://localhost:8888/v1/completions -H "Content-Type: application/json" -d '{"model": "/workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4", "prompt": "Hello", "max_tokens": 10}'
+curl -X POST http://localhost:8000/v1/completions -H "Content-Type: application/json" -d '{"model": "/workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4", "prompt": "Hello", "max_tokens": 10}'
 
 Should return JSON with text ✅
 
@@ -39,7 +39,7 @@ Should return JSON with text ✅
 STEP 6: Get Your Pod ID
 ──────────────────────────────────────────────────────
 Look at your RunPod URL, it will be something like:
-https://fcn3h0wk2vf5sk-8888.proxy.runpod.net
+https://fcn3h0wk2vf5sk-8000.proxy.runpod.net
          ↑↑↑↑↑↑↑↑↑↑↑↑↑↑
          This is your Pod ID
 
@@ -50,7 +50,7 @@ STEP 7: Update Render Backend
 2. Click your backend service
 3. Go to "Environment" tab
 4. Update LLM_API_URL to:
-   https://YOUR-POD-ID-8888.proxy.runpod.net/v1
+   https://YOUR-POD-ID-8000.proxy.runpod.net/v1
 5. Click "Save Changes"
 6. Wait 2-3 minutes for redeploy
 
