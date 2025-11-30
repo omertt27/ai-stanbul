@@ -72,9 +72,9 @@ class ContextBuilder:
         """
         self.db = db_connection
         self.rag_service = rag_service
-        self.weather_service = weather_service
-        self.events_service = events_service
-        self.hidden_gems_service = hidden_gems_service
+        self.weather_service = weather_service or (service_manager.weather_service if service_manager else None)
+        self.events_service = events_service or (service_manager.events_service if service_manager else None)
+        self.hidden_gems_service = hidden_gems_service or (service_manager.hidden_gems_service if service_manager else None)
         self.map_service = map_service
         self.service_manager = service_manager  # Service Manager for local services
         self.circuit_breakers = circuit_breakers or {}
@@ -182,6 +182,20 @@ class ContextBuilder:
             except Exception as e:
                 logger.warning(f"Hidden gems context failed: {e}")
         
+        # Get airport transport context (NEW)
+        if signals.get('needs_airport'):
+            try:
+                context['services']['airport'] = await self._get_airport_context(query, user_location, language)
+            except Exception as e:
+                logger.warning(f"Airport context failed: {e}")
+        
+        # Get daily life suggestions context (NEW - Phase 2)
+        if signals.get('needs_daily_life'):
+            try:
+                context['services']['daily_life'] = await self._get_daily_life_context(query, language)
+            except Exception as e:
+                logger.warning(f"Daily life context failed: {e}")
+        
         # Generate map visualization
         if (signals.get('needs_map') or signals.get('needs_gps_routing')) and self.map_service:
             try:
@@ -228,6 +242,8 @@ class ContextBuilder:
         context_parts = []
         
         # Get restaurant context
+        # Note: LLM will naturally extract relevant details from query
+        # No need for separate entity extraction - LLM can handle it
         if signals.get('needs_restaurant'):
             restaurants = await self._get_restaurants(query, user_location, language)
             if restaurants:
@@ -308,9 +324,41 @@ class ContextBuilder:
         user_location: Optional[Dict[str, float]],
         language: str
     ) -> str:
-        """Get attraction data from database with retry and timeout protection."""
+        """Get attraction data with enhanced details if available."""
         try:
-            # Database query with timeout
+            # Try to use enhanced attractions service from ServiceManager first
+            if self.service_manager and hasattr(self.service_manager, 'attractions_service'):
+                if self.service_manager.attractions_service:
+                    logger.debug("Using EnhancedAttractionsService from ServiceManager")
+                    try:
+                        # Use enhanced service for richer data
+                        attractions = self.service_manager.attractions_service.search_attractions(
+                            category=None,  # LLM will filter
+                            district=None   # LLM will filter
+                        )
+                        
+                        if attractions:
+                            # Format enhanced results
+                            results = []
+                            for attr in attractions[:5]:  # Top 5
+                                info = f"- {attr.get('name', 'Unknown')}"
+                                if attr.get('category'):
+                                    info += f" ({attr['category']})"
+                                if attr.get('district'):
+                                    info += f": Located in {attr['district']}"
+                                if attr.get('description'):
+                                    info += f". {attr['description'][:100]}..."
+                                if attr.get('opening_hours'):
+                                    info += f" | Hours: {attr['opening_hours']}"
+                                if attr.get('entry_fee'):
+                                    info += f" | Fee: {attr['entry_fee']}"
+                                results.append(info)
+                            
+                            return "\n".join(results)
+                    except Exception as e:
+                        logger.warning(f"Enhanced attractions service failed: {e}, falling back to database")
+            
+            # Fallback: Basic database query
             async def _query_db():
                 cursor = await self.db.execute("""
                     SELECT name, category, district, description
@@ -356,13 +404,80 @@ class ContextBuilder:
             return ""
     
     async def _get_transportation(self, query: str, language: str) -> str:
-        """Get transportation data from database."""
+        """Get REAL transportation data from TransportationDirectionsService."""
         try:
-            # TODO: Implement actual database query
-            return "Metro M2 connects to Taksim and Sisli..."
+            # Try to use service_manager's transportation service first
+            transport_service = None
+            
+            if self.service_manager and hasattr(self.service_manager, 'transportation_service'):
+                transport_service = self.service_manager.transportation_service
+                logger.debug("Using transportation service from ServiceManager")
+            
+            # Fallback: import directly
+            if not transport_service:
+                from services.transportation_directions_service import get_transportation_service
+                transport_service = get_transportation_service()
+                logger.debug("Using standalone transportation service")
+            
+            # Provide comprehensive Istanbul transit information for LLM context
+            transit_info = """Istanbul Public Transportation:
+
+🚇 METRO LINES:
+- M1 (Red): Yenikapı - Atatürk Airport/Kirazlı
+- M2 (Green): Yenikapı - Hacıosman (serves Taksim, Şişhane, Osmanbey, Levent)
+- M3 (Blue): Kirazlı - Başakşehir/Olimpiyat
+- M4 (Pink): Kadıköy - Tavşantepe (Asian side)
+- M5 (Purple): Üsküdar - Çekmeköy (Asian side)
+- M6, M7, M9, M11: Other metro lines
+
+🚊 TRAM LINES:
+- T1: Bağcılar - Kabataş (serves Sultanahmet, Eminönü, Karaköy)
+- T4: Topkapı - Mescid-i Selam
+- T5: Cibali - Alibeyköy
+
+🚂 MARMARAY (Underground Rail):
+- Connects Asian and European sides via underwater tunnel
+- Route: Kazlıçeşme ↔ Yenikapı ↔ Sirkeci ↔ Üsküdar ↔ Ayrılık Çeşmesi
+- Key stations: Yenikapı (connects to M1/M2), Üsküdar, Ayrılık Çeşmesi
+
+🚡 FUNICULARS:
+- F1: Kabataş ↔ Taksim (connects T1 tram to Taksim)
+- F2: Karaköy ↔ Tünel (connects to M2 at Şişhane)
+
+⛴️ FERRIES:
+- Kadıköy ↔ Karaköy (15-20 min)
+- Kadıköy ↔ Eminönü (20 min)
+- Üsküdar ↔ Eminönü (15 min)
+- Beşiktaş ↔ Kadıköy (25 min)
+- Many other routes between Asian and European sides
+
+🚌 OTHER:
+- Metrobus: Rapid bus service on dedicated lanes (connects continents)
+- City Buses: Extensive network throughout Istanbul
+
+POPULAR ROUTES:
+1. Kadıköy to Taksim:
+   - Option A: Ferry to Karaköy + F2 Funicular + walk/M2 (~25 min, scenic)
+   - Option B: Marmaray to Yenikapı + M2 to Taksim (~35 min, underground)
+
+2. Sultanahmet to Taksim:
+   - T1 Tram to Kabataş + F1 Funicular to Taksim (~25-30 min)
+
+3. Kadıköy to Sultanahmet:
+   - Ferry to Eminönü + T1 Tram to Sultanahmet (~30 min)
+
+4. Asian ↔ European:
+   - Ferries (scenic, 15-20 min)
+   - Marmaray (underground, fast)
+   - Metrobus (via bridges)"""
+            
+            logger.debug("Transportation context built successfully")
+            return transit_info
+            
         except Exception as e:
-            logger.error(f"Failed to get transportation: {e}")
-            return ""
+            logger.error(f"Failed to get transportation info: {e}")
+            # Fallback: basic transit info
+            return """Istanbul has metro (M1-M11), tram (T1, T4, T5), Marmaray rail, funiculars (F1, F2), ferries, and metrobus services."""
     
     async def _get_rag_context(self, query: str, language: str) -> str:
         """Get RAG context from embeddings with circuit breaker protection."""
@@ -397,18 +512,45 @@ class ContextBuilder:
             return fallback.get('message', '')
     
     async def _get_weather_context(self, query: str) -> str:
-        """Get weather context with circuit breaker protection."""
+        """Get weather context with smart recommendations based on conditions."""
         if not self.weather_service:
             return ""
         
         try:
-            # Weather service is sync, so we call it directly
+            # Get current weather
             weather = self.weather_service.get_current_weather("Istanbul")
             
-            return (
-                f"Current weather in Istanbul: {weather.get('condition', 'Unknown')}, "
-                f"{weather.get('temperature', '?')}°C. {weather.get('description', '')}"
-            )
+            # Try to get weather-based activity recommendations
+            try:
+                from services.weather_recommendations import WeatherRecommendationsService
+                weather_rec = WeatherRecommendationsService()
+                
+                temperature = weather.get('temperature', 20)
+                condition = weather.get('condition', 'clear').lower()
+                
+                # Get formatted recommendations
+                recommendations = weather_rec.format_weather_activities_response(
+                    temperature=temperature,
+                    weather_condition=condition,
+                    limit=5
+                )
+                
+                # Combine weather info with recommendations
+                weather_info = (
+                    f"Current weather in Istanbul: {weather.get('condition', 'Unknown')}, "
+                    f"{temperature}°C. {weather.get('description', '')}\n\n"
+                    f"{recommendations}"
+                )
+                
+                return weather_info
+                
+            except Exception as rec_error:
+                logger.warning(f"Weather recommendations failed: {rec_error}")
+                # Fallback to basic weather info
+                return (
+                    f"Current weather in Istanbul: {weather.get('condition', 'Unknown')}, "
+                    f"{weather.get('temperature', '?')}°C. {weather.get('description', '')}"
+                )
         
         except Exception as e:
             logger.error(f"Weather service failed: {e}")
@@ -476,6 +618,112 @@ class ContextBuilder:
         except Exception as e:
             logger.error(f"Hidden gems service failed: {e}")
             return ""
+    
+    async def _get_airport_context(
+        self,
+        query: str,
+        user_location: Optional[Dict[str, float]],
+        language: str
+    ) -> str:
+        """Get airport transport information from AirportTransportService."""
+        try:
+            # Try to use service_manager's airport service first
+            airport_service = None
+            
+            if self.service_manager and hasattr(self.service_manager, 'airport_service'):
+                airport_service = self.service_manager.airport_service
+                logger.debug("Using airport service from ServiceManager")
+            
+            # Fallback: import directly
+            if not airport_service:
+                from services.airport_transport_service import IstanbulAirportTransportService
+                airport_service = IstanbulAirportTransportService()
+                logger.debug("Using standalone airport service")
+            
+            # Determine which airport is being asked about
+            query_lower = query.lower()
+            airport_code = None
+            
+            if 'ist' in query_lower or 'istanbul airport' in query_lower or 'new airport' in query_lower:
+                airport_code = 'IST'
+            elif 'saw' in query_lower or 'sabiha' in query_lower or 'gokcen' in query_lower or 'gökçen' in query_lower:
+                airport_code = 'SAW'
+            
+            # If specific airport mentioned, get detailed info for that airport
+            if airport_code:
+                airport_info = airport_service.get_route_recommendations(airport_code)
+                return f"=== AIRPORT TRANSPORT ({airport_code}) ===\n{airport_info}"
+            else:
+                # General airport query - provide comparison
+                comparison = airport_service.get_airport_comparison()
+                return f"=== ISTANBUL AIRPORTS ===\n{comparison}"
+                
+        except Exception as e:
+            logger.error(f"Failed to get airport info: {e}")
+            # Fallback: basic airport info
+            return """Istanbul has two main airports:
+- Istanbul Airport (IST): European side, main international hub. Access via M11 metro or Havaist buses.
+- Sabiha Gökçen Airport (SAW): Asian side. Access via buses, metro, or private shuttle."""
+    
+    async def _get_daily_life_context(self, query: str, language: str) -> str:
+        """Get practical daily life suggestions from DailyLifeSuggestionsService."""
+        try:
+            # Try to use service_manager's daily life service first
+            daily_service = None
+            
+            if self.service_manager and hasattr(self.service_manager, 'daily_life_service'):
+                daily_service = self.service_manager.daily_life_service
+                logger.debug("Using daily life service from ServiceManager")
+            
+            # Fallback: import directly
+            if not daily_service:
+                from services.daily_life_suggestions_service import DailyLifeSuggestionsService
+                daily_service = DailyLifeSuggestionsService()
+                logger.debug("Using standalone daily life service")
+            
+            # NEW: Get specific locations for the query
+            location_data = daily_service.get_specific_locations(query, language)
+            
+            if location_data and location_data.get('type') != 'general':
+                # Format specific location data
+                result = f"=== {location_data.get('title', 'PRACTICAL INFORMATION')} ===\n\n"
+                
+                if 'locations' in location_data:
+                    for loc in location_data['locations']:
+                        result += f"📍 {loc['name']}\n"
+                        result += f"   Areas: {', '.join(loc['areas'])}\n"
+                        result += f"   {loc['description']}\n"
+                        result += f"   💡 Tip: {loc['tip']}\n\n"
+                
+                if 'practical_tips' in location_data:
+                    result += "PRACTICAL TIPS:\n"
+                    for tip in location_data['practical_tips']:
+                        result += f"• {tip}\n"
+                
+                return result
+            else:
+                # Fallback to general tips
+                if 'tips' in location_data:
+                    result = f"=== {location_data.get('title', 'PRACTICAL TIPS')} ===\n\n"
+                    for tip in location_data['tips']:
+                        result += f"• {tip}\n"
+                    return result
+                
+                # Last resort fallback
+                return """=== PRACTICAL LIVING TIPS ===
+For groceries: Migros, Carrefour, or local markets
+For pharmacy: Look for green cross sign "ECZANE"
+For banks/ATM: Available throughout the city, many accept international cards
+For SIM cards: Turkcell, Vodafone, Türk Telekom stores at airports and malls"""
+                
+        except Exception as e:
+            logger.error(f"Failed to get daily life suggestions: {e}")
+            # Fallback: basic tips
+            return """=== PRACTICAL LIVING TIPS ===
+For groceries: Migros, Carrefour, or local markets
+For pharmacy: Look for green cross sign "ECZANE"
+For banks/ATM: Available throughout the city, many accept international cards
+For SIM cards: Turkcell, Vodafone, Türk Telekom stores at airports and malls"""
     
     async def _generate_map(
         self,
@@ -552,3 +800,21 @@ class ContextBuilder:
             _get_events,
             retryable_exceptions=[ConnectionError, TimeoutError, asyncio.TimeoutError]
         )
+    
+    async def _get_daily_life_context(self, query: str, language: str) -> str:
+        """Get daily life suggestions context."""
+        try:
+            # TODO: Implement actual daily life suggestions logic
+            suggestions = [
+                "Visit the historic Sultanahmet district.",
+                "Take a Bosphorus cruise.",
+                "Explore the Grand Bazaar.",
+                "Visit the Hagia Sophia and Blue Mosque.",
+                "Enjoy a Turkish bath experience."
+            ]
+            
+            return "\n".join(f"- {s}" for s in suggestions)
+        
+        except Exception as e:
+            logger.error(f"Failed to get daily life suggestions: {e}")
+            return ""

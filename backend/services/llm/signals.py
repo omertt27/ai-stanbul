@@ -14,6 +14,8 @@ Supported Signals:
 - needs_map: Visual map generation
 - needs_gps_routing: GPS-based routing
 - needs_translation: Translation requests
+- needs_airport: Airport transport information
+- needs_daily_life: Practical living tips (NEW - Phase 2)
 - needs_shopping: Shopping recommendations (PHASE 3)
 - needs_nightlife: Nightlife and entertainment (PHASE 3)
 - needs_family_friendly: Family-friendly activities (PHASE 3)
@@ -79,6 +81,8 @@ class SignalDetector:
                 'needs_map': 0.45,
                 'needs_gps_routing': 0.35,  # Lowered from 0.50
                 'needs_translation': 0.35,
+                'needs_airport': 0.30,  # Airport transport queries
+                'needs_daily_life': 0.30,  # Practical living tips
                 'needs_shopping': 0.35,  # PHASE 3
                 'needs_nightlife': 0.35,  # PHASE 3
                 'needs_family_friendly': 0.35  # PHASE 3
@@ -94,6 +98,8 @@ class SignalDetector:
                 'needs_map': 0.40,
                 'needs_gps_routing': 0.30,  # Lowered from 0.45
                 'needs_translation': 0.30,
+                'needs_airport': 0.25,  # Airport transport queries
+                'needs_daily_life': 0.25,  # Practical living tips
                 'needs_shopping': 0.30,  # PHASE 3
                 'needs_nightlife': 0.30,  # PHASE 3
                 'needs_family_friendly': 0.30  # PHASE 3
@@ -109,6 +115,7 @@ class SignalDetector:
                 'needs_map': 0.45,
                 'needs_gps_routing': 0.35,  # Lowered from 0.50
                 'needs_translation': 0.35,
+                'needs_daily_life': 0.30,  # Practical living tips
                 'needs_shopping': 0.35,  # PHASE 3
                 'needs_nightlife': 0.35,  # PHASE 3
                 'needs_family_friendly': 0.35  # PHASE 3
@@ -120,13 +127,13 @@ class SignalDetector:
         self.signal_patterns = {
             'needs_restaurant': {
                 'en': [
-                    r'\b(restaurant|cafe|food|eat|dining|lunch|dinner|breakfast|cuisine)\b',
-                    r'\b(where\s+to\s+eat|place\s+to\s+eat|grab\s+a\s+bite)\b',
-                    r'\b(hungry|meal|dish|menu|reservation)\b'
+                    r'\b(restaurants?|cafes?|food|eat|dining|lunch|dinner|breakfast|cuisine)\b',
+                    r'\b(where\s+to\s+eat|place\s+to\s+eat|grab\s+a\s+bite|places?\s+to\s+dine)\b',
+                    r'\b(hungry|meals?|dishes?|menus?|reservations?|eatery|eateries)\b'
                 ],
                 'tr': [
-                    r'\b(restoran|kafe|yemek|lokanta|meze|kahvaltı)\b',
-                    r'\b(nerede\s+yenir|nerede\s+yemek)\b',
+                    r'\b(restoranlar?|kafeler?|yemek|lokanta|meze|kahvaltı)\b',
+                    r'\b(nerede\s+yenir|nerede\s+yemek|yemek\s+yerleri)\b',
                     r'\b(açım|öğle|akşam\s+yemeği)\b'
                 ]
             },
@@ -234,6 +241,72 @@ class SignalDetector:
                 'tr': [
                     r'\b(çevir|çeviri|nasıl\s+denir|ne\s+demek)\b',
                     r'\b(türkçe|ingilizce|dil)\b'
+                ]
+            },
+            'needs_airport': {
+                'en': [
+                    r'\b(airport|flight|terminal|arrival|departure|IST|SAW)\b',
+                    r'\b(istanbul\s+airport|sabiha\s+gokcen|atatürk\s+airport)\b',
+                    r'\b(to\s+airport|from\s+airport|airport\s+transport|airport\s+shuttle)\b',
+                    r'\b(how\s+to\s+get.*airport|reach.*airport|go.*airport)\b'
+                ],
+                'tr': [
+                    r'\b(havalimanı|uçuş|terminal|varış|kalkış|IST|SAW)\b',
+                    r'\b(istanbul\s+havalimanı|sabiha\s+gökçen|atatürk\s+havalimanı)\b',
+                    r'\b(havalimanına|havalimanından|havalimanı\s+ulaşım)\b',
+                    r'\b(nasıl\s+gidilir.*havalimanı|havalimanına\s+ulaş)\b'
+                ]
+            },
+            'needs_daily_life': {
+                'en': [
+                    r'\b(where\s+to\s+buy|where\s+can\s+i\s+buy|where\s+to\s+get)\b',
+                    r'\b(pharmacy|drugstore|medicine|prescription)\b',
+                    r'\b(bank|atm|exchange|money|currency)\b',
+                    r'\b(grocery|supermarket|market|shopping|convenience)\b',
+                    r'\b(post\s+office|mail|package|send)\b',
+                    r'\b(hospital|doctor|clinic|medical|dentist)\b',
+                    r'\b(sim\s+card|phone|mobile|internet|wifi)\b',
+                    r'\b(practical|daily\s+life|living|expat|local\s+life)\b'
+                ],
+                'tr': [
+                    r'\b(nerede\s+bulabilirim|nerede\s+alabilirim|nereden\s+alınır)\b',
+                    r'\b(eczane|ilaç|reçete)\b',
+                    r'\b(banka|atm|döviz|para|kur)\b',
+                    r'\b(market|süpermarket|bakkal|manav)\b',
+                    r'\b(ptt|kargo|posta|gönderi)\b',
+                    r'\b(hastane|doktor|klinik|sağlık|diş)\b',
+                    r'\b(sim\s+kart|telefon|mobil|internet)\b',
+                    r'\b(pratik|günlük\s+hayat|yaşam|yerel)\b'
+                ],
+                'ru': [
+                    r'\b(где\s+купить|где\s+можно\s+купить|где\s+найти)\b',
+                    r'\b(аптека|лекарство|рецепт|медикаменты)\b',
+                    r'\b(банк|банкомат|обмен|деньги|валюта)\b',
+                    r'\b(магазин|супермаркет|продукты|рынок)\b',
+                    r'\b(почта|посылка|отправить)\b',
+                    r'\b(больница|врач|клиника|медицинский|стоматолог)\b',
+                    r'\b(сим[\s-]?карта|телефон|мобильный|интернет)\b',
+                    r'\b(практический|повседневная\s+жизнь|жизнь|местный)\b'
+                ],
+                'de': [
+                    r'\b(wo\s+kann\s+ich\s+kaufen|wo\s+finde\s+ich|wo\s+bekomme\s+ich)\b',
+                    r'\b(apotheke|medizin|medikamente|rezept)\b',
+                    r'\b(bank|geldautomat|wechsel|geld|währung)\b',
+                    r'\b(supermarkt|geschäft|markt|einkaufen)\b',
+                    r'\b(post|paket|senden|versenden)\b',
+                    r'\b(krankenhaus|arzt|klinik|medizinisch|zahnarzt)\b',
+                    r'\b(sim[\s-]?karte|telefon|handy|internet|wifi)\b',
+                    r'\b(praktisch|alltag|leben|lokal)\b'
+                ],
+                'fr': [
+                    r'\b(où\s+acheter|où\s+puis[\s-]?je\s+acheter|où\s+trouver)\b',
+                    r'\b(pharmacie|médicament|ordonnance|médecine)\b',
+                    r'\b(banque|distributeur|guichet|argent|devise|change)\b',
+                    r'\b(supermarché|magasin|marché|épicerie|courses)\b',
+                    r'\b(poste|colis|envoyer|courrier)\b',
+                    r'\b(hôpital|médecin|docteur|clinique|dentiste)\b',
+                    r'\b(carte\s+sim|téléphone|mobile|internet|wifi)\b',
+                    r'\b(pratique|vie\s+quotidienne|vivre|local)\b'
                 ]
             },
             # PHASE 3: New Signals

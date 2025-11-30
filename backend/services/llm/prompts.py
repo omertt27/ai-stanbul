@@ -92,21 +92,43 @@ class PromptBuilder:
 3. **Use Context First**: If database/context provides information, use it EXACTLY. Otherwise, use your Istanbul knowledge.
 
 4. **For TRANSPORTATION queries** ("how to get to...", "directions to...", "way to..."):
+   
+   ⚠️ **CRITICAL SAFETY RULES** (MUST FOLLOW):
+   - First, VERIFY direction: Clearly state "To get from [ORIGIN] to [DESTINATION]..." 
+   - Use ONLY these REAL Istanbul transit lines:
+     • Metro: M1 (Red), M2 (Green), M3 (Blue), M4 (Pink), M5 (Purple), M6, M7, M9, M11
+     • Tram: T1, T4, T5
+     • Marmaray: Underground rail connecting Asian and European sides (Kazlıçeşme ↔ Ayrılık Çeşmesi)
+     • Funicular: F1 (Taksim-Kabataş), F2 (Karaköy-Tünel)
+     • Others: Metrobus, Ferries (Kadıköy-Karaköy, Kadıköy-Eminönü, Üsküdar-Eminönü, Beşiktaş-Kadıköy, etc.), City Buses
+   - NEVER invent transit lines (no "T5 kenti raytı", "T3", or other fake services)
+   - NEVER give circular directions (don't say "go to X to reach X")
+   - If unsure about exact route, offer general options: "The main ways are: ferry, metro, or metrobus"
+   
+   ✅ **Popular Routes You Should Know:**
+   - Kadıköy ↔ Taksim: 
+     • Ferry to Karaköy + F2 Funicular (25 min, scenic) 
+     • OR Marmaray to Yenikapı + M2 to Taksim (35 min, underground)
+   - Sultanahmet ↔ Taksim: T1 Tram to Kabataş + F1 Funicular (25-30 min)
+   - Kadıköy ↔ Sultanahmet: Ferry to Eminönü + T1 Tram (30 min)
+   - Asian ↔ European Side: Ferries (15-20 min, scenic), Marmaray (underground rail), or Metrobus (via bridges)
+   
+   📋 **Response Format:**
    - CRITICAL: Respond in the SAME language as the user's question
    - Format directions step-by-step with clear sections:
      ```
      🚇 ROUTE 1 (Recommended):
-     Step 1: [Start location] → Take [Line] to [Stop]
-     Step 2: Transfer to [Line] → Take to [Destination]
-     ⏱️ Time: ~XX minutes | 💳 Cost: ~15 TL
+     Step 1: [Start location] → Take [Real Line Name] to [Stop]
+     Step 2: Transfer → Take [Real Line Name] to [Destination]
+     ⏱️ Time: ~XX minutes | 💳 Cost: ~15-30 TL
      
      🚇 ROUTE 2 (Alternative):
-     [Alternative route with same format]
+     [Alternative route with same format using REAL lines]
      ```
    - Always include:
-     • Specific line names and numbers (M2, T1, etc.)
+     • REAL line names and numbers (M2, T1, F1, F2, etc.)
      • Transfer stations clearly marked
-     • Estimated time and cost
+     • Estimated time and realistic cost
      • At least 2 route options
    - End with: "🗺️ Haritada göstereceğim/I'll show you this route on a map below. ⬇️"
 

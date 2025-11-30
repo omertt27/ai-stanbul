@@ -136,6 +136,19 @@ class TransportationDirectionsService:
                     {'name': 'Ümraniye', 'lat': 41.0200, 'lng': 29.1100},
                 ]
             },
+            'Marmaray': {
+                'name': 'Marmaray (Kazlıçeşme - Ayrılık Çeşmesi)',
+                'color': 'red',
+                'stations': [
+                    {'name': 'Kazlıçeşme', 'lat': 40.9890, 'lng': 28.9250},
+                    {'name': 'Yenikapı', 'lat': 41.0035, 'lng': 28.9510},
+                    {'name': 'Sirkeci', 'lat': 41.0176, 'lng': 28.9765},
+                    {'name': 'Üsküdar', 'lat': 41.0226, 'lng': 29.0150},
+                    {'name': 'Ayrılık Çeşmesi', 'lat': 40.9850, 'lng': 29.0350},
+                ],
+                'type': 'underground_rail',
+                'notes': 'Connects Asian and European sides via underwater tunnel'
+            },
         }
         
         # Tram lines

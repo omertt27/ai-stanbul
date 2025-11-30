@@ -23,6 +23,7 @@ class ServiceManager:
         self.airport_service = None
         self.daily_life_service = None
         self.info_service = None
+        self.weather_service = None  # NEW: Weather service
         
         # Intelligence services
         self.entity_extractor = None
@@ -47,6 +48,7 @@ class ServiceManager:
         self._init_airport_service()
         self._init_daily_life_service()
         self._init_info_service()
+        self._init_weather_service()  # NEW: Initialize weather service
         
         # Intelligence services
         self._init_entity_extractor()
@@ -147,6 +149,16 @@ class ServiceManager:
         except Exception as e:
             logger.warning(f"⚠️ Info service not available: {e}")
             self._service_errors.append(f"info_service: {e}")
+    
+    def _init_weather_service(self):
+        """Initialize weather service"""  # NEW: Weather service initialization
+        try:
+            from services.weather_service import WeatherService
+            self.weather_service = WeatherService()
+            logger.info("✅ Weather service loaded")
+        except Exception as e:
+            logger.warning(f"⚠️ Weather service not available: {e}")
+            self._service_errors.append(f"weather_service: {e}")
     
     def _init_entity_extractor(self):
         """Initialize entity extractor"""
@@ -282,6 +294,7 @@ class ServiceManager:
             "airport_service": self.airport_service is not None,
             "daily_life_service": self.daily_life_service is not None,
             "info_service": self.info_service is not None,
+            "weather_service": self.weather_service is not None,  # NEW: Weather service status
             "entity_extractor": self.entity_extractor is not None,
             "intent_classifier": self.intent_classifier is not None,
             "context_manager": self.context_manager is not None,

@@ -304,6 +304,17 @@ class PureLLMCore:
         # Track query in analytics
         self.analytics.track_query(user_id, language, query)
         
+        # STEP 0.5: Turkish Typo Correction (before enhancement)
+        if language == 'tr' and self.service_manager:
+            try:
+                if hasattr(self.service_manager, 'typo_corrector') and self.service_manager.typo_corrector:
+                    corrected_query = self.service_manager.typo_corrector.correct_silent(query)
+                    if corrected_query != query:
+                        logger.info(f"🔤 Turkish typo corrected: '{query}' → '{corrected_query}'")
+                        query = corrected_query
+            except Exception as e:
+                logger.warning(f"Turkish typo correction failed: {e}")
+        
         # STEP 1: Query Enhancement
         original_query = query
         enhancement_metadata = {}

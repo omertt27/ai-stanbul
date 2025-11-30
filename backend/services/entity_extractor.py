@@ -485,3 +485,6 @@ def get_entity_extractor() -> AdvancedEntityExtractor:
     if _extractor_instance is None:
         _extractor_instance = AdvancedEntityExtractor()
     return _extractor_instance
+
+# Alias for backward compatibility
+EntityExtractor = AdvancedEntityExtractor

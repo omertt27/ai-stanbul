@@ -539,6 +539,418 @@ class DailyLifeSuggestionsService:
             for row in self.cursor.fetchall()
         ]
     
+    def get_specific_locations(self, query: str, language: str = 'en') -> Dict[str, Any]:
+        """
+        Get specific location recommendations for common daily life queries.
+        
+        Args:
+            query: User query (e.g., "Where can I buy a SIM card?")
+            language: Response language
+            
+        Returns:
+            Dict with specific locations and practical tips
+        """
+        query_lower = query.lower()
+        
+        # Detect query type
+        location_data = None
+        
+        if any(term in query_lower for term in ['sim', 'phone', 'mobile', 'turkcell', 'vodafone']):
+            location_data = self._get_sim_card_locations(language)
+        elif any(term in query_lower for term in ['pharmacy', 'eczane', 'medicine', 'ilaç']):
+            location_data = self._get_pharmacy_locations(language)
+        elif any(term in query_lower for term in ['atm', 'bank', 'banka', 'money', 'para']):
+            location_data = self._get_atm_bank_locations(language)
+        elif any(term in query_lower for term in ['grocery', 'supermarket', 'market', 'migros']):
+            location_data = self._get_grocery_locations(language)
+        elif any(term in query_lower for term in ['post', 'ptt', 'mail', 'package', 'kargo']):
+            location_data = self._get_post_office_locations(language)
+        elif any(term in query_lower for term in ['hospital', 'doctor', 'clinic', 'hastane']):
+            location_data = self._get_medical_locations(language)
+        
+        return location_data or self._get_fallback_tips(language)
+    
+    def _get_sim_card_locations(self, language: str) -> Dict[str, Any]:
+        """Get SIM card shop locations"""
+        if language == 'tr':
+            return {
+                'type': 'sim_card',
+                'title': 'SIM Kart Alabileceğiniz Yerler',
+                'locations': [
+                    {
+                        'name': 'Turkcell Mağazaları',
+                        'areas': ['İstiklal Caddesi', 'Taksim', 'Kadıköy', 'Beşiktaş', 'Havalimanı'],
+                        'description': 'En yaygın operatör, İstanbul\'da her yerde mağazası var',
+                        'tip': 'Pasaport ve adres kaydı gerekli. Prepaid SIM kartlar 100-200 TL civarı.'
+                    },
+                    {
+                        'name': 'Vodafone Mağazaları',
+                        'areas': ['İstiklal', 'Mecidiyeköy', 'Nişantaşı', 'Havalimanı'],
+                        'description': 'İyi veri paketleri ve İngilizce destek',
+                        'tip': 'Turist paketleri mevcut, 30 günlük veri + konuşma paketleri.'
+                    },
+                    {
+                        'name': 'Türk Telekom',
+                        'areas': ['Taksim', 'Bakırköy', 'Ataşehir'],
+                        'description': 'Yerli operatör, güvenilir kapsama',
+                        'tip': 'Havalimanında da alabilirsiniz ama şehir merkezinde daha uygun.'
+                    }
+                ],
+                'practical_tips': [
+                    'Pasaportunuzu ve Türkiye\'deki adresi (otel adresi olabilir) yanınıza alın',
+                    'Aktivasyon 2-4 saat sürebilir',
+                    'Tourist SIM paketleri genelde 15-30 gün geçerli',
+                    'Veri paketleri ayrı satılır, ilk alımda paket dahil olanları tercih edin'
+                ]
+            }
+        else:  # English
+            return {
+                'type': 'sim_card',
+                'title': 'Where to Buy SIM Cards',
+                'locations': [
+                    {
+                        'name': 'Turkcell Stores',
+                        'areas': ['İstiklal Avenue', 'Taksim', 'Kadıköy', 'Beşiktaş', 'Airport'],
+                        'description': 'Largest operator, stores everywhere in Istanbul',
+                        'tip': 'Need passport and Turkish address. Prepaid SIMs cost 100-200 TL.'
+                    },
+                    {
+                        'name': 'Vodafone Stores',
+                        'areas': ['İstiklal', 'Mecidiyeköy', 'Nişantaşı', 'Airport'],
+                        'description': 'Good data packages and English support',
+                        'tip': 'Tourist packages available, 30-day data + voice plans.'
+                    },
+                    {
+                        'name': 'Türk Telekom',
+                        'areas': ['Taksim', 'Bakırköy', 'Ataşehir'],
+                        'description': 'Local operator, reliable coverage',
+                        'tip': 'Can buy at airport but city center usually cheaper.'
+                    }
+                ],
+                'practical_tips': [
+                    'Bring your passport and a Turkish address (hotel address works)',
+                    'Activation takes 2-4 hours',
+                    'Tourist SIM packages usually valid for 15-30 days',
+                    'Data packages sold separately, choose plans with data included'
+                ]
+            }
+    
+    def _get_pharmacy_locations(self, language: str) -> Dict[str, Any]:
+        """Get pharmacy locations"""
+        if language == 'tr':
+            return {
+                'type': 'pharmacy',
+                'title': 'Eczane Bul',
+                'locations': [
+                    {
+                        'name': 'Nöbetçi Eczane (24/7 Eczaneler)',
+                        'areas': ['Her mahallede bir tane vardır'],
+                        'description': 'Gece ve hafta sonları açık nöbetçi eczaneler',
+                        'tip': 'Google Maps\'te "nöbetçi eczane" arayın veya www.istanbuleczaciodasi.org.tr sitesini kontrol edin'
+                    },
+                    {
+                        'name': 'Zincir Eczaneler',
+                        'areas': ['Taksim', 'Kadıköy', 'Beşiktaş', 'AVM\'lerde'],
+                        'description': 'Güvenilir zincir eczaneler (Eczacıbaşı, Memleket vb.)',
+                        'tip': 'Çoğu reçetesiz ilaç rahatça satılır. Antibiyotik için reçete şart.'
+                    }
+                ],
+                'practical_tips': [
+                    'Türkiye\'de çoğu ilaç reçetesiz alınabilir (ağrı kesici, soğuk algınlığı vb.)',
+                    'Antibiyotikler için doktor reçetesi gerekli',
+                    'Eczacılar genelde İngilizce bilir',
+                    'İlaç fiyatları Avrupa\'ya göre düşük'
+                ]
+            }
+        else:  # English
+            return {
+                'type': 'pharmacy',
+                'title': 'Finding Pharmacies',
+                'locations': [
+                    {
+                        'name': '24/7 On-Duty Pharmacies (Nöbetçi Eczane)',
+                        'areas': ['Every neighborhood has one'],
+                        'description': 'Rotating duty pharmacies open nights and weekends',
+                        'tip': 'Search "nöbetçi eczane" on Google Maps or check www.istanbuleczaciodasi.org.tr'
+                    },
+                    {
+                        'name': 'Chain Pharmacies',
+                        'areas': ['Taksim', 'Kadıköy', 'Beşiktaş', 'Shopping malls'],
+                        'description': 'Reliable chains (Eczacıbaşı, Memleket, etc.)',
+                        'tip': 'Most over-the-counter meds sold easily. Antibiotics need prescription.'
+                    }
+                ],
+                'practical_tips': [
+                    'Many medications available without prescription (painkillers, cold medicine, etc.)',
+                    'Antibiotics require doctor\'s prescription',
+                    'Pharmacists usually speak English',
+                    'Medicine prices lower than Europe'
+                ]
+            }
+    
+    def _get_atm_bank_locations(self, language: str) -> Dict[str, Any]:
+        """Get ATM and bank locations"""
+        if language == 'tr':
+            return {
+                'type': 'banking',
+                'title': 'ATM ve Banka Şubeleri',
+                'locations': [
+                    {
+                        'name': 'ATM\'ler',
+                        'areas': ['Her yerde - Metro istasyonları, AVM\'ler, ana caddelerde'],
+                        'description': 'Yaygın bankalar: Garanti, Akbank, İş Bankası, Yapı Kredi, QNB',
+                        'tip': 'Yabancı kartlar çoğu ATM\'de çalışır. İşlem başına 10-30 TL komisyon'
+                    },
+                    {
+                        'name': 'Döviz Büroları',
+                        'areas': ['Taksim', 'Sultanahmet', 'Eminönü', 'Kadıköy', 'Havalimanı'],
+                        'description': 'Euro ve Dolar bozdurmak için',
+                        'tip': 'Havalimanından daha iyi kur. Birkaç büroyu karşılaştırın.'
+                    }
+                ],
+                'practical_tips': [
+                    'ATM\'ler Türkçe ve İngilizce seçeneği sunar',
+                    'Maksimum çekim limiti genelde 2000-5000 TL',
+                    'Gece ATM kullanırken dikkatli olun',
+                    'Kartınızın yurtdışı kullanımını aktifleştirin'
+                ]
+            }
+        else:  # English
+            return {
+                'type': 'banking',
+                'title': 'ATMs and Banks',
+                'locations': [
+                    {
+                        'name': 'ATMs',
+                        'areas': ['Everywhere - Metro stations, malls, main streets'],
+                        'description': 'Common banks: Garanti, Akbank, İş Bankası, Yapı Kredi, QNB',
+                        'tip': 'Foreign cards work at most ATMs. Expect 10-30 TL fee per transaction'
+                    },
+                    {
+                        'name': 'Currency Exchange Offices',
+                        'areas': ['Taksim', 'Sultanahmet', 'Eminönü', 'Kadıköy', 'Airport'],
+                        'description': 'For exchanging EUR and USD',
+                        'tip': 'Better rates than airport. Compare a few offices.'
+                    }
+                ],
+                'practical_tips': [
+                    'ATMs offer Turkish and English options',
+                    'Maximum withdrawal usually 2000-5000 TL',
+                    'Be careful using ATMs at night',
+                    'Enable international usage on your card'
+                ]
+            }
+    
+    def _get_grocery_locations(self, language: str) -> Dict[str, Any]:
+        """Get grocery store locations"""
+        if language == 'tr':
+            return {
+                'type': 'grocery',
+                'title': 'Market ve Süpermarketler',
+                'locations': [
+                    {
+                        'name': 'Migros',
+                        'areas': ['İstanbul\'un her yerinde'],
+                        'description': 'En yaygın zincir market',
+                        'tip': 'Money Card ile indirimler. 24 saat açık şubeler var.'
+                    },
+                    {
+                        'name': 'Şok / BİM / A101',
+                        'areas': ['Her mahallede'],
+                        'description': 'Ucuz diskont marketler',
+                        'tip': 'Fiyatlar en uygun. Temel gıda ve ev eşyaları için ideal.'
+                    },
+                    {
+                        'name': 'Carrefour / Macro',
+                        'areas': ['AVM\'lerde ve büyük şubelerde'],
+                        'description': 'Geniş ürün yelpazesi',
+                        'tip': 'Uluslararası ürünler burada bulunur.'
+                    }
+                ],
+                'practical_tips': [
+                    'Pazar günleri pazarlar var (daha ucuz, taze sebze-meyve)',
+                    'Bakkal (köşe market) her yerde, daha pahalı ama yakın',
+                    'İstanbulkart marketlerde geçer',
+                    'Nakit veya kart, her ikisi de kabul edilir'
+                ]
+            }
+        else:  # English
+            return {
+                'type': 'grocery',
+                'title': 'Grocery Stores and Supermarkets',
+                'locations': [
+                    {
+                        'name': 'Migros',
+                        'areas': ['All over Istanbul'],
+                        'description': 'Most widespread chain',
+                        'tip': 'Money Card for discounts. Some locations open 24 hours.'
+                    },
+                    {
+                        'name': 'Şok / BİM / A101',
+                        'areas': ['Every neighborhood'],
+                        'description': 'Budget discount stores',
+                        'tip': 'Cheapest prices. Great for basics and household items.'
+                    },
+                    {
+                        'name': 'Carrefour / Macro',
+                        'areas': ['Shopping malls and large branches'],
+                        'description': 'Wide product range',
+                        'tip': 'International products available here.'
+                    }
+                ],
+                'practical_tips': [
+                    'Sunday markets (pazar) have cheaper, fresh produce',
+                    'Corner stores (bakkal) everywhere, pricier but convenient',
+                    'IstanbulCard works at stores',
+                    'Cash or card both accepted'
+                ]
+            }
+    
+    def _get_post_office_locations(self, language: str) -> Dict[str, Any]:
+        """Get post office locations"""
+        if language == 'tr':
+            return {
+                'type': 'post',
+                'title': 'PTT ve Kargo',
+                'locations': [
+                    {
+                        'name': 'PTT (Türk Postası)',
+                        'areas': ['Her ilçede birçok şube'],
+                        'description': 'Resmi posta hizmeti',
+                        'tip': 'Mektup, paket gönderimi ve fatura ödeme. Genelde kuyruğu vardır.'
+                    },
+                    {
+                        'name': 'Özel Kargolar (Yurtiçi, Aras, MNG)',
+                        'areas': ['AVM\'ler ve ana caddelerde'],
+                        'description': 'Hızlı kargo hizmetleri',
+                        'tip': 'Aynı gün veya ertesi gün teslimat. PTT\'den daha hızlı.'
+                    }
+                ],
+                'practical_tips': [
+                    'PTT uluslararası gönderi yapabilir',
+                    'Özel kargo şirketleri şehir içi için daha hızlı',
+                    'Paket almak için kimlik gerekli',
+                    'Online alışverişler genelde kapıya teslim'
+                ]
+            }
+        else:  # English
+            return {
+                'type': 'post',
+                'title': 'Post Offices and Shipping',
+                'locations': [
+                    {
+                        'name': 'PTT (Turkish Post)',
+                        'areas': ['Multiple branches in every district'],
+                        'description': 'Official postal service',
+                        'tip': 'Mail, package sending, and bill payment. Usually has queues.'
+                    },
+                    {
+                        'name': 'Private Couriers (Yurtiçi, Aras, MNG)',
+                        'areas': ['Malls and main streets'],
+                        'description': 'Fast shipping services',
+                        'tip': 'Same-day or next-day delivery. Faster than PTT.'
+                    }
+                ],
+                'practical_tips': [
+                    'PTT can handle international shipping',
+                    'Private couriers faster for domestic packages',
+                    'ID required to pick up packages',
+                    'Online shopping usually delivers to door'
+                ]
+            }
+    
+    def _get_medical_locations(self, language: str) -> Dict[str, Any]:
+        """Get hospital and clinic locations"""
+        if language == 'tr':
+            return {
+                'type': 'medical',
+                'title': 'Sağlık Hizmetleri',
+                'locations': [
+                    {
+                        'name': 'Acil Servisler',
+                        'areas': ['Her ilçede devlet hastanesi'],
+                        'description': 'Acil durumlar için 112',
+                        'tip': 'Devlet hastaneleri ücretsiz ama kalabalık. Özel hastaneler ücretli.'
+                    },
+                    {
+                        'name': 'Özel Hastaneler (American Hospital, Acibadem vb.)',
+                        'areas': ['Nişantaşı, Maslak, Kadıköy, Altunizade'],
+                        'description': 'Yüksek kaliteli hizmet, İngilizce bilen personel',
+                        'tip': 'Sigorta kabul edilir. Fiyatlar yüksek ama hizmet çok iyi.'
+                    },
+                    {
+                        'name': 'Poliklinikler',
+                        'areas': ['Her mahallede'],
+                        'description': 'Küçük sağlık sorunları için',
+                        'tip': 'Randevusuz muayene. Uygun fiyatlı.'
+                    }
+                ],
+                'practical_tips': [
+                    'Acil: 112 (ambulans)',
+                    'Seyahat sigortanız varsa özel hastane tercih edin',
+                    'Pasaport veya kimlik yanınızda olsun',
+                    'Özel hastanelerde İngilizce konuşulur'
+                ]
+            }
+        else:  # English
+            return {
+                'type': 'medical',
+                'title': 'Medical Services',
+                'locations': [
+                    {
+                        'name': 'Emergency Rooms',
+                        'areas': ['Public hospital in every district'],
+                        'description': 'For emergencies call 112',
+                        'tip': 'Public hospitals free but crowded. Private hospitals charge fees.'
+                    },
+                    {
+                        'name': 'Private Hospitals (American Hospital, Acibadem, etc.)',
+                        'areas': ['Nişantaşı, Maslak, Kadıköy, Altunizade'],
+                        'description': 'High quality service, English-speaking staff',
+                        'tip': 'Insurance accepted. Expensive but excellent service.'
+                    },
+                    {
+                        'name': 'Clinics (Poliklinik)',
+                        'areas': ['Every neighborhood'],
+                        'description': 'For minor health issues',
+                        'tip': 'Walk-in consultations. Affordable prices.'
+                    }
+                ],
+                'practical_tips': [
+                    'Emergency: 112 (ambulance)',
+                    'If you have travel insurance, use private hospitals',
+                    'Bring your passport or ID',
+                    'Private hospitals have English-speaking staff'
+                ]
+            }
+    
+    def _get_fallback_tips(self, language: str) -> Dict[str, Any]:
+        """Fallback general tips when specific location not matched"""
+        if language == 'tr':
+            return {
+                'type': 'general',
+                'title': 'İstanbul\'da Günlük Hayat İpuçları',
+                'tips': [
+                    'Google Maps Türkçe ve İngilizce çalışır, çoğu yeri bulabilirsiniz',
+                    'İstanbulkart her yerde geçer - metro, otobüs, tramvay, vapur',
+                    'Taksim, Kadıköy, Beşiktaş\'ta her türlü hizmet bulabilirsiniz',
+                    'Yerel halk yardımseverdir, sorduğunuzda yol gösterirler',
+                    'AVM\'lerde (Alışveriş Merkezleri) hemen her şey var'
+                ]
+            }
+        else:  # English
+            return {
+                'type': 'general',
+                'title': 'Daily Life Tips in Istanbul',
+                'tips': [
+                    'Google Maps works in English, you can find most places',
+                    'IstanbulCard works everywhere - metro, bus, tram, ferry',
+                    'Taksim, Kadıköy, Beşiktaş have all services you need',
+                    'Locals are helpful, just ask for directions',
+                    'Shopping malls (AVM) have everything you need'
+                ]
+            }
+
     def close(self):
         """Close database connection"""
         if hasattr(self, 'conn'):
