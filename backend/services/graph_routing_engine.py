@@ -427,9 +427,11 @@ class GraphRoutingEngine:
         max_transfers: int = 3
     ) -> List[RoutePath]:
         """
-        Yen's k-shortest paths algorithm
+        Diversity-Aware Yen's k-shortest paths algorithm
         
-        Finds k loopless paths from start to end in order of increasing cost
+        Finds k loopless paths from start to end with emphasis on genuine diversity.
+        Filters out paths that differ only in transfer variations but use the same
+        transit line combinations.
         """
         # Store the k shortest paths
         A = []
@@ -437,12 +439,18 @@ class GraphRoutingEngine:
         # Potential k-th shortest paths
         B = []
         
+        # Track line combinations we've seen to encourage diversity
+        seen_line_combinations = set()
+        
         # Find the shortest path
         shortest_path = self._dijkstra(start_node, end_node, max_transfers)
         if not shortest_path:
             return []
         
         A.append(shortest_path)
+        line_combo = self._get_line_combination(shortest_path)
+        seen_line_combinations.add(line_combo)
+        logger.debug(f"🔀 Path 1 line combo: {line_combo}")
         
         # Find k-1 more paths
         for k_iter in range(1, k):
@@ -488,19 +496,102 @@ class GraphRoutingEngine:
                     # Combine root path and spur path
                     total_path = self._combine_paths(root_path_nodes, root_path_edges, spur_path)
                     
+                    # Early duplicate filtering: Check line combination
+                    path_line_combo = self._get_line_combination(total_path)
+                    
+                    # Skip if this is just a transfer variation of a path we already have
+                    if self._is_equivalent_path(total_path, path_line_combo, seen_line_combinations):
+                        logger.debug(f"⏭️  Skipping equivalent path with combo: {path_line_combo}")
+                        continue
+                    
                     # Add to potential paths if not already present
                     if not self._path_exists_in_list(total_path, B) and not self._path_exists_in_list(total_path, A):
                         B.append(total_path)
+                        logger.debug(f"➕ Added diverse candidate with combo: {path_line_combo}")
             
             if not B:
                 # No more paths found
                 break
             
-            # Sort B by cost and add the best one to A
-            B.sort(key=lambda p: p.total_cost)
-            A.append(B.pop(0))
+            # Sort B by diversity score (prefer different line combinations) then by cost
+            B.sort(key=lambda p: (
+                self._get_diversity_penalty(p, seen_line_combinations),
+                p.total_cost
+            ))
+            
+            # Add the best diverse path to A
+            best_path = B.pop(0)
+            A.append(best_path)
+            
+            # Track this line combination
+            line_combo = self._get_line_combination(best_path)
+            seen_line_combinations.add(line_combo)
+            logger.debug(f"🔀 Path {len(A)} line combo: {line_combo}")
         
         return A
+    
+    def _get_line_combination(self, path: RoutePath) -> str:
+        """
+        Get the unique line combination for a path
+        
+        Returns a string representing the transit lines used in order,
+        ignoring transfer-only variations.
+        """
+        lines = []
+        for edge in path.edges:
+            if edge.edge_type == 'transit' and edge.line_id:
+                # Only include actual transit segments
+                lines.append(f"{edge.mode}:{edge.line_id}")
+        
+        # Deduplicate consecutive same lines (happens with multiple segments on same line)
+        unique_lines = []
+        prev_line = None
+        for line in lines:
+            if line != prev_line:
+                unique_lines.append(line)
+                prev_line = line
+        
+        return "_".join(unique_lines) if unique_lines else "walk_only"
+    
+    def _is_equivalent_path(
+        self, 
+        path: RoutePath, 
+        line_combo: str, 
+        seen_combinations: Set[str]
+    ) -> bool:
+        """
+        Check if this path is equivalent to one we've already seen
+        
+        A path is equivalent if it uses the same line combination,
+        even if transfer details differ.
+        """
+        # Check if we've seen this exact line combination
+        if line_combo in seen_combinations:
+            # Count transfer edges
+            transfer_count = sum(1 for e in path.edges if e.edge_type == 'transfer')
+            
+            # If this path has many transfers (likely just transfer variations), skip it
+            # Allow if it has 0-1 transfers per line segment as those are necessary
+            transit_segments = sum(1 for e in path.edges if e.edge_type == 'transit')
+            if transfer_count > transit_segments + 1:  # More than 1 transfer per segment
+                return True
+        
+        return False
+    
+    def _get_diversity_penalty(self, path: RoutePath, seen_combinations: Set[str]) -> int:
+        """
+        Calculate diversity penalty for path sorting
+        
+        Returns:
+            0 if path has unique line combination (most diverse)
+            1 if path has seen line combination but different characteristics
+        """
+        line_combo = self._get_line_combination(path)
+        
+        if line_combo not in seen_combinations:
+            return 0  # Most diverse - completely new line combination
+        
+        return 1  # Less diverse - similar to existing path
     
     def _remove_edge_temporarily(self, edge: GraphEdge) -> None:
         """Temporarily remove an edge from the graph"""

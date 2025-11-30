@@ -595,6 +595,11 @@ class TransportationDirectionsService:
     ) -> TransportRoute:
         """Convert graph RoutePath to TransportRoute with detailed steps"""
         
+        # Log input path characteristics
+        logger.debug(f"🔄 Converting graph path: {len(route_path.nodes)} nodes, {len(route_path.edges)} edges")
+        logger.debug(f"   Path nodes: {[n.name for n in route_path.nodes[:5]]}{'...' if len(route_path.nodes) > 5 else ''}")
+        logger.debug(f"   Path edges: {[(e.from_node.name, e.to_node.name, e.line_id, e.mode) for e in route_path.edges[:3]]}{'...' if len(route_path.edges) > 3 else ''}")
+        
         steps = []
         
         # Add initial walking to first station if needed
@@ -621,6 +626,8 @@ class TransportationDirectionsService:
         segment_duration = 0
         segment_distance = 0
         
+        logger.debug(f"   Processing {len(route_path.edges)} edges to create transit steps...")
+        
         for i, edge in enumerate(route_path.edges):
             from_node = edge.from_node
             to_node = edge.to_node
@@ -630,6 +637,7 @@ class TransportationDirectionsService:
                 segment_start_node = from_node
                 current_line = edge.line_id
                 segment_nodes = [from_node]
+                logger.debug(f"   🆕 Starting new segment at {from_node.name} on line {current_line}")
             
             segment_nodes.append(to_node)
             segment_duration += edge.duration
@@ -642,15 +650,20 @@ class TransportationDirectionsService:
             should_create_step = False
             if is_last_edge:
                 should_create_step = True
+                logger.debug(f"   ✅ Last edge reached at {to_node.name}")
             elif edge.edge_type == 'transfer':
                 should_create_step = True
+                logger.debug(f"   🔄 Transfer edge detected: {from_node.name} → {to_node.name}")
             elif next_edge and next_edge.line_id != current_line:
                 should_create_step = True
+                logger.debug(f"   🔄 Line change detected: {current_line} → {next_edge.line_id} at {to_node.name}")
+
             
             if should_create_step and segment_start_node:
                 # Create appropriate step
                 if edge.edge_type == 'transfer':
                     # Transfer/walking step
+                    logger.debug(f"   ➕ Creating transfer step: {from_node.name} → {to_node.name} ({edge.duration}min)")
                     steps.append(
                         TransportStep(
                             mode='walk',
@@ -678,6 +691,11 @@ class TransportationDirectionsService:
                     if stops_count > 1:
                         instruction += f" ({stops_count} stops)"
                     
+                    logger.debug(f"   ➕ Creating transit step: {mode_emoji} {line_name}")
+                    logger.debug(f"      From: {segment_start_node.name} → To: {to_node.name}")
+                    logger.debug(f"      Stops: {stops_count}, Duration: {segment_duration}min, Distance: {segment_distance:.0f}m")
+                    logger.debug(f"      Segment nodes: {[n.name for n in segment_nodes]}")
+                    
                     steps.append(
                         TransportStep(
                             mode=edge.mode,
@@ -691,6 +709,7 @@ class TransportationDirectionsService:
                             waypoints=[(node.lat, node.lng) for node in segment_nodes]
                         )
                     )
+
                 
                 # Reset for next segment
                 segment_start_node = None if edge.edge_type == 'transfer' else to_node
@@ -752,6 +771,18 @@ class TransportationDirectionsService:
         
         # Calculate and add cost
         route.estimated_cost = self._calculate_fare(route)
+        
+        # Log final route characteristics for debugging
+        transit_sequence = []
+        for step in steps:
+            if step.mode != 'walk':
+                transit_sequence.append(f"{step.mode}:{step.line_name}")
+        
+        route_signature = "_".join(transit_sequence) if transit_sequence else "walking_only"
+        logger.debug(f"✅ Route converted: {total_duration}min, {len(steps)} steps, ₺{route.estimated_cost:.2f}")
+        logger.debug(f"   Transit sequence: {transit_sequence}")
+        logger.debug(f"   Route signature: {route_signature}")
+        logger.debug(f"   Summary: {summary}")
         
         return route
     
