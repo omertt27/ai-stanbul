@@ -98,12 +98,15 @@ const App = () => {
     handleTouchEnd 
   } = useMobileUtils();
 
-  // Auto-expand when navigating to /chat route
+  // Auto-expand when navigating to /chat route, collapse when leaving
   useEffect(() => {
     // Ensure page stays at top when component mounts
     window.scrollTo(0, 0);
     if (routerLocation.pathname === '/chat') {
       setExpanded(true);
+    } else if (routerLocation.pathname === '/') {
+      // When returning to main page, collapse the chat to hide messages
+      setExpanded(false);
     }
   }, [routerLocation.pathname]);
 
@@ -357,8 +360,8 @@ const App = () => {
             />
           </div>
           
-          {/* Chat Messages */}
-          {messages.length > 0 && (
+          {/* Chat Messages - Only show if expanded (not when returning from /chat page) */}
+          {messages.length > 0 && expanded && (
             <div className="mt-6 max-w-4xl mx-auto px-4">
               {messages.map((msg) => (
                 <div key={msg.id} className={`mb-4 ${msg.sender === "user" ? "text-right" : "text-left"}`}>

@@ -1038,10 +1038,10 @@ function Chatbot({ userLocation: propUserLocation }) {
                 <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
               </svg>
             </div>
-            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-200 ${
+            <h2 className={`text-2xl md:text-3xl font-bold mb-4 transition-colors duration-200 ${
               darkMode ? 'text-white' : 'text-gray-900'
             }`}>How can I help you today?</h2>
-            <p className={`text-center max-w-2xl text-lg leading-relaxed mb-8 transition-colors duration-200 ${
+            <p className={`text-center max-w-2xl text-base md:text-lg leading-relaxed mb-8 transition-colors duration-200 ${
               darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               I'm your KAM assistant for exploring Istanbul. Ask me about restaurants, attractions, 
@@ -1058,10 +1058,10 @@ function Chatbot({ userLocation: propUserLocation }) {
                     : 'bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-400 shadow-md hover:shadow-lg'
                 }`}
               >
-                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
                 }`}>🏛️ Top Attractions</div>
-                <div className={`text-sm transition-colors duration-200 ${
+                <div className={`text-xs md:text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-700'
                 }`}>Show me the best attractions and landmarks in Istanbul</div>
               </div>
@@ -1074,10 +1074,10 @@ function Chatbot({ userLocation: propUserLocation }) {
                     : 'bg-white border-red-200 hover:bg-red-50 hover:border-red-400 shadow-md hover:shadow-lg'
                 }`}
               >
-                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
                 }`}>🍽️ Restaurants</div>
-                <div className={`text-sm transition-colors duration-200 ${
+                <div className={`text-xs md:text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-700'
                 }`}>Give me restaurant advice - recommend 4 good restaurants</div>
               </div>
@@ -1090,26 +1090,26 @@ function Chatbot({ userLocation: propUserLocation }) {
                     : 'bg-white border-green-200 hover:bg-green-50 hover:border-green-400 shadow-md hover:shadow-lg'
                 }`}
               >
-                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
                 }`}>🏘️ Neighborhoods</div>
-                <div className={`text-sm transition-colors duration-200 ${
+                <div className={`text-xs md:text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-700'
                 }`}>Tell me about Istanbul neighborhoods and districts to visit</div>
               </div>
               
               <div 
                 onClick={() => handleSampleClick('What are the best cultural experiences and activities in Istanbul?')}
-                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
                     : 'bg-white border-purple-200 hover:bg-purple-50 hover:border-purple-400 shadow-md hover:shadow-lg'
                 }`}
               >
-                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
                 }`}>🎭 Culture & Activities</div>
-                <div className={`text-sm transition-colors duration-200 ${
+                <div className={`text-xs md:text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-700'
                 }`}>What are the best cultural experiences and activities in Istanbul?</div>
               </div>
@@ -1148,7 +1148,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                           ? 'bg-blue-600 text-white'
                           : 'bg-blue-500 text-white'
                       }`}>
-                        <div className="text-lg md:text-base font-medium leading-[1.6] whitespace-pre-wrap">
+                        <div className="text-sm md:text-lg font-medium leading-[1.6] whitespace-pre-wrap">
                           {msg.text}
                         </div>
                       </div>
@@ -1192,7 +1192,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                       }`}>KAM Assistant</div>
                       
                       {/* NO background, just text - ChatGPT style */}
-                      <div className={`text-base md:text-[15px] whitespace-pre-wrap leading-[1.6] transition-colors duration-200 ${
+                      <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 ${
                         darkMode ? 'text-gray-100' : 'text-gray-800'
                       }`}>
                         {renderMessageContent(msg.text || msg.content, darkMode)}

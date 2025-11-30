@@ -340,8 +340,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-primary, rgba(0, 0, 0, 0.9)); /* Dark text for light mode, will be overridden in dark mode */
   font-size: 14px;
+}
+
+/* Dark mode typing indicator */
+.dark-mode .typing-indicator,
+.chat-container.dark-mode .typing-indicator {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .typing-message {

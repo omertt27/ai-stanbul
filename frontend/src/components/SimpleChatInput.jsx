@@ -272,34 +272,34 @@ const SimpleChatInput = ({
           }
         }
 
-        /* Mobile Responsive - Gemini Style Compact */}
+        /* Mobile Responsive - Smaller, More Compact */
         @media (max-width: 768px) {
           .simple-chat-input-wrapper {
-            padding: 8px 12px; /* More compact */
-            border-radius: 24px; /* Smaller pill */
-            gap: 8px;
+            padding: 6px 10px; /* Even more compact for mobile */
+            border-radius: 20px; /* Smaller pill */
+            gap: 6px;
           }
 
           .simple-chat-input {
-            font-size: 16px; /* Prevents iOS zoom - CRITICAL */
-            padding: 4px 0; /* Tighter */
+            font-size: 14px; /* Smaller font, still readable */
+            padding: 3px 0; /* Tighter */
           }
 
           .simple-send-button {
-            width: 36px; /* Slightly smaller */
-            height: 36px;
-            min-width: 36px;
-            min-height: 36px;
+            width: 30px; /* Smaller send button */
+            height: 30px;
+            min-width: 30px;
+            min-height: 30px;
           }
 
           .send-icon {
-            width: 16px; /* Smaller icon */
-            height: 16px;
+            width: 14px; /* Smaller icon */
+            height: 14px;
           }
 
           .spinner {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
           }
         }
 

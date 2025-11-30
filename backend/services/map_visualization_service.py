@@ -12,6 +12,7 @@ Features:
 - Marker generation for POIs
 """
 
+import re
 import logging
 from typing import Dict, List, Optional, Tuple, Any
 
@@ -58,41 +59,45 @@ class MapVisualizationService:
                 "zoom": int
             }
         """
-        # Parse destination from query
-        destination = self._extract_destination_from_query(query)
+        # Try to extract both origin and destination from query
+        origin, destination = self._extract_locations_from_query(query)
         
-        # If destination is None, it means user specified both origin and destination
-        # In this case, let the LLM handle it without GPS routing
-        if destination is None:
-            logger.info("Query specifies explicit origin and destination - skipping GPS routing")
-            return None
+        # Case 1: Both origin and destination specified (e.g., "Taksim to Kadıköy")
+        if origin and destination:
+            origin_coords = self._get_destination_coordinates(origin)
+            dest_coords = self._get_destination_coordinates(destination)
+            
+            if origin_coords and dest_coords:
+                logger.info(f"Generating route map: {origin} → {destination}")
+                return await self._generate_route_map_from_coords(
+                    origin_coords,
+                    dest_coords,
+                    origin,
+                    destination,
+                    language
+                )
         
-        if not destination:
-            logger.warning(f"Could not extract destination from query: {query}")
-            return None
+        # Case 2: Only destination specified, use user GPS location as origin
+        if destination and user_location:
+            dest_coords = self._get_destination_coordinates(destination)
+            if dest_coords:
+                logger.info(f"Generating GPS route map: user location → {destination}")
+                return await self._generate_route_map(
+                    user_location,
+                    dest_coords,
+                    destination,
+                    language
+                )
         
-        # Check if user has GPS location for routing
-        if not user_location:
-            logger.warning("No user location provided for map generation")
-            return None
+        # Case 3: Just show destination marker
+        if destination:
+            dest_coords = self._get_destination_coordinates(destination)
+            if dest_coords:
+                logger.info(f"Generating marker map for: {destination}")
+                return self._generate_marker_map(dest_coords, destination)
         
-        # Get destination coordinates
-        destination_coords = self._get_destination_coordinates(destination)
-        
-        if not destination_coords:
-            logger.warning(f"Could not find coordinates for destination: {destination}")
-            return None
-        
-        # Generate map data with GPS-based routing
-        if routing and self.transportation_service:
-            return await self._generate_route_map(
-                user_location,
-                destination_coords,
-                destination,
-                language
-            )
-        else:
-            return self._generate_marker_map(destination_coords, destination)
+        logger.warning(f"Could not generate map for query: {query}")
+        return None
     
     async def _generate_route_map(
         self,
@@ -208,63 +213,166 @@ class MapVisualizationService:
             "zoom": 15
         }
     
-    def _extract_destination_from_query(self, query: str) -> Optional[str]:
-        """Extract destination from user query"""
+    def _extract_locations_from_query(self, query: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Extract both origin and destination from user query.
+        
+        Returns:
+            Tuple of (origin, destination) - either can be None
+        """
         query_lower = query.lower()
         
-        # Check if query explicitly mentions both origin and destination
-        # Patterns like: "from X to Y", "X to Y", "from X how to get to Y"
+        # Patterns for "from X to Y" queries (English and Turkish)
         from_to_patterns = [
-            r'from\s+(.+?)\s+to\s+(.+?)[\?\.!]?$',
-            r'from\s+(.+?)\s+how.*to.*get.*to\s+(.+?)[\?\.!]?$',
-            r'(.+?)\s+to\s+(.+?)[\?\.!]?$',
+            (r'from\s+(.+?)\s+to\s+(.+?)[\?\.!]?$', 'en'),
+            (r'from\s+(.+?)\s+how.*to.*get.*to\s+(.+?)[\?\.!]?$', 'en'),
+            (r'(.+?)den\s+(.+?)[\?\.!ye/ya/e/a].*gitmek', 'tr'),  # Turkish: X'den Y'ye gitmek
+            (r'(.+?)den\s+(.+?)[\?\.!ye/ya/e/a].*nas[ıi]l', 'tr'),  # Turkish: X'den Y'ye nasıl
+            (r'(.+?)\s+to\s+(.+?)[\?\.!]?$', 'en'),
         ]
         
         import re
-        for pattern in from_to_patterns:
+        for pattern, lang in from_to_patterns:
             match = re.search(pattern, query_lower, re.IGNORECASE)
             if match:
-                # User specified both origin and destination
-                # Return None to signal that GPS should NOT be used
-                # The LLM will handle this case directly
                 origin = match.group(1).strip()
                 destination = match.group(2).strip()
                 
-                # Check if origin is a known landmark (not "here", "my location", etc.)
-                location_words = ['here', 'my location', 'current location', 'where i am', 'this place']
-                if not any(word in origin for word in location_words):
-                    logger.info(f"Query specifies both origin ('{origin}') and destination ('{destination}')")
-                    # Return None to indicate GPS should be ignored
-                    return None
+                # Clean up Turkish suffixes
+                if lang == 'tr':
+                    destination = re.sub(r'[ye|ya|e|a]$', '', destination).strip()
+                    origin = re.sub(r'den$|dan$|\'den$|\'dan$', '', origin).strip()
+                
+                logger.info(f"Extracted origin='{origin}', destination='{destination}'")
+                return (origin, destination)
         
-        # Common patterns for destination-only queries
-        patterns = [
-            ("how to get to ", ""),
-            ("how do i get to ", ""),
-            ("directions to ", ""),
-            ("take me to ", ""),
-            ("navigate to ", ""),
-            ("route to ", ""),
-            ("way to ", ""),
-            ("go to ", ""),
-            ("get to ", ""),
+        # If no "from X to Y" pattern, try destination-only patterns
+        destination = self._extract_destination_only(query)
+        if destination:
+            return (None, destination)
+        
+        return (None, None)
+    
+    def _extract_destination_only(self, query: str) -> Optional[str]:
+        """Extract only destination from queries like 'how to get to X'"""
+        query_lower = query.lower()
+        
+        # English patterns
+        en_patterns = [
+            "how to get to ",
+            "how do i get to ",
+            "directions to ",
+            "take me to ",
+            "navigate to ",
+            "route to ",
+            "way to ",
+            "go to ",
+            "get to ",
         ]
         
-        for pattern_start, pattern_end in patterns:
-            if pattern_start in query_lower:
-                idx = query_lower.index(pattern_start) + len(pattern_start)
+        # Turkish patterns
+        tr_patterns = [
+            "nasıl giderim ",
+            "nasıl gidilir ",
+            "yol tarifi ",
+            "götür ",
+        ]
+        
+        for pattern in en_patterns + tr_patterns:
+            if pattern in query_lower:
+                idx = query_lower.index(pattern) + len(pattern)
                 destination = query[idx:].strip()
-                # Remove trailing questions and punctuation
+                # Remove trailing punctuation
                 destination = destination.rstrip('?!.').strip()
+                # Remove Turkish suffixes
+                destination = re.sub(r'\'?[ye|ya|e|a]$', '', destination).strip()
                 return destination
         
-        # If no pattern matched, try to find known landmarks
+        # Try to find known landmarks
         landmarks = self._get_known_landmarks()
-        for landmark, coords in landmarks.items():
+        for landmark in landmarks.keys():
             if landmark.lower() in query_lower:
                 return landmark
         
         return None
+    
+    async def _generate_route_map_from_coords(
+        self,
+        origin_coords: Tuple[float, float],
+        dest_coords: Tuple[float, float],
+        origin_name: str,
+        dest_name: str,
+        language: str
+    ) -> Dict[str, Any]:
+        """Generate route map from two coordinate points"""
+        if not self.transportation_service:
+            # Fallback: show both as markers
+            return {
+                "type": "markers",
+                "markers": [
+                    {
+                        "lat": origin_coords[0],
+                        "lng": origin_coords[1],
+                        "title": origin_name,
+                        "type": "origin"
+                    },
+                    {
+                        "lat": dest_coords[0],
+                        "lng": dest_coords[1],
+                        "title": dest_name,
+                        "type": "destination"
+                    }
+                ],
+                "center": {
+                    "lat": (origin_coords[0] + dest_coords[0]) / 2,
+                    "lng": (origin_coords[1] + dest_coords[1]) / 2
+                },
+                "zoom": 12
+            }
+        
+        try:
+            # Get route from transportation service
+            route_data = await self.transportation_service.get_route(
+                start_lat=origin_coords[0],
+                start_lon=origin_coords[1],
+                end_lat=dest_coords[0],
+                end_lon=dest_coords[1],
+                language=language
+            )
+            
+            if route_data:
+                return {
+                    "type": "route",
+                    "route": route_data,
+                    "origin": {"lat": origin_coords[0], "lng": origin_coords[1], "name": origin_name},
+                    "destination": {"lat": dest_coords[0], "lng": dest_coords[1], "name": dest_name},
+                    "center": {
+                        "lat": (origin_coords[0] + dest_coords[0]) / 2,
+                        "lng": (origin_coords[1] + dest_coords[1]) / 2
+                    },
+                    "zoom": 13
+                }
+        except Exception as e:
+            logger.error(f"Route generation failed: {e}")
+        
+        # Fallback to markers
+        return {
+            "type": "markers",
+            "markers": [
+                {"lat": origin_coords[0], "lng": origin_coords[1], "title": origin_name, "type": "origin"},
+                {"lat": dest_coords[0], "lng": dest_coords[1], "title": dest_name, "type": "destination"}
+            ],
+            "center": {
+                "lat": (origin_coords[0] + dest_coords[0]) / 2,
+                "lng": (origin_coords[1] + dest_coords[1]) / 2
+            },
+            "zoom": 12
+        }
+    
+    def _extract_destination_from_query(self, query: str) -> Optional[str]:
+        """DEPRECATED: Use _extract_locations_from_query instead"""
+        _, destination = self._extract_locations_from_query(query)
+        return destination
     
     def _get_destination_coordinates(self, destination: str) -> Optional[Tuple[float, float]]:
         """Get coordinates for a destination"""

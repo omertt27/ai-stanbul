@@ -35,6 +35,7 @@ class ChatResponse(BaseModel):
     intent: Optional[str] = Field(None, description="Detected intent")
     confidence: Optional[float] = Field(None, description="Confidence score")
     suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
+    map_data: Optional[Dict[str, Any]] = Field(None, description="Map visualization data for routes")
 
 
 class MLChatRequest(BaseModel):
@@ -94,7 +95,8 @@ async def pure_llm_chat(
             session_id=result.get('session_id', request.session_id or 'new'),
             intent=result.get('intent'),
             confidence=result.get('confidence'),
-            suggestions=result.get('suggestions', [])
+            suggestions=result.get('suggestions', []),
+            map_data=result.get('map_data')  # Include map data for visualization
         )
         
     except Exception as e:
