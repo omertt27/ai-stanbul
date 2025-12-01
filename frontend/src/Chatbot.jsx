@@ -491,11 +491,27 @@ function Chatbot({ userLocation: propUserLocation }) {
   // Use standard backend (not Pure LLM mode)
   const usePureLLM = false;
   
+  // Component initialization state - FIX FOR NAVIGATION ISSUE
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   // GPS location state (use prop if provided, otherwise track it ourselves)
   const [userLocation, setUserLocation] = useState(propUserLocation || null);
   const [locationPermission, setLocationPermission] = useState('unknown');
   const [locationError, setLocationError] = useState(null);
   const [showGPSBanner, setShowGPSBanner] = useState(true);
+  
+  // Initialize component on mount
+  useEffect(() => {
+    console.log('🚀 Chatbot component mounting...');
+    
+    // Set initialized after a small delay to ensure all state is ready
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+      console.log('✅ Chatbot component initialized');
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   // Request and track GPS location
   useEffect(() => {
@@ -1114,6 +1130,22 @@ function Chatbot({ userLocation: propUserLocation }) {
     // Automatically send the message
     handleSend(question);
   };
+
+  // Show loading state until component is initialized
+  if (!isInitialized) {
+    return (
+      <div className={`flex items-center justify-center h-screen w-full ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-100'
+      }`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Loading chat...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col h-screen w-full transition-colors duration-200 ${
