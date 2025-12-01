@@ -8,7 +8,6 @@ export default defineConfig({
     host: '0.0.0.0',
     strictPort: false,
     headers: {
-      'Cache-Control': 'no-cache',
       'Permissions-Policy': 'geolocation=(self)'
     }
   },
@@ -19,7 +18,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: undefined,
-        // Ensure consistent asset naming
+        // Ensure consistent asset naming with cache busting
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]'
@@ -29,5 +28,11 @@ export default defineConfig({
   esbuild: {
     loader: 'jsx',
     include: /src\/.*\.[jt]sx?$/
+  },
+  // Fix for SPA routing - ensure index.html is served for all routes
+  preview: {
+    port: 3000,
+    strictPort: false,
+    host: '0.0.0.0'
   }
 })
