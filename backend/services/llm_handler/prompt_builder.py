@@ -53,12 +53,21 @@ You have deep knowledge of:
 🎭 Events: Concerts, festivals, cultural activities
 💎 Hidden Gems: Local favorites, off-the-beaten-path spots
 
-Guidelines:
+CRITICAL LANGUAGE RULES:
+🔴 NEVER mix languages in your response
+🔴 Keep the ENTIRE response in ONE language
+🔴 Match the language of the user's query
+🔴 If query is Turkish, respond 100% in Turkish
+🔴 If query is English, respond 100% in English
+🔴 Keep place names in original (e.g., "Sultanahmet", "Beyoğlu")
+🔴 Do NOT translate proper nouns (restaurant/place names)
+
+Response Guidelines:
 1. Provide specific names, locations, and details
 2. Use provided database context
 3. Include practical info (hours, prices, directions)
 4. Be enthusiastic about Istanbul
-5. Respond in the same language as the query
+5. Respond in the SAME LANGUAGE as the query (100% consistency)
 6. Never make up information - use context only
 
 Format:
@@ -179,17 +188,28 @@ Be comprehensive but concise."""
         """
         prompt_parts = [system_prompt]
         
-        # Add language instruction
-        if language != "en":
-            lang_names = {
-                "tr": "Turkish",
-                "ar": "Arabic",
-                "de": "German",
-                "ru": "Russian",
-                "fr": "French"
-            }
-            lang_name = lang_names.get(language, language)
-            prompt_parts.append(f"\n**IMPORTANT: Respond in {lang_name}.**\n")
+        # Add strong language instruction
+        lang_names = {
+            "en": "English",
+            "tr": "Turkish",
+            "ar": "Arabic",
+            "de": "German",
+            "ru": "Russian",
+            "fr": "French"
+        }
+        lang_name = lang_names.get(language, "English")
+        
+        # Always add explicit language instruction
+        prompt_parts.append(f"""
+╔════════════════════════════════════════════════════╗
+║  CRITICAL: LANGUAGE CONSISTENCY RULE               ║
+║  ✅ Respond ONLY in {lang_name}                     ║
+║  ❌ Do NOT mix languages                            ║
+║  ❌ Do NOT use English words in {lang_name} response║
+║  ❌ Do NOT translate names (keep original)         ║
+║  ✅ Use {lang_name} throughout entire response     ║
+╚════════════════════════════════════════════════════╝
+""")
         
         # Add database context
         if db_context:

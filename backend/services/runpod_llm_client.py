@@ -83,6 +83,64 @@ class RunPodLLMClient:
         else:
             return "generic"
     
+    def _detect_language(self, text: str) -> str:
+        """
+        Detect the language of the input text
+        
+        Supports: English, Turkish, Arabic, Russian, French, German
+        
+        Args:
+            text: Input text to detect language
+            
+        Returns:
+            Language name in English
+        """
+        text_lower = text.lower()
+        
+        # Turkish detection (ı, ş, ğ, ü, ö, ç characters)
+        turkish_chars = ['ı', 'ş', 'ğ', 'ü', 'ö', 'ç']
+        turkish_words = ['nerede', 'nasıl', 'ne', 'var', 'mı', 'mi', 'mu', 'mü', 
+                        'için', 'ile', 'gitmek', 'yemek', 'restoran', 'nereye',
+                        'İstanbul', 'Taksim', 'Beyoğlu', 'neresi', 'hangi']
+        if any(char in text_lower for char in turkish_chars) or \
+           any(word in text_lower for word in turkish_words):
+            return "Turkish (Türkçe)"
+        
+        # Arabic detection (Arabic script)
+        arabic_chars = ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 
+                       'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 
+                       'ل', 'م', 'ن', 'ه', 'و', 'ي']
+        if any(char in text for char in arabic_chars):
+            return "Arabic (العربية)"
+        
+        # Russian detection (Cyrillic script)
+        russian_chars = ['а', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з', 'и', 'й', 
+                        'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 
+                        'х', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я']
+        if any(char in text_lower for char in russian_chars):
+            return "Russian (Русский)"
+        
+        # French detection (common words and accents)
+        french_words = ['où', 'comment', 'quel', 'quelle', 'est', 'sont', 'pour',
+                       'avec', 'dans', 'sur', 'une', 'des', 'les', 'très',
+                       'restaurant', 'musée', 'près', 'château']
+        french_chars = ['é', 'è', 'ê', 'à', 'ù', 'û', 'ô', 'î', 'ï', 'ç', 'œ']
+        if any(word in text_lower for word in french_words) or \
+           any(char in text_lower for char in french_chars):
+            return "French (Français)"
+        
+        # German detection (common words and characters)
+        german_words = ['wo', 'wie', 'was', 'welche', 'welcher', 'ist', 'sind', 
+                       'für', 'mit', 'von', 'zu', 'nach', 'über', 'unter',
+                       'restaurant', 'essen', 'museum', 'schloss']
+        german_chars = ['ä', 'ö', 'ü', 'ß']
+        if any(word in text_lower.split() for word in german_words) or \
+           any(char in text_lower for char in german_chars):
+            return "German (Deutsch)"
+        
+        # Default to English
+        return "English"
+    
     async def health_check(self) -> Dict[str, Any]:
         """
         Check if RunPod LLM service is healthy
@@ -294,11 +352,22 @@ class RunPodLLMClient:
         Returns:
             Generated response text or None
         """
-        # Build Istanbul-focused prompt
-        system_context = """You are an AI assistant specialized in Istanbul tourism.
+        # Detect query language
+        detected_language = self._detect_language(query)
+        
+        # Build Istanbul-focused prompt with language awareness
+        system_context = f"""You are an AI assistant specialized in Istanbul tourism.
+
+LANGUAGE RULE - CRITICAL:
+User's query is in: {detected_language}
+You MUST respond 100% in: {detected_language}
+NEVER mix languages in your response.
+
 Provide helpful, accurate, and friendly information about Istanbul's attractions,
 restaurants, neighborhoods, transportation, and local culture.
-Keep responses concise and actionable."""
+Keep responses concise and actionable (150-200 words).
+Use natural, conversational tone in {detected_language}.
+"""
         
         if context:
             prompt = f"""{system_context}
@@ -358,15 +427,39 @@ Provide a helpful response about Istanbul:"""
         context_builder = get_context_builder()
         formatted_context = context_builder.format_context_for_llm(service_context)
         
+        # Detect query language
+        detected_language = self._detect_language(query)
+        
         # Build enhanced prompt with service data
-        system_prompt = """You are an AI assistant specialized in Istanbul tourism with access to real-time data.
+        system_prompt = f"""You are an AI assistant specialized in Istanbul tourism with access to real-time data.
 
-IMPORTANT INSTRUCTIONS:
+CRITICAL LANGUAGE RULES - MANDATORY:
+🔴 NEVER EVER mix languages in your response
+🔴 Keep the ENTIRE response in ONE language ONLY
+🔴 User's query language: {detected_language}
+🔴 You MUST respond 100% in: {detected_language}
+🔴 Do NOT add translations or explanations in other languages
+🔴 Do NOT translate proper nouns (Istanbul, Taksim, Galata, etc.)
+🔴 Keep place names, restaurant names, street names in original spelling
+
+SUPPORTED LANGUAGES:
+✅ English - for English queries
+✅ Turkish (Türkçe) - for Turkish queries  
+✅ Arabic (العربية) - for Arabic queries
+✅ Russian (Русский) - for Russian queries
+✅ French (Français) - for French queries
+✅ German (Deutsch) - for German queries
+
+RESPONSE INSTRUCTIONS:
 1. Use the provided Context data to give accurate, specific recommendations
-2. Include specific names, ratings, locations, and practical details from the Context
-3. Be concise but informative
+2. Include specific names, ratings, locations, and practical details from Context
+3. Be concise but informative (200-300 words maximum)
 4. Always mention specific options from the Context when available
 5. If Context is limited, acknowledge it and provide general guidance
+6. Use natural, conversational tone in the detected language
+7. Format with emojis and bullet points for readability
+
+REMEMBER: Respond ONLY in {detected_language}. No mixed languages!
 
 """
         
