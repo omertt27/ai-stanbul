@@ -81,7 +81,62 @@ async def pure_llm_chat(
         user_context['location'] = request.user_location
         logger.info(f"📍 User GPS location: {request.user_location}")
     
-    # First check if this is a GPS navigation command
+    # First check if this is a hidden gems GPS request
+    try:
+        from services.hidden_gems_gps_integration import get_hidden_gems_gps_integration
+        
+        gems_handler = get_hidden_gems_gps_integration(db)
+        
+        # Try to handle as hidden gem request
+        gems_result = gems_handler.handle_hidden_gem_chat_request(
+            message=request.message,
+            user_location=request.user_location,
+            session_id=request.session_id or 'new'
+        )
+        
+        if gems_result:
+            # This was a hidden gems request
+            if gems_result.get('error'):
+                # Error occurred
+                return ChatResponse(
+                    response=gems_result.get('message', 'Sorry, something went wrong with hidden gems.'),
+                    session_id=request.session_id or 'new',
+                    intent='hidden_gems',
+                    confidence=0.8,
+                    suggestions=["Show me restaurants", "What are popular attractions?"]
+                )
+            
+            # Check if navigation was started
+            if gems_result.get('navigation_active'):
+                return ChatResponse(
+                    response=gems_result.get('message', ''),
+                    session_id=request.session_id or 'new',
+                    intent='hidden_gems_navigation',
+                    confidence=1.0,
+                    suggestions=["What's next?", "Stop navigation", "Show nearby hidden gems"],
+                    map_data=gems_result.get('map_data'),
+                    navigation_active=True,
+                    navigation_data=gems_result.get('navigation_data')
+                )
+            
+            # Return gems discovery response
+            gems = gems_result.get('gems', [])
+            response_text = _format_hidden_gems_response(gems, request.user_location)
+            
+            return ChatResponse(
+                response=response_text,
+                session_id=request.session_id or 'new',
+                intent='hidden_gems',
+                confidence=1.0,
+                suggestions=_get_hidden_gems_suggestions(gems),
+                map_data=gems_result.get('map_data'),
+                navigation_active=False
+            )
+            
+    except Exception as e:
+        logger.warning(f"Hidden gems GPS check failed: {e}")
+    
+    # Check if this is a GPS navigation command
     try:
         from services.ai_chat_route_integration import get_chat_route_handler
         
@@ -337,37 +392,179 @@ async def chat(
         )
 
 
-def _get_navigation_suggestions(nav_result: Dict[str, Any]) -> List[str]:
-    """Generate contextual suggestions based on navigation state"""
-    nav_type = nav_result.get('type', '')
+# ==============================================
+# Hidden Gems Helper Functions
+# ==============================================
+
+def _format_hidden_gems_response(gems: List[Dict], user_location: Optional[Dict] = None) -> str:
+    """
+    Format hidden gems discovery response
     
-    if nav_type == 'navigation_started':
-        return [
-            "What's next?",
-            "Where am I?",
-            "Stop navigation"
-        ]
-    elif nav_type == 'navigation_update':
-        return [
-            "What's next?",
-            "Repeat instruction",
-            "Stop navigation"
-        ]
-    elif nav_type == 'navigation_stopped' or nav_type == 'navigation_complete':
-        return [
-            "Navigate to Galata Tower",
-            "Show nearby attractions",
-            "Find restaurants nearby"
-        ]
-    elif nav_result.get('navigation_active'):
-        return [
-            "What's next?",
-            "Navigation status",
-            "Stop navigation"
-        ]
+    Args:
+        gems: List of hidden gem dictionaries
+        user_location: Optional user GPS location
+        
+    Returns:
+        Formatted response text
+    """
+    if not gems:
+        return "I couldn't find any hidden gems nearby. Try a different area or ask me about popular attractions!"
+    
+    response = f"🗺️ I found {len(gems)} amazing hidden gems for you:\n\n"
+    
+    for i, gem in enumerate(gems[:5], 1):  # Show top 5
+        name = gem.get('name', 'Unknown')
+        category = gem.get('category', 'attraction')
+        description = gem.get('description', '')
+        distance = gem.get('distance')
+        
+        response += f"{i}. **{name}**"
+        
+        # Add category emoji
+        if 'cafe' in category.lower() or 'coffee' in category.lower():
+            response += " ☕"
+        elif 'restaurant' in category.lower() or 'food' in category.lower():
+            response += " 🍽️"
+        elif 'park' in category.lower() or 'garden' in category.lower():
+            response += " 🌳"
+        elif 'view' in category.lower():
+            response += " 🌆"
+        elif 'art' in category.lower() or 'gallery' in category.lower():
+            response += " 🎨"
+        else:
+            response += " 💎"
+        
+        response += f" ({category})\n"
+        
+        if distance:
+            response += f"   📍 {distance:.1f}km away\n"
+        
+        if description:
+            # Truncate description
+            desc_short = description[:100] + "..." if len(description) > 100 else description
+            response += f"   {desc_short}\n"
+        
+        response += "\n"
+    
+    if user_location:
+        response += "\n💡 Want to navigate to any of these? Just say \"Navigate to [name]\" or click the location on the map!"
     else:
-        return [
-            "Navigate to Blue Mosque",
-            "Navigate to Taksim Square",
-            "Where am I?"
-        ]
+        response += "\n💡 Enable GPS to see distances and get turn-by-turn navigation!"
+    
+    return response
+
+
+def _get_hidden_gems_suggestions(gems: List[Dict]) -> List[str]:
+    """
+    Generate context-aware suggestions for hidden gems
+    
+    Args:
+        gems: List of hidden gem dictionaries
+        
+    Returns:
+        List of suggestion strings
+    """
+    suggestions = []
+    
+    # Add navigation suggestions for top gems
+    if gems and len(gems) > 0:
+        first_gem = gems[0].get('name', '')
+        if first_gem:
+            suggestions.append(f"Navigate to {first_gem}")
+    
+    if gems and len(gems) > 1:
+        second_gem = gems[1].get('name', '')
+        if second_gem:
+            suggestions.append(f"Tell me about {second_gem}")
+    
+    # Add general suggestions
+    suggestions.extend([
+        "Show me more hidden gems",
+        "Find nearby restaurants",
+        "What else is around here?"
+    ])
+    
+    return suggestions[:5]  # Return max 5 suggestions
+
+
+def _check_hidden_gem_intent(message: str) -> bool:
+    """
+    Check if message is asking about hidden gems
+    
+    Args:
+        message: User's message
+        
+    Returns:
+        True if message is about hidden gems
+    """
+    message_lower = message.lower()
+    
+    hidden_gem_keywords = [
+        'hidden gem', 'secret spot', 'local spot', 'off the beaten',
+        'undiscovered', 'secret place', 'hidden place', 'local favorite',
+        'insider tip', 'secret cafe', 'hidden cafe', 'secret restaurant',
+        'gizli', 'saklı', 'yerel', 'bilinmeyen'  # Turkish keywords
+    ]
+    
+    return any(keyword in message_lower for keyword in hidden_gem_keywords)
+
+
+def _extract_hidden_gem_name_from_message(message: str, gems: List[Dict]) -> Optional[str]:
+    """
+    Extract hidden gem name from navigation request
+    
+    Args:
+        message: User's message
+        gems: List of available gems to match against
+        
+    Returns:
+        Gem name if found, None otherwise
+    """
+    message_lower = message.lower()
+    
+    # Check each gem name
+    for gem in gems:
+        name = gem.get('name', '')
+        if name and name.lower() in message_lower:
+            return name
+    
+    return None
+
+
+def _get_navigation_suggestions(nav_result: Dict) -> List[str]:
+    """
+    Generate context-aware suggestions for navigation
+    
+    Args:
+        nav_result: Navigation result dictionary
+        
+    Returns:
+        List of suggestion strings
+    """
+    suggestions = []
+    
+    # Check if navigation is active
+    is_active = nav_result.get('navigation_active', False)
+    nav_data = nav_result.get('navigation_data', {})
+    
+    if is_active:
+        # Active navigation suggestions
+        suggestions.extend([
+            "What's the next turn?",
+            "How much longer?",
+            "Stop navigation",
+            "Show alternative routes"
+        ])
+    else:
+        # Route planning suggestions
+        destination = nav_data.get('destination', '')
+        if destination:
+            suggestions.append(f"Start navigation to {destination}")
+        
+        suggestions.extend([
+            "Show me nearby restaurants",
+            "Find hidden gems nearby",
+            "What else is around here?"
+        ])
+    
+    return suggestions[:5]  # Return max 5 suggestions
