@@ -10,6 +10,7 @@ Context Sources:
 - Events Service: Cultural events and activities
 - Hidden Gems: Off-the-beaten-path locations
 - Map Service: Visual maps and routing
+- Location-Based Enrichment: Auto-adds hidden gems for districts
 
 Features resilience patterns:
 - Circuit breakers for external services
@@ -30,6 +31,14 @@ from .resilience import (
     TimeoutManager,
     GracefulDegradation
 )
+
+# Import location-based enhancer
+try:
+    from services.location_based_context_enhancer import get_location_based_enhancer
+    LOCATION_ENHANCER_AVAILABLE = True
+except ImportError:
+    LOCATION_ENHANCER_AVAILABLE = False
+    logger.warning("⚠️ Location-based context enhancer not available")
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +216,34 @@ class ContextBuilder:
                 )
             except Exception as e:
                 logger.warning(f"Map generation failed: {e}")
+        
+        # NEW: Enhance context with location-based information
+        # This automatically adds hidden gems when districts are mentioned
+        if LOCATION_ENHANCER_AVAILABLE:
+            try:
+                enhancer = get_location_based_enhancer()
+                
+                # Get intent from signals for better context
+                intent = None
+                if signals.get('needs_restaurant'):
+                    intent = 'restaurant'
+                elif signals.get('needs_attraction'):
+                    intent = 'attraction'
+                elif signals.get('needs_hidden_gems'):
+                    intent = 'hidden_gems'
+                
+                # Enhance context with location-based data
+                enriched_context = await enhancer.enhance_context(
+                    query=query,
+                    base_context=context,
+                    intent=intent
+                )
+                
+                # Merge enriched context
+                context = self._merge_location_enriched_context(context, enriched_context)
+                logger.info("✅ Location-based context enhancement applied")
+            except Exception as e:
+                logger.warning(f"Location-based context enhancement failed: {e}")
         
         return context
     
@@ -818,3 +855,131 @@ For SIM cards: Turkcell, Vodafone, Türk Telekom stores at airports and malls"""
         except Exception as e:
             logger.error(f"Failed to get daily life suggestions: {e}")
             return ""
+    
+    def _merge_location_enriched_context(
+        self,
+        context: Dict[str, Any],
+        enriched_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Merge location-enriched context into main context.
+        
+        Extracts hidden gems, events, restaurants, and attractions from
+        the location enrichment and adds them to the services context.
+        """
+        enrichment = enriched_context.get('location_enrichment', {})
+        
+        if not enrichment:
+            return context
+        
+        # Add detected districts to services
+        if 'detected_districts' in enrichment:
+            context['services']['detected_districts'] = enrichment['detected_districts']
+            logger.info(f"📍 Detected districts: {enrichment['detected_districts']}")
+        
+        # Add hidden gems
+        if 'hidden_gems' in enrichment:
+            gems = enrichment['hidden_gems']
+            gems_text = self._format_hidden_gems_for_context(gems)
+            
+            # Append to existing hidden gems or create new
+            if 'hidden_gems' in context['services']:
+                context['services']['hidden_gems'] += "\n\n" + gems_text
+            else:
+                context['services']['hidden_gems'] = gems_text
+            
+            logger.info(f"💎 Added {len(gems)} hidden gems to context")
+        
+        # Add events
+        if 'events' in enrichment:
+            events = enrichment['events']
+            events_text = self._format_events_for_context(events)
+            
+            if 'events' in context['services']:
+                context['services']['events'] += "\n\n" + events_text
+            else:
+                context['services']['events'] = events_text
+            
+            logger.info(f"🎭 Added {len(events)} events to context")
+        
+        # Add restaurants
+        if 'restaurants' in enrichment:
+            restaurants = enrichment['restaurants']
+            restaurant_text = self._format_restaurants_for_context(restaurants)
+            
+            # Append to database context
+            if context['database']:
+                context['database'] += "\n\n=== LOCAL RECOMMENDATIONS ===\n" + restaurant_text
+            else:
+                context['database'] = "=== LOCAL RECOMMENDATIONS ===\n" + restaurant_text
+            
+            logger.info(f"🍽️ Added {len(restaurants)} restaurants to context")
+        
+        # Add attractions
+        if 'attractions' in enrichment:
+            attractions = enrichment['attractions']
+            attraction_text = self._format_attractions_for_context(attractions)
+            
+            if context['database']:
+                context['database'] += "\n\n=== LOCAL ATTRACTIONS ===\n" + attraction_text
+            else:
+                context['database'] = "=== LOCAL ATTRACTIONS ===\n" + attraction_text
+            
+            logger.info(f"🏛️ Added {len(attractions)} attractions to context")
+        
+        return context
+    
+    def _format_hidden_gems_for_context(self, gems: List[Dict[str, Any]]) -> str:
+        """Format hidden gems for LLM context"""
+        formatted = []
+        for gem in gems:
+            text = f"💎 **{gem['name']}** ({gem['district']}) - {gem['category']}\n"
+            text += f"   {gem['description']}\n"
+            if gem.get('insider_tip'):
+                text += f"   💡 Insider Tip: {gem['insider_tip']}\n"
+            if gem.get('best_time'):
+                text += f"   ⏰ Best Time: {gem['best_time']}\n"
+            formatted.append(text)
+        return "\n".join(formatted)
+    
+    def _format_events_for_context(self, events: List[Dict[str, Any]]) -> str:
+        """Format events for LLM context"""
+        formatted = []
+        for event in events:
+            text = f"🎭 **{event['title']}**\n"
+            if event.get('venue'):
+                text += f"   📍 Venue: {event['venue']}\n"
+            if event.get('date'):
+                text += f"   📅 Date: {event['date']}\n"
+            if event.get('description'):
+                text += f"   {event['description'][:150]}\n"
+            formatted.append(text)
+        return "\n".join(formatted)
+    
+    def _format_restaurants_for_context(self, restaurants: List[Dict[str, Any]]) -> str:
+        """Format restaurants for LLM context"""
+        formatted = []
+        for restaurant in restaurants:
+            text = f"🍽️ **{restaurant['name']}** - {restaurant.get('cuisine', 'N/A')}\n"
+            text += f"   📍 {restaurant['district']} | {restaurant.get('price_range', 'N/A')}"
+            if restaurant.get('rating'):
+                text += f" | ⭐ {restaurant['rating']}/5"
+            formatted.append(text)
+        return "\n".join(formatted)
+    
+    def _format_attractions_for_context(self, attractions: List[Dict[str, Any]]) -> str:
+        """Format attractions for LLM context"""
+        formatted = []
+        for attraction in attractions:
+            text = f"🏛️ **{attraction['name']}** - {attraction.get('category', 'N/A')}\n"
+            text += f"   📍 {attraction['district']}"
+            if attraction.get('opening_hours'):
+                text += f" | ⏰ {attraction['opening_hours']}"
+            if attraction.get('entry_fee'):
+                text += f" | 💰 {attraction['entry_fee']}"
+            formatted.append(text)
+        return "\n".join(formatted)
+    
+    def _merge_location_context(self, context: Dict[str, Any], location_context: Dict[str, Any]) -> Dict[str, Any]:
+        """Legacy method - kept for backward compatibility"""
+        return self._merge_location_enriched_context(context, location_context)
