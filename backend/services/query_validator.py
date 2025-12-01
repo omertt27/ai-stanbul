@@ -7,6 +7,8 @@ Validates queries before main processing to:
 3. Generate clarifications for ambiguous queries
 4. Reduce wasted LLM calls
 
+Updated: December 2024 - Using improved standardized prompt templates
+
 Author: AI Istanbul Team
 Date: November 14, 2025
 """
@@ -17,6 +19,12 @@ import logging
 import re
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+
+# Import improved prompt templates
+from IMPROVED_PROMPT_TEMPLATES import (
+    IMPROVED_VALIDATION_PROMPT,
+    IMPROVED_CLARIFICATION_PROMPT
+)
 
 logger = logging.getLogger(__name__)
 
@@ -243,56 +251,24 @@ class QueryValidator:
         language: str,
         context: Optional[Dict[str, Any]]
     ) -> str:
-        """Build prompt for LLM validation."""
+        """Build prompt for LLM validation using improved template."""
         
         language_names = {
             "en": "English",
-            "tr": "Turkish",
-            "ar": "Arabic",
-            "es": "Spanish",
-            "fr": "French",
-            "de": "German"
+            "tr": "Turkish (Türkçe)",
+            "ar": "Arabic (العربية)",
+            "es": "Spanish (Español)",
+            "fr": "French (Français)",
+            "de": "German (Deutsch)",
+            "ru": "Russian (Русский)"
         }
         lang_name = language_names.get(language, "English")
         
-        prompt = f"""You are a query validation expert for Istanbul tourism.
-
-Query: "{query}"
-Language: {lang_name}
-
-Analyze this query and determine:
-1. Is it answerable? (Does it ask something we can help with about Istanbul?)
-2. What's the complexity level?
-   - SIMPLE: Basic fact (hours, location, price)
-   - MEDIUM: Recommendations, comparisons, planning
-   - COMPLEX: Multi-step itinerary, detailed analysis
-3. Are there any issues or missing information?
-4. Estimated response time in seconds
-
-Respond in this JSON format:
-{{
-  "is_valid": true/false,
-  "confidence": 0.0-1.0,
-  "issues": ["list", "of", "issues"],
-  "complexity": "simple"|"medium"|"complex",
-  "estimated_time": seconds,
-  "requires_clarification": true/false,
-  "reason": "brief explanation"
-}}
-
-Examples:
-Query: "What time does Hagia Sophia open?"
-{{"is_valid": true, "confidence": 0.95, "issues": [], "complexity": "simple", "estimated_time": 1.0, "requires_clarification": false, "reason": "Clear factual question"}}
-
-Query: "Best places"
-{{"is_valid": false, "confidence": 0.9, "issues": ["Too vague", "Missing context"], "complexity": "invalid", "estimated_time": 0, "requires_clarification": true, "reason": "Need to specify what kind of places"}}
-
-Query: "Plan a 5-day trip covering all major attractions with budget breakdown"
-{{"is_valid": true, "confidence": 0.85, "issues": [], "complexity": "complex", "estimated_time": 5.0, "requires_clarification": false, "reason": "Multi-faceted travel planning"}}
-
-Now analyze: "{query}"
-
-JSON Response:"""
+        # Use the improved validation prompt template
+        prompt = IMPROVED_VALIDATION_PROMPT.format(
+            query=query,
+            language=lang_name
+        )
         
         return prompt
     
@@ -417,49 +393,29 @@ JSON Response:"""
         signals: Dict[str, Any],
         language: str
     ) -> str:
-        """Build prompt for clarification generation."""
+        """Build prompt for clarification generation using improved template."""
         
         intent = signals.get('primary_intent', 'unknown')
         confidence = signals.get('primary_confidence', 0.5)
         
-        language_instructions = {
-            "en": "Ask a clarifying question in English",
-            "tr": "Türkçe bir açıklama sorusu sor",
-            "ar": "اطرح سؤالاً توضيحياً بالعربية",
-            "es": "Haz una pregunta aclaratoria en español",
-            "fr": "Posez une question de clarification en français",
-            "de": "Stellen Sie eine Klärungsfrage auf Deutsch"
+        language_names = {
+            "en": "English",
+            "tr": "Turkish (Türkçe)",
+            "ar": "Arabic (العربية)",
+            "es": "Spanish (Español)",
+            "fr": "French (Français)",
+            "de": "German (Deutsch)",
+            "ru": "Russian (Русский)"
         }
+        lang_name = language_names.get(language, "English")
         
-        instruction = language_instructions.get(language, language_instructions["en"])
-        
-        prompt = f"""You are a helpful AI assistant for Istanbul tourism.
-
-User's Query: "{query}"
-Detected Intent: {intent}
-Confidence: {confidence:.2f}
-
-This query is ambiguous or unclear. {instruction} to help understand what the user wants.
-
-Guidelines:
-- Keep it short and natural (one question)
-- Focus on the most important missing information
-- Be friendly and helpful
-- Don't repeat the user's query
-
-Examples:
-Query: "best places"
-Clarification: "What kind of places are you interested in? Museums, restaurants, parks, or something else?"
-
-Query: "how to get there"
-Clarification: "Where would you like to go? Please tell me your destination."
-
-Query: "good for kids"
-Clarification: "What activities are you looking for? Indoor attractions, outdoor parks, or family restaurants?"
-
-Now generate a clarifying question for: "{query}"
-
-Clarification:"""
+        # Use the improved clarification prompt template
+        prompt = IMPROVED_CLARIFICATION_PROMPT.format(
+            query=query,
+            intent=intent,
+            confidence=confidence,
+            language=lang_name
+        )
         
         return prompt
     

@@ -4,6 +4,8 @@ Supports:
 - RunPod-hosted models (vLLM, TGI)
 - Hugging Face Inference API
 - OpenAI-compatible endpoints
+
+Updated: December 2024 - Using improved standardized prompt templates
 """
 
 import os
@@ -11,6 +13,13 @@ import logging
 import httpx
 from typing import Dict, Optional, Any
 from dotenv import load_dotenv
+
+# Import improved prompt templates
+from IMPROVED_PROMPT_TEMPLATES import (
+    IMPROVED_BASE_PROMPT,
+    INTENT_PROMPTS,
+    CONTEXT_FORMAT_TEMPLATE
+)
 
 load_dotenv()
 
@@ -342,7 +351,7 @@ class RunPodLLMClient:
         intent: Optional[str] = None
     ) -> Optional[str]:
         """
-        Generate Istanbul-specific response using LLM
+        Generate Istanbul-specific response using LLM with improved prompts
         
         Args:
             query: User query
@@ -355,44 +364,39 @@ class RunPodLLMClient:
         # Detect query language
         detected_language = self._detect_language(query)
         
-        # Build Istanbul-focused prompt with language awareness
-        system_context = f"""You are an AI assistant specialized in Istanbul tourism.
-
-LANGUAGE RULE - CRITICAL:
-User's query is in: {detected_language}
-You MUST respond 100% in: {detected_language}
-NEVER mix languages in your response.
-
-Provide helpful, accurate, and friendly information about Istanbul's attractions,
-restaurants, neighborhoods, transportation, and local culture.
-Keep responses concise and actionable (150-200 words).
-Use natural, conversational tone in {detected_language}.
-"""
+        # Build prompt using improved template
+        system_prompt = IMPROVED_BASE_PROMPT.format(detected_language=detected_language)
+        
+        # Add intent-specific guidance if available
+        if intent and intent in INTENT_PROMPTS:
+            system_prompt += f"\n\n{INTENT_PROMPTS[intent]}"
         
         if context:
-            prompt = f"""{system_context}
+            prompt = f"""{system_prompt}
 
-Context: {context}
+CONTEXT DATA:
+{context}
 
-User Question: {query}
+USER QUESTION: {query}
 
-Provide a helpful response:"""
+YOUR RESPONSE (in {detected_language}):"""
         else:
-            prompt = f"""{system_context}
+            prompt = f"""{system_prompt}
 
-User Question: {query}
+USER QUESTION: {query}
 
-Provide a helpful response about Istanbul:"""
+YOUR RESPONSE (in {detected_language}):"""
         
         result = await self.generate(prompt=prompt, max_tokens=200)
         
         if result and 'generated_text' in result:
             # Extract just the response part (after the prompt)
             full_text = result['generated_text']
-            # Try to extract response after "Provide a helpful response:"
-            if "Provide a helpful response" in full_text:
-                response = full_text.split("Provide a helpful response", 1)[-1]
-                response = response.lstrip(":").strip()
+            # Try to extract response after "YOUR RESPONSE"
+            if "YOUR RESPONSE" in full_text:
+                response = full_text.split("YOUR RESPONSE", 1)[-1]
+                response = response.lstrip(":").lstrip("(in").split("):")[1] if "):" in response else response.lstrip(":")
+                response = response.strip()
                 return response
             return full_text
         
@@ -406,7 +410,7 @@ Provide a helpful response about Istanbul:"""
         service_context: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """
-        Generate response using service context data
+        Generate response using service context data with improved prompts
         
         Args:
             query: User query
@@ -430,54 +434,43 @@ Provide a helpful response about Istanbul:"""
         # Detect query language
         detected_language = self._detect_language(query)
         
-        # Build enhanced prompt with service data
-        system_prompt = f"""You are an AI assistant specialized in Istanbul tourism with access to real-time data.
-
-CRITICAL LANGUAGE RULES - MANDATORY:
-🔴 NEVER EVER mix languages in your response
-🔴 Keep the ENTIRE response in ONE language ONLY
-🔴 User's query language: {detected_language}
-🔴 You MUST respond 100% in: {detected_language}
-🔴 Do NOT add translations or explanations in other languages
-🔴 Do NOT translate proper nouns (Istanbul, Taksim, Galata, etc.)
-🔴 Keep place names, restaurant names, street names in original spelling
-
-SUPPORTED LANGUAGES:
-✅ English - for English queries
-✅ Turkish (Türkçe) - for Turkish queries  
-✅ Arabic (العربية) - for Arabic queries
-✅ Russian (Русский) - for Russian queries
-✅ French (Français) - for French queries
-✅ German (Deutsch) - for German queries
-
-RESPONSE INSTRUCTIONS:
-1. Use the provided Context data to give accurate, specific recommendations
-2. Include specific names, ratings, locations, and practical details from Context
-3. Be concise but informative (200-300 words maximum)
-4. Always mention specific options from the Context when available
-5. If Context is limited, acknowledge it and provide general guidance
-6. Use natural, conversational tone in the detected language
-7. Format with emojis and bullet points for readability
-
-REMEMBER: Respond ONLY in {detected_language}. No mixed languages!
-
-"""
+        # Build enhanced prompt using improved templates
+        system_prompt = IMPROVED_BASE_PROMPT.format(detected_language=detected_language)
+        
+        # Add intent-specific guidance if available
+        if intent and intent in INTENT_PROMPTS:
+            system_prompt += f"\n\n{INTENT_PROMPTS[intent]}"
+            logger.info(f"🎯 Added intent-specific prompt for: {intent}")
         
         if formatted_context:
+            # Use improved context formatting
+            from datetime import datetime
+            context_section = f"""
+---CONTEXT DATA PROVIDED---
+
+{formatted_context}
+
+**Data Sources**: {', '.join(service_context.get('service_data', {}).keys()) if service_context.get('service_data') else 'Multiple sources'}
+**Data Status**: Real-time
+
+---END OF CONTEXT---
+
+**REMEMBER**: Base your response on this CONTEXT data. Include specific details (names, locations, ratings, prices) from above.
+"""
+            
             prompt = f"""{system_prompt}
 
-CONTEXT DATA:
-{formatted_context}
+{context_section}
 
 USER QUESTION: {query}
 
-Provide a helpful, specific response using the Context data above:"""
+YOUR RESPONSE (in {detected_language}):"""
         else:
             prompt = f"""{system_prompt}
 
 USER QUESTION: {query}
 
-Provide a helpful response about Istanbul:"""
+YOUR RESPONSE (in {detected_language}):"""
         
         logger.info(f"🤖 Generating service-enhanced response for intent: {intent}")
         logger.debug(f"Prompt length: {len(prompt)} chars")
@@ -492,11 +485,10 @@ Provide a helpful response about Istanbul:"""
         if result and 'generated_text' in result:
             full_text = result['generated_text']
             
-            # Extract response after the prompt
-            if "Provide a helpful" in full_text:
-                response = full_text.split("Provide a helpful", 1)[-1]
-                # Remove the "response using..." part
-                response = response.split(":", 1)[-1] if ":" in response else response
+            # Extract response after "YOUR RESPONSE"
+            if "YOUR RESPONSE" in full_text:
+                response = full_text.split("YOUR RESPONSE", 1)[-1]
+                response = response.lstrip(":").lstrip("(in").split("):")[1] if "):" in response else response.lstrip(":")
                 response = response.strip()
                 return response
             

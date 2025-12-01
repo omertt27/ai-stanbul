@@ -10,6 +10,8 @@ Features:
 - Redis caching for repeated explanations
 - Debugging and transparency
 
+Updated: December 2024 - Using improved standardized prompt templates
+
 Author: AI Istanbul Team
 Date: November 14, 2025
 """
@@ -20,6 +22,9 @@ import hashlib
 import time
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta
+
+# Import improved prompt templates
+from IMPROVED_PROMPT_TEMPLATES import IMPROVED_EXPLANATION_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -133,69 +138,29 @@ class QueryExplainer:
         context: Optional[Dict[str, Any]],
         language: str
     ) -> str:
-        """Build prompt for LLM to generate explanation."""
+        """Build prompt for LLM to generate explanation using improved template."""
         
         # Extract signal information
         detected_signals = signals.get("detected_signals", [])
         confidence_scores = signals.get("confidence_scores", {})
         primary_intent = signals.get("primary_intent", "general")
+        primary_confidence = confidence_scores.get(primary_intent, 0.5)
         
-        # Build signal details
+        # Build signals summary
         signal_details = []
         for signal in detected_signals:
             confidence = confidence_scores.get(signal, 0.0)
-            signal_details.append(f"  - {signal}: {confidence:.2f} confidence")
+            signal_details.append(f"{signal}: {confidence:.2f}")
         
-        signal_summary = "\n".join(signal_details) if signal_details else "  - No specific signals detected"
+        signals_summary = ", ".join(signal_details) if signal_details else "no specific signals"
         
-        # Build context summary
-        context_summary = ""
-        if context:
-            context_items = []
-            if context.get("conversation_history"):
-                context_items.append("  - Conversation history available")
-            if context.get("user_preferences"):
-                context_items.append("  - User preferences known")
-            if context.get("previous_queries"):
-                context_items.append("  - Previous queries in session")
-            context_summary = "\n".join(context_items) if context_items else "  - No additional context"
-        
-        # Language-specific instructions
-        if language.lower() == "tr":
-            lang_instruction = "Explain in Turkish (Türkçe). Use friendly, clear language."
-        else:
-            lang_instruction = "Explain in English. Use friendly, clear language."
-        
-        prompt = f"""You are explaining how an AI query understanding system interpreted a user's question.
-
-USER QUERY: "{query}"
-
-DETECTED SIGNALS:
-{signal_summary}
-
-PRIMARY INTENT: {primary_intent}
-
-CONTEXT:
-{context_summary}
-
-YOUR TASK: Explain to the user how you understood their question. Be transparent and helpful.
-
-{lang_instruction}
-
-Format your explanation as a JSON object with these fields:
-{{
-  "summary": "One sentence summary of what you understood",
-  "detected_intents": ["list", "of", "detected", "intents"],
-  "confidence": "Overall confidence level (high/medium/low)",
-  "explanation": "Detailed explanation of how you interpreted the query",
-  "signals_breakdown": {{
-    "signal_name": "why this signal was detected"
-  }},
-  "what_ill_do": "What action you'll take based on this understanding"
-}}
-
-IMPORTANT: Respond with ONLY the JSON object, no additional text.
-"""
+        # Use improved explanation prompt template
+        prompt = IMPROVED_EXPLANATION_PROMPT.format(
+            query=query,
+            primary_intent=primary_intent,
+            confidence=primary_confidence,
+            signals_summary=signals_summary
+        )
         
         return prompt
     

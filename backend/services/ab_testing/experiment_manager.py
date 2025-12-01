@@ -1,6 +1,8 @@
 """
 A/B Testing System for LLM Experimentation
 Allows testing different LLM configurations, prompts, and models
+
+Updated: December 2024 - Using improved standardized prompt templates
 """
 import hashlib
 import json
@@ -10,6 +12,9 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 import redis
 import logging
+
+# Import improved prompt templates for A/B testing
+from IMPROVED_PROMPT_TEMPLATES import IMPROVED_BASE_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -336,14 +341,21 @@ def example_usage():
             "model": "llama-3.1-8b",
             "temperature": 0.7,
             "max_tokens": 512,
-            "system_prompt": "You are a helpful Istanbul travel assistant."
+            "system_prompt": IMPROVED_BASE_PROMPT  # Use improved standardized prompt
         },
         {
             "name": "creative",
             "model": "llama-3.1-8b",
-            "temperature": 0.9,
+            "temperature": 0.9,  # Test higher creativity
             "max_tokens": 512,
-            "system_prompt": "You are an enthusiastic Istanbul travel expert!"
+            "system_prompt": IMPROVED_BASE_PROMPT  # Same base prompt, different temperature
+        },
+        {
+            "name": "concise",
+            "model": "llama-3.1-8b",
+            "temperature": 0.7,
+            "max_tokens": 300,  # Test shorter responses
+            "system_prompt": IMPROVED_BASE_PROMPT  # Same base prompt, fewer tokens
         }
     ]
     

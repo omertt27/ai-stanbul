@@ -10,7 +10,7 @@ The LLM can:
 - Fix grammar and spelling
 - Make implicit information explicit
 
-This is much more accurate than rule-based approaches.
+Updated: December 2024 - Using improved standardized prompt templates
 
 Author: AI Istanbul Team
 Date: November 14, 2025
@@ -21,6 +21,9 @@ import hashlib
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 import redis
+
+# Import improved prompt templates
+from IMPROVED_PROMPT_TEMPLATES import IMPROVED_QUERY_REWRITER_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +233,7 @@ class SimpleQueryRewriter:
         language: str
     ) -> str:
         """
-        Build prompt for LLM to rewrite query.
+        Build prompt for LLM to rewrite query using improved template.
         
         Args:
             query: Original query
@@ -241,47 +244,24 @@ class SimpleQueryRewriter:
         Returns:
             Formatted prompt
         """
-        prompt_parts = [
-            "You are a query enhancement assistant for an Istanbul tourism chatbot.",
-            "Your task: Rewrite the user's query to be clearer and more specific.",
-            "",
-            "Guidelines:",
-            "- Expand abbreviations and shorthand",
-            "- Add context from conversation if needed",
-            "- Make implicit information explicit",
-            "- Keep the original intent",
-            "- Keep it concise (max 20 words)",
-            "- Maintain the same language",
-            ""
-        ]
-        
-        # Add conversation context if available
+        # Build context sections
+        conversation_section = ""
         if conversation_context:
-            prompt_parts.extend([
-                "Conversation context:",
-                conversation_context,
-                ""
-            ])
+            conversation_section = f"\n**Conversation Context**: {conversation_context}"
         
-        # Add location context if available
+        location_section = ""
         if user_location:
-            location_str = f"{user_location.get('district', '')}, Istanbul"
-            prompt_parts.extend([
-                f"User location: {location_str}",
-                ""
-            ])
+            location_str = f"{user_location.get('district', 'Istanbul')}"
+            location_section = f"\n**User Location**: {location_str}"
         
-        # Add the query
-        prompt_parts.extend([
-            f"User's query: {query}",
-            "",
-            "Rewrite this query to be clearer and more specific.",
-            "If the query is already clear, return it unchanged.",
-            "",
-            "Enhanced query:"
-        ])
+        # Use improved query rewriter prompt template
+        prompt = IMPROVED_QUERY_REWRITER_PROMPT.format(
+            query=query,
+            conversation_context_section=conversation_section,
+            location_context_section=location_section
+        )
         
-        return "\n".join(prompt_parts)
+        return prompt
     
     def _validate_rewrite(self, original: str, rewritten: str) -> bool:
         """
