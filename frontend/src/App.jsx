@@ -334,9 +334,8 @@ const App = () => {
           </div>
           
           {/* Chat Messages - Only show if expanded (not when returning from /chat page) */}
-          {messages.length > 0 && expanded && (
-            <div className="mt-6 max-w-4xl mx-auto px-4">
-              {messages.map((msg) => (
+          {messages.length > 0 && expanded && routerLocation.pathname !== '/' && (
+            <div className="mt-6 max-w-4xl mx-auto px-4">{messages.map((msg) => (
                 <div key={msg.id} className={`mb-4 ${msg.sender === "user" ? "text-right" : "text-left"}`}>
                   <div className={`inline-block p-3 rounded-lg max-w-[80%] ${
                     msg.sender === "user" 
@@ -407,8 +406,8 @@ const App = () => {
             </div>
           )}
           
-          {/* Interactive Main Page Content - Only show when no messages */}
-          {messages.length === 0 && (
+          {/* Interactive Main Page Content - Always show when on main route */}
+          {routerLocation.pathname === '/' && (
             <div>
               <InteractiveMainPage onQuickStart={handleQuickStart} />
             </div>

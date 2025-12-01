@@ -56,7 +56,11 @@ class MapVisualizationService:
                 "route": {...} if routing,
                 "markers": [...],
                 "center": {"lat": float, "lng": float},
-                "zoom": int
+                "zoom": int,
+                "has_origin": bool,  # Whether origin was extracted from query
+                "has_destination": bool,  # Whether destination was extracted from query
+                "origin_name": str,  # Name of origin (if extracted)
+                "destination_name": str  # Name of destination (if extracted)
             }
         """
         # Try to extract both origin and destination from query
@@ -69,32 +73,52 @@ class MapVisualizationService:
             
             if origin_coords and dest_coords:
                 logger.info(f"Generating route map: {origin} → {destination}")
-                return await self._generate_route_map_from_coords(
+                map_data = await self._generate_route_map_from_coords(
                     origin_coords,
                     dest_coords,
                     origin,
                     destination,
                     language
                 )
+                if map_data:
+                    # Add location extraction flags
+                    map_data['has_origin'] = True
+                    map_data['has_destination'] = True
+                    map_data['origin_name'] = origin
+                    map_data['destination_name'] = destination
+                return map_data
         
         # Case 2: Only destination specified, use user GPS location as origin
         if destination and user_location:
             dest_coords = self._get_destination_coordinates(destination)
             if dest_coords:
                 logger.info(f"Generating GPS route map: user location → {destination}")
-                return await self._generate_route_map(
+                map_data = await self._generate_route_map(
                     user_location,
                     dest_coords,
                     destination,
                     language
                 )
+                if map_data:
+                    # GPS used as origin
+                    map_data['has_origin'] = True  # GPS counts as origin
+                    map_data['has_destination'] = True
+                    map_data['origin_name'] = "Your Location"
+                    map_data['destination_name'] = destination
+                return map_data
         
-        # Case 3: Just show destination marker
+        # Case 3: Just show destination marker (no route, no GPS)
         if destination:
             dest_coords = self._get_destination_coordinates(destination)
             if dest_coords:
                 logger.info(f"Generating marker map for: {destination}")
-                return self._generate_marker_map(dest_coords, destination)
+                map_data = self._generate_marker_map(dest_coords, destination)
+                # Only destination, no origin
+                map_data['has_origin'] = False
+                map_data['has_destination'] = True
+                map_data['origin_name'] = None
+                map_data['destination_name'] = destination
+                return map_data
         
         logger.warning(f"Could not generate map for query: {query}")
         return None

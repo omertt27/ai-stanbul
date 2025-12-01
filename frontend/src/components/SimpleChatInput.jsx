@@ -8,11 +8,14 @@
  * - Modern pill-shaped design
  * - Subtle shadows and borders
  * - Smooth focus animations
- * - Mobile-optimized touch targets
+ * - Mobile-optimized touch targets (44x44px minimum)
+ * - Keyboard detection and auto-scroll
  * - Enter to send
+ * - Safe area inset support
  */
 
 import React, { useRef, useEffect } from 'react';
+import { scrollIntoViewSafe } from '../utils/keyboardDetection';
 
 const SimpleChatInput = ({ 
   value, 
@@ -23,6 +26,7 @@ const SimpleChatInput = ({
   darkMode = false 
 }) => {
   const inputRef = useRef(null);
+  const containerRef = useRef(null);
 
   const handleSend = () => {
     if (!value.trim() || loading) return;
@@ -42,6 +46,23 @@ const SimpleChatInput = ({
       handleSend();
     }
   };
+
+  // Auto-scroll into view when keyboard appears
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    const handleFocus = () => {
+      // Scroll input into view when keyboard appears
+      scrollIntoViewSafe(containerRef.current, { block: 'end' });
+    };
+
+    input.addEventListener('focus', handleFocus, { passive: true });
+    
+    return () => {
+      input.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   // Keep focus even when keyboard dismisses temporarily
   useEffect(() => {
@@ -70,7 +91,7 @@ const SimpleChatInput = ({
   }, []);
 
   return (
-    <div className="simple-chat-input-container">
+    <div ref={containerRef} className="simple-chat-input-container">
       <div className={`simple-chat-input-wrapper ${darkMode ? 'dark' : 'light'} ${loading ? 'disabled' : ''}`}>
         <input
           ref={inputRef}
@@ -85,6 +106,7 @@ const SimpleChatInput = ({
           autoCorrect="off"
           autoCapitalize="sentences"
           spellCheck="true"
+          inputMode="text"
           autoFocus
         />
         
@@ -272,34 +294,45 @@ const SimpleChatInput = ({
           }
         }
 
-        /* Mobile Responsive - Smaller, More Compact */
+        /* Mobile Responsive - Ergonomic & Accessible (WCAG AAA) */
         @media (max-width: 768px) {
           .simple-chat-input-wrapper {
-            padding: 6px 10px; /* Even more compact for mobile */
-            border-radius: 20px; /* Smaller pill */
-            gap: 6px;
+            padding: 4px 4px 4px 16px; /* Asymmetric padding for button */
+            border-radius: 26px; /* Larger pill for 52px height */
+            gap: 8px;
+            height: 52px; /* Larger for easier thumb reach */
           }
 
           .simple-chat-input {
-            font-size: 14px; /* Smaller font, still readable */
-            padding: 3px 0; /* Tighter */
+            font-size: 16px !important; /* Prevents iOS zoom on focus */
+            padding: 0;
+            line-height: 44px; /* Vertically center text */
           }
 
           .simple-send-button {
-            width: 30px; /* Smaller send button */
-            height: 30px;
-            min-width: 30px;
-            min-height: 30px;
+            width: 44px !important; /* WCAG 2.5.5 Level AAA (44x44px) */
+            height: 44px !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
+            border-radius: 22px !important;
+            margin-right: 0;
+            flex-shrink: 0;
           }
 
           .send-icon {
-            width: 14px; /* Smaller icon */
-            height: 14px;
+            width: 18px; /* Larger icon for visibility */
+            height: 18px;
           }
 
           .spinner {
-            width: 14px;
-            height: 14px;
+            width: 18px;
+            height: 18px;
+          }
+          
+          /* Active state feedback */
+          .simple-send-button:active:not(:disabled) {
+            transform: scale(0.95) !important;
+            transition: transform 0.1s ease !important;
           }
         }
 

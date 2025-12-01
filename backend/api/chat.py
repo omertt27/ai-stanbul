@@ -70,6 +70,44 @@ async def pure_llm_chat(
     Pure LLM chat endpoint - uses only LLM for responses
     Now with GPS navigation and route planning support!
     """
+    # Helper function to detect information requests vs. directions requests
+    def is_information_request(message: str) -> bool:
+        """Check if asking for information about POIs, not directions to them"""
+        msg_lower = message.lower()
+        
+        # Information request keywords
+        info_keywords = ['what are', 'show me the', 'tell me about', 'recommend', 
+                        'best', 'top', 'list', 'which', 'where can i find',
+                        'what is', 'what\'s', 'tell me', 'can you recommend']
+        has_info_keywords = any(kw in msg_lower for kw in info_keywords)
+        
+        # POI/Attraction keywords (information target)
+        poi_keywords = ['attractions', 'landmarks', 'museums', 'places to visit', 
+                       'sights', 'historical', 'monuments', 'palaces', 'mosques',
+                       'restaurants', 'cafes', 'things to do', 'things to see',
+                       'places to see', 'must see', 'must-see', 'worth visiting']
+        about_pois = any(kw in msg_lower for kw in poi_keywords)
+        
+        # Direction keywords (should NOT be present for info requests)
+        direction_keywords = ['from', ' to ', 'route', 'directions', 'how to get', 
+                            'how do i get', 'how can i get', 'take me', 'navigate',
+                            'navigation', 'way to', 'go to']
+        asking_directions = any(kw in msg_lower for kw in direction_keywords)
+        
+        # Special case: "show me" + location name without info keywords = might be directions
+        # But "show me the best/top" = information request
+        if 'show me' in msg_lower and not any(word in msg_lower for word in ['best', 'top', 'all', 'some', 'good']):
+            return False
+        
+        # It's an info request if: has info keywords + about POIs + NOT asking directions
+        return has_info_keywords and about_pois and not asking_directions
+    
+    # Check if this is an information request (not directions)
+    skip_routing = is_information_request(request.message)
+    if skip_routing:
+        logger.info(f"ℹ️ Detected information request (not directions): '{request.message[:50]}...'")
+        logger.info(f"ℹ️ Skipping GPS/route handlers, will use ML chat for information")
+    
     # Prepare user context with GPS location
     user_context = {
         'preferences': request.preferences or {},
@@ -81,125 +119,127 @@ async def pure_llm_chat(
         user_context['location'] = request.user_location
         logger.info(f"📍 User GPS location: {request.user_location}")
     
-    # First check if this is a hidden gems GPS request
-    try:
-        from services.hidden_gems_gps_integration import get_hidden_gems_gps_integration
-        
-        gems_handler = get_hidden_gems_gps_integration(db)
-        
-        # Try to handle as hidden gem request
-        gems_result = gems_handler.handle_hidden_gem_chat_request(
-            message=request.message,
-            user_location=request.user_location,
-            session_id=request.session_id or 'new'
-        )
-        
-        if gems_result:
-            # This was a hidden gems request
-            if gems_result.get('error'):
-                # Error occurred
+    # Only check routing handlers if NOT an information request
+    if not skip_routing:
+        # First check if this is a hidden gems GPS request
+        try:
+            from services.hidden_gems_gps_integration import get_hidden_gems_gps_integration
+            
+            gems_handler = get_hidden_gems_gps_integration(db)
+            
+            # Try to handle as hidden gem request
+            gems_result = gems_handler.handle_hidden_gem_chat_request(
+                message=request.message,
+                user_location=request.user_location,
+                session_id=request.session_id or 'new'
+            )
+            
+            if gems_result:
+                # This was a hidden gems request
+                if gems_result.get('error'):
+                    # Error occurred
+                    return ChatResponse(
+                        response=gems_result.get('message', 'Sorry, something went wrong with hidden gems.'),
+                        session_id=request.session_id or 'new',
+                        intent='hidden_gems',
+                        confidence=0.8,
+                        suggestions=["Show me restaurants", "What are popular attractions?"]
+                    )
+                
+                # Check if navigation was started
+                if gems_result.get('navigation_active'):
+                    return ChatResponse(
+                        response=gems_result.get('message', ''),
+                        session_id=request.session_id or 'new',
+                        intent='hidden_gems_navigation',
+                        confidence=1.0,
+                        suggestions=["What's next?", "Stop navigation", "Show nearby hidden gems"],
+                        map_data=gems_result.get('map_data'),
+                        navigation_active=True,
+                        navigation_data=gems_result.get('navigation_data')
+                    )
+                
+                # Return gems discovery response
+                gems = gems_result.get('gems', [])
+                response_text = _format_hidden_gems_response(gems, request.user_location)
+                
                 return ChatResponse(
-                    response=gems_result.get('message', 'Sorry, something went wrong with hidden gems.'),
+                    response=response_text,
                     session_id=request.session_id or 'new',
                     intent='hidden_gems',
-                    confidence=0.8,
-                    suggestions=["Show me restaurants", "What are popular attractions?"]
-                )
-            
-            # Check if navigation was started
-            if gems_result.get('navigation_active'):
-                return ChatResponse(
-                    response=gems_result.get('message', ''),
-                    session_id=request.session_id or 'new',
-                    intent='hidden_gems_navigation',
                     confidence=1.0,
-                    suggestions=["What's next?", "Stop navigation", "Show nearby hidden gems"],
+                    suggestions=_get_hidden_gems_suggestions(gems),
                     map_data=gems_result.get('map_data'),
-                    navigation_active=True,
-                    navigation_data=gems_result.get('navigation_data')
+                    navigation_active=False
+                )
+                
+        except Exception as e:
+            logger.warning(f"Hidden gems GPS check failed: {e}")
+        
+        # Check if this is a GPS navigation command
+        try:
+            from services.ai_chat_route_integration import get_chat_route_handler
+            
+            handler = get_chat_route_handler()
+            
+            # Try to handle as GPS navigation command
+            nav_result = handler.handle_gps_navigation_command(
+                message=request.message,
+                session_id=request.session_id or 'new',
+                user_location=request.user_location
+            )
+            
+            if nav_result:
+                # This was a navigation command
+                return ChatResponse(
+                    response=nav_result.get('message', ''),
+                    session_id=request.session_id or 'new',
+                    intent='gps_navigation',
+                    confidence=1.0,
+                    suggestions=_get_navigation_suggestions(nav_result),
+                    map_data=nav_result.get('navigation_data', {}).get('map_data'),
+                    navigation_active=nav_result.get('navigation_active', False),
+                    navigation_data=nav_result.get('navigation_data')
                 )
             
-            # Return gems discovery response
-            gems = gems_result.get('gems', [])
-            response_text = _format_hidden_gems_response(gems, request.user_location)
-            
-            return ChatResponse(
-                response=response_text,
-                session_id=request.session_id or 'new',
-                intent='hidden_gems',
-                confidence=1.0,
-                suggestions=_get_hidden_gems_suggestions(gems),
-                map_data=gems_result.get('map_data'),
-                navigation_active=False
+            # Try to handle as route request (e.g., "how can I go to Taksim")
+            route_result = handler.handle_route_request(
+                message=request.message,
+                user_context=user_context
             )
             
-    except Exception as e:
-        logger.warning(f"Hidden gems GPS check failed: {e}")
-    
-    # Check if this is a GPS navigation command
-    try:
-        from services.ai_chat_route_integration import get_chat_route_handler
-        
-        handler = get_chat_route_handler()
-        
-        # Try to handle as GPS navigation command
-        nav_result = handler.handle_gps_navigation_command(
-            message=request.message,
-            session_id=request.session_id or 'new',
-            user_location=request.user_location
-        )
-        
-        if nav_result:
-            # This was a navigation command
-            return ChatResponse(
-                response=nav_result.get('message', ''),
-                session_id=request.session_id or 'new',
-                intent='gps_navigation',
-                confidence=1.0,
-                suggestions=_get_navigation_suggestions(nav_result),
-                map_data=nav_result.get('navigation_data', {}).get('map_data'),
-                navigation_active=nav_result.get('navigation_active', False),
-                navigation_data=nav_result.get('navigation_data')
-            )
-        
-        # Try to handle as route request (e.g., "how can I go to Taksim")
-        route_result = handler.handle_route_request(
-            message=request.message,
-            user_context=user_context
-        )
-        
-        if route_result:
-            # This was a route request
-            response_type = route_result.get('type', '')
-            
-            # Check if GPS permission is needed
-            if response_type == 'gps_permission_required':
+            if route_result:
+                # This was a route request
+                response_type = route_result.get('type', '')
+                
+                # Check if GPS permission is needed
+                if response_type == 'gps_permission_required':
+                    return ChatResponse(
+                        response=route_result.get('message', ''),
+                        session_id=request.session_id or 'new',
+                        intent='route_planning',
+                        confidence=1.0,
+                        suggestions=[
+                            "Enable GPS and try again",
+                            "Specify start location manually",
+                            "Show me restaurants nearby"
+                        ],
+                        map_data={'request_gps': True, 'destination': route_result.get('destination')}
+                    )
+                
+                # Return route response
                 return ChatResponse(
                     response=route_result.get('message', ''),
                     session_id=request.session_id or 'new',
                     intent='route_planning',
-                    confidence=1.0,
-                    suggestions=[
-                        "Enable GPS and try again",
-                        "Specify start location manually",
-                        "Show me restaurants nearby"
-                    ],
-                    map_data={'request_gps': True, 'destination': route_result.get('destination')}
+                    confidence=route_result.get('confidence', 1.0),
+                    suggestions=route_result.get('suggestions', []),
+                    map_data=route_result.get('map_data'),
+                    navigation_active=False
                 )
-            
-            # Return route response
-            return ChatResponse(
-                response=route_result.get('message', ''),
-                session_id=request.session_id or 'new',
-                intent='route_planning',
-                confidence=route_result.get('confidence', 1.0),
-                suggestions=route_result.get('suggestions', []),
-                map_data=route_result.get('map_data'),
-                navigation_active=False
-            )
-            
-    except Exception as e:
-        logger.warning(f"Route/Navigation check failed: {e}")
+                
+        except Exception as e:
+            logger.warning(f"Route/Navigation check failed: {e}")
     
     # Not a navigation command, proceed with normal LLM chat
     pure_llm_core = startup_manager.get_pure_llm_core()

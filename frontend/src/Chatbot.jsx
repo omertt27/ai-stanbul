@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useRef } from 'react';
 import { 
   fetchUnifiedChat,
   fetchUnifiedChatV2,
@@ -28,6 +29,13 @@ import ChatSessionsPanel from './components/ChatSessionsPanel';
 import MapVisualization from './components/MapVisualization';
 import SimpleChatInput from './components/SimpleChatInput';
 import RestaurantCard from './components/RestaurantCard';
+import MinimizedGPSBanner from './components/MinimizedGPSBanner';
+import { useKeyboardDetection, scrollIntoViewSafe } from './utils/keyboardDetection';
+import './styles/mobile-ergonomics-phase1.css';
+
+// ChatGPT-style mobile components
+import MobileTypingIndicator from './components/mobile/TypingIndicator';
+import JumpToBottomFAB from './components/mobile/JumpToBottomFAB';
 
 console.log('🔄 Chatbot component loaded');
 
@@ -485,6 +493,9 @@ function Chatbot({ userLocation: propUserLocation }) {
   // GPS location state (use prop if provided, otherwise null)
   const [userLocation] = useState(propUserLocation || null);
   
+  // Mobile ergonomics: Keyboard detection
+  const { isKeyboardVisible, keyboardHeight } = useKeyboardDetection();
+  
   // Enhanced state management
   const [messages, setMessages] = useState(() => {
     try {
@@ -522,15 +533,14 @@ function Chatbot({ userLocation: propUserLocation }) {
     }
   });
   
-  // Enhanced error handling state
-  const [currentError, setCurrentError] = useState(null);
-  const [retryAction, setRetryAction] = useState(null);
-  const [lastFailedMessage, setLastFailedMessage] = useState(null);
-  const [isRetrying, setIsRetrying] = useState(false);
-  
   // Network and health monitoring
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [apiHealth, setApiHealth] = useState('unknown');
+
+  // ChatGPT-style mobile enhancements
+  const chatMessagesRef = useRef(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
 
   // Enhanced message management
   const addMessage = (text, sender = 'assistant', metadata = {}) => {
@@ -544,6 +554,12 @@ function Chatbot({ userLocation: propUserLocation }) {
     
     setMessages(prev => {
       const updated = [...prev, newMessage];
+      
+      // Track unread messages (only for assistant messages when not at bottom)
+      if (sender === 'assistant' && !isScrolledToBottom) {
+        setUnreadCount(count => count + 1);
+      }
+      
       // Persist to localStorage
       try {
         localStorage.setItem('chat-messages', JSON.stringify(updated));
@@ -685,6 +701,30 @@ function Chatbot({ userLocation: propUserLocation }) {
     // Auto-scroll to bottom when new messages arrive
     scrollToBottom();
   }, [messages, isTyping]);
+
+  // Track scroll position for FAB and unread counter
+  useEffect(() => {
+    const container = document.getElementById('chat-messages');
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+      const atBottom = distanceFromBottom < 50;
+      
+      setIsScrolledToBottom(atBottom);
+      
+      // Clear unread count when at bottom
+      if (atBottom) {
+        setUnreadCount(0);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    chatMessagesRef.current = container;
+    
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     // Persist dark mode
@@ -1252,19 +1292,49 @@ function Chatbot({ userLocation: propUserLocation }) {
             </div>
           ))}
           
+          {/* Desktop typing indicator */}
           <TypingIndicator 
             isTyping={isTyping} 
             message={typingMessage}
             darkMode={darkMode}
           />
+          
+          {/* ChatGPT-style mobile typing indicator (more prominent) */}
+          {loading && (
+            <div className="flex justify-start px-4 md:px-8">
+              <div className="flex items-start gap-3">
+                {/* Avatar */}
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                  darkMode 
+                    ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
+                    : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
+                }`}>
+                  <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                  </svg>
+                </div>
+                
+                {/* Typing indicator */}
+                <MobileTypingIndicator darkMode={darkMode} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Scroll to bottom button */}
+      {/* Scroll to bottom button (desktop) */}
       <ScrollToBottom 
         show={showScrollToBottom}
         onClick={scrollToBottom}
         darkMode={darkMode}
+      />
+
+      {/* ChatGPT-style Jump to Bottom FAB (mobile-optimized) */}
+      <JumpToBottomFAB
+        containerRef={chatMessagesRef}
+        unreadCount={unreadCount}
+        darkMode={darkMode}
+        bottomOffset={100} // Above input area
       />
 
       {/* Enhanced Input Area - ChatGPT Style - Fixed at bottom on mobile with spacing */}
@@ -1303,6 +1373,15 @@ function Chatbot({ userLocation: propUserLocation }) {
       
       {/* Network Status Indicator */}
       <NetworkStatusIndicator darkMode={darkMode} />
+      
+      {/* Mobile-optimized GPS Banner - only show on mobile */}
+      {window.innerWidth <= 768 && (
+        <MinimizedGPSBanner 
+          autoHide={true}
+          autoHideDelay={5000}
+          allowDismiss={true}
+        />
+      )}
     </div>
   );
 }

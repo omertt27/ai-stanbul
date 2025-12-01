@@ -206,7 +206,17 @@ class ContextBuilder:
                 logger.warning(f"Daily life context failed: {e}")
         
         # Generate map visualization
-        if (signals.get('needs_map') or signals.get('needs_gps_routing')) and self.map_service:
+        # Auto-generate maps for location-based queries (neighborhoods, attractions, restaurants)
+        should_generate_map = (
+            signals.get('needs_map') or 
+            signals.get('needs_gps_routing') or
+            signals.get('needs_neighborhood') or
+            signals.get('needs_attraction') or
+            signals.get('needs_restaurant') or
+            signals.get('needs_hidden_gems')
+        )
+        
+        if should_generate_map and self.map_service:
             try:
                 context['map_data'] = await self._generate_map(
                     query=query,
@@ -214,6 +224,7 @@ class ContextBuilder:
                     user_location=user_location,
                     language=language
                 )
+                logger.info(f"✅ Map data generated for query with signals: {[k for k, v in signals.items() if v]}")
             except Exception as e:
                 logger.warning(f"Map generation failed: {e}")
         

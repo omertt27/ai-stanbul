@@ -1,0 +1,131 @@
+/**
+ * Jump to Bottom FAB Styles
+ * =========================
+ * Floating action button with smooth animations
+ */
+
+.jump-to-bottom-fab {
+  position: fixed;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  z-index: 100;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fab-bounce 0.3s ease;
+}
+
+.jump-to-bottom-fab.light {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.jump-to-bottom-fab.dark {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+}
+
+.jump-to-bottom-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+}
+
+.jump-to-bottom-fab:active {
+  transform: scale(0.95);
+}
+
+@keyframes fab-bounce {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(20px);
+  }
+  50% {
+    transform: scale(1.1) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Unread badge */
+.unread-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #ef4444;
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: badge-pop 0.3s ease;
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .jump-to-bottom-fab {
+    width: 44px;
+    height: 44px;
+    right: 12px;
+  }
+  
+  .unread-badge {
+    min-width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .jump-to-bottom-fab {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* Accessibility: Focus state */
+.jump-to-bottom-fab:focus-visible {
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .jump-to-bottom-fab {
+    animation: none;
+    transition: none;
+  }
+  
+  @keyframes fab-bounce {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+}

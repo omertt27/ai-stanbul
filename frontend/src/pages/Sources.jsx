@@ -41,7 +41,9 @@ const Sources = () => {
   );
 
   return (
-    <div className="chatbot-background min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300 mobile-scroll-optimized">
+    <div className={`min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300 mobile-scroll-optimized ${
+      darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+    }`}>
       <MainPageMobileNavbar />
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}

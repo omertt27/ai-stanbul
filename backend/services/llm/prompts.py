@@ -95,6 +95,8 @@ class PromptBuilder:
    
    ⚠️ **CRITICAL SAFETY RULES** (MUST FOLLOW):
    - First, VERIFY direction: Clearly state "To get from [ORIGIN] to [DESTINATION]..." 
+   - IMPORTANT: If the map shows both origin and destination, DON'T ask for GPS/location
+   - Only ask for GPS if destination is known but origin is missing AND user hasn't shared GPS
    - Use ONLY these REAL Istanbul transit lines:
      • Metro: M1 (Red), M2 (Green), M3 (Blue), M4 (Pink), M5 (Purple), M6, M7, M9, M11
      • Tram: T1, T4, T5
@@ -225,8 +227,26 @@ Context information will be provided below, followed by the user's question."""
         
         # 6. Map reference (if available)
         if context.get('map_data'):
+            map_data = context['map_data']
+            has_origin = map_data.get('has_origin', False)
+            has_destination = map_data.get('has_destination', False)
+            origin_name = map_data.get('origin_name')
+            destination_name = map_data.get('destination_name')
+            
             prompt_parts.append("\n## Map Visualization:")
             prompt_parts.append("A visual map has been generated and will be shown to the user.")
+            
+            if has_origin and has_destination:
+                # Both locations are known - NO GPS NEEDED
+                prompt_parts.append(f"IMPORTANT: Both origin ({origin_name}) and destination ({destination_name}) are known.")
+                prompt_parts.append("DO NOT ask the user to enable GPS or share their location.")
+                prompt_parts.append("Provide the route directions directly using the map data.")
+            elif has_destination and not has_origin:
+                # Only destination is known - might need GPS
+                prompt_parts.append(f"Destination ({destination_name}) is known, but origin is not specified.")
+                if 'gps' not in str(context).lower():
+                    prompt_parts.append("Consider asking the user for their starting location or to enable GPS.")
+            
             prompt_parts.append("Reference this map in your response to help guide the user.")
         
         # 7. User query - simplified format to prevent template generation

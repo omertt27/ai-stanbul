@@ -1,0 +1,541 @@
+/**
+ * Mobile Ergonomics - Phase 1 Quick Wins
+ * =======================================
+ * Implements critical mobile UX improvements for AI Istanbul chat interface
+ * 
+ * Features implemented:
+ * - Thumb zone optimization (bottom 1/3 of screen)
+ * - Safe area insets for notched devices
+ * - Enlarged tap targets (min 44x44px)
+ * - Minimized GPS banner
+ * - Improved keyboard handling
+ * - One-handed mode optimization
+ * 
+ * Based on: MOBILE_ERGONOMIC_ENHANCEMENTS.md
+ */
+
+/* ============================================
+   SAFE AREA INSETS - iOS Notch Support
+   ============================================ */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+}
+
+/* ============================================
+   MOBILE-ONLY STYLES (< 768px)
+   ============================================ */
+@media (max-width: 768px) {
+  
+  /* Enhanced tap targets - WCAG 2.5.5 Level AAA (44x44px minimum) */
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  .clickable,
+  .touchable {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(138, 43, 226, 0.2);
+  }
+  
+  /* Improve tap target spacing */
+  button:not(:last-child),
+  a:not(:last-child) {
+    margin-right: 8px;
+  }
+  
+  /* ============================================
+     CHATBOT CONTAINER - FULL SCREEN MOBILE
+     ============================================ */
+  .chatbot-container {
+    height: 100vh !important;
+    height: 100dvh !important; /* Dynamic viewport height */
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    max-width: 100% !important;
+    padding-top: var(--safe-area-inset-top) !important;
+    padding-bottom: 0 !important; /* Input will handle bottom safe area */
+  }
+  
+  /* ============================================
+     CHAT MESSAGES - OPTIMIZED SCROLLING
+     ============================================ */
+  .chat-messages {
+    padding: 12px 16px !important; /* Reduced padding for more content */
+    padding-bottom: 100px !important; /* Space for fixed input */
+    margin-bottom: 0 !important;
+    -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
+    scroll-behavior: smooth;
+  }
+  
+  /* ============================================
+     MESSAGE BUBBLES - THUMB-FRIENDLY
+     ============================================ */
+  .message-bubble {
+    max-width: 85% !important; /* Wider bubbles on mobile */
+    font-size: 16px !important; /* Prevent iOS zoom on focus */
+    padding: 14px 18px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  /* User messages - easier to read */
+  .message-bubble.user {
+    margin-left: 12px !important;
+  }
+  
+  /* AI messages - easier to read */
+  .message-bubble.ai {
+    margin-left: 12px !important;
+  }
+  
+  /* ============================================
+     CHAT INPUT - THUMB ZONE OPTIMIZED
+     ============================================ */
+  
+  /* Fixed input at bottom with safe area */
+  .chatbot-container > div:last-child {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important;
+    padding: 12px 16px !important;
+    padding-bottom: calc(12px + var(--safe-area-inset-bottom)) !important;
+    background: linear-gradient(
+      to top,
+      rgba(17, 24, 39, 0.98) 0%,
+      rgba(17, 24, 39, 0.95) 80%,
+      rgba(17, 24, 39, 0) 100%
+    ) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-top: 1px solid rgba(138, 43, 226, 0.2) !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  /* Dark mode input container */
+  .chatbot-container.dark-mode > div:last-child {
+    background: linear-gradient(
+      to top,
+      rgba(10, 10, 15, 0.98) 0%,
+      rgba(10, 10, 15, 0.95) 80%,
+      rgba(10, 10, 15, 0) 100%
+    ) !important;
+  }
+  
+  /* ============================================
+     SIMPLE CHAT INPUT - ENHANCED MOBILE
+     ============================================ */
+  
+  .simple-chat-input-container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .simple-chat-input-wrapper {
+    height: 52px !important; /* Taller for easier tapping */
+    padding: 4px 4px 4px 16px !important;
+    border-radius: 26px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  .simple-chat-input {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    padding: 0 !important;
+    line-height: 44px !important;
+  }
+  
+  /* Send button - thumb zone optimized */
+  .simple-send-button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 22px !important;
+    margin-right: 0 !important;
+    flex-shrink: 0 !important;
+    touch-action: manipulation !important;
+  }
+  
+  /* Active state feedback */
+  .simple-send-button:active:not(:disabled) {
+    transform: scale(0.95) !important;
+    transition: transform 0.1s ease !important;
+  }
+  
+  /* ============================================
+     GPS LOCATION STATUS - MINIMIZED
+     ============================================ */
+  
+  /* Compact GPS banner for chat page */
+  .gps-location-status-compact {
+    position: fixed !important;
+    top: var(--safe-area-inset-top) !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 36px !important;
+    padding: 6px 16px !important;
+    background: rgba(17, 24, 39, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(138, 43, 226, 0.15) !important;
+    z-index: 999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    font-size: 12px !important;
+  }
+  
+  /* Hide GPS details on mobile chat */
+  .gps-location-status-compact .gps-details {
+    display: none !important;
+  }
+  
+  /* Show only essential GPS info */
+  .gps-location-status-compact .gps-icon {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  
+  /* Collapsible GPS banner */
+  .gps-banner-minimized {
+    height: 32px !important;
+    overflow: hidden !important;
+    transition: height 0.3s ease !important;
+  }
+  
+  .gps-banner-minimized.expanded {
+    height: auto !important;
+  }
+  
+  /* ============================================
+     SCROLL TO BOTTOM BUTTON - THUMB ZONE
+     ============================================ */
+  
+  .scroll-to-bottom {
+    position: fixed !important;
+    bottom: calc(80px + var(--safe-area-inset-bottom)) !important; /* Above input */
+    right: 16px !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 22px !important;
+    background: rgba(138, 43, 226, 0.9) !important;
+    box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4) !important;
+    z-index: 998 !important;
+    touch-action: manipulation !important;
+  }
+  
+  .scroll-to-bottom:active {
+    transform: scale(0.95) !important;
+  }
+  
+  /* ============================================
+     KEYBOARD DETECTION
+     ============================================ */
+  
+  /* Adjust layout when keyboard is visible */
+  /* Note: Detected via JS by checking if window.innerHeight shrinks */
+  .keyboard-visible .chat-messages {
+    padding-bottom: 20px !important; /* Reduce padding when keyboard shown */
+  }
+  
+  .keyboard-visible .chatbot-container > div:last-child {
+    position: fixed !important; /* Stay fixed even with keyboard */
+    bottom: 0 !important;
+  }
+  
+  /* ============================================
+     MESSAGE ACTIONS - LARGER TAP TARGETS
+     ============================================ */
+  
+  .message-actions {
+    margin-top: 8px !important;
+  }
+  
+  .message-actions button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    border-radius: 22px !important;
+    margin-right: 8px !important;
+  }
+  
+  /* ============================================
+     RESTAURANT & PLACE CARDS - MOBILE
+     ============================================ */
+  
+  .restaurant-card,
+  .place-card {
+    padding: 16px !important;
+    border-radius: 16px !important;
+    margin-bottom: 12px !important;
+    touch-action: manipulation !important;
+  }
+  
+  /* Card buttons - larger targets */
+  .restaurant-card button,
+  .place-card button {
+    min-height: 44px !important;
+    padding: 12px 20px !important;
+    font-size: 15px !important;
+    border-radius: 22px !important;
+  }
+  
+  /* ============================================
+     MAP VISUALIZATION - MOBILE
+     ============================================ */
+  
+  .map-visualization {
+    height: 300px !important;
+    border-radius: 16px !important;
+    margin: 12px 0 !important;
+    touch-action: pan-x pan-y !important; /* Allow map gestures */
+  }
+  
+  /* Map controls - thumb friendly */
+  .map-controls {
+    position: absolute !important;
+    bottom: 16px !important;
+    right: 16px !important;
+  }
+  
+  .map-controls button {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 22px !important;
+    margin-bottom: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  /* ============================================
+     SUGGESTION CHIPS - MOBILE OPTIMIZED
+     ============================================ */
+  
+  .suggestion-chip {
+    min-height: 44px !important;
+    padding: 12px 20px !important;
+    font-size: 15px !important;
+    border-radius: 22px !important;
+    margin: 6px !important;
+    touch-action: manipulation !important;
+  }
+  
+  .suggestion-chip:active {
+    transform: scale(0.97) !important;
+  }
+  
+  /* Suggestion grid - single column on small screens */
+  .suggestion-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  
+  /* ============================================
+     WELCOME MESSAGE - MOBILE
+     ============================================ */
+  
+  .welcome-message {
+    min-height: auto !important;
+    padding: 20px 16px !important;
+  }
+  
+  .welcome-card {
+    padding: 24px 20px !important;
+    border-radius: 16px !important;
+  }
+  
+  .welcome-card h3 {
+    font-size: 24px !important;
+  }
+  
+  .welcome-card p {
+    font-size: 15px !important;
+  }
+  
+  /* ============================================
+     TYPING INDICATOR - MOBILE
+     ============================================ */
+  
+  .typing-indicator {
+    margin: 12px 16px !important;
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+  }
+  
+  /* ============================================
+     ERROR NOTIFICATIONS - MOBILE
+     ============================================ */
+  
+  .error-notification {
+    left: 16px !important;
+    right: 16px !important;
+    bottom: calc(80px + var(--safe-area-inset-bottom)) !important; /* Above input */
+    border-radius: 16px !important;
+    padding: 16px !important;
+    font-size: 14px !important;
+  }
+  
+  .error-notification button {
+    min-height: 44px !important;
+    padding: 10px 20px !important;
+  }
+  
+  /* ============================================
+     NETWORK STATUS INDICATOR
+     ============================================ */
+  
+  .network-status-indicator {
+    top: calc(var(--safe-area-inset-top) + 8px) !important;
+    right: 16px !important;
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+    border-radius: 16px !important;
+  }
+  
+  /* ============================================
+     LOADING STATES - MOBILE
+     ============================================ */
+  
+  .loading-spinner {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  /* ============================================
+     ACCESSIBILITY ENHANCEMENTS
+     ============================================ */
+  
+  /* Focus visible styles for keyboard navigation */
+  *:focus-visible {
+    outline: 2px solid rgba(138, 43, 226, 0.6) !important;
+    outline-offset: 2px !important;
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  
+  /* ============================================
+     LANDSCAPE MODE ADJUSTMENTS
+     ============================================ */
+  
+  @media (max-height: 500px) and (orientation: landscape) {
+    /* Reduce vertical spacing in landscape */
+    .chat-messages {
+      padding: 8px 16px 60px !important;
+    }
+    
+    .message-bubble {
+      padding: 10px 16px !important;
+      margin-bottom: 8px !important;
+    }
+    
+    .chatbot-container > div:last-child {
+      padding: 8px 16px !important;
+      padding-bottom: calc(8px + var(--safe-area-inset-bottom)) !important;
+    }
+    
+    .simple-chat-input-wrapper {
+      height: 44px !important;
+    }
+    
+    .simple-send-button {
+      width: 40px !important;
+      height: 40px !important;
+    }
+    
+    /* Hide welcome message in landscape */
+    .welcome-message {
+      display: none !important;
+    }
+  }
+}
+
+/* ============================================
+   SMALL MOBILE (< 375px)
+   ============================================ */
+@media (max-width: 375px) {
+  .message-bubble {
+    max-width: 90% !important;
+    font-size: 15px !important;
+    padding: 12px 16px !important;
+  }
+  
+  .simple-chat-input {
+    font-size: 15px !important;
+  }
+  
+  .suggestion-chip {
+    font-size: 14px !important;
+    padding: 10px 16px !important;
+  }
+}
+
+/* ============================================
+   VERY SMALL MOBILE (< 320px)
+   ============================================ */
+@media (max-width: 320px) {
+  .message-bubble {
+    max-width: 95% !important;
+    padding: 10px 14px !important;
+  }
+  
+  .chat-messages {
+    padding: 8px 12px 100px !important;
+  }
+  
+  .chatbot-container > div:last-child {
+    padding: 8px 12px !important;
+    padding-bottom: calc(8px + var(--safe-area-inset-bottom)) !important;
+  }
+}
+
+/* ============================================
+   ANDROID-SPECIFIC FIXES
+   ============================================ */
+@supports (-webkit-touch-callout: none) {
+  /* This targets iOS, so invert for Android */
+}
+
+/* Better Android keyboard handling */
+@media (max-width: 768px) {
+  input,
+  textarea {
+    /* Prevent Android zoom */
+    font-size: 16px !important;
+  }
+}
+
+/* ============================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+@media (max-width: 768px) {
+  /* Use GPU acceleration for smooth animations */
+  .simple-send-button,
+  .scroll-to-bottom,
+  .suggestion-chip,
+  .message-actions button {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  /* Optimize scrolling performance */
+  .chat-messages {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+}
