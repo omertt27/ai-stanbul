@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 from services.llm_service_registry import get_service_registry, ServiceCategory
+from services.location_based_context_enhancer import get_location_based_enhancer
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ class LLMContextBuilder:
     
     def __init__(self):
         self.service_registry = get_service_registry()
+        self.location_enhancer = get_location_based_enhancer()
         
         # Intent to service mapping
         self.intent_service_map = {
@@ -126,6 +128,18 @@ class LLMContextBuilder:
             except Exception as e:
                 logger.error(f"Error calling {service_name}: {e}")
         
+        # 🌟 ENHANCED: Add location-based enrichment with hidden gems
+        try:
+            logger.info("🗺️ Enriching context with location-based data...")
+            context = await self.location_enhancer.enhance_context(
+                query=query,
+                base_context=context,
+                intent=intent
+            )
+            logger.info("✅ Location-based enrichment complete")
+        except Exception as e:
+            logger.error(f"⚠️ Location enrichment failed: {e}")
+        
         return context
     
     def _build_service_params(
@@ -216,16 +230,22 @@ class LLMContextBuilder:
         Returns:
             Formatted context string
         """
-        if not context.get("service_data"):
-            return ""
-        
         formatted_parts = []
         
-        for service_name, data in context["service_data"].items():
-            if not data:
-                continue
-            
-            formatted_parts.append(self._format_service_data(service_name, data))
+        # 🌟 ENHANCED: Add location-based enrichment first
+        if context.get("location_enrichment"):
+            location_context = self.location_enhancer.format_enriched_context_for_llm(context)
+            if location_context:
+                formatted_parts.append(location_context)
+                logger.info("✅ Added location enrichment to LLM context")
+        
+        # Add service data
+        if context.get("service_data"):
+            for service_name, data in context["service_data"].items():
+                if not data:
+                    continue
+                
+                formatted_parts.append(self._format_service_data(service_name, data))
         
         if formatted_parts:
             return "\n\n".join(formatted_parts)
