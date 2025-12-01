@@ -1,9 +1,8 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import Backend from 'i18next-http-backend';
 
-// Translation resources
+// Translation resources - bundled for instant loading
 import enTranslation from './locales/en/translation.json';
 import trTranslation from './locales/tr/translation.json';
 import ruTranslation from './locales/ru/translation.json';
@@ -33,15 +32,13 @@ const resources = {
 };
 
 i18n
-  // Load translation using http backend
-  .use(Backend)
   // Detect user language
   .use(LanguageDetector)
   // Pass the i18n instance to react-i18next
   .use(initReactI18next)
   // Initialize i18next
   .init({
-    resources,
+    resources, // Use bundled resources, not HTTP backend
     fallbackLng: 'en',
     lng: 'en', // Default language
     debug: import.meta.env.DEV,
@@ -57,14 +54,9 @@ i18n
       lookupLocalStorage: 'i18nextLng',
     },
 
-    // Backend options for loading translations
-    backend: {
-      loadPath: '/locales/{{lng}}/{{ns}}.json',
-    },
-
     // React i18next options
     react: {
-      useSuspense: false,
+      useSuspense: false, // Don't use Suspense to avoid loading delays
       bindI18n: 'languageChanged',
       bindI18nStore: '',
       transEmptyNodeValue: '',
@@ -83,6 +75,15 @@ i18n
     // Key separator
     keySeparator: '.',
     nsSeparator: ':',
+    
+    // Initialize synchronously since we have bundled resources
+    initImmediate: false,
+  })
+  .then(() => {
+    console.log('✅ i18n initialized successfully');
+  })
+  .catch((error) => {
+    console.error('❌ i18n initialization error:', error);
   });
 
 export default i18n;

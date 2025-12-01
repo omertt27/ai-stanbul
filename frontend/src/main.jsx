@@ -52,6 +52,34 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 console.log('Starting React app...')
 
+// Set a timeout to detect if app fails to load
+let appLoaded = false;
+setTimeout(() => {
+  if (!appLoaded) {
+    console.error('❌ React app failed to load within 10 seconds');
+    const root = document.getElementById('root');
+    if (root && root.innerHTML.includes('Loading...')) {
+      root.innerHTML = `
+        <div style="padding: 20px; color: #ff6b6b; font-family: Arial; max-width: 600px; margin: 50px auto; border: 2px solid #ff6b6b; border-radius: 8px; background: #fff5f5;">
+          <h2 style="margin-top: 0;">⚠️ App Loading Failed</h2>
+          <p><strong>The application failed to initialize.</strong></p>
+          <h3>Possible Solutions:</h3>
+          <ul style="text-align: left;">
+            <li>Clear your browser cache and cookies</li>
+            <li>Try hard refresh: <code>Ctrl+Shift+R</code> (Windows/Linux) or <code>Cmd+Shift+R</code> (Mac)</li>
+            <li>Check your internet connection</li>
+            <li>Try a different browser</li>
+            <li>Check the browser console (F12) for specific errors</li>
+          </ul>
+          <button onclick="location.reload()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 10px;">
+            🔄 Reload Page
+          </button>
+        </div>
+      `;
+    }
+  }
+}, 10000); // 10 second timeout
+
 // Initialize offline enhancements
 async function initializeOfflineFeatures() {
   try {
@@ -70,7 +98,9 @@ async function initializeOfflineFeatures() {
 }
 
 // Initialize offline features (non-blocking)
-initializeOfflineFeatures();
+initializeOfflineFeatures().catch(error => {
+  console.warn('Offline features initialization failed, continuing without them:', error);
+});
 
 // Ensure page starts at top
 window.scrollTo(0, 0);
@@ -102,6 +132,7 @@ try {
   )
   
   console.log('React app mounted successfully')
+  appLoaded = true; // Mark app as successfully loaded
   
   // Additional scroll reset after React renders
   setTimeout(() => {
