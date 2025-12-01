@@ -8,6 +8,7 @@ import './styles/arabic.css' // Arabic language support
 // import './styles/anti-copy.css' // Anti-copy protection styles - DISABLED
 import './i18n' // Initialize i18n
 import AppRouter from './AppRouter.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { BlogProvider } from './contexts/BlogContext.jsx'
 import { LocationProvider } from './contexts/LocationContext.jsx'
@@ -116,18 +117,20 @@ try {
   const root = createRoot(container)
   root.render(
     <React.StrictMode>
-      <HelmetProvider>
-        <ThemeProvider>
-          <BlogProvider>
-            <LocationProvider>
-              <NotificationProvider>
-                <AppRouter />
-                <Analytics />
-              </NotificationProvider>
-            </LocationProvider>
-          </BlogProvider>
-        </ThemeProvider>
-      </HelmetProvider>
+      <ErrorBoundary>
+        <HelmetProvider>
+          <ThemeProvider>
+            <BlogProvider>
+              <LocationProvider>
+                <NotificationProvider>
+                  <AppRouter />
+                  <Analytics />
+                </NotificationProvider>
+              </LocationProvider>
+            </BlogProvider>
+          </ThemeProvider>
+        </HelmetProvider>
+      </ErrorBoundary>
     </React.StrictMode>,
   )
   

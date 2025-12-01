@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import safeStorage from '../utils/safeStorage';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -41,10 +42,10 @@ const GDPRDataManager = () => {
   const getUserData = () => {
     // Collect all user data stored locally
     const data = {
-      cookieConsent: JSON.parse(localStorage.getItem('ai-istanbul-cookie-consent') || '{}'),
-      themePreference: localStorage.getItem('ai-istanbul-theme') || 'light',
+      cookieConsent: safeStorage.getJSON('ai-istanbul-cookie-consent', {}),
+      themePreference: safeStorage.getItem('ai-istanbul-theme') || 'light',
       sessionData: sessionStorage.getItem('ai-stanbul-session') || 'none',
-      feedbacks: JSON.parse(localStorage.getItem('ai-stanbul-feedbacks') || '[]'),
+      feedbacks: safeStorage.getJSON('ai-stanbul-feedbacks', []),
       chatHistory: 'Session-based, not permanently stored',
       analytics: 'Anonymized usage data via Google Analytics'
     };
@@ -69,9 +70,9 @@ const GDPRDataManager = () => {
   const deleteUserData = () => {
     if (window.confirm('Are you sure you want to delete all your data? This action cannot be undone.')) {
       // Clear all local storage
-      localStorage.removeItem('ai-istanbul-cookie-consent');
-      localStorage.removeItem('ai-istanbul-theme');
-      localStorage.removeItem('ai-stanbul-feedbacks');
+      safeStorage.removeItem('ai-istanbul-cookie-consent');
+      safeStorage.removeItem('ai-istanbul-theme');
+      safeStorage.removeItem('ai-stanbul-feedbacks');
       sessionStorage.removeItem('ai-stanbul-session');
       
       // Disable analytics
@@ -195,11 +196,11 @@ const GDPRDataManager = () => {
               <div className="space-y-2">
                 <h3 className="font-medium">Cookie Consent</h3>
                 <p className={`text-sm ${
-                  localStorage.getItem('ai-istanbul-cookie-consent') 
+                  safeStorage.getItem('ai-istanbul-cookie-consent') 
                     ? 'text-green-600' 
                     : 'text-yellow-600'
                 }`}>
-                  {localStorage.getItem('ai-istanbul-cookie-consent') ? '✅ Configured' : '⚠️ Not set'}
+                  {safeStorage.getItem('ai-istanbul-cookie-consent') ? '✅ Configured' : '⚠️ Not set'}
                 </p>
               </div>
               <div className="space-y-2">

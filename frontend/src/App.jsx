@@ -22,6 +22,7 @@ import MapVisualization from './components/MapVisualization';
 import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils.jsx';
 import { fetchResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
+import safeStorage from './utils/safeStorage';
 import './App.css';
 import './components/InteractiveMainPage.css';
 
@@ -52,21 +53,16 @@ const App = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [userId] = useState(() => {
     // Get or create user ID
-    let id = localStorage.getItem('user_id');
+    let id = safeStorage.getItem('user_id');
     if (!id) {
       id = 'user_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('user_id', id);
+      safeStorage.setItem('user_id', id);
     }
     return id;
   });
   const [messages, setMessages] = useState(() => {
     // Load saved messages from localStorage
-    try {
-      const saved = localStorage.getItem('chat-messages');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return safeStorage.getJSON('chat-messages', []);
   });
   const [expanded, setExpanded] = useState(() => {
     // If accessed via /chat route, auto-expand
@@ -74,12 +70,8 @@ const App = () => {
       return true;
     }
     // If there are saved messages, start in expanded mode
-    try {
-      const saved = localStorage.getItem('chat-messages');
-      return saved ? JSON.parse(saved).length > 0 : false;
-    } catch {
-      return false;
-    }
+    const saved = safeStorage.getJSON('chat-messages', []);
+    return saved.length > 0;
   });
   const [sessionId] = useState(() => getSessionId()); // Get persistent session ID
   const chatScrollRef = useRef(null);
@@ -127,7 +119,7 @@ const App = () => {
   // Save messages to localStorage whenever they change
   useEffect(() => {
     if (messages.length > 0) {
-      localStorage.setItem('chat-messages', JSON.stringify(messages));
+      safeStorage.setJSON('chat-messages', messages);
     }
   }, [messages]);
 
@@ -212,8 +204,8 @@ const App = () => {
     setQuery('');
     
     // Clear session storage to start fresh conversation
-    localStorage.removeItem('chat_session_id');
-    localStorage.removeItem('chat-messages');
+    safeStorage.removeItem('chat_session_id');
+    safeStorage.removeItem('chat-messages');
   };
   */
 

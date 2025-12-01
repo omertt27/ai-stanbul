@@ -31,6 +31,7 @@ import SimpleChatInput from './components/SimpleChatInput';
 import RestaurantCard from './components/RestaurantCard';
 import MinimizedGPSBanner from './components/MinimizedGPSBanner';
 import { useKeyboardDetection, scrollIntoViewSafe } from './utils/keyboardDetection';
+import safeStorage from './utils/safeStorage';
 import './styles/mobile-ergonomics-phase1.css';
 
 // ChatGPT-style mobile components
@@ -498,25 +499,13 @@ function Chatbot({ userLocation: propUserLocation }) {
   
   // Enhanced state management
   const [messages, setMessages] = useState(() => {
-    try {
-      const saved = localStorage.getItem('chat-messages');
-      return saved ? JSON.parse(saved) : [];
-    } catch (error) {
-      console.error('Failed to load messages from localStorage:', error);
-      return [];
-    }
+    return safeStorage.getJSON('chat-messages', []);
   });
   
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
-    try {
-      const saved = localStorage.getItem('dark-mode');
-      return saved ? JSON.parse(saved) : false;
-    } catch (error) {
-      console.error('Failed to load dark mode from localStorage:', error);
-      return false;
-    }
+    return safeStorage.getJSON('dark-mode', false);
   });
 
   // Enhanced UI state
@@ -525,17 +514,18 @@ function Chatbot({ userLocation: propUserLocation }) {
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [isSessionsPanelOpen, setIsSessionsPanelOpen] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState(() => {
-    try {
-      const saved = localStorage.getItem('chat_session_id');
-      return saved || Date.now().toString();
-    } catch (error) {
-      return Date.now().toString();
-    }
+    return safeStorage.getItem('chat_session_id') || Date.now().toString();
   });
   
   // Network and health monitoring
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [apiHealth, setApiHealth] = useState('unknown');
+
+  // Error handling state
+  const [currentError, setCurrentError] = useState(null);
+  const [retryAction, setRetryAction] = useState(null);
+  const [lastFailedMessage, setLastFailedMessage] = useState(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // ChatGPT-style mobile enhancements
   const chatMessagesRef = useRef(null);
@@ -561,22 +551,14 @@ function Chatbot({ userLocation: propUserLocation }) {
       }
       
       // Persist to localStorage
-      try {
-        localStorage.setItem('chat-messages', JSON.stringify(updated));
-      } catch (error) {
-        console.error('Failed to save messages to localStorage:', error);
-      }
+      safeStorage.setJSON('chat-messages', updated);
       return updated;
     });
   };
 
   const clearChatHistory = () => {
     setMessages([]);
-    try {
-      localStorage.removeItem('chat-messages');
-    } catch (error) {
-      console.error('Failed to clear messages from localStorage:', error);
-    }
+    safeStorage.removeItem('chat-messages');
     console.log('🗑️ Chat history cleared');
   };
 
@@ -588,8 +570,8 @@ function Chatbot({ userLocation: propUserLocation }) {
     // Clear current messages and start fresh
     setMessages([]);
     setCurrentSessionId(newSession.id);
-    localStorage.setItem('chat_session_id', newSession.id);
-    localStorage.removeItem('chat-messages');
+    safeStorage.setItem('chat_session_id', newSession.id);
+    safeStorage.removeItem('chat-messages');
     
     console.log('✨ Created new chat session:', newSession.id);
   };
@@ -600,20 +582,11 @@ function Chatbot({ userLocation: propUserLocation }) {
     
     // Load selected session
     setCurrentSessionId(session.id);
-    localStorage.setItem('chat_session_id', session.id);
+    safeStorage.setItem('chat_session_id', session.id);
     
     // Load session messages
-    try {
-      const sessionMessages = localStorage.getItem(`chat-messages-${session.id}`);
-      if (sessionMessages) {
-        setMessages(JSON.parse(sessionMessages));
-      } else {
-        setMessages([]);
-      }
-    } catch (error) {
-      console.error('Failed to load session messages:', error);
-      setMessages([]);
-    }
+    const sessionMessages = safeStorage.getJSON(`chat-messages-${session.id}`, []);
+    setMessages(sessionMessages);
     
     console.log('📂 Switched to session:', session.id);
   };
@@ -621,31 +594,27 @@ function Chatbot({ userLocation: propUserLocation }) {
   const saveCurrentSession = () => {
     if (!currentSessionId || messages.length === 0) return;
     
-    try {
-      // Save messages for this session
-      localStorage.setItem(`chat-messages-${currentSessionId}`, JSON.stringify(messages));
-      
-      // Update session metadata
-      const sessions = JSON.parse(localStorage.getItem('chat_sessions') || '[]');
-      const sessionIndex = sessions.findIndex(s => s.id === currentSessionId);
-      
-      if (sessionIndex >= 0) {
-        sessions[sessionIndex].messageCount = messages.length;
-        sessions[sessionIndex].timestamp = new Date().toISOString();
-        sessions[sessionIndex].title = messages[0]?.text?.slice(0, 30) + '...' || 'Chat';
-      } else {
-        sessions.unshift({
-          id: currentSessionId,
-          title: messages[0]?.text?.slice(0, 30) + '...' || 'Current Chat',
-          timestamp: new Date().toISOString(),
-          messageCount: messages.length
-        });
-      }
-      
-      localStorage.setItem('chat_sessions', JSON.stringify(sessions));
-    } catch (error) {
-      console.error('Failed to save session:', error);
+    // Save messages for this session
+    safeStorage.setJSON(`chat-messages-${currentSessionId}`, messages);
+    
+    // Update session metadata
+    const sessions = safeStorage.getJSON('chat_sessions', []);
+    const sessionIndex = sessions.findIndex(s => s.id === currentSessionId);
+    
+    if (sessionIndex >= 0) {
+      sessions[sessionIndex].messageCount = messages.length;
+      sessions[sessionIndex].timestamp = new Date().toISOString();
+      sessions[sessionIndex].title = messages[0]?.text?.slice(0, 30) + '...' || 'Chat';
+    } else {
+      sessions.unshift({
+        id: currentSessionId,
+        title: messages[0]?.text?.slice(0, 30) + '...' || 'Current Chat',
+        timestamp: new Date().toISOString(),
+        messageCount: messages.length
+      });
     }
+    
+    safeStorage.setJSON('chat_sessions', sessions);
   };
 
   const toggleSessionsPanel = () => {
@@ -727,12 +696,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   }, []);
 
   useEffect(() => {
-    // Persist dark mode
-    try {
-      localStorage.setItem('dark-mode', JSON.stringify(darkMode));
-    } catch (error) {
-      console.error('Failed to save dark mode to localStorage:', error);
-    }
+    // Persist dark mode      safeStorage.setJSON('dark-mode', darkMode);
   }, [darkMode]);
 
   useEffect(() => {
