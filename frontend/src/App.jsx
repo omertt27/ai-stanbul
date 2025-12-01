@@ -196,6 +196,8 @@ const App = () => {
     }
   };
 
+  // Logo click handler removed (logo no longer displayed on main page)
+  /*
   const handleLogoClick = () => {
     // Track navigation back to home
     trackEvent('logo_click', 'navigation', 'home');
@@ -213,6 +215,7 @@ const App = () => {
     localStorage.removeItem('chat_session_id');
     localStorage.removeItem('chat-messages');
   };
+  */
 
   const handleLanguageChange = (languageCode) => {
     i18n.changeLanguage(languageCode);
@@ -252,37 +255,7 @@ const App = () => {
           
 
 
-          {/* Centered logo - Only show on desktop, mobile has navbar logo */}
-          {!(isMobile || window.innerWidth <= 768) && (
-            <div 
-              style={{
-                textAlign: 'center', 
-                marginBottom: '1rem',
-                marginTop: '15px', // Move logo 15px more down for desktop version
-              }} 
-              onClick={handleLogoClick}
-            >
-              <div className="chat-title logo-istanbul main-page-logo">
-                <span className="logo-text" style={{
-                  fontSize: '4rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: 'transparent',
-                  background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                  lineHeight: '1.2'
-                }}>
-                  A/STANBUL
-                </span>
-              </div>
-            </div>
-          )}
+          {/* Logo removed from main page as per user request */}
           
           {/* Simple search bar - ChatGPT style */}
           <div style={{
