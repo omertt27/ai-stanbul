@@ -95,8 +95,10 @@ class PromptBuilder:
    
    ⚠️ **CRITICAL SAFETY RULES** (MUST FOLLOW):
    - First, VERIFY direction: Clearly state "To get from [ORIGIN] to [DESTINATION]..." 
-   - IMPORTANT: If the map shows both origin and destination, DON'T ask for GPS/location
-   - Only ask for GPS if destination is known but origin is missing AND user hasn't shared GPS
+   - 🚨 CRITICAL: If BOTH start and end locations are in the query (e.g., "from Taksim to Kadıköy"), NEVER NEVER ask for GPS
+   - ❌ DO NOT say "enable GPS" or "share your location" when user provides both locations
+   - ✅ If both locations provided → Give directions immediately
+   - ⚠️ Only ask for GPS if: destination is known BUT origin is missing AND user hasn't shared GPS
    - Use ONLY these REAL Istanbul transit lines:
      • Metro: M1 (Red), M2 (Green), M3 (Blue), M4 (Pink), M5 (Purple), M6, M7, M9, M11
      • Tram: T1, T4, T5
@@ -238,9 +240,13 @@ Context information will be provided below, followed by the user's question."""
             
             if has_origin and has_destination:
                 # Both locations are known - NO GPS NEEDED
-                prompt_parts.append(f"IMPORTANT: Both origin ({origin_name}) and destination ({destination_name}) are known.")
-                prompt_parts.append("DO NOT ask the user to enable GPS or share their location.")
-                prompt_parts.append("Provide the route directions directly using the map data.")
+                prompt_parts.append(f"\n🚨 CRITICAL INSTRUCTION - MUST FOLLOW:")
+                prompt_parts.append(f"Both origin ({origin_name}) and destination ({destination_name}) are EXPLICITLY PROVIDED by the user.")
+                prompt_parts.append("✅ The route CAN be shown WITHOUT GPS")
+                prompt_parts.append("❌ DO NOT mention GPS, location services, or ask user to enable anything")
+                prompt_parts.append("❌ DO NOT say 'I need your current location'")
+                prompt_parts.append("✅ INSTEAD: Directly provide the route directions from {origin_name} to {destination_name}")
+                prompt_parts.append("The user already told you where they want to go FROM and TO.")
             elif has_destination and not has_origin:
                 # Only destination is known - might need GPS
                 prompt_parts.append(f"Destination ({destination_name}) is known, but origin is not specified.")

@@ -57,9 +57,13 @@ const ErrorNotification = ({
     return null;
   }
   
-  const errorType = classifyError(error, error.response);
-  const userMessage = getUserFriendlyMessage(error, error.response);
-  const recoveryStrategies = getRecoveryStrategies(error, error.response);
+  // Handle both structured error objects and raw error objects
+  const errorType = error.type || classifyError(error, error.response);
+  const userMessage = error.message || getUserFriendlyMessage(error, error.response);
+  const recoveryStrategies = error.type ? [] : getRecoveryStrategies(error, error.response);
+  
+  // Determine if error is retryable
+  const isRetryable = error.isRetryable !== undefined ? error.isRetryable : true;
   
   const getErrorIcon = (type) => {
     switch (type) {
@@ -181,7 +185,7 @@ const ErrorNotification = ({
               </button>
             ))}
             
-            {error.isRetryable && onRetry && (
+            {error.isRetryable !== undefined && error.isRetryable && onRetry && (
               <button
                 onClick={handleRetry}
                 className={`
@@ -212,9 +216,10 @@ const ErrorNotification = ({
               ${darkMode ? 'bg-black/20' : 'bg-white/50'}
             `}>
               <div>Type: {errorType}</div>
-              <div>Retryable: {error.isRetryable ? 'Yes' : 'No'}</div>
-              <div>Status: {error.response?.status || 'N/A'}</div>
-              <div>Original: {error.originalError?.message || error.message}</div>
+              <div>Retryable: {isRetryable ? 'Yes' : 'No'}</div>
+              <div>Status: {error.response?.status || error.status || 'N/A'}</div>
+              <div>Original: {error.originalError?.message || error.message || 'Unknown'}</div>
+              {error.context && <div>Context: {error.context}</div>}
             </div>
           </details>
         )}

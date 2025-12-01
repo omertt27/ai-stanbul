@@ -491,8 +491,117 @@ function Chatbot({ userLocation: propUserLocation }) {
   // Use standard backend (not Pure LLM mode)
   const usePureLLM = false;
   
-  // GPS location state (use prop if provided, otherwise null)
-  const [userLocation] = useState(propUserLocation || null);
+  // GPS location state (use prop if provided, otherwise track it ourselves)
+  const [userLocation, setUserLocation] = useState(propUserLocation || null);
+  const [locationPermission, setLocationPermission] = useState('unknown');
+  const [locationError, setLocationError] = useState(null);
+  const [showGPSBanner, setShowGPSBanner] = useState(true);
+  
+  // Request and track GPS location
+  useEffect(() => {
+    // Skip if location already provided via props
+    if (propUserLocation) {
+      console.log('✅ Using provided GPS location:', propUserLocation);
+      return;
+    }
+
+    const requestLocation = async () => {
+      if (!('geolocation' in navigator)) {
+        console.log('❌ Geolocation not supported');
+        setLocationError('GPS not supported by browser');
+        return;
+      }
+
+      try {
+        // Check permission
+        if (navigator.permissions) {
+          const permission = await navigator.permissions.query({ name: 'geolocation' });
+          setLocationPermission(permission.state);
+          
+          console.log('📍 GPS Permission status:', permission.state);
+          
+          permission.onchange = () => {
+            console.log('📍 GPS Permission changed to:', permission.state);
+            setLocationPermission(permission.state);
+            if (permission.state === 'granted') {
+              getCurrentLocation();
+            } else if (permission.state === 'denied') {
+              setUserLocation(null);
+            }
+          };
+        }
+
+        // Get location if permission granted
+        if (locationPermission === 'granted' || locationPermission === 'prompt') {
+          getCurrentLocation();
+        }
+      } catch (error) {
+        console.error('❌ Permission check failed:', error);
+      }
+    };
+
+    const getCurrentLocation = () => {
+      console.log('📍 Requesting GPS location...');
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          console.log('✅ GPS location obtained:', location);
+          setUserLocation(location);
+          setLocationError(null);
+        },
+        (error) => {
+          console.error('❌ GPS error:', error.message);
+          setLocationError(error.message);
+          setUserLocation(null);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
+        }
+      );
+    };
+
+    requestLocation();
+  }, [locationPermission, propUserLocation]);
+  
+  // Manual GPS request handler
+  const requestLocationManually = () => {
+    console.log('📍 Manual GPS request triggered');
+    if (!('geolocation' in navigator)) {
+      alert('GPS not supported by your browser');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        };
+        console.log('✅ GPS enabled manually:', location);
+        setUserLocation(location);
+        setLocationError(null);
+        setLocationPermission('granted');
+        setShowGPSBanner(false);
+      },
+      (error) => {
+        console.error('❌ Manual GPS error:', error);
+        alert(`GPS Error: ${error.message}. Please check your browser settings.`);
+        setLocationError(error.message);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
   
   // Mobile ergonomics: Keyboard detection
   const { isKeyboardVisible, keyboardHeight } = useKeyboardDetection();
@@ -1029,6 +1138,60 @@ function Chatbot({ userLocation: propUserLocation }) {
         onToggleSessionsPanel={toggleSessionsPanel}
       />
 
+      {/* GPS Location Banner */}
+      {!userLocation && showGPSBanner && locationPermission !== 'denied' && (
+        <div className={`px-4 py-3 border-b ${
+          darkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'
+        }`}>
+          <div className="flex items-center justify-between max-w-5xl mx-auto">
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Enable GPS for personalized recommendations near you
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={requestLocationManually}
+                className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors duration-200 font-medium"
+              >
+                Enable GPS
+              </button>
+              <button
+                onClick={() => setShowGPSBanner(false)}
+                className={`px-2 py-1.5 text-sm rounded-lg transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-700'
+                }`}
+                aria-label="Dismiss GPS banner"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GPS Status Indicator (when location is active) */}
+      {userLocation && (
+        <div className={`px-4 py-2 border-b ${
+          darkMode ? 'bg-gray-800 border-gray-700' : 'bg-green-50 border-green-200'
+        }`}>
+          <div className="flex items-center gap-2 max-w-5xl mx-auto">
+            <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0c-4.198 0-8 3.403-8 7.602 0 4.198 3.469 9.21 8 16.398 4.531-7.188 8-12.2 8-16.398 0-4.199-3.801-7.602-8-7.602zm0 11c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z"/>
+            </svg>
+            <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              GPS active • Accuracy: ±{Math.round(userLocation.accuracy)}m
+            </span>
+          </div>
+        </div>
+      )}
+      
       {/* Chat Messages Container - With top padding for better UX */}
       <div className="flex-1 overflow-y-auto chat-messages pb-24 md:pb-0 pt-4 md:pt-6" id="chat-messages">
         {messages.length === 0 && (
@@ -1275,7 +1438,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                 }`}>
                   <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                  </svg>
+                </svg>
                 </div>
                 
                 {/* Typing indicator */}

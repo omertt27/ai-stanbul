@@ -29,6 +29,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Import Blog API
+try:
+    import sys
+    import os
+    # Add backend directory to path
+    backend_path = os.path.join(os.path.dirname(__file__), 'backend')
+    if backend_path not in sys.path:
+        sys.path.insert(0, backend_path)
+    
+    from blog_api import router as blog_api_router
+    BLOG_API_AVAILABLE = True
+    logger.info("✅ Blog API imported successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Blog API not available: {e}")
+    BLOG_API_AVAILABLE = False
+    blog_api_router = None
+
 # Create FastAPI app
 app = FastAPI(
     title="Istanbul AI API",
@@ -44,6 +61,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register Blog API if available
+if BLOG_API_AVAILABLE and blog_api_router:
+    app.include_router(blog_api_router)
+    logger.info("✅ Blog API router registered at /api/blog")
+
 
 # Global instances
 ai_system: Optional[IstanbulDailyTalkAI] = None
@@ -176,6 +199,35 @@ async def startup_event():
         # Initialize performance monitor
         logger.info("Starting performance monitor...")
         performance_monitor = await get_performance_monitor()
+        
+        # Auto-seed blog posts if database is empty
+        if BLOG_API_AVAILABLE:
+            try:
+                # Add backend directory to path for seed script
+                backend_path = os.path.join(os.path.dirname(__file__), 'backend')
+                if backend_path not in sys.path:
+                    sys.path.insert(0, backend_path)
+                
+                from seed_blog_posts import seed_blog_posts
+                from database import SessionLocal
+                from models.blog_models import BlogPost
+                
+                db = SessionLocal()
+                try:
+                    post_count = db.query(BlogPost).count()
+                    
+                    if post_count == 0:
+                        logger.info("📝 Blog database empty, seeding sample posts...")
+                        seed_blog_posts()
+                        logger.info("✅ Blog posts seeded successfully")
+                    else:
+                        logger.info(f"✅ Blog database already has {post_count} posts")
+                except Exception as seed_error:
+                    logger.error(f"Error seeding blog posts: {seed_error}")
+                finally:
+                    db.close()
+            except Exception as blog_error:
+                logger.warning(f"⚠️ Could not initialize blog seeding: {blog_error}")
         
         logger.info("✅ Istanbul AI Production Server started successfully!")
         logger.info("📊 Ready to handle concurrent requests")
