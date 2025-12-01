@@ -68,7 +68,6 @@ function AppRouterContent() {
         </main>
         <Footer />
       </div>
-    </div>
   );
 }
 
