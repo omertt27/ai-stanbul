@@ -235,3 +235,269 @@ class OnlineLearningModel(Base):
     def __repr__(self):
         return f"<OnlineLearningModel(name={self.model_name}, version={self.model_version})>"
 
+
+# ==============================================
+# GPS Navigation & Location Tracking Models
+# ==============================================
+
+class LocationHistory(Base):
+    """
+    Stores user GPS location history for navigation and analytics
+    """
+    __tablename__ = "location_history"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    session_id = Column(String(100), index=True)
+    
+    # GPS coordinates
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    accuracy = Column(Float)  # Accuracy in meters
+    altitude = Column(Float)  # Altitude in meters
+    
+    # Motion data
+    speed = Column(Float)  # Speed in m/s
+    heading = Column(Float)  # Direction in degrees (0-360)
+    
+    # Timestamp
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    # Context
+    activity_type = Column(String(50))  # walking, driving, stationary
+    is_navigation_active = Column(Boolean, default=False)
+    
+    def __repr__(self):
+        return f"<LocationHistory(user={self.user_id}, lat={self.latitude}, lon={self.longitude})>"
+
+
+class NavigationSession(Base):
+    """
+    Stores active and completed navigation sessions
+    """
+    __tablename__ = "navigation_sessions"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(100), unique=True, nullable=False, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    chat_session_id = Column(String(100), index=True)  # Link to chat session
+    
+    # Route information
+    origin_lat = Column(Float, nullable=False)
+    origin_lon = Column(Float, nullable=False)
+    origin_name = Column(String(255))
+    
+    destination_lat = Column(Float, nullable=False)
+    destination_lon = Column(Float, nullable=False)
+    destination_name = Column(String(255))
+    
+    # Waypoints (JSON array of {lat, lon, name})
+    waypoints = Column(JSON)
+    
+    # Route data
+    total_distance = Column(Float)  # Total distance in meters
+    total_duration = Column(Float)  # Total duration in seconds
+    transport_mode = Column(String(50), default='walking')  # walking, driving, transit
+    
+    # Navigation state
+    current_step_index = Column(Integer, default=0)
+    steps_completed = Column(Integer, default=0)
+    distance_remaining = Column(Float)
+    time_remaining = Column(Float)
+    
+    # Status
+    status = Column(String(50), default='active')  # active, completed, cancelled, paused
+    is_active = Column(Boolean, default=True)
+    
+    # Route geometry (encoded polyline or GeoJSON)
+    route_geometry = Column(JSON)
+    route_steps = Column(JSON)  # Full turn-by-turn instructions
+    
+    # Timestamps
+    started_at = Column(DateTime, default=datetime.utcnow, index=True)
+    completed_at = Column(DateTime)
+    last_update = Column(DateTime, default=datetime.utcnow)
+    
+    # Performance metrics
+    actual_duration = Column(Float)  # Actual time taken
+    deviations_count = Column(Integer, default=0)  # Times user deviated from route
+    reroutes_count = Column(Integer, default=0)  # Times route was recalculated
+    
+    def __repr__(self):
+        return f"<NavigationSession(id={self.session_id}, status={self.status})>"
+
+
+class RouteHistory(Base):
+    """
+    Stores completed routes for analytics and recommendations
+    """
+    __tablename__ = "route_history"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    navigation_session_id = Column(String(100), ForeignKey('navigation_sessions.session_id'))
+    
+    # Route details
+    origin = Column(String(255))
+    destination = Column(String(255))
+    waypoints = Column(JSON)
+    
+    # Metrics
+    distance = Column(Float)  # meters
+    duration = Column(Float)  # seconds
+    transport_mode = Column(String(50))
+    
+    # Route data (for replay/analysis)
+    route_geometry = Column(JSON)
+    steps = Column(JSON)
+    
+    # User rating
+    user_rating = Column(Integer)  # 1-5 stars
+    user_feedback = Column(Text)
+    
+    # Timestamps
+    completed_at = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    def __repr__(self):
+        return f"<RouteHistory(user={self.user_id}, from={self.origin}, to={self.destination})>"
+
+
+class NavigationEvent(Base):
+    """
+    Stores navigation events for real-time tracking and analytics
+    """
+    __tablename__ = "navigation_events"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(100), nullable=False, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    
+    # Event details
+    event_type = Column(String(50), nullable=False, index=True)  # step_started, step_completed, reroute, deviation, arrival, etc.
+    event_data = Column(JSON)  # Additional event-specific data
+    
+    # Location at event time
+    latitude = Column(Float)
+    longitude = Column(Float)
+    
+    # Step information
+    current_step = Column(Integer)
+    step_instruction = Column(Text)
+    distance_to_next_step = Column(Float)
+    
+    # Timestamp
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    def __repr__(self):
+        return f"<NavigationEvent(session={self.session_id}, type={self.event_type})>"
+
+
+class UserPreferences(Base):
+    """
+    Stores user preferences for navigation and recommendations
+    """
+    __tablename__ = "user_preferences"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String(100), unique=True, nullable=False, index=True)
+    
+    # Navigation preferences
+    preferred_transport = Column(String(50), default='walking')  # walking, driving, transit
+    avoid_highways = Column(Boolean, default=False)
+    avoid_tolls = Column(Boolean, default=False)
+    avoid_ferries = Column(Boolean, default=False)
+    
+    # Accessibility
+    wheelchair_accessible = Column(Boolean, default=False)
+    requires_elevator = Column(Boolean, default=False)
+    
+    # Language & units
+    preferred_language = Column(String(10), default='en')
+    distance_units = Column(String(10), default='metric')  # metric, imperial
+    
+    # Notifications
+    voice_guidance = Column(Boolean, default=True)
+    notification_sound = Column(Boolean, default=True)
+    vibration = Column(Boolean, default=True)
+    
+    # Privacy
+    save_location_history = Column(Boolean, default=True)
+    share_location = Column(Boolean, default=False)
+    
+    # Recommendation preferences (JSON)
+    interests = Column(JSON)  # ["cultural", "nature", "food", ...]
+    dietary_restrictions = Column(JSON)  # ["vegetarian", "halal", ...]
+    budget_level = Column(String(20), default='moderate')  # budget, moderate, luxury
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<UserPreferences(user={self.user_id}, transport={self.preferred_transport})>"
+
+
+class ChatSession(Base):
+    """
+    Enhanced chat session with navigation integration
+    """
+    __tablename__ = "chat_sessions"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(100), unique=True, nullable=False, index=True)
+    user_id = Column(String(100), index=True)
+    
+    # Session metadata
+    started_at = Column(DateTime, default=datetime.utcnow, index=True)
+    last_activity = Column(DateTime, default=datetime.utcnow)
+    messages_count = Column(Integer, default=0)
+    
+    # Navigation context
+    active_navigation_session = Column(String(100))  # Current navigation session ID
+    has_navigation = Column(Boolean, default=False)
+    
+    # User context (JSON)
+    context = Column(JSON)  # Location, preferences, history, etc.
+    
+    # Status
+    is_active = Column(Boolean, default=True)
+    ended_at = Column(DateTime)
+    
+    def __repr__(self):
+        return f"<ChatSession(id={self.session_id}, messages={self.messages_count})>"
+
+
+class ConversationHistory(Base):
+    """
+    Stores conversation history with navigation data
+    """
+    __tablename__ = "conversation_history"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(100), nullable=False, index=True)
+    user_id = Column(String(100), index=True)
+    
+    # Message content
+    user_message = Column(Text, nullable=False)
+    ai_response = Column(Text, nullable=False)
+    
+    # Navigation context
+    route_data = Column(JSON)  # Route information if message involved navigation
+    location_data = Column(JSON)  # User location at time of message
+    navigation_active = Column(Boolean, default=False)
+    
+    # Metadata
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    intent = Column(String(100))  # route_request, navigation_help, general_question, etc.
+    entities_extracted = Column(JSON)  # Extracted locations, preferences, etc.
+    
+    def __repr__(self):
+        return f"<ConversationHistory(session={self.session_id}, time={self.timestamp})>"
+

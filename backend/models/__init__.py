@@ -45,10 +45,23 @@ try:
         ItemFeatureVector = getattr(models_module, 'ItemFeatureVector', None)
         OnlineLearningModel = getattr(models_module, 'OnlineLearningModel', None)
         
+        # GPS Navigation models (NEW)
+        LocationHistory = getattr(models_module, 'LocationHistory', None)
+        NavigationSession = getattr(models_module, 'NavigationSession', None)
+        RouteHistory = getattr(models_module, 'RouteHistory', None)
+        NavigationEvent = getattr(models_module, 'NavigationEvent', None)
+        UserPreferences = getattr(models_module, 'UserPreferences', None)
+        ConversationHistory = getattr(models_module, 'ConversationHistory', None)
+        
         if FeedbackEvent and UserInteractionAggregate:
             print("✅ Real-time learning models imported successfully")
         else:
             print("⚠️ Warning: Some real-time learning models not found in models.py")
+        
+        if LocationHistory and NavigationSession:
+            print("✅ GPS Navigation models imported successfully")
+        else:
+            print("⚠️ Warning: Some GPS Navigation models not found in models.py")
             
 except Exception as e:
     print(f"⚠️ Warning: Could not import from models.py: {e}")
@@ -72,6 +85,12 @@ except Exception as e:
     UserSession = None
     UserInteraction = None
     EnhancedChatHistory = None
+    LocationHistory = None
+    NavigationSession = None
+    RouteHistory = None
+    NavigationEvent = None
+    UserPreferences = None
+    ConversationHistory = None
 
 from .intent_feedback import IntentFeedback, FeedbackStatistics, create_tables
 
@@ -79,5 +98,7 @@ __all__ = [
     'Base', 'Restaurant', 'Museum', 'Event', 'Place', 'UserFeedback', 'ChatSession', 
     'BlogPost', 'BlogComment', 'BlogLike', 'BlogImage', 'ChatHistory', 'User',
     'IntentFeedback', 'FeedbackStatistics', 'create_tables',
-    'FeedbackEvent', 'UserInteractionAggregate', 'ItemFeatureVector', 'OnlineLearningModel'
+    'FeedbackEvent', 'UserInteractionAggregate', 'ItemFeatureVector', 'OnlineLearningModel',
+    'LocationHistory', 'NavigationSession', 'RouteHistory', 'NavigationEvent',
+    'UserPreferences', 'ConversationHistory'
 ]

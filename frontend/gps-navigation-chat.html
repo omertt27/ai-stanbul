@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat with GPS Navigation - Istanbul Guide</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .chat-header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: white;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot .message-content {
+            background: #f1f3f5;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.navigation .message-content {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        .navigation-status {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 12px;
+            margin: 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3);
+            display: none;
+        }
+
+        .navigation-status.active {
+            display: block;
+        }
+
+        .navigation-status h4 {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .navigation-status p {
+            font-size: 12px;
+            margin: 4px 0;
+        }
+
+        .progress-bar {
+            background: rgba(255,255,255,0.3);
+            height: 6px;
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: white;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px;
+        }
+
+        .suggestion-btn {
+            background: white;
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .chat-input-container {
+            padding: 16px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        #chatInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #chatInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        #sendBtn:hover {
+            transform: scale(1.1);
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Map Panel */
+        .map-panel {
+            flex: 1;
+            position: relative;
+            background: #e8eaf6;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .map-overlay > * {
+            pointer-events: auto;
+        }
+
+        .location-btn {
+            background: white;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .location-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+
+        .location-btn.active {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .navigation-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            max-width: 400px;
+            display: none;
+        }
+
+        .navigation-card.active {
+            display: block;
+        }
+
+        .navigation-card h3 {
+            color: #11998e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .instruction {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            border-left: 4px solid #11998e;
+        }
+
+        .instruction strong {
+            display: block;
+            color: #11998e;
+            margin-bottom: 4px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .stat {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #11998e;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            padding: 12px;
+        }
+
+        .typing-indicator.show {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .chat-panel {
+                width: 100%;
+                height: 50%;
+            }
+
+            .map-panel {
+                height: 50%;
+            }
+        }
+
+        /* Custom Leaflet Styles */
+        .leaflet-popup-content {
+            margin: 12px;
+            min-width: 200px;
+        }
+
+        .popup-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #667eea;
+        }
+
+        .popup-navigate-btn {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .popup-navigate-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Chat Panel -->
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h1>🗺️ Istanbul AI Guide</h1>
+                <p>Chat with GPS Navigation</p>
+            </div>
+
+            <div class="navigation-status" id="navigationStatus">
+                <h4>
+                    <span>🧭</span>
+                    <span id="navDestination">Navigating...</span>
+                </h4>
+                <p id="navInstruction">Loading...</p>
+                <p>
+                    <strong id="navDistance">0 km</strong> remaining • 
+                    <strong id="navTime">0 min</strong> ETA
+                </p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="navProgress"></div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="message-content">
+                        👋 Welcome! I'm your Istanbul AI guide with GPS navigation!<br><br>
+                        Try saying:<br>
+                        • "Navigate to Galata Tower"<br>
+                        • "Where am I?"<br>
+                        • "Show me route to Blue Mosque"
+                    </div>
+                    <div class="message-time">Just now</div>
+                </div>
+            </div>
+
+            <div class="suggestions" id="suggestions">
+                <button class="suggestion-btn" onclick="sendSuggestion('Navigate to Galata Tower')">🧭 Navigate to Galata Tower</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('Where am I?')">📍 Where am I?</button>
+                <button class="suggestion-btn" onclick="sendSuggestion('Show nearby attractions')">🎯 Nearby Attractions</button>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input 
+                        type="text" 
+                        id="chatInput" 
+                        placeholder="Type a message or navigation command..."
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <button id="sendBtn" onclick="sendMessage()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Panel -->
+        <div class="map-panel">
+            <div class="map-overlay">
+                <button class="location-btn" id="locationBtn" onclick="toggleLocationTracking()" title="Track my location">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+
+                <div class="navigation-card" id="navigationCard">
+                    <h3>
+                        <span>🧭</span>
+                        <span id="cardDestination">Navigation</span>
+                    </h3>
+                    <div class="instruction">
+                        <strong>Current Instruction:</strong>
+                        <p id="cardInstruction">Loading...</p>
+                    </div>
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-value" id="cardDistance">0 km</div>
+                            <div class="stat-label">Remaining</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="cardTime">0 min</div>
+                            <div class="stat-label">ETA</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Configuration
+        const API_URL = 'http://localhost:8000/api/chat';
+        const SESSION_ID = 'session_' + Date.now();
+        
+        // State
+        let map = null;
+        let userMarker = null;
+        let routeLayer = null;
+        let destinationMarker = null;
+        let locationTracking = false;
+        let watchId = null;
+        let currentLocation = null;
+        let navigationActive = false;
+
+        // Initialize map
+        function initMap() {
+            // Center on Istanbul
+            map = L.map('map').setView([41.0082, 28.9784], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Add famous locations as markers
+            const locations = {
+                'Galata Tower': [41.0256, 28.9742],
+                'Blue Mosque': [41.0054, 28.9768],
+                'Hagia Sophia': [41.0086, 28.9802],
+                'Topkapi Palace': [41.0115, 28.9833],
+                'Taksim Square': [41.0370, 28.9850],
+                'Grand Bazaar': [41.0108, 28.9680]
+            };
+
+            Object.entries(locations).forEach(([name, coords]) => {
+                const marker = L.marker(coords).addTo(map);
+                marker.bindPopup(`
+                    <div class="popup-title">${name}</div>
+                    <button class="popup-navigate-btn" onclick="navigateToLocation('${name}')">
+                        🧭 Navigate Here
+                    </button>
+                `);
+            });
+
+            console.log('✅ Map initialized');
+        }
+
+        // Location tracking
+        function toggleLocationTracking() {
+            const btn = document.getElementById('locationBtn');
+            
+            if (!locationTracking) {
+                startLocationTracking();
+                btn.classList.add('active');
+            } else {
+                stopLocationTracking();
+                btn.classList.remove('active');
+            }
+            
+            locationTracking = !locationTracking;
+        }
+
+        function startLocationTracking() {
+            if ('geolocation' in navigator) {
+                watchId = navigator.geolocation.watchPosition(
+                    updateLocation,
+                    handleLocationError,
+                    { enableHighAccuracy: true, maximumAge: 1000 }
+                );
+                console.log('📍 Location tracking started');
+            } else {
+                alert('Geolocation not supported by your browser');
+            }
+        }
+
+        function stopLocationTracking() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                console.log('📍 Location tracking stopped');
+            }
+        }
+
+        function updateLocation(position) {
+            currentLocation = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude
+            };
+
+            // Update or create user marker
+            if (userMarker) {
+                userMarker.setLatLng([currentLocation.lat, currentLocation.lon]);
+            } else {
+                userMarker = L.circleMarker([currentLocation.lat, currentLocation.lon], {
+                    color: '#11998e',
+                    fillColor: '#38ef7d',
+                    fillOpacity: 0.8,
+                    radius: 10
+                }).addTo(map);
+                
+                map.setView([currentLocation.lat, currentLocation.lon], 15);
+            }
+
+            // If navigating, send location update
+            if (navigationActive) {
+                sendLocationUpdate();
+            }
+
+            console.log('📍 Location updated:', currentLocation);
+        }
+
+        function handleLocationError(error) {
+            console.error('Location error:', error);
+            addMessage('bot', `⚠️ Location error: ${error.message}`);
+        }
+
+        // Chat functions
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // Add user message
+            addMessage('user', message);
+            input.value = '';
+
+            // Show typing indicator
+            document.getElementById('typingIndicator').classList.add('show');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: SESSION_ID,
+                        user_location: currentLocation
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Hide typing indicator
+                document.getElementById('typingIndicator').classList.remove('show');
+
+                // Add bot response
+                const messageClass = data.navigation_active ? 'navigation' : 'bot';
+                addMessage(messageClass, data.response);
+
+                // Update suggestions
+                updateSuggestions(data.suggestions || []);
+
+                // Handle navigation data
+                if (data.navigation_data) {
+                    updateNavigationUI(data.navigation_data, data.navigation_active);
+                }
+
+                // Handle map data
+                if (data.map_data) {
+                    updateMap(data.map_data);
+                }
+
+                // Update navigation status
+                navigationActive = data.navigation_active || false;
+
+            } catch (error) {
+                console.error('Chat error:', error);
+                document.getElementById('typingIndicator').classList.remove('show');
+                addMessage('bot', '❌ Sorry, I encountered an error. Please try again.');
+            }
+        }
+
+        function sendSuggestion(text) {
+            document.getElementById('chatInput').value = text;
+            sendMessage();
+        }
+
+        async function sendLocationUpdate() {
+            if (!navigationActive || !currentLocation) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: "location update",  // Silent update
+                        session_id: SESSION_ID,
+                        user_location: currentLocation
+                    })
+                });
+
+                const data = await response.json();
+
+                // Update navigation UI silently
+                if (data.navigation_data && !data.navigation_data.silent) {
+                    updateNavigationUI(data.navigation_data, data.navigation_active);
+                }
+
+                // Check if arrived
+                if (data.navigation_data?.progress?.has_arrived) {
+                    addMessage('navigation', '🎉 You have arrived at your destination!');
+                    navigationActive = false;
+                    hideNavigationUI();
+                }
+
+            } catch (error) {
+                console.error('Location update error:', error);
+            }
+        }
+
+        function addMessage(type, text) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const now = new Date();
+            const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">${text}</div>
+                <div class="message-time">${time}</div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateSuggestions(suggestions) {
+            const suggestionsDiv = document.getElementById('suggestions');
+            suggestionsDiv.innerHTML = '';
+            
+            suggestions.forEach(suggestion => {
+                const btn = document.createElement('button');
+                btn.className = 'suggestion-btn';
+                btn.textContent = suggestion;
+                btn.onclick = () => sendSuggestion(suggestion);
+                suggestionsDiv.appendChild(btn);
+            });
+        }
+
+        function updateNavigationUI(navData, active) {
+            const statusDiv = document.getElementById('navigationStatus');
+            const cardDiv = document.getElementById('navigationCard');
+
+            if (active && navData.current_instruction) {
+                // Show navigation UI
+                statusDiv.classList.add('active');
+                cardDiv.classList.add('active');
+
+                // Update status bar
+                const destName = navData.destination_name || 'Destination';
+                const instruction = navData.current_instruction.text;
+                const distanceKm = (navData.progress.distance_remaining / 1000).toFixed(2);
+                const timeMin = Math.round(navData.progress.time_remaining / 60);
+                const progress = navData.progress.percent_complete || 0;
+
+                document.getElementById('navDestination').textContent = `→ ${destName}`;
+                document.getElementById('navInstruction').textContent = instruction;
+                document.getElementById('navDistance').textContent = `${distanceKm} km`;
+                document.getElementById('navTime').textContent = `${timeMin} min`;
+                document.getElementById('navProgress').style.width = `${progress}%`;
+
+                // Update card
+                document.getElementById('cardDestination').textContent = destName;
+                document.getElementById('cardInstruction').textContent = instruction;
+                document.getElementById('cardDistance').textContent = `${distanceKm} km`;
+                document.getElementById('cardTime').textContent = `${timeMin} min`;
+
+                // Auto-enable location tracking
+                if (!locationTracking) {
+                    toggleLocationTracking();
+                }
+            } else {
+                hideNavigationUI();
+            }
+        }
+
+        function hideNavigationUI() {
+            document.getElementById('navigationStatus').classList.remove('active');
+            document.getElementById('navigationCard').classList.remove('active');
+        }
+
+        function updateMap(mapData) {
+            if (!mapData) return;
+
+            // Clear previous route
+            if (routeLayer) {
+                map.removeLayer(routeLayer);
+            }
+            if (destinationMarker) {
+                map.removeLayer(destinationMarker);
+            }
+
+            // Draw route if geometry provided
+            if (mapData.geometry) {
+                const coordinates = mapData.geometry.map(coord => [coord[1], coord[0]]);
+                routeLayer = L.polyline(coordinates, {
+                    color: '#11998e',
+                    weight: 5,
+                    opacity: 0.7
+                }).addTo(map);
+
+                map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+            }
+
+            // Add destination marker
+            if (mapData.end) {
+                destinationMarker = L.marker(mapData.end, {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(map);
+            }
+        }
+
+        function navigateToLocation(locationName) {
+            document.getElementById('chatInput').value = `Navigate to ${locationName}`;
+            sendMessage();
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initMap();
+            console.log('✅ GPS Navigation Chat initialized');
+        });
+    </script>
+</body>
+</html>

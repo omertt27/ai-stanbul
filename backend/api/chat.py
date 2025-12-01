@@ -36,6 +36,8 @@ class ChatResponse(BaseModel):
     confidence: Optional[float] = Field(None, description="Confidence score")
     suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
     map_data: Optional[Dict[str, Any]] = Field(None, description="Map visualization data for routes")
+    navigation_active: Optional[bool] = Field(None, description="Whether GPS navigation is active")
+    navigation_data: Optional[Dict[str, Any]] = Field(None, description="GPS navigation state and instructions")
 
 
 class MLChatRequest(BaseModel):
@@ -66,7 +68,85 @@ async def pure_llm_chat(
 ):
     """
     Pure LLM chat endpoint - uses only LLM for responses
+    Now with GPS navigation and route planning support!
     """
+    # Prepare user context with GPS location
+    user_context = {
+        'preferences': request.preferences or {},
+    }
+    
+    # Add GPS location to context if available
+    if request.user_location:
+        user_context['gps'] = request.user_location
+        user_context['location'] = request.user_location
+        logger.info(f"📍 User GPS location: {request.user_location}")
+    
+    # First check if this is a GPS navigation command
+    try:
+        from services.ai_chat_route_integration import get_chat_route_handler
+        
+        handler = get_chat_route_handler()
+        
+        # Try to handle as GPS navigation command
+        nav_result = handler.handle_gps_navigation_command(
+            message=request.message,
+            session_id=request.session_id or 'new',
+            user_location=request.user_location
+        )
+        
+        if nav_result:
+            # This was a navigation command
+            return ChatResponse(
+                response=nav_result.get('message', ''),
+                session_id=request.session_id or 'new',
+                intent='gps_navigation',
+                confidence=1.0,
+                suggestions=_get_navigation_suggestions(nav_result),
+                map_data=nav_result.get('navigation_data', {}).get('map_data'),
+                navigation_active=nav_result.get('navigation_active', False),
+                navigation_data=nav_result.get('navigation_data')
+            )
+        
+        # Try to handle as route request (e.g., "how can I go to Taksim")
+        route_result = handler.handle_route_request(
+            message=request.message,
+            user_context=user_context
+        )
+        
+        if route_result:
+            # This was a route request
+            response_type = route_result.get('type', '')
+            
+            # Check if GPS permission is needed
+            if response_type == 'gps_permission_required':
+                return ChatResponse(
+                    response=route_result.get('message', ''),
+                    session_id=request.session_id or 'new',
+                    intent='route_planning',
+                    confidence=1.0,
+                    suggestions=[
+                        "Enable GPS and try again",
+                        "Specify start location manually",
+                        "Show me restaurants nearby"
+                    ],
+                    map_data={'request_gps': True, 'destination': route_result.get('destination')}
+                )
+            
+            # Return route response
+            return ChatResponse(
+                response=route_result.get('message', ''),
+                session_id=request.session_id or 'new',
+                intent='route_planning',
+                confidence=route_result.get('confidence', 1.0),
+                suggestions=route_result.get('suggestions', []),
+                map_data=route_result.get('map_data'),
+                navigation_active=False
+            )
+            
+    except Exception as e:
+        logger.warning(f"Route/Navigation check failed: {e}")
+    
+    # Not a navigation command, proceed with normal LLM chat
     pure_llm_core = startup_manager.get_pure_llm_core()
     
     if not pure_llm_core:
@@ -96,7 +176,9 @@ async def pure_llm_chat(
             intent=result.get('intent'),
             confidence=result.get('confidence'),
             suggestions=result.get('suggestions', []),
-            map_data=result.get('map_data')  # Include map data for visualization
+            map_data=result.get('map_data'),  # Include map data for visualization
+            navigation_active=result.get('navigation_active', False),
+            navigation_data=result.get('navigation_data')
         )
         
     except Exception as e:
@@ -169,7 +251,36 @@ async def chat(
 ):
     """
     Main chat endpoint - routes to appropriate handler
+    Now with GPS navigation support!
     """
+    # First check if this is a GPS navigation command
+    try:
+        from services.ai_chat_route_integration import get_chat_route_handler
+        
+        handler = get_chat_route_handler()
+        
+        # Try to handle as GPS navigation command
+        nav_result = handler.handle_gps_navigation_command(
+            message=request.message,
+            session_id=request.session_id or 'new',
+            user_location=request.user_location
+        )
+        
+        if nav_result:
+            # This was a navigation command
+            return ChatResponse(
+                response=nav_result.get('message', ''),
+                session_id=request.session_id or 'new',
+                intent='gps_navigation',
+                confidence=1.0,
+                suggestions=_get_navigation_suggestions(nav_result),
+                map_data=nav_result.get('navigation_data', {}).get('map_data'),
+                navigation_active=nav_result.get('navigation_active', False),
+                navigation_data=nav_result.get('navigation_data')
+            )
+    except Exception as e:
+        logger.warning(f"GPS navigation check failed: {e}")
+    
     # Check if Pure LLM is enabled
     pure_llm_core = startup_manager.get_pure_llm_core()
     
@@ -224,3 +335,39 @@ async def chat(
                 "How do I use public transport?"
             ]
         )
+
+
+def _get_navigation_suggestions(nav_result: Dict[str, Any]) -> List[str]:
+    """Generate contextual suggestions based on navigation state"""
+    nav_type = nav_result.get('type', '')
+    
+    if nav_type == 'navigation_started':
+        return [
+            "What's next?",
+            "Where am I?",
+            "Stop navigation"
+        ]
+    elif nav_type == 'navigation_update':
+        return [
+            "What's next?",
+            "Repeat instruction",
+            "Stop navigation"
+        ]
+    elif nav_type == 'navigation_stopped' or nav_type == 'navigation_complete':
+        return [
+            "Navigate to Galata Tower",
+            "Show nearby attractions",
+            "Find restaurants nearby"
+        ]
+    elif nav_result.get('navigation_active'):
+        return [
+            "What's next?",
+            "Navigation status",
+            "Stop navigation"
+        ]
+    else:
+        return [
+            "Navigate to Blue Mosque",
+            "Navigate to Taksim Square",
+            "Where am I?"
+        ]
