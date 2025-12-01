@@ -100,6 +100,29 @@ if LEGACY_ROUTES_AVAILABLE:
 async def startup_event():
     """Application startup"""
     await startup_manager.initialize()
+    
+    # Auto-seed blog posts if database is empty
+    try:
+        from seed_blog_posts import seed_blog_posts
+        from database import SessionLocal
+        from models.blog_models import BlogPost
+        
+        db = SessionLocal()
+        try:
+            post_count = db.query(BlogPost).count()
+            
+            if post_count == 0:
+                logger.info("📝 Blog database empty, seeding sample posts...")
+                seed_blog_posts()
+                logger.info("✅ Blog posts seeded successfully")
+            else:
+                logger.info(f"✅ Blog database already has {post_count} posts")
+        except Exception as seed_error:
+            logger.warning(f"⚠️ Could not seed blog posts: {seed_error}")
+        finally:
+            db.close()
+    except ImportError as e:
+        logger.warning(f"⚠️ Blog seeding not available: {e}")
 
 
 @app.on_event("shutdown")

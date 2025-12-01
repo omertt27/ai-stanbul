@@ -9,7 +9,7 @@ import {
 // API configuration
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
-const BLOG_API_URL = `${cleanBaseUrl}/blog/`;
+const BLOG_API_URL = `${cleanBaseUrl}/api/blog/`;
 
 // Debug logging
 console.log('🔧 API Configuration:');
@@ -78,9 +78,39 @@ export const fetchBlogPosts = async (params = {}) => {
       });
       
       const data = await response.json();
-      console.log('✅ Blog posts fetched:', data.posts?.length || 0, 'posts, total:', data.total);
-      console.log('📊 Blog API response structure:', Object.keys(data));
-      return data;
+      
+      // DEBUGGING: Log the full response structure
+      console.log('📦 Raw API response:', data);
+      console.log('📊 Response type:', Array.isArray(data) ? 'Array' : typeof data);
+      console.log('📊 Response keys:', Array.isArray(data) ? 'N/A (is array)' : Object.keys(data));
+      
+      // Handle different response formats
+      let normalizedData;
+      if (Array.isArray(data)) {
+        // If API returns an array directly, wrap it
+        console.log('⚠️ API returned array directly, normalizing...');
+        normalizedData = {
+          posts: data,
+          total: data.length,
+          limit: params.limit || 12,
+          offset: params.offset || 0
+        };
+      } else if (data && data.posts && Array.isArray(data.posts)) {
+        // Standard format
+        normalizedData = data;
+      } else {
+        // Unknown format
+        console.error('❌ Unexpected API response format:', data);
+        normalizedData = {
+          posts: [],
+          total: 0,
+          limit: params.limit || 12,
+          offset: params.offset || 0
+        };
+      }
+      
+      console.log('✅ Blog posts fetched:', normalizedData.posts?.length || 0, 'posts, total:', normalizedData.total);
+      return normalizedData;
       
     } catch (error) {
       throw handleBlogApiError(error, null, 'Fetch Blog Posts');
