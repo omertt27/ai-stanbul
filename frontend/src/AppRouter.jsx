@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
 import App from "./App";
 import Chatbot from './Chatbot';
 import About from "./pages/About";
@@ -46,8 +47,16 @@ function AppRouterContent() {
       <main className="flex-1">
           <Routes>
             <Route path="/" element={<App />} />
-            <Route path="/chat" element={<Chatbot />} />
-            <Route path="/chatbot" element={<Chatbot />} />
+            <Route path="/chat" element={
+              <ErrorBoundary>
+                <Chatbot />
+              </ErrorBoundary>
+            } />
+            <Route path="/chatbot" element={
+              <ErrorBoundary>
+                <Chatbot />
+              </ErrorBoundary>
+            } />
             <Route path="/route-planner" element={<IntelligentRoutePlanner />} />
             <Route path="/analytics" element={<LLMAnalyticsDashboard />} />
             <Route path="/llm-analytics" element={<LLMAnalyticsDashboard />} />

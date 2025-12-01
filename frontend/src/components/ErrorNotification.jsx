@@ -29,6 +29,12 @@ const ErrorNotification = ({
   const [isVisible, setIsVisible] = useState(!!error);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
+  // Safety check: ensure error is defined and is an object
+  if (!error || typeof error !== 'object') {
+    console.warn('ErrorNotification: Invalid error object received:', error);
+    return null;
+  }
+  
   useEffect(() => {
     setIsVisible(!!error);
   }, [error]);

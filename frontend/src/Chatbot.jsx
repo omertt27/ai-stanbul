@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useRef } from 'react';
+import React from 'react';
 import { 
   fetchUnifiedChat,
   fetchUnifiedChatV2,
@@ -483,6 +484,10 @@ const isExplicitPlacesRequest = (userInput) => {
 };
 
 function Chatbot({ userLocation: propUserLocation }) {
+  // CRITICAL: Initialize error state FIRST to prevent undefined errors during navigation
+  const [currentError, setCurrentError] = useState(null);
+  const [hasRenderError, setHasRenderError] = useState(false);
+  
   // Initialize i18next for multi-language support
   const { t, i18n } = useTranslation();
   const location = useLocation();
@@ -512,6 +517,24 @@ function Chatbot({ userLocation: propUserLocation }) {
     
     return () => clearTimeout(timer);
   }, []);
+  
+  // Reset state when navigating to chat page (fixes navigation from main page issue)
+  useEffect(() => {
+    console.log('🔄 Route changed, resetting component state:', location.pathname);
+    
+    // Clear any errors
+    setCurrentError(null);
+    setHasRenderError(false);
+    
+    // Ensure component is initialized
+    if (!isInitialized) {
+      const timer = setTimeout(() => {
+        setIsInitialized(true);
+        console.log('✅ Component initialized after route change');
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname]); // Re-run when route changes
   
   // Request and track GPS location
   useEffect(() => {
@@ -646,8 +669,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [apiHealth, setApiHealth] = useState('unknown');
 
-  // Error handling state
-  const [currentError, setCurrentError] = useState(null);
+  // Error handling state (continued) - currentError and hasRenderError already declared at top
   const [retryAction, setRetryAction] = useState(null);
   const [lastFailedMessage, setLastFailedMessage] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -851,6 +873,29 @@ function Chatbot({ userLocation: propUserLocation }) {
       }, 300);
     }
   }, [location.state?.initialQuery]);
+
+  // Error boundary handler - catch any render errors
+  useEffect(() => {
+    const handleError = (event) => {
+      console.error('🚨 Render error caught:', event.error);
+      setHasRenderError(true);
+      // Prevent the error from propagating
+      event.preventDefault();
+    };
+
+    const handleUnhandledRejection = (event) => {
+      console.error('🚨 Unhandled promise rejection:', event.reason);
+      event.preventDefault();
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   useEffect(() => {
     // Monitor scroll position for scroll-to-bottom button
@@ -1130,6 +1175,35 @@ function Chatbot({ userLocation: propUserLocation }) {
     // Automatically send the message
     handleSend(question);
   };
+
+  // Show error state if render error occurred
+  if (hasRenderError) {
+    return (
+      <div className={`flex items-center justify-center h-screen w-full ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-100'
+      }`}>
+        <div className="text-center max-w-md p-6">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className={`text-xl font-semibold mb-2 ${
+            darkMode ? 'text-white' : 'text-gray-800'
+          }`}>
+            Something went wrong
+          </h2>
+          <p className={`text-sm mb-4 ${
+            darkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            The chat encountered an error. Please try refreshing the page.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Show loading state until component is initialized
   if (!isInitialized) {
@@ -1519,8 +1593,8 @@ function Chatbot({ userLocation: propUserLocation }) {
         </div>
       </div>
 
-      {/* Error Notification */}
-      {currentError && (
+      {/* Error Notification - with safety check */}
+      {currentError && typeof currentError === 'object' && (
         <ErrorNotification
           error={currentError}
           onRetry={handleRetry}
