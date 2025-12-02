@@ -19,6 +19,65 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
 
+# ==========================================
+# Phase 3: Response Enhancer Integration
+# ==========================================
+_response_enhancer = None
+
+def get_response_enhancer():
+    """Get or create Response Enhancer singleton"""
+    global _response_enhancer
+    if _response_enhancer is None:
+        try:
+            from services.llm import get_response_enhancer
+            _response_enhancer = get_response_enhancer()
+            logger.info("✅ Response Enhancer initialized")
+        except Exception as e:
+            logger.warning(f"⚠️  Response Enhancer not available: {e}")
+            _response_enhancer = None
+    return _response_enhancer
+
+
+async def enhance_chat_response(
+    base_response: str,
+    original_query: str,
+    user_context: Optional[Dict[str, Any]] = None,
+    route_data: Optional[Dict[str, Any]] = None,
+    response_type: str = "general"
+) -> str:
+    """
+    Enhance response with LLM-generated contextual insights.
+    
+    This is Phase 3 of LLM Enhancement - adds intelligent tips to ALL responses.
+    Falls back to original response if enhancer unavailable.
+    """
+    enhancer = get_response_enhancer()
+    if not enhancer:
+        return base_response
+    
+    try:
+        result = await enhancer.enhance_response(
+            base_response=base_response,
+            original_query=original_query,
+            user_context=user_context,
+            route_data=route_data,
+            response_type=response_type
+        )
+        
+        # Extract enhanced response
+        if hasattr(result, 'enhanced_response'):
+            return result.enhanced_response
+        elif hasattr(result, 'response'):
+            return result.response
+        else:
+            return base_response
+            
+    except Exception as e:
+        logger.warning(f"Response enhancement failed: {e}")
+        return base_response
+# ==========================================
+
+
 # Request/Response Models
 class ChatRequest(BaseModel):
     """Request model for chat endpoints"""
@@ -67,11 +126,171 @@ async def pure_llm_chat(
     db: Session = Depends(get_db)
 ):
     """
-    Pure LLM chat endpoint - uses only LLM for responses
-    Now with GPS navigation and route planning support!
+    Pure LLM chat endpoint - LLM-First Architecture with Intent Classification
+    
+    Phase 1 Enhancement: LLM Intent Classifier runs FIRST to understand user intent,
+    extract locations, detect preferences, and provide routing recommendations.
+    
+    Flow:
+    1. LLM Intent Classification (NEW!) - Always first
+    2. Smart routing based on LLM intent
+    3. Specialized handlers (routes, gems, info)
+    4. Pure LLM fallback
     """
-    # Helper function to detect information requests vs. directions requests
-    def is_information_request(message: str) -> bool:
+    
+    # === PHASE 1: LLM INTENT CLASSIFICATION (NEW!) ===
+    # This gives the LLM the primary role in understanding user intent
+    logger.info(f"🤖 Phase 1: LLM Intent Classification for query: '{request.message[:60]}...'")
+    
+    try:
+        from services.llm import get_intent_classifier
+        
+        # Prepare context for intent classification
+        user_context = {
+            'preferences': request.preferences or {},
+        }
+        
+        if request.user_location:
+            user_context['gps'] = request.user_location
+            user_context['location'] = request.user_location
+            logger.info(f"📍 User GPS available: lat={request.user_location.get('lat')}, lon={request.user_location.get('lon')}")
+        
+        # Get or create intent classifier (uses singleton pattern)
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if not pure_llm_core:
+            logger.warning("⚠️ Pure LLM Core not available, skipping LLM intent classification")
+            llm_intent = None
+        else:
+            # Get the LLM client from pure_llm_core
+            llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
+            
+            if llm_client:
+                intent_classifier = get_intent_classifier(
+                    llm_client=llm_client,
+                    db_connection=db,
+                    cache_manager=None,  # TODO: Add cache manager when available
+                    config={'enable_caching': False}  # Disable for initial testing
+                )
+                
+                # Classify intent using LLM
+                llm_intent = await intent_classifier.classify_intent(
+                    query=request.message,
+                    user_context=user_context,
+                    use_cache=True
+                )
+                
+                logger.info(
+                    f"✅ LLM Intent Classification complete:\n"
+                    f"   - Primary Intent: {llm_intent.primary_intent}\n"
+                    f"   - Confidence: {llm_intent.confidence:.2f}\n"
+                    f"   - Origin: {llm_intent.origin}\n"
+                    f"   - Destination: {llm_intent.destination}\n"
+                    f"   - Method: {llm_intent.classification_method}\n"
+                    f"   - Time: {llm_intent.processing_time_ms:.0f}ms"
+                )
+                
+                # Log preferences if detected
+                if llm_intent.user_preferences:
+                    logger.info(f"   - Detected Preferences: {llm_intent.user_preferences}")
+                
+                # Log ambiguities if any
+                if llm_intent.ambiguities:
+                    logger.warning(f"   - Ambiguities: {llm_intent.ambiguities}")
+        
+                # === PHASE 2: LLM LOCATION RESOLUTION ===
+                # If locations detected or route intent, use LLM location resolver
+                location_resolution = None
+                if llm_intent.primary_intent in ["route", "hidden_gems", "information", "transport"]:
+                    try:
+                        from backend.services.llm import get_location_resolver
+                        
+                        location_resolver = get_location_resolver()
+                        
+                        # Prepare user context for location resolver
+                        loc_context = {
+                            'gps': user_context.get('gps'),
+                            'previous_locations': []  # TODO: Track in conversation history
+                        }
+                        
+                        # Resolve locations using LLM
+                        location_resolution = location_resolver.resolve_locations(
+                            query=request.message,
+                            user_context=loc_context
+                        )
+                        
+                        logger.info(
+                            f"✅ LLM Location Resolution complete:\n"
+                            f"   - Pattern: {location_resolution.pattern}\n"
+                            f"   - Locations Found: {len(location_resolution.locations)}\n"
+                            f"   - Confidence: {location_resolution.confidence:.2f}\n"
+                            f"   - Used LLM: {location_resolution.used_llm}\n"
+                            f"   - Fallback: {location_resolution.fallback_used}"
+                        )
+                        
+                        # Log each location
+                        for i, loc in enumerate(location_resolution.locations, 1):
+                            coords_str = f"{loc.coordinates[0]:.4f}, {loc.coordinates[1]:.4f}" if loc.coordinates else "None"
+                            logger.info(
+                                f"   Location {i}: {loc.name} -> {loc.matched_name} "
+                                f"({coords_str}, confidence={loc.confidence:.2f})"
+                            )
+                        
+                        # Log ambiguities
+                        if location_resolution.ambiguities:
+                            logger.warning(f"   - Location Ambiguities: {location_resolution.ambiguities}")
+                        
+                        # Update llm_intent with resolved locations for downstream handlers
+                        if location_resolution.locations:
+                            if len(location_resolution.locations) >= 2 and location_resolution.pattern == "from_to":
+                                # Two locations: origin and destination
+                                llm_intent.origin = location_resolution.locations[0].matched_name
+                                llm_intent.destination = location_resolution.locations[1].matched_name
+                                logger.info(f"   ✓ Updated intent: origin={llm_intent.origin}, dest={llm_intent.destination}")
+                            elif len(location_resolution.locations) == 1:
+                                # Single location: destination only
+                                llm_intent.destination = location_resolution.locations[0].matched_name
+                                logger.info(f"   ✓ Updated intent: dest={llm_intent.destination}")
+                            elif len(location_resolution.locations) > 2:
+                                # Multi-stop journey
+                                llm_intent.destination = location_resolution.locations[-1].matched_name
+                                logger.info(f"   ✓ Multi-stop journey detected, final dest={llm_intent.destination}")
+                    
+                    except Exception as e:
+                        logger.error(f"❌ LLM Location Resolution failed: {e}", exc_info=True)
+                        location_resolution = None
+            else:
+                logger.warning("⚠️ LLM client not available, skipping intent classification")
+                llm_intent = None
+                
+    except Exception as e:
+        logger.error(f"❌ LLM Intent Classification failed: {e}", exc_info=True)
+        llm_intent = None
+    
+    # === PHASE 2: SMART ROUTING BASED ON LLM INTENT ===
+    # Use LLM intent to make smart routing decisions
+    if llm_intent and llm_intent.is_high_confidence(threshold=0.7):
+        logger.info(f"🎯 High confidence LLM intent: {llm_intent.primary_intent}")
+        
+        # Route based on LLM intent classification
+        if llm_intent.primary_intent == "information":
+            logger.info("ℹ️ LLM detected information request, skipping GPS/route handlers")
+            skip_routing = True
+        elif llm_intent.primary_intent in ["route", "hidden_gems", "transport"]:
+            logger.info(f"🗺️ LLM detected {llm_intent.primary_intent} intent, will check specialized handlers")
+            skip_routing = False
+        else:
+            logger.info(f"💬 LLM detected {llm_intent.primary_intent} intent, will use general flow")
+            skip_routing = False
+    else:
+        # Low confidence or no LLM intent, fallback to regex-based detection
+        if llm_intent:
+            logger.warning(f"⚠️ Low confidence LLM intent ({llm_intent.confidence:.2f}), falling back to regex")
+        else:
+            logger.warning(f"⚠️ No LLM intent available, falling back to regex")
+        skip_routing = False
+        
+        # Fallback: Old regex-based information request detection
+        def is_information_request(message: str) -> bool:
         """Check if asking for information about POIs, not directions to them"""
         msg_lower = message.lower()
         
@@ -97,29 +316,43 @@ async def pure_llm_chat(
         # Special case: "show me" + location name without info keywords = might be directions
         # But "show me the best/top" = information request
         if 'show me' in msg_lower and not any(word in msg_lower for word in ['best', 'top', 'all', 'some', 'good']):
-            return False
+        # Fallback: Old regex-based information request detection
+        def is_information_request(message: str) -> bool:
+            """Check if asking for information about POIs, not directions to them"""
+            msg_lower = message.lower()
+            
+            # Information request keywords
+            info_keywords = ['what are', 'show me the', 'tell me about', 'recommend', 
+                            'best', 'top', 'list', 'which', 'where can i find',
+                            'what is', 'what\'s', 'tell me', 'can you recommend']
+            has_info_keywords = any(kw in msg_lower for kw in info_keywords)
+            
+            # POI/Attraction keywords (information target)
+            poi_keywords = ['attractions', 'landmarks', 'museums', 'places to visit', 
+                           'sights', 'historical', 'monuments', 'palaces', 'mosques',
+                           'restaurants', 'cafes', 'things to do', 'things to see',
+                           'places to see', 'must see', 'must-see', 'worth visiting']
+            about_pois = any(kw in msg_lower for kw in poi_keywords)
+            
+            # Direction keywords (should NOT be present for info requests)
+            direction_keywords = ['from', ' to ', 'route', 'directions', 'how to get', 
+                                'how do i get', 'how can i get', 'take me', 'navigate',
+                                'navigation', 'way to', 'go to']
+            asking_directions = any(kw in msg_lower for kw in direction_keywords)
+            
+            # Special case: "show me" + location name without info keywords = might be directions
+            # But "show me the best/top" = information request
+            if 'show me' in msg_lower and not any(word in msg_lower for word in ['best', 'top', 'all', 'some', 'good']):
+                return False
+            
+            # It's an info request if: has info keywords + about POIs + NOT asking directions
+            return has_info_keywords and about_pois and not asking_directions
         
-        # It's an info request if: has info keywords + about POIs + NOT asking directions
-        return has_info_keywords and about_pois and not asking_directions
+        skip_routing = is_information_request(request.message)
+        if skip_routing:
+            logger.info(f"ℹ️ Fallback regex detected information request: '{request.message[:50]}...'")
     
-    # Check if this is an information request (not directions)
-    skip_routing = is_information_request(request.message)
-    if skip_routing:
-        logger.info(f"ℹ️ Detected information request (not directions): '{request.message[:50]}...'")
-        logger.info(f"ℹ️ Skipping GPS/route handlers, will use ML chat for information")
-    
-    # Prepare user context with GPS location
-    user_context = {
-        'preferences': request.preferences or {},
-    }
-    
-    # Add GPS location to context if available
-    if request.user_location:
-        user_context['gps'] = request.user_location
-        user_context['location'] = request.user_location
-        logger.info(f"📍 User GPS location: {request.user_location}")
-    
-    # Only check routing handlers if NOT an information request
+    # === PHASE 3: SPECIALIZED HANDLERS (if not skipping) ===
     if not skip_routing:
         # First check if this is a hidden gems GPS request
         try:
@@ -137,7 +370,7 @@ async def pure_llm_chat(
             if gems_result:
                 # This was a hidden gems request
                 if gems_result.get('error'):
-                    # Error occurred
+                    # Error occurred (no enhancement for errors)
                     return ChatResponse(
                         response=gems_result.get('message', 'Sorry, something went wrong with hidden gems.'),
                         session_id=request.session_id or 'new',
@@ -148,8 +381,17 @@ async def pure_llm_chat(
                 
                 # Check if navigation was started
                 if gems_result.get('navigation_active'):
+                    # Enhance navigation response
+                    enhanced_msg = await enhance_chat_response(
+                        base_response=gems_result.get('message', ''),
+                        original_query=request.message,
+                        user_context=user_context,
+                        route_data=gems_result.get('navigation_data'),
+                        response_type="navigation"
+                    )
+                    
                     return ChatResponse(
-                        response=gems_result.get('message', ''),
+                        response=enhanced_msg,
                         session_id=request.session_id or 'new',
                         intent='hidden_gems_navigation',
                         confidence=1.0,
@@ -159,12 +401,20 @@ async def pure_llm_chat(
                         navigation_data=gems_result.get('navigation_data')
                     )
                 
-                # Return gems discovery response
+                # Return gems discovery response with enhancement
                 gems = gems_result.get('gems', [])
                 response_text = _format_hidden_gems_response(gems, request.user_location)
                 
+                # Phase 3: Enhance hidden gems response
+                enhanced_response = await enhance_chat_response(
+                    base_response=response_text,
+                    original_query=request.message,
+                    user_context=user_context,
+                    response_type="hidden_gems"
+                )
+                
                 return ChatResponse(
-                    response=response_text,
+                    response=enhanced_response,
                     session_id=request.session_id or 'new',
                     intent='hidden_gems',
                     confidence=1.0,
@@ -190,9 +440,17 @@ async def pure_llm_chat(
             )
             
             if nav_result:
-                # This was a navigation command
+                # This was a navigation command - enhance with contextual tips
+                enhanced_msg = await enhance_chat_response(
+                    base_response=nav_result.get('message', ''),
+                    original_query=request.message,
+                    user_context=user_context,
+                    route_data=nav_result.get('navigation_data'),
+                    response_type="gps_navigation"
+                )
+                
                 return ChatResponse(
-                    response=nav_result.get('message', ''),
+                    response=enhanced_msg,
                     session_id=request.session_id or 'new',
                     intent='gps_navigation',
                     confidence=1.0,
@@ -203,43 +461,69 @@ async def pure_llm_chat(
                 )
             
             # Try to handle as route request (e.g., "how can I go to Taksim")
-            route_result = handler.handle_route_request(
-                message=request.message,
-                user_context=user_context
-            )
+            logger.info(f"🔍 Checking if message is a route request: '{request.message}'")
             
-            if route_result:
-                # This was a route request
-                response_type = route_result.get('type', '')
-                
-                # Check if GPS permission is needed
-                if response_type == 'gps_permission_required':
-                    return ChatResponse(
-                        response=route_result.get('message', ''),
-                        session_id=request.session_id or 'new',
-                        intent='route_planning',
-                        confidence=1.0,
-                        suggestions=[
-                            "Enable GPS and try again",
-                            "Specify start location manually",
-                            "Show me restaurants nearby"
-                        ],
-                        map_data={'request_gps': True, 'destination': route_result.get('destination')}
-                    )
-                
-                # Return route response
-                return ChatResponse(
-                    response=route_result.get('message', ''),
-                    session_id=request.session_id or 'new',
-                    intent='route_planning',
-                    confidence=route_result.get('confidence', 1.0),
-                    suggestions=route_result.get('suggestions', []),
-                    map_data=route_result.get('map_data'),
-                    navigation_active=False
+            try:
+                route_result = handler.handle_route_request(
+                    message=request.message,
+                    user_context=user_context
                 )
                 
+                if route_result:
+                    logger.info(f"✅ Route request detected! Result type: {route_result.get('type', 'unknown')}")
+                    # This was a route request
+                    response_type = route_result.get('type', '')
+                    
+                    # Check for errors
+                    if response_type == 'error':
+                        error_msg = route_result.get('message', 'Route planning error')
+                        logger.error(f"❌ Route planning error: {error_msg}")
+                        # Don't return error, fall through to Pure LLM for better UX
+                    
+                    # Check if GPS permission is needed
+                    elif response_type == 'gps_permission_required':
+                        return ChatResponse(
+                            response=route_result.get('message', ''),
+                            session_id=request.session_id or 'new',
+                            intent='route_planning',
+                            confidence=1.0,
+                            suggestions=[
+                                "Enable GPS and try again",
+                                "Specify start location manually",
+                                "Show me restaurants nearby"
+                            ],
+                            map_data={'request_gps': True, 'destination': route_result.get('destination')}
+                        )
+                    
+                    # Success - return route response with enhancement
+                    elif response_type in ['route', 'multi_stop_itinerary']:
+                        # Phase 3: Enhance route response with contextual tips
+                        enhanced_msg = await enhance_chat_response(
+                            base_response=route_result.get('message', ''),
+                            original_query=request.message,
+                            user_context=user_context,
+                            route_data=route_result.get('route_data'),
+                            response_type="route"
+                        )
+                        
+                        return ChatResponse(
+                            response=enhanced_msg,
+                            session_id=request.session_id or 'new',
+                            intent='route_planning',
+                            confidence=route_result.get('confidence', 1.0),
+                            suggestions=route_result.get('suggestions', []),
+                            map_data=route_result.get('route_data'),  # Fixed: use route_data, not map_data
+                            navigation_active=False
+                        )
+                else:
+                    logger.info(f"❌ Not detected as a route request, will use Pure LLM")
+                    
+            except Exception as route_error:
+                logger.error(f"Route handler error: {route_error}", exc_info=True)
+                # Fall through to Pure LLM on error
+                
         except Exception as e:
-            logger.warning(f"Route/Navigation check failed: {e}")
+            logger.warning(f"Route/Navigation check failed: {e}", exc_info=True)
     
     # Not a navigation command, proceed with normal LLM chat
     pure_llm_core = startup_manager.get_pure_llm_core()
@@ -265,8 +549,17 @@ async def pure_llm_chat(
         
         logger.info(f"Pure LLM response generated in {response_time:.2f}s")
         
+        # Phase 3: Enhance Pure LLM response with contextual intelligence
+        enhanced_response = await enhance_chat_response(
+            base_response=result.get('response', ''),
+            original_query=request.message,
+            user_context=user_context,
+            route_data=result.get('map_data'),  # May contain route info
+            response_type=result.get('intent', 'general')
+        )
+        
         return ChatResponse(
-            response=result.get('response', ''),
+            response=enhanced_response,
             session_id=result.get('session_id', request.session_id or 'new'),
             intent=result.get('intent'),
             confidence=result.get('confidence'),

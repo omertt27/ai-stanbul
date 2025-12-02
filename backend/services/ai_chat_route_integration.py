@@ -22,19 +22,31 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+# Import LLM route preference detector
+try:
+    from .llm.route_preference_detector import detect_route_preferences
+    LLM_PREFERENCES_AVAILABLE = True
+    logger.info("✅ LLM Route Preference Detector available")
+except ImportError as e:
+    LLM_PREFERENCES_AVAILABLE = False
+    logger.warning(f"⚠️ LLM Route Preference Detector not available: {e}")
+
 # Import intelligent route integration
 try:
-    import sys
-    import os
-    # Add parent directories to path
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    
-    from intelligent_route_integration import (
-        IntelligentRouteIntegration,
-        IntelligentRoute,
-        create_intelligent_route_integration
-    )
+    # Try relative import first (we're in services/)
+    try:
+        from .intelligent_route_integration import (
+            IntelligentRouteIntegration,
+            IntelligentRoute,
+            create_intelligent_route_integration
+        )
+    except ImportError:
+        # Fallback to absolute import
+        from services.intelligent_route_integration import (
+            IntelligentRouteIntegration,
+            IntelligentRoute,
+            create_intelligent_route_integration
+        )
     ROUTE_INTEGRATION_AVAILABLE = True
     logger.info("✅ Intelligent Route Integration available")
 except ImportError as e:
@@ -43,11 +55,18 @@ except ImportError as e:
 
 # Import multi-stop route planner
 try:
-    from multi_stop_route_planner import (
-        MultiStopRoutePlanner,
-        OptimizationStrategy,
-        PointOfInterest
-    )
+    try:
+        from .multi_stop_route_planner import (
+            MultiStopRoutePlanner,
+            OptimizationStrategy,
+            PointOfInterest
+        )
+    except ImportError:
+        from services.multi_stop_route_planner import (
+            MultiStopRoutePlanner,
+            OptimizationStrategy,
+            PointOfInterest
+        )
     MULTI_STOP_AVAILABLE = True
     logger.info("✅ Multi-stop route planner available")
 except ImportError as e:
@@ -56,14 +75,24 @@ except ImportError as e:
 
 # Import GPS turn-by-turn navigation
 try:
-    from gps_turn_by_turn_navigation import (
-        GPSTurnByTurnNavigator,
-        NavigationMode,
-        GPSLocation,
-        RouteStep,
-        InstructionType,
-        convert_osrm_to_steps
-    )
+    try:
+        from .gps_turn_by_turn_navigation import (
+            GPSTurnByTurnNavigator,
+            NavigationMode,
+            GPSLocation,
+            RouteStep,
+            InstructionType,
+            convert_osrm_to_steps
+        )
+    except ImportError:
+        from services.gps_turn_by_turn_navigation import (
+            GPSTurnByTurnNavigator,
+            NavigationMode,
+            GPSLocation,
+            RouteStep,
+            InstructionType,
+            convert_osrm_to_steps
+        )
     GPS_NAVIGATION_AVAILABLE = True
     logger.info("✅ GPS turn-by-turn navigation available")
 except ImportError as e:
@@ -175,12 +204,16 @@ class AIChatRouteHandler:
             return self._handle_multi_stop_request(message, user_context)
         
         # Extract locations from message
+        logger.info(f"🔍 Extracting locations from: '{message}'")
         locations = self._extract_locations(message)
+        logger.info(f"📍 Extracted {len(locations)} location(s): {locations}")
         
         # Check if user is asking "how to get to X" without specifying start
         # In this case, use their GPS location as start point
         if len(locations) == 1:
+            logger.info(f"⚠️ Only 1 location found, checking for GPS...")
             user_location = self._get_user_gps_location(user_context)
+            logger.info(f"📍 GPS location from context: {user_location}")
             if user_location:
                 # User asked "how can I go to Taksim" - use GPS as start
                 locations.insert(0, user_location)
@@ -200,21 +233,62 @@ class AIChatRouteHandler:
                 'message': "I couldn't identify the locations. Please specify at least a start and end point, like 'route from Sultanahmet to Galata Tower', or enable GPS and ask 'how do I get to Taksim?'"
             }
         
-        # Determine transport mode
+        # 🆕 PHASE 4.1: Extract route preferences using LLM
+        route_preferences = None
+        if LLM_PREFERENCES_AVAILABLE:
+            try:
+                import asyncio
+                route_preferences = asyncio.run(detect_route_preferences(
+                    query=message,
+                    user_profile=user_context.get('preferences') if user_context else None,
+                    route_context={
+                        'locations': locations,
+                        'transport_mode': self._detect_transport_mode(message)
+                    }
+                ))
+                logger.info(f"🎯 Detected route preferences: {route_preferences.get_summary()}")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not extract route preferences: {e}")
+        
+        # Determine transport mode (may be overridden by preferences)
         transport_mode = self._detect_transport_mode(message)
+        
+        # Override transport mode if preferences specify it
+        if route_preferences and route_preferences.transport_modes:
+            transport_mode = route_preferences.transport_modes[0]
+            logger.info(f"🔄 Using transport mode from preferences: {transport_mode}")
         
         # Plan route
         try:
             if len(locations) == 2:
+                # Build routing params from preferences
+                routing_params = {}
+                if route_preferences:
+                    routing_params = route_preferences.to_routing_params()
+                    logger.info(f"📋 Using routing params: {routing_params}")
+                
+                # Merge with user context
+                if user_context:
+                    routing_params.update(user_context)
+                
                 # Single route
                 route = self.route_integration.plan_intelligent_route(
                     start=locations[0],
                     end=locations[1],
                     transport_mode=transport_mode,
-                    user_context=user_context
+                    user_context=routing_params if routing_params else user_context
                 )
                 
                 response = self._format_route_response(route, single=True)
+                
+                # Add preference info to response
+                if route_preferences:
+                    response['preferences'] = {
+                        'summary': route_preferences.get_summary(),
+                        'optimize_for': route_preferences.optimize_for,
+                        'accessibility': route_preferences.accessibility,
+                        'source': route_preferences.source
+                    }
                 
             else:
                 # Multi-location route (legacy handling)
@@ -370,42 +444,256 @@ class AIChatRouteHandler:
                (has_multi_location_pattern and location_count >= 2)
     
     def _extract_locations(self, message: str) -> List[Tuple[float, float]]:
-        """Extract location coordinates from message"""
-        message_lower = message.lower()
-        found_locations = []
+        """
+        Industry-level location extraction from natural language queries.
         
-        # Try to find known locations
+        Supports patterns:
+        - "from X to Y" / "X to Y" 
+        - "to Y from X" / "go to Y from X"
+        - "between X and Y"
+        - "X → Y" / "X -> Y"
+        - Multiple locations: "X, Y, and Z"
+        - Implicit patterns: "how do I get to X" (uses current location)
+        
+        Args:
+            message: Natural language route query
+            
+        Returns:
+            List of coordinate tuples in journey order
+        """
+        message_lower = message.lower().strip()
+        logger.info(f"🔍 Starting location extraction from: '{message_lower}'")
+        
+        # PATTERN 1: "to Y from X" - destination before origin
+        # Examples: "to taksim from kadikoy", "go to galata from sultanahmet", "how can I go to X from Y"
+        to_from_patterns = [
+            r'(?:how\s+(?:can|do)\s+i\s+)?(?:go\s+)?to\s+([^from]+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:get|travel|walk|drive)\s+to\s+([^from]+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:route|directions)\s+to\s+([^from]+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
+        ]
+        
+        for pattern in to_from_patterns:
+            match = re.search(pattern, message_lower, re.IGNORECASE)
+            if match:
+                logger.info(f"✅ Matched to-from pattern: {pattern}")
+                dest_str = match.group(1).strip()
+                origin_str = match.group(2).strip()
+                logger.info(f"   Raw: origin='{origin_str}', dest='{dest_str}'")
+                
+                # Clean up common noise words
+                origin_str = self._clean_location_string(origin_str)
+                dest_str = self._clean_location_string(dest_str)
+                
+                origin_coords = self._find_best_location_match(origin_str)
+                dest_coords = self._find_best_location_match(dest_str)
+                
+                if origin_coords and dest_coords:
+                    logger.info(f"✅ Extracted route (to-from): {origin_str} → {dest_str}")
+                    return [origin_coords, dest_coords]
+        
+        # PATTERN 2: "from X to Y" - traditional direction pattern
+        # Examples: "from sultanahmet to galata", "route from X to Y", "directions from A to B"
+        from_to_patterns = [
+            r'(?:from|starting\s+from)\s+([^to]+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:route|directions|path|way)\s+from\s+([^to]+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:going|traveling|walking)\s+from\s+([^to]+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
+        ]
+        
+        for pattern in from_to_patterns:
+            match = re.search(pattern, message_lower, re.IGNORECASE)
+            if match:
+                origin_str = match.group(1).strip()
+                dest_str = match.group(2).strip()
+                
+                origin_str = self._clean_location_string(origin_str)
+                dest_str = self._clean_location_string(dest_str)
+                
+                origin_coords = self._find_best_location_match(origin_str)
+                dest_coords = self._find_best_location_match(dest_str)
+                
+                if origin_coords and dest_coords:
+                    logger.info(f"✅ Extracted route (from-to): {origin_str} → {dest_str}")
+                    return [origin_coords, dest_coords]
+        
+        # PATTERN 3: "between X and Y" - bidirectional query
+        # Examples: "distance between X and Y", "route between A and B"
+        between_pattern = r'between\s+([^and]+?)\s+and\s+(.+?)(?:\s*[?.!]|$)'
+        match = re.search(between_pattern, message_lower, re.IGNORECASE)
+        if match:
+            loc1_str = self._clean_location_string(match.group(1).strip())
+            loc2_str = self._clean_location_string(match.group(2).strip())
+            
+            loc1_coords = self._find_best_location_match(loc1_str)
+            loc2_coords = self._find_best_location_match(loc2_str)
+            
+            if loc1_coords and loc2_coords:
+                logger.info(f"✅ Extracted route (between): {loc1_str} ↔ {loc2_str}")
+                return [loc1_coords, loc2_coords]
+        
+        # PATTERN 4: Simple "X to Y" without prepositions
+        # Examples: "taksim to kadikoy", "sultanahmet → galata"
+        simple_patterns = [
+            r'^([^to]+?)\s+(?:to|→|->)\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:^|\s)([a-z\s]+)\s+(?:to|→|->)\s+([a-z\s]+)(?:\s*[?.!]|$)',
+        ]
+        
+        for pattern in simple_patterns:
+            match = re.search(pattern, message_lower, re.IGNORECASE)
+            if match:
+                origin_str = self._clean_location_string(match.group(1).strip())
+                dest_str = self._clean_location_string(match.group(2).strip())
+                
+                origin_coords = self._find_best_location_match(origin_str)
+                dest_coords = self._find_best_location_match(dest_str)
+                
+                if origin_coords and dest_coords:
+                    logger.info(f"✅ Extracted route (simple): {origin_str} → {dest_str}")
+                    return [origin_coords, dest_coords]
+        
+        # PATTERN 5: Comma-separated list for multi-stop routes
+        # Examples: "visit taksim, galata, and sultanahmet", "tour of X, Y, Z"
+        if ',' in message_lower:
+            locations = self._extract_comma_separated_locations(message_lower)
+            if len(locations) >= 2:
+                logger.info(f"✅ Extracted multi-stop route: {len(locations)} locations")
+                return locations
+        
+        # FALLBACK: Find all mentioned locations (preserve order)
+        found_locations = []
+        location_positions = []
+        
         for location_name, coords in self.KNOWN_LOCATIONS.items():
-            if location_name in message_lower:
-                found_locations.append((location_name, coords))
+            # Use word boundary matching for better accuracy
+            pattern = r'\b' + re.escape(location_name) + r'\b'
+            match = re.search(pattern, message_lower)
+            if match:
+                location_positions.append((match.start(), location_name, coords))
+        
+        # Sort by position in message to preserve natural order
+        location_positions.sort(key=lambda x: x[0])
         
         # Remove duplicates while preserving order
         seen = set()
-        unique_locations = []
-        for name, coords in found_locations:
+        for _, name, coords in location_positions:
             if name not in seen:
                 seen.add(name)
-                unique_locations.append(coords)
+                found_locations.append(coords)
         
-        # If using "from X to Y" pattern, ensure correct order
-        from_match = re.search(r'from\s+([^to]+)\s+to\s+(.+)', message_lower)
-        if from_match:
-            start_name = from_match.group(1).strip()
-            end_name = from_match.group(2).strip()
-            
-            start_coords = None
-            end_coords = None
-            
-            for location_name, coords in self.KNOWN_LOCATIONS.items():
-                if location_name in start_name:
-                    start_coords = coords
-                if location_name in end_name:
-                    end_coords = coords
-            
-            if start_coords and end_coords:
-                return [start_coords, end_coords]
+        if found_locations:
+            logger.info(f"✅ Found {len(found_locations)} locations (fallback extraction)")
         
-        return unique_locations
+        return found_locations
+    
+    def _clean_location_string(self, loc_str: str) -> str:
+        """
+        Clean location string by removing noise words and punctuation.
+        
+        Args:
+            loc_str: Raw location string from regex capture
+            
+        Returns:
+            Cleaned location string
+        """
+        # Remove common noise words
+        noise_words = [
+            'the', 'a', 'an', 'my', 'your', 'our', 'this', 'that',
+            'here', 'there', 'now', 'then', 'at', 'in', 'on', 'by',
+            'near', 'around', 'area', 'place', 'location', 'spot'
+        ]
+        
+        # Split into words
+        words = loc_str.split()
+        
+        # Filter noise words (but keep if it's the only word)
+        if len(words) > 1:
+            words = [w for w in words if w not in noise_words]
+        
+        # Remove punctuation from ends
+        cleaned = ' '.join(words).strip(',.!?;: ')
+        
+        return cleaned
+    
+    def _find_best_location_match(self, query: str) -> Optional[Tuple[float, float]]:
+        """
+        Find best matching location from KNOWN_LOCATIONS using fuzzy matching.
+        
+        Strategies:
+        1. Exact match (case-insensitive)
+        2. Substring match (location name contains query or vice versa)
+        3. Word-based partial match (all query words appear in location name)
+        
+        Args:
+            query: Location query string (cleaned)
+            
+        Returns:
+            Coordinate tuple if found, None otherwise
+        """
+        query = query.lower().strip()
+        
+        if not query:
+            return None
+        
+        # Strategy 1: Exact match
+        if query in self.KNOWN_LOCATIONS:
+            return self.KNOWN_LOCATIONS[query]
+        
+        # Strategy 2: Check if query is substring of any location name
+        for location_name, coords in self.KNOWN_LOCATIONS.items():
+            if query in location_name or location_name in query:
+                # Prefer shorter matches (more specific)
+                return coords
+        
+        # Strategy 3: Word-based partial matching
+        query_words = set(query.split())
+        best_match = None
+        best_match_score = 0
+        
+        for location_name, coords in self.KNOWN_LOCATIONS.items():
+            location_words = set(location_name.split())
+            
+            # Count matching words
+            matching_words = query_words & location_words
+            match_score = len(matching_words)
+            
+            # Require at least one matching word
+            if match_score > 0 and match_score > best_match_score:
+                best_match = coords
+                best_match_score = match_score
+        
+        if best_match:
+            return best_match
+        
+        # No match found
+        logger.debug(f"⚠️ Could not find location match for: '{query}'")
+        return None
+    
+    def _extract_comma_separated_locations(self, message: str) -> List[Tuple[float, float]]:
+        """
+        Extract locations from comma-separated list.
+        
+        Examples:
+        - "visit taksim, galata, and sultanahmet"
+        - "tour of X, Y, Z"
+        
+        Args:
+            message: Message containing comma-separated locations
+            
+        Returns:
+            List of coordinates in order mentioned
+        """
+        locations = []
+        
+        # Split by commas and 'and'
+        parts = re.split(r'[,]|\s+and\s+', message)
+        
+        for part in parts:
+            part = self._clean_location_string(part.strip())
+            if part:
+                coords = self._find_best_location_match(part)
+                if coords and coords not in locations:
+                    locations.append(coords)
+        
+        return locations
     
     def _detect_transport_mode(self, message: str) -> str:
         """Detect transport mode from message"""
@@ -1521,15 +1809,21 @@ Say 'what's next' for updates or 'stop navigation' to end.""",
         Returns:
             Tuple of (lat, lon) if GPS available, None otherwise
         """
+        logger.info(f"🔍 Checking user_context for GPS: {user_context}")
+        
         if not user_context:
+            logger.info("❌ No user_context provided")
             return None
         
         # Check for GPS location in various formats
         # Format 1: {'gps': {'lat': 41.0, 'lon': 28.9}}
         if 'gps' in user_context and isinstance(user_context['gps'], dict):
             gps = user_context['gps']
+            logger.info(f"✅ Found 'gps' in context: {gps}")
             if 'lat' in gps and 'lon' in gps:
-                return (float(gps['lat']), float(gps['lon']))
+                result = (float(gps['lat']), float(gps['lon']))
+                logger.info(f"✅ Returning GPS location from 'gps' field: {result}")
+                return result
         
         # Format 2: {'location': {'lat': 41.0, 'lon': 28.9}}
         if 'location' in user_context and isinstance(user_context['location'], dict):
@@ -1760,7 +2054,7 @@ if __name__ == "__main__":
                     start_location=(41.0054, 28.9768),
                     end_location=(41.0064, 28.9768),
                     street_name="Sultanahmet Square"
-                ),
+                               ),
                 RouteStep(
                     instruction_type=InstructionType.TURN_RIGHT,
                     distance=200,

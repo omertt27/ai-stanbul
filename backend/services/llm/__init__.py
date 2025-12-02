@@ -29,6 +29,26 @@ from .query_enhancement import QueryEnhancer
 from .conversation import ConversationManager
 from .experimentation import ExperimentationManager
 
+# Phase 1 & 2: LLM Enhancement imports
+from .models import (
+    IntentClassification,
+    EnhancedResponse,
+    QueryAnalysis,
+    LLMPromptTemplate,
+    CachedIntentResult,
+    LocationMatch,
+    LocationResolution,
+    RoutePreferences  # Phase 4.1
+)
+from .intent_classifier import LLMIntentClassifier, get_intent_classifier
+from .location_resolver import LLMLocationResolver, get_location_resolver, resolve_locations
+from .response_enhancer import LLMResponseEnhancer, get_response_enhancer, enhance_response
+from .route_preference_detector import (  # Phase 4.1
+    LLMRoutePreferenceDetector,
+    get_preference_detector,
+    detect_route_preferences
+)
+
 
 def create_pure_llm_core(
     db,
@@ -105,6 +125,30 @@ __all__ = [
     'QueryEnhancer',
     'ConversationManager',
     'ExperimentationManager',
+    # Phase 1: LLM Enhancement modules
+    'IntentClassification',
+    'ResolvedLocation',
+    'EnhancedResponse',
+    'QueryAnalysis',
+    'LLMPromptTemplate',
+    'CachedIntentResult',
+    'LLMIntentClassifier',
+    'get_intent_classifier',
+    # Phase 2: Location Resolution
+    'LocationMatch',
+    'LocationResolution',
+    'LLMLocationResolver',
+    'get_location_resolver',
+    'resolve_locations',
+    # Response Enhancement
+    'LLMResponseEnhancer',
+    'get_response_enhancer',
+    'enhance_response',
+    # Phase 4.1: Route Preferences
+    'RoutePreferences',
+    'LLMRoutePreferenceDetector',
+    'get_preference_detector',
+    'detect_route_preferences',
 ]
 
 __version__ = '2.0.0'

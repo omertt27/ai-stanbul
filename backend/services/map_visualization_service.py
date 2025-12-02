@@ -241,41 +241,100 @@ class MapVisualizationService:
         """
         Extract both origin and destination from user query.
         
+        Handles patterns:
+        - "from X to Y" / "X to Y"
+        - "to Y from X" / "go to Y from X" (reversed order)
+        - "how can I go to Y from X"
+        
         Returns:
             Tuple of (origin, destination) - either can be None
         """
         query_lower = query.lower()
         
-        # Patterns for "from X to Y" queries (English and Turkish)
-        from_to_patterns = [
-            (r'from\s+(.+?)\s+to\s+(.+?)[\?\.!]?$', 'en'),
-            (r'from\s+(.+?)\s+how.*to.*get.*to\s+(.+?)[\?\.!]?$', 'en'),
-            (r'(.+?)den\s+(.+?)[\?\.!ye/ya/e/a].*gitmek', 'tr'),  # Turkish: X'den Y'ye gitmek
-            (r'(.+?)den\s+(.+?)[\?\.!ye/ya/e/a].*nas[ıi]l', 'tr'),  # Turkish: X'den Y'ye nasıl
-            (r'(.+?)\s+to\s+(.+?)[\?\.!]?$', 'en'),
+        import re
+        
+        # PATTERN 1: "to Y from X" - destination before origin (most common in natural speech)
+        # Examples: "how can I go to taksim from kadikoy", "to sultanahmet from taksim"
+        # Fixed: Use negative lookahead (?!from) instead of character class [^from]
+        to_from_patterns = [
+            r'(?:how\s+(?:can|do)\s+i\s+)?(?:go\s+)?to\s+((?:(?!\bfrom\b).)+?)\s+from\s+(.+?)(?:\s*[\?\.!]|$)',
+            r'(?:get|travel|walk)\s+to\s+((?:(?!\bfrom\b).)+?)\s+from\s+(.+?)(?:\s*[\?\.!]|$)',
+            r'(?:directions|route)\s+to\s+((?:(?!\bfrom\b).)+?)\s+from\s+(.+?)(?:\s*[\?\.!]|$)',
         ]
         
-        import re
-        for pattern, lang in from_to_patterns:
+        for pattern in to_from_patterns:
+            match = re.search(pattern, query_lower, re.IGNORECASE)
+            if match:
+                destination = match.group(1).strip()
+                origin = match.group(2).strip()
+                
+                # Clean common noise words
+                destination = self._clean_location_name(destination)
+                origin = self._clean_location_name(origin)
+                
+                logger.info(f"✅ Extracted (to-from): origin='{origin}', destination='{destination}'")
+                return (origin, destination)
+        
+        # PATTERN 2: "from X to Y" - traditional order
+        # Examples: "from kadikoy to taksim", "route from X to Y"
+        # Fixed: Use negative lookahead (?!to) instead of character class [^to]
+        from_to_patterns = [
+            r'from\s+((?:(?!\bto\b).)+?)\s+to\s+(.+?)(?:\s*[\?\.!]|$)',
+            r'(?:route|directions|path)\s+from\s+((?:(?!\bto\b).)+?)\s+to\s+(.+?)(?:\s*[\?\.!]|$)',
+            r'(?:going|traveling|walking)\s+from\s+((?:(?!\bto\b).)+?)\s+to\s+(.+?)(?:\s*[\?\.!]|$)',
+        ]
+        
+        for pattern in from_to_patterns:
             match = re.search(pattern, query_lower, re.IGNORECASE)
             if match:
                 origin = match.group(1).strip()
                 destination = match.group(2).strip()
                 
-                # Clean up Turkish suffixes
-                if lang == 'tr':
-                    destination = re.sub(r'[ye|ya|e|a]$', '', destination).strip()
-                    origin = re.sub(r'den$|dan$|\'den$|\'dan$', '', origin).strip()
+                origin = self._clean_location_name(origin)
+                destination = self._clean_location_name(destination)
                 
-                logger.info(f"Extracted origin='{origin}', destination='{destination}'")
+                logger.info(f"✅ Extracted (from-to): origin='{origin}', destination='{destination}'")
+                return (origin, destination)
+        
+        # PATTERN 3: Turkish patterns
+        # "X'den Y'ye nasıl giderim"
+        tr_patterns = [
+            (r'(.+?)(?:\'?den|\'?dan)\s+(.+?)(?:\'?ye|\'?ya|\'?e|\'?a)\s+nas[ıi]l', 'tr'),
+            (r'(.+?)(?:\'?den|\'?dan)\s+(.+?)(?:\'?ye|\'?ya)\s+git', 'tr'),
+        ]
+        
+        for pattern, lang in tr_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                origin = match.group(1).strip()
+                destination = match.group(2).strip()
+                
+                # Clean Turkish suffixes
+                origin = re.sub(r'\'?(den|dan)$', '', origin).strip()
+                destination = re.sub(r'\'?(ye|ya|e|a)$', '', destination).strip()
+                
+                logger.info(f"✅ Extracted (Turkish): origin='{origin}', destination='{destination}'")
                 return (origin, destination)
         
         # If no "from X to Y" pattern, try destination-only patterns
         destination = self._extract_destination_only(query)
         if destination:
+            logger.info(f"ℹ️ Extracted destination only: '{destination}' (no origin specified)")
             return (None, destination)
         
         return (None, None)
+    
+    def _clean_location_name(self, location: str) -> str:
+        """Clean location name by removing noise words"""
+        # Remove common noise words
+        noise_words = ['the', 'a', 'an', 'my', 'your', 'our', 'this', 'that',
+                      'here', 'there', 'at', 'in', 'on', 'near', 'around']
+        
+        words = location.split()
+        if len(words) > 1:
+            words = [w for w in words if w not in noise_words]
+        
+        return ' '.join(words).strip()
     
     def _extract_destination_only(self, query: str) -> Optional[str]:
         """Extract only destination from queries like 'how to get to X'"""
@@ -402,20 +461,40 @@ class MapVisualizationService:
         """Get coordinates for a destination"""
         destination_lower = destination.lower()
         
+        # Normalize Turkish characters for better matching
+        destination_normalized = self._normalize_turkish(destination_lower)
+        
         # Known landmarks and attractions in Istanbul
         landmarks = self._get_known_landmarks()
         
         # Try exact match first
         for name, coords in landmarks.items():
-            if destination_lower == name.lower():
+            name_lower = name.lower()
+            name_normalized = self._normalize_turkish(name_lower)
+            if destination_normalized == name_normalized or destination_lower == name_lower:
                 return coords
         
         # Try partial match
         for name, coords in landmarks.items():
-            if destination_lower in name.lower() or name.lower() in destination_lower:
+            name_lower = name.lower()
+            name_normalized = self._normalize_turkish(name_lower)
+            if (destination_normalized in name_normalized or name_normalized in destination_normalized or
+                destination_lower in name_lower or name_lower in destination_lower):
                 return coords
         
         return None
+    
+    def _normalize_turkish(self, text: str) -> str:
+        """Normalize Turkish characters to ASCII equivalents for matching"""
+        # Turkish character mappings
+        turkish_map = {
+            'ı': 'i', 'İ': 'i', 'ğ': 'g', 'Ğ': 'g',
+            'ü': 'u', 'Ü': 'u', 'ş': 's', 'Ş': 's',
+            'ö': 'o', 'Ö': 'o', 'ç': 'c', 'Ç': 'c'
+        }
+        for turkish_char, ascii_char in turkish_map.items():
+            text = text.replace(turkish_char, ascii_char)
+        return text
     
     def _get_known_landmarks(self) -> Dict[str, Tuple[float, float]]:
         """Get dictionary of known landmarks and their coordinates"""
