@@ -32,6 +32,8 @@ from .resilience import (
     GracefulDegradation
 )
 
+logger = logging.getLogger(__name__)
+
 # Import location-based enhancer
 try:
     from services.location_based_context_enhancer import get_location_based_enhancer
@@ -39,8 +41,6 @@ try:
 except ImportError:
     LOCATION_ENHANCER_AVAILABLE = False
     logger.warning("⚠️ Location-based context enhancer not available")
-
-logger = logging.getLogger(__name__)
 
 
 class ContextBuilder:

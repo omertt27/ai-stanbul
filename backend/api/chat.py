@@ -126,19 +126,254 @@ async def pure_llm_chat(
     db: Session = Depends(get_db)
 ):
     """
-    Pure LLM chat endpoint - LLM-First Architecture with Intent Classification
+    Pure LLM chat endpoint - LLM-First Architecture with Full Pipeline
     
-    Phase 1 Enhancement: LLM Intent Classifier runs FIRST to understand user intent,
-    extract locations, detect preferences, and provide routing recommendations.
+    Phase 4.2 Enhancement: Context Resolution runs FIRST to understand conversation flow
     
     Flow:
-    1. LLM Intent Classification (NEW!) - Always first
-    2. Smart routing based on LLM intent
-    3. Specialized handlers (routes, gems, info)
-    4. Pure LLM fallback
+    0. LLM Conversation Context (Phase 4.2!) - Resolve references & context
+    1. LLM Intent Classification (Phase 1) - Understand user intent
+    2. LLM Location Resolution (Phase 2) - Resolve locations
+    3. LLM Route Preferences (Phase 4.1) - Detect preferences
+    4. Specialized handlers (routes, gems, info)
+    5. LLM Response Enhancement (Phase 3) - Enhance final response
     """
     
-    # === PHASE 1: LLM INTENT CLASSIFICATION (NEW!) ===
+    # Generate or use provided session_id
+    session_id = request.session_id or f"session_{hash(request.message)}"
+    
+    # === PHASE 4.2: LLM CONVERSATION CONTEXT RESOLUTION (NEW!) ===
+    # This runs FIRST to resolve pronouns, references, and conversation flow
+    logger.info(f"💬 Phase 4.2: Conversation Context Resolution for session: {session_id}")
+    
+    resolved_context = None
+    original_query = request.message
+    
+    try:
+        from services.llm import get_context_manager
+        
+        # Get or create context manager (uses singleton pattern)
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if pure_llm_core:
+            llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
+            
+            if llm_client:
+                context_manager = get_context_manager(
+                    llm_client=llm_client,
+                    config={
+                        'enable_llm': True,
+                        'fallback_to_rules': True,
+                        'timeout_seconds': 2,
+                        'max_history_turns': 10
+                    }
+                )
+                
+                # Resolve context using LLM
+                resolved_context = await context_manager.resolve_context(
+                    current_query=request.message,
+                    session_id=session_id,
+                    user_id=request.user_id,
+                    user_location=request.user_location
+                )
+                
+                logger.info(
+                    f"✅ Context Resolution complete:\n"
+                    f"   - Has References: {resolved_context.get('has_references')}\n"
+                    f"   - Confidence: {resolved_context.get('confidence', 0):.2f}\n"
+                    f"   - Resolved Refs: {list(resolved_context.get('resolved_references', {}).keys())}\n"
+                    f"   - Needs Clarification: {resolved_context.get('needs_clarification')}\n"
+                    f"   - Source: {resolved_context.get('source')}"
+                )
+                
+                # If we have a resolved query, use it for downstream processing
+                if resolved_context.get('resolved_query'):
+                    logger.info(f"   Original: '{original_query}'")
+                    logger.info(f"   Resolved: '{resolved_context['resolved_query']}'")
+                    request.message = resolved_context['resolved_query']
+                
+                # If clarification is needed, return early with question
+                if resolved_context.get('needs_clarification') and resolved_context.get('clarification_question'):
+                    logger.info(f"   ⚠️ Clarification needed: {resolved_context['clarification_question']}")
+                    return ChatResponse(
+                        response=resolved_context['clarification_question'],
+                        intent="clarification",
+                        confidence=resolved_context.get('confidence', 0.8),
+                        method="context_clarification",
+                        suggestions=[],
+                        response_time=0.1,
+                        session_id=session_id
+                    )
+            else:
+                logger.warning("⚠️ LLM client not available, skipping context resolution")
+        else:
+            logger.warning("⚠️ Pure LLM Core not available, skipping context resolution")
+            
+    except Exception as e:
+        logger.error(f"Context resolution error: {e}", exc_info=True)
+        # Continue without context resolution - non-blocking
+    
+    # === PHASE 4.3: MULTI-INTENT DETECTION & HANDLING (NEW!) ===
+    # Check if query contains multiple intents that need orchestration
+    logger.info(f"🎯 Phase 4.3: Multi-Intent Detection for query: '{request.message[:60]}...'")
+    
+    multi_intent_result = None
+    try:
+        from services.llm import get_multi_intent_detector, get_intent_orchestrator, get_response_synthesizer
+        
+        # Get or create multi-intent detector
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if pure_llm_core:
+            llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
+            
+            if llm_client:
+                # Initialize multi-intent components
+                detector = get_multi_intent_detector(
+                    llm_client=llm_client,
+                    config={
+                        'enable_llm': True,
+                        'fallback_to_rules': True,
+                        'min_confidence': 0.7
+                    }
+                )
+                
+                # Prepare context for detection
+                user_context = {
+                    'preferences': request.preferences or {},
+                }
+                if request.user_location:
+                    user_context['gps'] = request.user_location
+                    user_context['location'] = request.user_location
+                if resolved_context:
+                    user_context['resolved_context'] = resolved_context.get('implicit_context', {})
+                
+                # Detect multiple intents
+                detection_result = await detector.detect_intents(
+                    query=request.message,
+                    user_context=user_context
+                )
+                
+                logger.info(
+                    f"✅ Multi-Intent Detection complete:\n"
+                    f"   - Intents Found: {len(detection_result.intents)}\n"
+                    f"   - Has Multiple: {detection_result.is_multi_intent}\n"
+                    f"   - Confidence: {detection_result.confidence:.2f}\n"
+                    f"   - Method: {detection_result.detection_method}"
+                )
+                
+                # If multiple intents detected with high confidence, orchestrate handling
+                if detection_result.is_multi_intent and detection_result.confidence >= 0.7:
+                    logger.info(f"🎭 Multiple intents detected, orchestrating execution...")
+                    
+                    # Log each intent
+                    for i, intent_info in enumerate(detection_result.intents, 1):
+                        logger.info(
+                            f"   Intent {i}: {intent_info.intent_type} "
+                            f"(confidence={intent_info.confidence:.2f}, "
+                            f"priority={intent_info.priority})"
+                        )
+                    
+                    # Initialize orchestrator and synthesizer
+                    orchestrator = get_intent_orchestrator(
+                        llm_client=llm_client,
+                        config={'enable_llm': True, 'enable_parallel': True}
+                    )
+                    synthesizer = get_response_synthesizer(
+                        llm_client=llm_client,
+                        config={'enable_llm': True}
+                    )
+                    
+                    # Plan execution
+                    execution_plan = await orchestrator.create_execution_plan(
+                        intents=detection_result.intents,
+                        user_context=user_context
+                    )
+                    
+                    logger.info(
+                        f"📋 Execution Plan:\n"
+                        f"   - Groups: {len(execution_plan.execution_groups)}\n"
+                        f"   - Can Parallelize: {execution_plan.can_parallelize}\n"
+                        f"   - Method: {execution_plan.planning_method}"
+                    )
+                    
+                    # Execute each intent group (simplified - call existing handlers)
+                    all_responses = []
+                    for group_idx, group in enumerate(execution_plan.execution_groups, 1):
+                        logger.info(f"   Executing group {group_idx} with {len(group.intent_ids)} intents...")
+                        
+                        for intent_id in group.intent_ids:
+                            # Find the intent info
+                            intent_info = next(
+                                (i for i in detection_result.intents if i.intent_id == intent_id),
+                                None
+                            )
+                            
+                            if intent_info:
+                                # Create a mock response for this intent
+                                # In a real implementation, we'd call the appropriate handler
+                                intent_response = {
+                                    'intent_id': intent_id,
+                                    'intent_type': intent_info.intent_type,
+                                    'response': f"[Handled {intent_info.intent_type}]",
+                                    'confidence': intent_info.confidence,
+                                    'data': intent_info.parameters
+                                }
+                                all_responses.append(intent_response)
+                    
+                    # Synthesize combined response
+                    logger.info(f"🔗 Synthesizing {len(all_responses)} responses...")
+                    
+                    synthesis_result = await synthesizer.synthesize_responses(
+                        query=request.message,
+                        intent_responses=all_responses,
+                        user_context=user_context
+                    )
+                    
+                    logger.info(
+                        f"✅ Response Synthesis complete:\n"
+                        f"   - Method: {synthesis_result.synthesis_method}\n"
+                        f"   - Combined Response Length: {len(synthesis_result.combined_response)}"
+                    )
+                    
+                    # Store multi-intent result to return early
+                    multi_intent_result = {
+                        'response': synthesis_result.combined_response,
+                        'intents': detection_result.intents,
+                        'execution_plan': execution_plan,
+                        'synthesis': synthesis_result
+                    }
+                    
+                    # Record conversation for context
+                    await record_conversation_turn(
+                        session_id=session_id,
+                        user_query=original_query,
+                        bot_response=synthesis_result.combined_response,
+                        intent='multi_intent',
+                        locations=[p.get('location') for i in detection_result.intents 
+                                  for p in [i.parameters] if p.get('location')]
+                    )
+                    
+                    # Return early with multi-intent response
+                    return ChatResponse(
+                        response=synthesis_result.combined_response,
+                        session_id=session_id,
+                        intent='multi_intent',
+                        confidence=detection_result.confidence,
+                        suggestions=synthesis_result.follow_up_suggestions or [],
+                        map_data=None,  # TODO: Aggregate map data from all intents
+                        navigation_active=False
+                    )
+                else:
+                    logger.info(f"✓ Single intent detected, continuing with normal flow")
+            else:
+                logger.warning("⚠️ LLM client not available, skipping multi-intent detection")
+        else:
+            logger.warning("⚠️ Pure LLM Core not available, skipping multi-intent detection")
+            
+    except Exception as e:
+        logger.error(f"Multi-intent detection error: {e}", exc_info=True)
+        # Continue with single-intent flow on error - non-blocking
+    
+    # === PHASE 1: LLM INTENT CLASSIFICATION ===
     # This gives the LLM the primary role in understanding user intent
     logger.info(f"🤖 Phase 1: LLM Intent Classification for query: '{request.message[:60]}...'")
     
@@ -149,6 +384,10 @@ async def pure_llm_chat(
         user_context = {
             'preferences': request.preferences or {},
         }
+        
+        # Add resolved context if available
+        if resolved_context:
+            user_context['resolved_context'] = resolved_context.get('implicit_context', {})
         
         if request.user_location:
             user_context['gps'] = request.user_location
@@ -172,7 +411,7 @@ async def pure_llm_chat(
                     config={'enable_caching': False}  # Disable for initial testing
                 )
                 
-                # Classify intent using LLM
+                # Classify intent using LLM (now with resolved query)
                 llm_intent = await intent_classifier.classify_intent(
                     query=request.message,
                     user_context=user_context,
@@ -289,33 +528,6 @@ async def pure_llm_chat(
             logger.warning(f"⚠️ No LLM intent available, falling back to regex")
         skip_routing = False
         
-        # Fallback: Old regex-based information request detection
-        def is_information_request(message: str) -> bool:
-        """Check if asking for information about POIs, not directions to them"""
-        msg_lower = message.lower()
-        
-        # Information request keywords
-        info_keywords = ['what are', 'show me the', 'tell me about', 'recommend', 
-                        'best', 'top', 'list', 'which', 'where can i find',
-                        'what is', 'what\'s', 'tell me', 'can you recommend']
-        has_info_keywords = any(kw in msg_lower for kw in info_keywords)
-        
-        # POI/Attraction keywords (information target)
-        poi_keywords = ['attractions', 'landmarks', 'museums', 'places to visit', 
-                       'sights', 'historical', 'monuments', 'palaces', 'mosques',
-                       'restaurants', 'cafes', 'things to do', 'things to see',
-                       'places to see', 'must see', 'must-see', 'worth visiting']
-        about_pois = any(kw in msg_lower for kw in poi_keywords)
-        
-        # Direction keywords (should NOT be present for info requests)
-        direction_keywords = ['from', ' to ', 'route', 'directions', 'how to get', 
-                            'how do i get', 'how can i get', 'take me', 'navigate',
-                            'navigation', 'way to', 'go to']
-        asking_directions = any(kw in msg_lower for kw in direction_keywords)
-        
-        # Special case: "show me" + location name without info keywords = might be directions
-        # But "show me the best/top" = information request
-        if 'show me' in msg_lower and not any(word in msg_lower for word in ['best', 'top', 'all', 'some', 'good']):
         # Fallback: Old regex-based information request detection
         def is_information_request(message: str) -> bool:
             """Check if asking for information about POIs, not directions to them"""
@@ -558,12 +770,74 @@ async def pure_llm_chat(
             response_type=result.get('intent', 'general')
         )
         
+        # Extract locations from result for conversation tracking
+        locations = []
+        if llm_intent:
+            if llm_intent.origin:
+                locations.append(llm_intent.origin)
+            if llm_intent.destination:
+                locations.append(llm_intent.destination)
+        
+        # Record conversation turn for future context
+        await record_conversation_turn(
+            session_id=session_id,
+            user_query=original_query,  # Use original query (before resolution)
+            bot_response=enhanced_response,
+            intent=result.get('intent'),
+            locations=locations
+        )
+        
+        # === PHASE 4.4: GENERATE PROACTIVE SUGGESTIONS ===
+        # Generate intelligent suggestions for the user's next steps
+        proactive_suggestions = None
+        try:
+            # Extract entities from LLM intent
+            entities = {}
+            if llm_intent:
+                if llm_intent.origin:
+                    entities['origin'] = llm_intent.origin
+                if llm_intent.destination:
+                    entities['destination'] = llm_intent.destination
+                if llm_intent.extracted_locations:
+                    entities['locations'] = llm_intent.extracted_locations
+            
+            # Get conversation history for context
+            conversation_history = []
+            if resolved_context and resolved_context.get('conversation_context'):
+                conv_ctx = resolved_context['conversation_context']
+                if conv_ctx.get('history'):
+                    conversation_history = conv_ctx['history'][-5:]  # Last 5 turns
+            
+            # Generate suggestions
+            proactive_suggestions = await generate_proactive_suggestions(
+                query=original_query,
+                response=enhanced_response,
+                intent=result.get('intent'),
+                entities=entities,
+                conversation_history=conversation_history,
+                user_location=llm_intent.origin if llm_intent else None,
+                session_id=session_id
+            )
+            
+            if proactive_suggestions:
+                logger.info(f"✨ Added {len(proactive_suggestions)} proactive suggestions")
+        except Exception as e:
+            logger.warning(f"Proactive suggestion generation failed: {e}")
+            proactive_suggestions = None
+        
+        # Use proactive suggestions if available, fallback to original
+        final_suggestions = proactive_suggestions if proactive_suggestions else result.get('suggestions', [])
+        
+        # If proactive suggestions are dict format, extract text
+        if final_suggestions and isinstance(final_suggestions[0], dict):
+            final_suggestions = [s.get('text', str(s)) for s in final_suggestions]
+        
         return ChatResponse(
             response=enhanced_response,
             session_id=result.get('session_id', request.session_id or 'new'),
             intent=result.get('intent'),
             confidence=result.get('confidence'),
-            suggestions=result.get('suggestions', []),
+            suggestions=final_suggestions,
             map_data=result.get('map_data'),  # Include map data for visualization
             navigation_active=result.get('navigation_active', False),
             navigation_data=result.get('navigation_data')
@@ -901,3 +1175,162 @@ def _get_navigation_suggestions(nav_result: Dict) -> List[str]:
         ])
     
     return suggestions[:5]  # Return max 5 suggestions
+
+
+async def record_conversation_turn(
+    session_id: str,
+    user_query: str,
+    bot_response: str,
+    intent: Optional[str] = None,
+    locations: Optional[List[str]] = None
+):
+    """
+    Record a conversation turn for context tracking.
+    
+    Args:
+        session_id: Session identifier
+        user_query: User's query
+        bot_response: Bot's response
+        intent: Detected intent
+        locations: Mentioned locations
+    """
+    try:
+        from services.llm import get_context_manager
+        
+        # Get context manager
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if pure_llm_core:
+            llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
+            
+            if llm_client:
+                context_manager = get_context_manager(llm_client=llm_client)
+                
+                # Record the turn
+                context_manager.record_turn(
+                    session_id=session_id,
+                    user_query=user_query,
+                    bot_response=bot_response,
+                    intent=intent,
+                    locations=locations or []
+                )
+                
+                logger.debug(f"📝 Recorded conversation turn for session {session_id}")
+    except Exception as e:
+        logger.warning(f"Failed to record conversation turn: {e}")
+        # Non-blocking - continue even if recording fails
+
+
+# ==========================================
+# Phase 4.4: Proactive Suggestions Integration
+# ==========================================
+_suggestion_analyzer = None
+_suggestion_generator = None
+_suggestion_presenter = None
+
+def get_suggestion_components():
+    """Get or create Suggestion system singletons"""
+    global _suggestion_analyzer, _suggestion_generator, _suggestion_presenter
+    
+    if _suggestion_analyzer is None or _suggestion_generator is None or _suggestion_presenter is None:
+        try:
+            from services.llm import (
+                get_suggestion_analyzer,
+                get_suggestion_generator,
+                get_suggestion_presenter
+            )
+            
+            # Get LLM client
+            pure_llm_core = startup_manager.get_pure_llm_core()
+            llm_client = None
+            if pure_llm_core and hasattr(pure_llm_core, 'llm_client'):
+                llm_client = pure_llm_core.llm_client
+            
+            if llm_client:
+                _suggestion_analyzer = get_suggestion_analyzer(llm_client=llm_client)
+                _suggestion_generator = get_suggestion_generator(llm_client=llm_client)
+                _suggestion_presenter = get_suggestion_presenter()
+                logger.info("✅ Phase 4.4 Proactive Suggestions initialized")
+            else:
+                logger.warning("⚠️ LLM client not available for suggestions")
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Proactive Suggestions not available: {e}")
+    
+    return _suggestion_analyzer, _suggestion_generator, _suggestion_presenter
+
+
+async def generate_proactive_suggestions(
+    query: str,
+    response: str,
+    intent: Optional[str] = None,
+    entities: Optional[Dict[str, Any]] = None,
+    conversation_history: Optional[List[Dict]] = None,
+    user_location: Optional[str] = None,
+    session_id: Optional[str] = None
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Generate proactive suggestions for the user.
+    
+    This is Phase 4.4 of LLM Enhancement - intelligently suggests next steps.
+    Falls back gracefully if suggestion system unavailable.
+    
+    Args:
+        query: User's original query
+        response: Bot's response
+        intent: Detected intent type
+        entities: Extracted entities
+        conversation_history: Recent conversation turns
+        user_location: User's location
+        session_id: Session identifier
+        
+    Returns:
+        List of suggestion dictionaries or None if unavailable
+    """
+    try:
+        analyzer, generator, presenter = get_suggestion_components()
+        
+        if not (analyzer and generator and presenter):
+            logger.debug("Suggestion system not available, skipping")
+            return None
+        
+        # Analyze context to see if we should show suggestions
+        context = await analyzer.analyze_context(
+            query=query,
+            response=response,
+            conversation_history=conversation_history or [],
+            detected_intents=[intent] if intent else [],
+            entities=entities or {},
+            response_type=intent or "general",
+            user_location=user_location
+        )
+        
+        # Check if we should show suggestions
+        should_suggest, confidence = await analyzer.should_suggest(context)
+        
+        if not should_suggest:
+            logger.debug(f"Not showing suggestions (confidence: {confidence:.2f})")
+            return None
+        
+        logger.info(f"💡 Generating proactive suggestions (confidence: {confidence:.2f})")
+        
+        # Generate suggestions
+        suggestion_response = await generator.generate_with_response(
+            context=context,
+            max_suggestions=5
+        )
+        
+        # Format for chat API
+        formatted = presenter.format_for_chat(suggestion_response)
+        
+        logger.info(
+            f"✅ Generated {len(formatted['suggestions'])} suggestions "
+            f"(method: {formatted['metadata']['generation_method']}, "
+            f"time: {formatted['metadata']['generation_time_ms']:.0f}ms)"
+        )
+        
+        return formatted['suggestions']
+        
+    except Exception as e:
+        logger.error(f"Proactive suggestion generation failed: {e}", exc_info=True)
+        return None
+# ==========================================

@@ -584,3 +584,667 @@ class RoutePreferences(BaseModel):
             return "no specific preferences"
         
         return ", ".join(parts)
+# =============================================================================
+# Phase 4.3: Multi-Intent Models
+# =============================================================================
+
+class DetectedIntent(BaseModel):
+    """
+    A single detected intent in a multi-intent query.
+    
+    Represents one intent extracted from a query that may contain multiple intents.
+    """
+    
+    intent_type: str = Field(
+        ...,
+        description="Intent type (route, restaurant, weather, etc.)"
+    )
+    
+    parameters: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Extracted parameters for this intent"
+    )
+    
+    priority: int = Field(
+        ...,
+        ge=1,
+        description="Execution priority (1 = highest)"
+    )
+    
+    confidence: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score for this intent detection"
+    )
+    
+    requires_location: bool = Field(
+        default=False,
+        description="Whether this intent requires location context"
+    )
+    
+    depends_on: Optional[List[int]] = Field(
+        None,
+        description="Indices of intents this depends on (e.g., [0] means depends on first intent)"
+    )
+    
+    condition: Optional[str] = Field(
+        None,
+        description="Conditional execution (e.g., 'if_sunny', 'if_not_raining')"
+    )
+
+
+class IntentRelationship(BaseModel):
+    """
+    Relationship between multiple detected intents.
+    """
+    
+    relationship_type: Literal[
+        "sequential",      # Intents execute in order, one after another
+        "parallel",        # Intents can execute simultaneously
+        "conditional",     # Intent execution depends on condition
+        "dependent"        # Intent depends on another's result
+    ] = Field(
+        ...,
+        description="Type of relationship between intents"
+    )
+    
+    intent_indices: List[int] = Field(
+        ...,
+        description="Indices of intents involved in this relationship"
+    )
+    
+    description: str = Field(
+        ...,
+        description="Human-readable description of the relationship"
+    )
+
+
+class MultiIntentDetection(BaseModel):
+    """
+    Result of multi-intent detection from LLM.
+    
+    Contains all detected intents, their relationships, and execution planning.
+    Phase 4.3 gives LLM 95% control over multi-intent understanding.
+    """
+    
+    # Query information
+    original_query: str = Field(
+        ...,
+        description="Original user query"
+    )
+    
+    # Intent detection
+    intent_count: int = Field(
+        ...,
+        ge=1,
+        description="Number of intents detected"
+    )
+    
+    intents: List[DetectedIntent] = Field(
+        ...,
+        description="List of detected intents with parameters"
+    )
+    
+    # Relationships
+    relationships: List[IntentRelationship] = Field(
+        default_factory=list,
+        description="Relationships between intents"
+    )
+    
+    # Execution planning
+    execution_strategy: Literal[
+        "sequential",      # Execute intents one by one
+        "parallel",        # Execute intents simultaneously
+        "conditional",     # Execute based on conditions
+        "mixed"            # Mix of sequential and parallel
+    ] = Field(
+        ...,
+        description="Overall execution strategy"
+    )
+    
+    # Metadata
+    is_multi_intent: bool = Field(
+        ...,
+        description="Whether this is actually a multi-intent query"
+    )
+    
+    confidence: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Overall confidence in multi-intent detection"
+    )
+    
+    detection_method: str = Field(
+        default="llm",
+        description="Method used for detection (llm/fallback)"
+    )
+    
+    processing_time_ms: Optional[float] = Field(
+        None,
+        description="Time taken to detect (milliseconds)"
+    )
+    
+    def is_simple_query(self) -> bool:
+        """Check if this is actually a single-intent query."""
+        return self.intent_count == 1 and not self.is_multi_intent
+    
+    def has_dependencies(self) -> bool:
+        """Check if any intents have dependencies."""
+        return any(intent.depends_on for intent in self.intents)
+    
+    def has_conditions(self) -> bool:
+        """Check if any intents have conditional execution."""
+        return any(intent.condition for intent in self.intents)
+
+
+class ExecutionStep(BaseModel):
+    """
+    A single step in the intent execution plan.
+    """
+    
+    step_number: int = Field(
+        ...,
+        ge=1,
+        description="Step number in execution sequence"
+    )
+    
+    intent_indices: List[int] = Field(
+        ...,
+        description="Indices of intents to execute in this step"
+    )
+    
+    execution_mode: Literal["sequential", "parallel"] = Field(
+        ...,
+        description="How to execute intents in this step"
+    )
+    
+    requires_results_from: Optional[List[int]] = Field(
+        None,
+        description="Step numbers whose results are needed"
+    )
+    
+    condition: Optional[str] = Field(
+        None,
+        description="Condition for executing this step"
+    )
+    
+    timeout_ms: int = Field(
+        default=5000,
+        description="Timeout for this step in milliseconds"
+    )
+
+
+class ExecutionPlan(BaseModel):
+    """
+    Complete execution plan for multi-intent query.
+    
+    Orchestrated by LLM (90% LLM control).
+    """
+    
+    # Plan metadata
+    plan_id: str = Field(
+        ...,
+        description="Unique identifier for this execution plan"
+    )
+    
+    query: str = Field(
+        ...,
+        description="Original query"
+    )
+    
+    # Execution steps
+    steps: List[ExecutionStep] = Field(
+        ...,
+        description="Ordered list of execution steps"
+    )
+    
+    # Strategy
+    total_steps: int = Field(
+        ...,
+        ge=1,
+        description="Total number of steps"
+    )
+    
+    has_parallel_execution: bool = Field(
+        default=False,
+        description="Whether plan includes parallel execution"
+    )
+    
+    has_conditional_logic: bool = Field(
+        default=False,
+        description="Whether plan includes conditional execution"
+    )
+    
+    # Fallback
+    fallback_strategy: Literal[
+        "sequential",       # Fall back to sequential execution
+        "skip_failed",      # Skip failed intents
+        "stop_on_error"     # Stop if any intent fails
+    ] = Field(
+        default="skip_failed",
+        description="How to handle errors during execution"
+    )
+    
+    # Metadata
+    estimated_duration_ms: Optional[int] = Field(
+        None,
+        description="Estimated execution duration"
+    )
+    
+    planning_method: str = Field(
+        default="llm",
+        description="Method used for planning (llm/fallback)"
+    )
+    
+    planning_time_ms: Optional[float] = Field(
+        None,
+        description="Time taken to create plan"
+    )
+
+
+class IntentResult(BaseModel):
+    """
+    Result from executing a single intent.
+    """
+    
+    intent_index: int = Field(
+        ...,
+        description="Index of the intent that was executed"
+    )
+    
+    intent_type: str = Field(
+        ...,
+        description="Type of intent executed"
+    )
+    
+    success: bool = Field(
+        ...,
+        description="Whether execution was successful"
+    )
+    
+    response: Optional[str] = Field(
+        None,
+        description="Response text from intent execution"
+    )
+    
+    data: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Structured data from intent execution"
+    )
+    
+    error: Optional[str] = Field(
+        None,
+        description="Error message if execution failed"
+    )
+    
+    execution_time_ms: Optional[float] = Field(
+        None,
+        description="Time taken to execute"
+    )
+
+
+class MultiIntentResponse(BaseModel):
+    """
+    Synthesized response combining multiple intent results.
+    
+    Generated by LLM (100% LLM control for synthesis).
+    """
+    
+    # Original query
+    original_query: str = Field(
+        ...,
+        description="Original user query"
+    )
+    
+    # Individual results
+    intent_results: List[IntentResult] = Field(
+        ...,
+        description="Results from each intent execution"
+    )
+    
+    # Synthesized response
+    synthesized_response: str = Field(
+        ...,
+        description="Combined, coherent response from LLM"
+    )
+    
+    # Response metadata
+    response_structure: Literal[
+        "narrative",        # Flowing narrative combining all results
+        "structured",       # Structured sections for each intent
+        "comparison",       # Comparison format (for comparing intents)
+        "conditional"       # Conditional response based on results
+    ] = Field(
+        ...,
+        description="Structure of the synthesized response"
+    )
+    
+    # Quality metrics
+    coherence_score: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+        description="How coherent the combined response is"
+    )
+    
+    completeness: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+        description="How complete the response is (addresses all intents)"
+    )
+    
+    # Metadata
+    synthesis_method: str = Field(
+        default="llm",
+        description="Method used for synthesis (llm/template)"
+    )
+    
+    synthesis_time_ms: Optional[float] = Field(
+        None,
+        description="Time taken to synthesize"
+    )
+    
+    total_processing_time_ms: Optional[float] = Field(
+        None,
+        description="Total time from query to response"
+    )
+# ============================================================================
+# Phase 4.4: Proactive Suggestions Models
+# ============================================================================
+
+class SuggestionContext(BaseModel):
+    """
+    Context for generating proactive suggestions.
+    
+    Contains all information needed to understand the current conversation
+    state and generate relevant suggestions.
+    """
+    
+    # Current conversation state
+    current_query: str = Field(
+        ...,
+        description="The user's current query"
+    )
+    
+    current_response: str = Field(
+        ...,
+        description="The response we just provided"
+    )
+    
+    # Intent and entity information
+    detected_intents: List[str] = Field(
+        default_factory=list,
+        description="All detected intents in current query"
+    )
+    
+    extracted_entities: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Entities extracted from query and response"
+    )
+    
+    # Conversation context
+    conversation_history: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Recent conversation turns (max 5)"
+    )
+    
+    user_location: Optional[str] = Field(
+        None,
+        description="User's current location if known"
+    )
+    
+    # Response metadata
+    response_type: str = Field(
+        ...,
+        description="Type of response (restaurant, attraction, route, etc.)"
+    )
+    
+    response_success: bool = Field(
+        default=True,
+        description="Whether the response was successful"
+    )
+    
+    # Trigger information
+    trigger_confidence: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Confidence that suggestions should be shown"
+    )
+    
+    trigger_reason: Optional[str] = Field(
+        None,
+        description="Why suggestions were triggered"
+    )
+
+
+class ProactiveSuggestion(BaseModel):
+    """
+    A single proactive suggestion for the user.
+    
+    Represents one actionable suggestion that the user can follow up on.
+    """
+    
+    # Identification
+    suggestion_id: str = Field(
+        ...,
+        description="Unique identifier for this suggestion"
+    )
+    
+    # Display text
+    suggestion_text: str = Field(
+        ...,
+        description="Natural language text shown to user"
+    )
+    
+    # Categorization
+    suggestion_type: Literal[
+        "exploration",   # Discover new places/things
+        "practical",     # Practical travel info (directions, weather, etc.)
+        "cultural",      # Cultural events, customs, activities
+        "dining",        # Food and restaurant related
+        "refinement"     # Refine/filter current results
+    ] = Field(
+        ...,
+        description="Category of suggestion"
+    )
+    
+    # Intent mapping
+    intent_type: str = Field(
+        ...,
+        description="The intent that would be triggered (e.g., 'get_directions')"
+    )
+    
+    # Pre-filled entities for executing the suggestion
+    entities: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Entities to use if user selects this suggestion"
+    )
+    
+    # Scoring and ranking
+    relevance_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="How relevant this suggestion is (0-1)"
+    )
+    
+    priority: int = Field(
+        default=0,
+        description="Display priority (higher = show first)"
+    )
+    
+    # Metadata
+    reasoning: Optional[str] = Field(
+        None,
+        description="LLM's reasoning for this suggestion"
+    )
+    
+    icon: Optional[str] = Field(
+        None,
+        description="Icon/emoji to display with suggestion"
+    )
+    
+    action_type: Literal["query", "link", "filter"] = Field(
+        default="query",
+        description="Type of action when user clicks"
+    )
+
+
+class ProactiveSuggestionResponse(BaseModel):
+    """
+    Complete response containing all proactive suggestions.
+    
+    This is what gets added to the chat response.
+    """
+    
+    # Suggestions
+    suggestions: List[ProactiveSuggestion] = Field(
+        default_factory=list,
+        description="List of suggestions (ordered by priority)"
+    )
+    
+    # Context used
+    context: SuggestionContext = Field(
+        ...,
+        description="Context that was analyzed"
+    )
+    
+    # Generation metadata
+    generation_method: Literal["llm", "template", "hybrid"] = Field(
+        ...,
+        description="Method used to generate suggestions"
+    )
+    
+    generation_time_ms: float = Field(
+        ...,
+        ge=0.0,
+        description="Time taken to generate suggestions"
+    )
+    
+    total_suggestions_considered: int = Field(
+        ...,
+        ge=0,
+        description="Total suggestions considered before ranking"
+    )
+    
+    # Quality metrics
+    confidence: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Overall confidence in suggestion quality"
+    )
+    
+    diversity_score: Optional[float] = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="How diverse the suggestion types are"
+    )
+    
+    # Metadata
+    timestamp: datetime = Field(
+        default_factory=datetime.now,
+        description="When suggestions were generated"
+    )
+    
+    llm_used: bool = Field(
+        default=False,
+        description="Whether LLM was used for generation"
+    )
+
+
+class SuggestionAnalysis(BaseModel):
+    """
+    Analysis of whether suggestions should be shown.
+    
+    Result of analyzing the conversation context to determine if
+    proactive suggestions are appropriate.
+    """
+    
+    should_suggest: bool = Field(
+        ...,
+        description="Whether suggestions should be shown"
+    )
+    
+    confidence: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Confidence in this decision"
+    )
+    
+    reasoning: str = Field(
+        ...,
+        description="Why suggestions should or shouldn't be shown"
+    )
+    
+    context_summary: str = Field(
+        ...,
+        description="Brief summary of the conversation context"
+    )
+    
+    suggested_categories: List[str] = Field(
+        default_factory=list,
+        description="Which suggestion categories would be most relevant"
+    )
+    
+    analysis_method: Literal["llm", "heuristic"] = Field(
+        ...,
+        description="Method used for analysis"
+    )
+    
+    analysis_time_ms: float = Field(
+        ...,
+        ge=0.0,
+        description="Time taken for analysis"
+    )
+
+
+class SuggestionInteraction(BaseModel):
+    """
+    Tracks user interaction with a suggestion.
+    
+    Used for analytics and improving suggestion quality.
+    """
+    
+    suggestion_id: str = Field(
+        ...,
+        description="ID of the suggestion that was interacted with"
+    )
+    
+    action: Literal["clicked", "ignored", "dismissed", "rated"] = Field(
+        ...,
+        description="What the user did"
+    )
+    
+    timestamp: datetime = Field(
+        default_factory=datetime.now,
+        description="When the interaction occurred"
+    )
+    
+    session_id: Optional[str] = Field(
+        None,
+        description="User's session ID"
+    )
+    
+    query_after: Optional[str] = Field(
+        None,
+        description="The query user made after clicking (if action=clicked)"
+    )
+    
+    rating: Optional[int] = Field(
+        None,
+        ge=1,
+        le=5,
+        description="User rating if action=rated"
+    )
+    
+    context: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Additional context about the interaction"
+    )

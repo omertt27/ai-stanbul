@@ -38,7 +38,21 @@ from .models import (
     CachedIntentResult,
     LocationMatch,
     LocationResolution,
-    RoutePreferences  # Phase 4.1
+    RoutePreferences,  # Phase 4.1
+    # Phase 4.3: Multi-Intent Models
+    DetectedIntent,
+    IntentRelationship,
+    MultiIntentDetection,
+    ExecutionStep,
+    ExecutionPlan,
+    IntentResult,
+    MultiIntentResponse,
+    # Phase 4.4: Proactive Suggestions Models
+    SuggestionContext,
+    ProactiveSuggestion,
+    ProactiveSuggestionResponse,
+    SuggestionAnalysis,
+    SuggestionInteraction
 )
 from .intent_classifier import LLMIntentClassifier, get_intent_classifier
 from .location_resolver import LLMLocationResolver, get_location_resolver, resolve_locations
@@ -47,6 +61,43 @@ from .route_preference_detector import (  # Phase 4.1
     LLMRoutePreferenceDetector,
     get_preference_detector,
     detect_route_preferences
+)
+from .conversation_context_manager import (  # Phase 4.2
+    LLMConversationContextManager,
+    get_context_manager,
+    resolve_conversation_context,
+    ConversationState,
+    ConversationTurn
+)
+from .multi_intent_detector import (  # Phase 4.3
+    MultiIntentDetector,
+    get_multi_intent_detector,
+    detect_multi_intent
+)
+from .intent_orchestrator import (  # Phase 4.3
+    IntentOrchestrator,
+    get_intent_orchestrator,
+    orchestrate_intents
+)
+from .response_synthesizer import (  # Phase 4.3
+    ResponseSynthesizer,
+    get_response_synthesizer,
+    synthesize_multi_intent_response
+)
+from .suggestion_analyzer import (  # Phase 4.4
+    SuggestionAnalyzer,
+    get_suggestion_analyzer,
+    analyze_suggestion_context
+)
+from .suggestion_generator import (  # Phase 4.4
+    SuggestionGenerator,
+    get_suggestion_generator,
+    generate_proactive_suggestions
+)
+from .suggestion_presenter import (  # Phase 4.4
+    SuggestionPresenter,
+    get_suggestion_presenter,
+    format_suggestions_for_chat
 )
 
 
@@ -140,7 +191,7 @@ __all__ = [
     'LLMLocationResolver',
     'get_location_resolver',
     'resolve_locations',
-    # Response Enhancement
+    # Phase 3: Response Enhancement
     'LLMResponseEnhancer',
     'get_response_enhancer',
     'enhance_response',
@@ -149,6 +200,44 @@ __all__ = [
     'LLMRoutePreferenceDetector',
     'get_preference_detector',
     'detect_route_preferences',
+    # Phase 4.2: Conversation Context
+    'LLMConversationContextManager',
+    'get_context_manager',
+    'resolve_conversation_context',
+    'ConversationState',
+    'ConversationTurn',
+    # Phase 4.3: Multi-Intent Detection and Orchestration
+    'DetectedIntent',
+    'IntentRelationship',
+    'MultiIntentDetection',
+    'ExecutionStep',
+    'ExecutionPlan',
+    'IntentResult',
+    'MultiIntentResponse',
+    'MultiIntentDetector',
+    'get_multi_intent_detector',
+    'detect_multi_intent',
+    'IntentOrchestrator',
+    'get_intent_orchestrator',
+    'orchestrate_intents',
+    'ResponseSynthesizer',
+    'get_response_synthesizer',
+    'synthesize_multi_intent_response',
+    # Phase 4.4: Proactive Suggestions
+    'SuggestionContext',
+    'ProactiveSuggestion',
+    'ProactiveSuggestionResponse',
+    'SuggestionAnalysis',
+    'SuggestionInteraction',
+    'SuggestionAnalyzer',
+    'get_suggestion_analyzer',
+    'analyze_suggestion_context',
+    'SuggestionGenerator',
+    'get_suggestion_generator',
+    'generate_proactive_suggestions',
+    'SuggestionPresenter',
+    'get_suggestion_presenter',
+    'format_suggestions_for_chat',
 ]
 
 __version__ = '2.0.0'
