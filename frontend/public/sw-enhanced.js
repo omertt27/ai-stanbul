@@ -2,12 +2,12 @@
  * Enhanced Service Worker
  * Integrates map tile caching, periodic sync, and improved offline handling
  * 
- * @version 2.4.0
+ * @version 2.5.0
  * @features Map tiles, Periodic sync, Background sync, Push notifications, Cache busting for JS/CSS
- * @updated 2025-12-02 - Fix stale cache issue with build assets
+ * @updated 2025-12-02 - Fix API request interception causing false offline errors
  */
 
-const CACHE_VERSION = 'ai-istanbul-v2.4.0';
+const CACHE_VERSION = 'ai-istanbul-v2.5.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const MAP_TILES_CACHE = 'map-tiles-v2';
@@ -134,9 +134,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle API requests (network-first)
+  // CRITICAL FIX: Let API requests pass through directly to network
+  // Don't intercept them - the app has its own error handling
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(handleAPIRequest(request));
+    // Just pass through, don't use respondWith
     return;
   }
 
@@ -195,10 +196,14 @@ async function handleMapTileRequest(request) {
 
 /**
  * Handle API requests (network-first with cache fallback)
+ * IMPORTANT: Let actual network errors pass through, don't intercept them
  */
 async function handleAPIRequest(request) {
   try {
-    const networkResponse = await fetch(request);
+    // Try network request with explicit timeout
+    const networkResponse = await fetch(request, {
+      cache: 'no-cache' // Don't use browser cache, always hit network
+    });
     
     // Cache successful GET requests
     if (request.method === 'GET' && networkResponse.ok) {
@@ -212,29 +217,21 @@ async function handleAPIRequest(request) {
     
     return networkResponse;
   } catch (error) {
-    // Try cache fallback for GET requests
-    if (request.method === 'GET') {
+    // Only use cache for GET requests when truly offline
+    if (request.method === 'GET' && !navigator.onLine) {
       const cache = await caches.open(DYNAMIC_CACHE);
       const cachedResponse = await cache.match(request);
       
       if (cachedResponse) {
-        console.log('📦 Serving cached API response');
+        console.log('📦 Serving cached API response (offline)');
         return cachedResponse;
       }
     }
 
-    // Return offline response
-    return new Response(
-      JSON.stringify({
-        error: 'offline',
-        message: 'You are currently offline. This request has been queued and will be sent when you reconnect.',
-        offline: true
-      }),
-      {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
+    // For all other cases, let the error propagate to the app
+    // The app's error handling will deal with it properly
+    console.log('⚠️ API request failed, passing error to app:', error.message);
+    throw error;
   }
 }
 
@@ -581,4 +578,4 @@ function saveToIndexedDB(storeName, data) {
   });
 }
 
-console.log('✅ Enhanced Service Worker loaded (v2.4.0) - Cache busting enabled for JS/CSS assets');
+console.log('✅ Enhanced Service Worker loaded (v2.5.0) - API requests bypass service worker');
