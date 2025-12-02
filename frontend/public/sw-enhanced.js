@@ -2,20 +2,18 @@
  * Enhanced Service Worker
  * Integrates map tile caching, periodic sync, and improved offline handling
  * 
- * @version 2.3.0
- * @features Map tiles, Periodic sync, Background sync, Push notifications, External resource bypass
- * @updated 2025-11-28 - Force deployment fix
+ * @version 2.4.0
+ * @features Map tiles, Periodic sync, Background sync, Push notifications, Cache busting for JS/CSS
+ * @updated 2025-12-02 - Fix stale cache issue with build assets
  */
 
-const CACHE_VERSION = 'ai-istanbul-v2.3.0';
+const CACHE_VERSION = 'ai-istanbul-v2.4.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const MAP_TILES_CACHE = 'map-tiles-v2';
 
-// Assets to cache on install
+// Assets to cache on install (only HTML pages and icons, NOT JS/CSS)
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/offline.html',
   '/manifest.json',
   '/favicon.svg',
@@ -24,6 +22,10 @@ const STATIC_ASSETS = [
 
 // Map tile URL pattern
 const MAP_TILE_PATTERN = /tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png/;
+
+// Build assets pattern (hashed Vite files like index-CfNLh5xt.js)
+const BUILD_ASSET_PATTERN = /\.(js|css|json)$/;
+const HASHED_ASSET_PATTERN = /[-.][\da-f]{8,}\.(js|css)$/i;
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
@@ -37,6 +39,7 @@ self.addEventListener('install', (event) => {
       })
       .then(() => {
         console.log('✅ Service Worker: Installed');
+        // Skip waiting to activate immediately
         return self.skipWaiting();
       })
       .catch(error => {
@@ -45,13 +48,24 @@ self.addEventListener('install', (event) => {
   );
 });
 
+// Message event - handle commands from clients
+self.addEventListener('message', (event) => {
+  console.log('📨 Service Worker received message:', event.data);
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('⏩ Skipping waiting...');
+    self.skipWaiting();
+  }
+});
+
 // Activate event - clean old caches
 self.addEventListener('activate', (event) => {
   console.log('🔄 Service Worker: Activating...');
   
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
+    Promise.all([
+      // 1. Delete old version caches
+      caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames
             .filter(name => {
@@ -65,11 +79,27 @@ self.addEventListener('activate', (event) => {
               return caches.delete(name);
             })
         );
+      }),
+      
+      // 2. Clean potentially corrupted cached responses from dynamic cache
+      caches.open(DYNAMIC_CACHE).then(cache => {
+        return cache.keys().then(requests => {
+          return Promise.all(
+            requests.map(request => {
+              // Remove cached JS/CSS to force fresh fetch
+              if (BUILD_ASSET_PATTERN.test(request.url) || HASHED_ASSET_PATTERN.test(request.url)) {
+                console.log('🧹 Clearing cached build asset:', request.url);
+                return cache.delete(request);
+              }
+            })
+          );
+        });
       })
-      .then(() => {
-        console.log('✅ Service Worker: Activated');
-        return self.clients.claim();
-      })
+    ])
+    .then(() => {
+      console.log('✅ Service Worker: Activated and cleaned');
+      return self.clients.claim();
+    })
   );
 });
 
@@ -107,6 +137,19 @@ self.addEventListener('fetch', (event) => {
   // Handle API requests (network-first)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(handleAPIRequest(request));
+    return;
+  }
+
+  // CRITICAL FIX: Handle build assets (JS/CSS) with network-first strategy
+  // This prevents serving stale cached JavaScript that causes "Unexpected token '<'" errors
+  if (BUILD_ASSET_PATTERN.test(url.pathname) || HASHED_ASSET_PATTERN.test(url.pathname)) {
+    event.respondWith(handleBuildAssetRequest(request));
+    return;
+  }
+
+  // Handle HTML/navigation requests (network-first)
+  if (request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
+    event.respondWith(handleNavigationRequest(request));
     return;
   }
 
@@ -192,6 +235,94 @@ async function handleAPIRequest(request) {
         headers: { 'Content-Type': 'application/json' }
       }
     );
+  }
+}
+
+/**
+ * Handle build asset requests (JS/CSS) - NETWORK FIRST to prevent stale cache
+ * This is CRITICAL to fix "Unexpected token '<'" errors
+ */
+async function handleBuildAssetRequest(request) {
+  try {
+    // ALWAYS try network first for JS/CSS to get latest version
+    const networkResponse = await fetch(request, {
+      cache: 'no-cache' // Force revalidation
+    });
+    
+    if (networkResponse.ok) {
+      // Only cache if it's actually a valid JS/CSS file (not HTML error page)
+      const contentType = networkResponse.headers.get('content-type') || '';
+      const isValidAsset = contentType.includes('javascript') || 
+                          contentType.includes('css') || 
+                          contentType.includes('json');
+      
+      if (isValidAsset) {
+        try {
+          const cache = await caches.open(DYNAMIC_CACHE);
+          await cache.put(request, networkResponse.clone());
+        } catch (cacheError) {
+          console.warn('⚠️ Failed to cache build asset:', cacheError);
+        }
+      }
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    // Only use cache as fallback if network fails
+    console.log('⚠️ Network failed for build asset, trying cache...');
+    const cache = await caches.open(DYNAMIC_CACHE);
+    const cachedResponse = await cache.match(request);
+    
+    if (cachedResponse) {
+      // Verify cached response is valid
+      const contentType = cachedResponse.headers.get('content-type') || '';
+      if (contentType.includes('javascript') || contentType.includes('css')) {
+        console.log('📦 Serving cached build asset (offline)');
+        return cachedResponse;
+      }
+    }
+
+    // If no valid cache, return error
+    return new Response('Build asset not available offline', { 
+      status: 503, 
+      statusText: 'Service Unavailable' 
+    });
+  }
+}
+
+/**
+ * Handle navigation requests (HTML pages) - NETWORK FIRST
+ */
+async function handleNavigationRequest(request) {
+  try {
+    // ALWAYS try network first for HTML to get latest version
+    const networkResponse = await fetch(request, {
+      cache: 'no-cache' // Force revalidation
+    });
+    
+    if (networkResponse.ok) {
+      // Cache the fresh HTML
+      try {
+        const cache = await caches.open(STATIC_CACHE);
+        await cache.put(request, networkResponse.clone());
+      } catch (cacheError) {
+        console.warn('⚠️ Failed to cache navigation:', cacheError);
+      }
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    // Try cache fallback
+    const cache = await caches.open(STATIC_CACHE);
+    const cachedResponse = await cache.match(request);
+    
+    if (cachedResponse) {
+      console.log('📦 Serving cached navigation (offline)');
+      return cachedResponse;
+    }
+
+    // Return offline page as last resort
+    return cache.match('/offline.html');
   }
 }
 
@@ -450,4 +581,4 @@ function saveToIndexedDB(storeName, data) {
   });
 }
 
-console.log('✅ Enhanced Service Worker loaded (v2.3.0)');
+console.log('✅ Enhanced Service Worker loaded (v2.4.0) - Cache busting enabled for JS/CSS assets');

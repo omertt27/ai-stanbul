@@ -111,8 +111,15 @@ class OfflineEnhancementManager {
    */
   async registerServiceWorker() {
     try {
-      const registration = await navigator.serviceWorker.register('/sw-enhanced.js');
+      const registration = await navigator.serviceWorker.register('/sw-enhanced.js', {
+        updateViaCache: 'none' // Force check for updates on every page load
+      });
       console.log('✅ Enhanced service worker registered');
+      
+      // Force update check on page load
+      registration.update().catch(err => 
+        console.warn('Update check failed:', err)
+      );
       
       // Listen for updates
       registration.addEventListener('updatefound', () => {
@@ -121,10 +128,26 @@ class OfflineEnhancementManager {
         
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('✅ New service worker installed, refresh to activate');
-            this.notifyUpdate();
+            console.log('✅ New service worker installed, activating...');
+            
+            // Automatically skip waiting and reload
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+            
+            // Notify user and offer to reload
+            this.notifyUpdateAndReload();
           }
         });
+      });
+
+      // Handle controlling service worker changes
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          console.log('🔄 New service worker activated, reloading page...');
+          // Automatically reload to use new service worker
+          window.location.reload();
+        }
       });
 
       return registration;
@@ -392,6 +415,14 @@ class OfflineEnhancementManager {
    */
   notifyUpdate() {
     this.dispatchEvent('sw-update', { updateAvailable: true });
+  }
+
+  notifyUpdateAndReload() {
+    console.log('🔄 Notifying user of update...');
+    this.dispatchEvent('sw-update-ready', { 
+      updateAvailable: true,
+      message: 'A new version is available and will load shortly...' 
+    });
   }
 
   notifyReconnect() {
