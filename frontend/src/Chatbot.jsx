@@ -653,7 +653,9 @@ function Chatbot({ userLocation: propUserLocation }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
-    return safeStorage.getJSON('dark-mode', false);
+    // Default to dark mode, but respect user's saved preference if they've toggled it before
+    const savedPreference = safeStorage.getJSON('dark-mode', null);
+    return savedPreference !== null ? savedPreference : true;
   });
 
   // Enhanced UI state
@@ -1239,7 +1241,11 @@ function Chatbot({ userLocation: propUserLocation }) {
       {/* Floating Action Button for chat controls */}
       <ChatHeader
         darkMode={darkMode}
-        onDarkModeToggle={() => setDarkMode(!darkMode)}
+        onDarkModeToggle={() => {
+          const newDarkMode = !darkMode;
+          setDarkMode(newDarkMode);
+          safeStorage.setJSON('dark-mode', newDarkMode);
+        }}
         onClearHistory={clearChatHistory}
         onToggleSessionsPanel={toggleSessionsPanel}
       />
