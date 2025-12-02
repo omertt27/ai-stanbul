@@ -94,21 +94,16 @@ export async function sendMessage(message, sessionId = null, language = 'en') {
   } catch (error) {
     console.error('❌ Chat service error:', error);
     
-    // Check if it's a network error
-    if (!navigator.onLine) {
-      return {
-        success: false,
-        error: 'No internet connection. Please check your network.',
-        type: 'NETWORK_ERROR'
-      };
-    }
-
-    // Check if backend is unreachable
+    // Check if backend is unreachable (actual network error)
     if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      // Only mention offline if navigator.onLine confirms it
+      const isActuallyOffline = !navigator.onLine;
       return {
         success: false,
-        error: 'Cannot connect to AI backend. Please ensure the server is running on port 8002.',
-        type: 'CONNECTION_ERROR'
+        error: isActuallyOffline 
+          ? 'No internet connection. Please check your network.'
+          : 'Cannot connect to AI backend. Please ensure the server is running on port 8002.',
+        type: isActuallyOffline ? 'NETWORK_ERROR' : 'CONNECTION_ERROR'
       };
     }
 

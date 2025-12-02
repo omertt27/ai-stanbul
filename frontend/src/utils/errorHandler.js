@@ -84,11 +84,7 @@ const calculateRetryDelay = (attempt, baseDelay = RETRY_CONFIG.baseDelay) => {
 
 // Error classification
 export const classifyError = (error, response = null) => {
-  // Network/connectivity errors
-  if (!navigator.onLine) {
-    return ErrorTypes.OFFLINE;
-  }
-  
+  // Check for actual network errors first (not navigator.onLine which is unreliable)
   if (error.name === 'NetworkError' || error.message.includes('Failed to fetch')) {
     return ErrorTypes.NETWORK;
   }
@@ -99,6 +95,12 @@ export const classifyError = (error, response = null) => {
   
   if (error.name === 'AbortError') {
     return ErrorTypes.TIMEOUT;
+  }
+  
+  // Only classify as OFFLINE if navigator.onLine is false AND we have a network error
+  // This reduces false positives
+  if (!navigator.onLine && (error.name === 'NetworkError' || error.message.includes('Failed to fetch'))) {
+    return ErrorTypes.OFFLINE;
   }
   
   // HTTP status-based classification
@@ -191,10 +193,8 @@ export const fetchWithRetry = async (url, options = {}, customConfig = {}) => {
     try {
       console.log(`🌐 Attempt ${attempt}/${config.maxAttempts} for: ${url}`);
       
-      // Check online status before making request
-      if (!navigator.onLine) {
-        throw new Error('NetworkError: You are currently offline');
-      }
+      // Note: We intentionally don't check navigator.onLine here because it's unreliable
+      // and can cause false offline errors. Let the actual fetch attempt determine connectivity.
       
       // Create AbortController for timeout
       const controller = new AbortController();
