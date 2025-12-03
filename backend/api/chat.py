@@ -352,6 +352,15 @@ async def pure_llm_chat(
                                   for p in [i.parameters] if p.get('location')]
                     )
                     
+                    # Extract map data from synthesis result if available
+                    map_data = None
+                    if hasattr(synthesis_result, 'map_data') and synthesis_result.map_data:
+                        map_data = synthesis_result.map_data
+                    elif hasattr(synthesis_result, 'metadata') and synthesis_result.metadata:
+                        map_data = synthesis_result.metadata.get('map_data')
+                    
+                    logger.info(f"🗺️ Multi-intent map data: {'available' if map_data else 'not available'}")
+                    
                     # Return early with multi-intent response
                     return ChatResponse(
                         response=synthesis_result.combined_response,
@@ -359,7 +368,7 @@ async def pure_llm_chat(
                         intent='multi_intent',
                         confidence=detection_result.confidence,
                         suggestions=synthesis_result.follow_up_suggestions or [],
-                        map_data=None,  # TODO: Aggregate map data from all intents
+                        map_data=map_data,  # Include map data from multi-intent handling
                         navigation_active=False
                     )
                 else:

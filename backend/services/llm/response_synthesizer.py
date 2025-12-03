@@ -73,7 +73,8 @@ class ResponseSynthesizer:
         query: str,
         intent_results: List[IntentResult],
         detection: Optional[MultiIntentDetection] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
+        map_data: Optional[Dict[str, Any]] = None  # NEW: Map data parameter
     ) -> MultiIntentResponse:
         """
         Synthesize multiple intent responses into one coherent response.
@@ -83,9 +84,10 @@ class ResponseSynthesizer:
             intent_results: Results from each intent execution
             detection: Original multi-intent detection (optional)
             context: Optional conversation context
+            map_data: Optional map visualization data for route/location queries
             
         Returns:
-            MultiIntentResponse with synthesized answer
+            MultiIntentResponse with synthesized answer (including map data)
         """
         start_time = time.time()
         
@@ -101,6 +103,15 @@ class ResponseSynthesizer:
                 if result.data:
                     info["data_summary"] = self._summarize_data(result.data)
                 responses_info.append(info)
+            
+            # Include map data in the synthesis if available
+            if map_data:
+                responses_info.append({
+                    "intent_type": "map_data",
+                    "success": True,
+                    "response": "Map data for visualization",
+                    "data_summary": self._summarize_data(map_data)
+                })
             
             # Determine suggested structure
             suggested_structure = self._suggest_structure(query, intent_results, detection)
@@ -156,7 +167,8 @@ Return ONLY a valid JSON object with the structure specified above."""
                 completeness=data.get("completeness", 0.9),
                 synthesis_method="llm",
                 synthesis_time_ms=processing_time,
-                total_processing_time_ms=total_time
+                total_processing_time_ms=total_time,
+                map_data=map_data  # Include map data in response
             )
             
             logger.info(
@@ -164,13 +176,14 @@ Return ONLY a valid JSON object with the structure specified above."""
                 f"coherence={result.coherence_score:.2f}, "
                 f"completeness={result.completeness:.2f} "
                 f"({processing_time:.0f}ms)"
+                f"{' [with map data]' if map_data else ''}"
             )
             
             return result
             
         except Exception as e:
             logger.error(f"LLM synthesis failed: {e}, using template fallback")
-            return self._template_synthesis(query, intent_results, start_time)
+            return self._template_synthesis(query, intent_results, start_time, map_data)
     
     def _get_synthesis_instructions(self) -> str:
         """Get synthesis instructions for LLM."""
@@ -321,7 +334,8 @@ IMPORTANT:
         self,
         query: str,
         intent_results: List[IntentResult],
-        start_time: float
+        start_time: float,
+        map_data: Optional[Dict[str, Any]] = None
     ) -> MultiIntentResponse:
         """
         Fallback template-based synthesis (when LLM fails).
@@ -333,6 +347,7 @@ IMPORTANT:
             query: Original query
             intent_results: Intent results
             start_time: Start time for metrics
+            map_data: Optional map data
             
         Returns:
             MultiIntentResponse with template-based synthesis
@@ -355,6 +370,10 @@ IMPORTANT:
         
         synthesized = "\n".join(parts)
         
+        # Add map mention if available
+        if map_data:
+            synthesized += "\n\n📍 See the map below for visualization."
+        
         processing_time = (time.time() - start_time) * 1000
         total_time = processing_time + sum(r.execution_time_ms or 0 for r in intent_results)
         
@@ -367,7 +386,8 @@ IMPORTANT:
             completeness=0.8,
             synthesis_method="template",
             synthesis_time_ms=processing_time,
-            total_processing_time_ms=total_time
+            total_processing_time_ms=total_time,
+            map_data=map_data
         )
 
 

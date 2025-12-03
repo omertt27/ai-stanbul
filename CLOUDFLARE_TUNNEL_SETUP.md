@@ -1,10 +1,22 @@
 # 🚀 CLOUDFLARE TUNNEL SETUP - FREE, NO SIGNUP NEEDED
 
-**Run these commands in your RunPod SSH terminal:**
+**Run these commands in your RunPod SSH terminal (or Web Terminal)**
 
 ---
 
-## Step 1: Install Cloudflared
+## 🎯 Quick Start (2 Options)
+
+### Option A: Quick Tunnel (Temporary - for testing)
+Fast setup, but URL changes each restart
+
+### Option B: Persistent Tunnel with nohup
+Runs in background, survives disconnect (recommended for production)
+
+---
+
+## Option A: Quick Tunnel (Testing)
+
+### Step 1: Install Cloudflared
 
 ```bash
 cd /workspace
@@ -13,23 +25,24 @@ chmod +x cloudflared-linux-amd64
 mv cloudflared-linux-amd64 cloudflared
 ```
 
----
-
-## Step 2: Start Cloudflare Tunnel
+### Step 2: Start Tunnel (blocks terminal)
 
 ```bash
-./cloudflared tunnel --url http://localhost:8888
+./cloudflared tunnel --url http://localhost:8000
+```
+
+### Step 2: Start Tunnel (blocks terminal)
+
+```bash
+./cloudflared tunnel --url http://localhost:8000
 ```
 
 **You'll see output like this:**
 
 ```
-2024-11-26T09:45:00Z INF Thank you for trying Cloudflare Tunnel. Doing so, without a Cloudflare account, is a quick way to experiment and try it out. However, be aware that these account-less Tunnels have no uptime guarantee. If you intend to use Tunnels in production you should use a pre-created named tunnel by following: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps
-2024-11-26T09:45:00Z INF Requesting new quick Tunnel on trycloudflare.com...
-2024-11-26T09:45:01Z INF +--------------------------------------------------------------------------------------------+
-2024-11-26T09:45:01Z INF |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
-2024-11-26T09:45:01Z INF |  https://abc-def-123.trycloudflare.com                                                     |
-2024-11-26T09:45:01Z INF +--------------------------------------------------------------------------------------------+
+2024-12-03T10:20:00Z INF |  Your quick Tunnel has been created! Visit it at:  |
+2024-12-03T10:20:00Z INF |  https://abc-def-123.trycloudflare.com              |
+2024-12-03T10:20:00Z INF +--------------------------------------------------------------------------------------------+
 ```
 
 **📋 COPY THE URL:** `https://abc-def-123.trycloudflare.com`
@@ -38,24 +51,104 @@ mv cloudflared-linux-amd64 cloudflared
 
 ---
 
-## Step 3: Test from Your Mac
+## Option B: Persistent Tunnel with nohup (RECOMMENDED)
 
-**Open a NEW terminal on your Mac and replace with YOUR cloudflare URL:**
+### Step 1: Install Cloudflared (if not done)
+
+```bash
+cd /workspace
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+chmod +x cloudflared-linux-amd64
+mv cloudflared-linux-amd64 /usr/local/bin/cloudflared
+```
+
+### Step 2: Start Tunnel in Background
+
+```bash
+cd /workspace
+mkdir -p logs
+
+# Start tunnel with nohup
+nohup cloudflared tunnel --url http://localhost:8000 > /workspace/logs/cloudflare-tunnel.log 2>&1 &
+
+# Save PID
+echo $! > /workspace/cloudflare-tunnel.pid
+
+# Disown to keep running
+disown
+
+echo "✅ Cloudflare Tunnel started in background!"
+```
+
+### Step 3: Get Your Tunnel URL
+
+```bash
+# Wait a few seconds for tunnel to start
+sleep 5
+
+# View the log to get your URL
+cat /workspace/logs/cloudflare-tunnel.log | grep "trycloudflare.com"
+```
+
+**Look for a line like:**
+```
+https://abc-def-123.trycloudflare.com
+```
+
+**📋 COPY THIS URL!**
+
+### Step 4: Test from RunPod
+
+```bash
+# Replace with your actual URL
+curl https://your-actual-url.trycloudflare.com/health | python3 -m json.tool
+```
+
+---
+
+## 🎯 All-in-One Command (Copy & Paste)
+
+```bash
+cd /workspace && \
+wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && \
+chmod +x cloudflared-linux-amd64 && \
+mv cloudflared-linux-amd64 /usr/local/bin/cloudflared && \
+mkdir -p logs && \
+nohup cloudflared tunnel --url http://localhost:8000 > /workspace/logs/cloudflare-tunnel.log 2>&1 & \
+echo $! > /workspace/cloudflare-tunnel.pid && \
+disown && \
+echo "✅ Tunnel starting... Wait 5 seconds..." && \
+sleep 5 && \
+echo "📋 Your Cloudflare URL:" && \
+grep -o "https://.*trycloudflare.com" /workspace/logs/cloudflare-tunnel.log | head -1
+```
+
+This command:
+1. ✅ Downloads cloudflared
+2. ✅ Installs it system-wide
+3. ✅ Starts tunnel with nohup
+4. ✅ Saves PID for management
+5. ✅ Shows your tunnel URL
+
+---
+
+## Step 3: Test from Your Local Machine
+
+**From your Mac terminal:**
 
 ```bash
 # Replace with YOUR actual Cloudflare URL!
-export CF_URL="https://abc-def-123.trycloudflare.com"
+export CF_URL="https://your-actual-url.trycloudflare.com"
 
-# Test models
-curl $CF_URL/v1/models | python3 -m json.tool
+# Test health
+curl $CF_URL/health | python3 -m json.tool
 
 # Test completion
-curl $CF_URL/v1/completions \
+curl -X POST $CF_URL/v1/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-    "prompt": "Tell me about Istanbul in one sentence:",
-    "max_tokens": 100,
+    "prompt": "Istanbul is",
+    "max_tokens": 50,
     "temperature": 0.7
   }' | python3 -m json.tool
 ```
@@ -64,12 +157,43 @@ curl $CF_URL/v1/completions \
 
 ---
 
-## Step 4: Update Render Backend
+## 🛠️ Tunnel Management
 
-1. Go to https://dashboard.render.com
-2. Find your backend service
-3. Click **Environment** tab
-4. Add or update these variables:
+### View Tunnel URL:
+```bash
+grep -o "https://.*trycloudflare.com" /workspace/logs/cloudflare-tunnel.log | head -1
+```
+
+### Check if Running:
+```bash
+ps aux | grep cloudflared
+```
+
+### View Logs:
+```bash
+tail -f /workspace/logs/cloudflare-tunnel.log
+```
+
+### Stop Tunnel:
+```bash
+kill $(cat /workspace/cloudflare-tunnel.pid)
+```
+
+### Restart Tunnel:
+```bash
+cd /workspace && \
+nohup cloudflared tunnel --url http://localhost:8000 > /workspace/logs/cloudflare-tunnel.log 2>&1 & \
+echo $! > /workspace/cloudflare-tunnel.pid && \
+disown && \
+sleep 5 && \
+grep -o "https://.*trycloudflare.com" /workspace/logs/cloudflare-tunnel.log | head -1
+```
+
+---
+
+## Step 4: Update Your Backend
+
+Add the Cloudflare URL to your backend configuration:
 
 ```
 RUNPOD_LLM_ENDPOINT=https://YOUR-CLOUDFLARE-URL-HERE

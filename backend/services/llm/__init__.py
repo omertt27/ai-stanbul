@@ -99,6 +99,11 @@ from .suggestion_presenter import (  # Phase 4.4
     get_suggestion_presenter,
     format_suggestions_for_chat
 )
+from .map_response_integrator import (  # Map Integration
+    MapResponseIntegrator,
+    get_map_response_integrator,
+    MapResponseData
+)
 
 
 def create_pure_llm_core(
@@ -238,6 +243,10 @@ __all__ = [
     'SuggestionPresenter',
     'get_suggestion_presenter',
     'format_suggestions_for_chat',
+    # Map Integration
+    'MapResponseIntegrator',
+    'get_map_response_integrator',
+    'MapResponseData',
 ]
 
 __version__ = '2.0.0'

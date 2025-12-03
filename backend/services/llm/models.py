@@ -951,6 +951,18 @@ class MultiIntentResponse(BaseModel):
         None,
         description="Total time from query to response"
     )
+    
+    # Map visualization data
+    map_data: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Map visualization data for route/location responses"
+    )
+    
+    # Follow-up suggestions
+    follow_up_suggestions: Optional[List[str]] = Field(
+        None,
+        description="Suggested follow-up questions or actions"
+    )
 # ============================================================================
 # Phase 4.4: Proactive Suggestions Models
 # ============================================================================

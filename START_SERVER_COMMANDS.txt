@@ -1,0 +1,162 @@
+# ═══════════════════════════════════════════════════════════
+# 🚀 START LLM SERVER - Copy/Paste Commands
+# ═══════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────
+# FROM YOUR LOCAL MACHINE - Upload Files
+# ─────────────────────────────────────────────────────────
+
+# 1. Set RunPod connection details (REPLACE WITH YOUR VALUES)
+export RUNPOD_PORT=12345
+export RUNPOD_IP=your-runpod-ip-here
+
+# 2. Upload LLM server
+scp -i ~/.ssh/id_ed25519 -P $RUNPOD_PORT llm_server.py root@$RUNPOD_IP:/workspace/
+
+# 3. Upload startup script
+scp -i ~/.ssh/id_ed25519 -P $RUNPOD_PORT start_llm_server_runpod.sh root@$RUNPOD_IP:/workspace/
+
+# 4. SSH into RunPod
+ssh -i ~/.ssh/id_ed25519 -p $RUNPOD_PORT root@$RUNPOD_IP
+
+# ─────────────────────────────────────────────────────────
+# ON RUNPOD - Start Server
+# ─────────────────────────────────────────────────────────
+
+# 5. Make startup script executable
+chmod +x /workspace/start_llm_server_runpod.sh
+
+# 6. Run the startup script
+./start_llm_server_runpod.sh
+
+# Expected: Server starts in 30-60 seconds with success message
+
+# ─────────────────────────────────────────────────────────
+# MANUAL START (Alternative to script)
+# ─────────────────────────────────────────────────────────
+
+# Install dependencies
+pip install fastapi uvicorn transformers torch accelerate bitsandbytes
+
+# Create logs directory
+mkdir -p /workspace/logs
+
+# Start server in background
+cd /workspace
+nohup python llm_server.py > /workspace/logs/llm_server.log 2>&1 &
+
+# Save PID
+echo $! > /workspace/llm_server.pid
+
+# Wait for model loading
+sleep 45
+
+# Check health
+curl http://localhost:8000/health | jq
+
+# ─────────────────────────────────────────────────────────
+# TEST SERVER
+# ─────────────────────────────────────────────────────────
+
+# Test 1: Health check
+curl http://localhost:8000/health | jq
+
+# Test 2: Simple completion
+curl -X POST http://localhost:8000/v1/completions \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "List top 3 Istanbul attractions:", "max_tokens": 100}' | jq
+
+# Test 3: Chat completion
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {"role": "system", "content": "You are a helpful Istanbul travel guide."},
+      {"role": "user", "content": "What should I visit in Istanbul?"}
+    ],
+    "max_tokens": 150
+  }' | jq
+
+# ─────────────────────────────────────────────────────────
+# MONITOR SERVER
+# ─────────────────────────────────────────────────────────
+
+# View real-time logs
+tail -f /workspace/logs/llm_server.log
+
+# Check process
+ps aux | grep llm_server
+
+# Check GPU usage
+nvidia-smi
+
+# Check last 50 log lines
+tail -n 50 /workspace/logs/llm_server.log
+
+# Search for errors
+grep -i error /workspace/logs/llm_server.log
+
+# ─────────────────────────────────────────────────────────
+# STOP/RESTART SERVER
+# ─────────────────────────────────────────────────────────
+
+# Stop server (using PID file)
+kill $(cat /workspace/llm_server.pid)
+
+# Stop server (by name)
+pkill -f llm_server.py
+
+# Restart server
+pkill -f llm_server.py && sleep 5 && ./start_llm_server_runpod.sh
+
+# ─────────────────────────────────────────────────────────
+# TROUBLESHOOTING
+# ─────────────────────────────────────────────────────────
+
+# Check if port 8000 is in use
+netstat -tlnp | grep 8000
+
+# Kill all Python processes (USE WITH CAUTION)
+pkill python
+
+# Check disk space
+df -h /workspace
+
+# Check GPU memory
+nvidia-smi --query-gpu=memory.used,memory.total --format=csv
+
+# View full error log
+cat /workspace/logs/llm_server.log
+
+# ─────────────────────────────────────────────────────────
+# EXPECTED RESPONSES
+# ─────────────────────────────────────────────────────────
+
+# Health check response:
+# {
+#   "status": "healthy",
+#   "model_loaded": true,
+#   "model_name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+#   "memory_gb": 5.5,
+#   "uptime_seconds": 120.5
+# }
+
+# Completion response:
+# {
+#   "text": "1. Hagia Sophia - A magnificent...",
+#   "tokens_generated": 85,
+#   "generation_time": 2.3
+# }
+
+# ─────────────────────────────────────────────────────────
+# PERFORMANCE NOTES
+# ─────────────────────────────────────────────────────────
+
+# - First request: 5-10 seconds (model warmup)
+# - Subsequent requests: 2-5 seconds
+# - Memory usage: ~5.5 GB GPU RAM
+# - Max throughput: 10-15 requests/minute
+
+# ═══════════════════════════════════════════════════════════
+# ✅ SERVER START COMPLETE!
+# ═══════════════════════════════════════════════════════════
