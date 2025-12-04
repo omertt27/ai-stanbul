@@ -581,51 +581,83 @@ function Chatbot({ userLocation: propUserLocation }) {
 
     const getCurrentLocation = () => {
       console.log('📍 Requesting GPS location...');
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          };
-          console.log('✅ GPS location obtained:', location);
-          setUserLocation(location);
-          setLocationError(null);
-        },
-        (error) => {
-          console.error('❌ GPS error details:', {
-            code: error.code,
-            message: error.message,
-            PERMISSION_DENIED: 1,
-            POSITION_UNAVAILABLE: 2,
-            TIMEOUT: 3
-          });
-          
-          // Enhanced error messages with troubleshooting
-          let userMessage = '';
-          switch(error.code) {
-            case 1: // PERMISSION_DENIED
-              userMessage = 'Location access denied. Please allow location in browser settings.';
-              break;
-            case 2: // POSITION_UNAVAILABLE
-              userMessage = 'GPS signal unavailable. Try moving to an area with better signal or check device location settings.';
-              break;
-            case 3: // TIMEOUT
-              userMessage = 'GPS request timeout. Signal may be weak. Try again.';
-              break;
-            default:
-              userMessage = `GPS error: ${error.message}`;
+      
+      // Try with high accuracy first
+      const tryHighAccuracy = () => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            };
+            console.log('✅ GPS location obtained (high accuracy):', location);
+            setUserLocation(location);
+            setLocationError(null);
+          },
+          (error) => {
+            console.error('❌ High accuracy GPS failed, trying low accuracy...', error);
+            // If high accuracy fails, try with lower accuracy settings
+            tryLowAccuracy();
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
           }
-          
-          setLocationError(userMessage);
-          setUserLocation(null);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000, // Increased to 15s for better GPS acquisition
-          maximumAge: 300000 // 5 minutes
-        }
-      );
+        );
+      };
+      
+      // Fallback to low accuracy GPS
+      const tryLowAccuracy = () => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            };
+            console.log('✅ GPS location obtained (low accuracy):', location);
+            setUserLocation(location);
+            setLocationError(null);
+          },
+          (error) => {
+            console.error('❌ GPS error details:', {
+              code: error.code,
+              message: error.message,
+              PERMISSION_DENIED: 1,
+              POSITION_UNAVAILABLE: 2,
+              TIMEOUT: 3
+            });
+            
+            // Enhanced error messages with troubleshooting
+            let userMessage = '';
+            switch(error.code) {
+              case 1: // PERMISSION_DENIED
+                userMessage = 'Location access denied. Please allow location in browser settings.';
+                break;
+              case 2: // POSITION_UNAVAILABLE
+                userMessage = 'GPS signal unavailable. Try: 1) Check device location is ON, 2) Allow this site to use location, 3) Refresh the page, or 4) Use manual location entry.';
+                break;
+              case 3: // TIMEOUT
+                userMessage = 'GPS request timeout. Signal may be weak. Try again or use manual location entry.';
+                break;
+              default:
+                userMessage = `GPS error: ${error.message}`;
+            }
+            
+            setLocationError(userMessage);
+            setUserLocation(null);
+          },
+          {
+            enableHighAccuracy: false, // Use less accurate but faster method
+            timeout: 5000,
+            maximumAge: 600000 // Allow 10-minute cached position
+          }
+        );
+      };
+      
+      tryHighAccuracy();
     };
 
     requestLocation();
@@ -642,66 +674,98 @@ function Chatbot({ userLocation: propUserLocation }) {
     // Show loading state
     setLocationError('Requesting GPS location...');
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy
-        };
-        console.log('✅ GPS enabled manually:', location);
-        setUserLocation(location);
-        setLocationError(null);
-        setLocationPermission('granted');
-        setShowGPSBanner(false);
-      },
-      (error) => {
-        console.error('❌ Manual GPS error:', {
-          code: error.code,
-          message: error.message
-        });
-        
-        // Enhanced error messages with actionable troubleshooting
-        let errorMessage = '';
-        let troubleshootingTips = '';
-        
-        switch(error.code) {
-          case 1: // PERMISSION_DENIED
-            errorMessage = '🚫 Location Access Denied';
-            troubleshootingTips = '\n\nPlease enable location access:\n' +
-              '• iOS: Settings → Privacy → Location Services → Safari → While Using\n' +
-              '• Android: Settings → Location → App Permissions → Browser → Allow\n' +
-              '• Desktop: Click the location icon in address bar';
-            break;
-          case 2: // POSITION_UNAVAILABLE
-            errorMessage = '📡 GPS Signal Unavailable';
-            troubleshootingTips = '\n\nTroubleshooting:\n' +
-              '• Move to an open area for better GPS signal\n' +
-              '• Check if Location Services are enabled on your device\n' +
-              '• Try restarting your browser\n' +
-              '• Ensure you\'re not in an underground location or building with poor signal';
-            break;
-          case 3: // TIMEOUT
-            errorMessage = '⏱️ GPS Request Timeout';
-            troubleshootingTips = '\n\nThe GPS signal is weak. Try:\n' +
-              '• Moving to an area with better signal\n' +
-              '• Waiting a few moments and trying again\n' +
-              '• Restarting location services on your device';
-            break;
-          default:
-            errorMessage = `GPS Error: ${error.message}`;
-            troubleshootingTips = '\n\nPlease check your browser and device location settings.';
+    // Try high accuracy first, then fallback to low accuracy
+    const tryHighAccuracy = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          console.log('✅ GPS enabled manually (high accuracy):', location);
+          setUserLocation(location);
+          setLocationError(null);
+          setLocationPermission('granted');
+          setShowGPSBanner(false);
+        },
+        (error) => {
+          console.log('❌ High accuracy failed, trying low accuracy...');
+          tryLowAccuracy();
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 0
         }
-        
-        alert(errorMessage + troubleshootingTips);
-        setLocationError(errorMessage);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000, // Increased timeout for better GPS acquisition
-        maximumAge: 0 // Force fresh location
-      }
-    );
+      );
+    };
+    
+    const tryLowAccuracy = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          console.log('✅ GPS enabled manually (low accuracy):', location);
+          setUserLocation(location);
+          setLocationError(null);
+          setLocationPermission('granted');
+          setShowGPSBanner(false);
+        },
+        (error) => {
+          console.error('❌ Manual GPS error:', {
+            code: error.code,
+            message: error.message
+          });
+          
+          // Enhanced error messages with actionable troubleshooting
+          let errorMessage = '';
+          let troubleshootingTips = '';
+          
+          switch(error.code) {
+            case 1: // PERMISSION_DENIED
+              errorMessage = '🚫 Location Access Denied';
+              troubleshootingTips = '\n\nPlease enable location access:\n' +
+                '• iOS: Settings → Privacy → Location Services → Safari → While Using\n' +
+                '• Android: Settings → Location → App Permissions → Browser → Allow\n' +
+                '• Desktop: Click the location icon in address bar';
+              break;
+            case 2: // POSITION_UNAVAILABLE
+              errorMessage = '📡 GPS Signal Unavailable';
+              troubleshootingTips = '\n\nTroubleshooting:\n' +
+                '• Make sure Location Services are ON in your device settings\n' +
+                '• Check that your browser has location permission\n' +
+                '• Try refreshing the page\n' +
+                '• If indoors, move closer to a window\n' +
+                '• Use "Enter Location Manually" as alternative';
+              break;
+            case 3: // TIMEOUT
+              errorMessage = '⏱️ GPS Request Timeout';
+              troubleshootingTips = '\n\nThe GPS signal is weak. Try:\n' +
+                '• Moving to an area with better signal\n' +
+                '• Waiting a few moments and trying again\n' +
+                '• Using manual location entry instead';
+              break;
+            default:
+              errorMessage = `GPS Error: ${error.message}`;
+              troubleshootingTips = '\n\nPlease check your browser and device location settings.';
+          }
+          
+          alert(errorMessage + troubleshootingTips);
+          setLocationError(errorMessage);
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 600000 // Allow 10-minute cached position
+        }
+      );
+    };
+    
+    tryHighAccuracy();
   };
   
   // Mobile ergonomics: Keyboard detection
