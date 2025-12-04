@@ -514,64 +514,163 @@ async def pure_llm_chat(
         logger.error(f"❌ LLM Intent Classification failed: {e}", exc_info=True)
         llm_intent = None
     
-    # === PHASE 2: SMART ROUTING BASED ON LLM INTENT ===
-    # Use LLM intent to make smart routing decisions
-    if llm_intent and llm_intent.is_high_confidence(threshold=0.7):
-        logger.info(f"🎯 High confidence LLM intent: {llm_intent.primary_intent}")
-        
-        # Route based on LLM intent classification
-        if llm_intent.primary_intent == "information":
-            logger.info("ℹ️ LLM detected information request, skipping GPS/route handlers")
-            skip_routing = True
-        elif llm_intent.primary_intent in ["route", "hidden_gems", "transport"]:
-            logger.info(f"🗺️ LLM detected {llm_intent.primary_intent} intent, will check specialized handlers")
-            skip_routing = False
+    # === PHASE 2: SMART ROUTING BASED ON LLM INTENT (LLM-FIRST ARCHITECTURE) ===
+    # Trust LLM for all intent classification - removed pattern matching fallback
+    # Lowered confidence threshold from 0.7 to 0.5 to trust LLM more broadly
+    skip_routing = False  # Default: don't skip routing, let specialized handlers check
+    
+    if llm_intent:
+        # We have LLM intent - trust it even with moderate confidence
+        if llm_intent.confidence >= 0.5:  # Lowered from 0.7 - trust LLM more
+            logger.info(f"🎯 LLM intent: {llm_intent.primary_intent} (confidence: {llm_intent.confidence:.2f})")
+            
+            # Route based on LLM intent classification
+            if llm_intent.primary_intent == "information":
+                logger.info("ℹ️ LLM detected information request, skipping GPS/route handlers")
+                skip_routing = True
+            elif llm_intent.primary_intent in ["route", "hidden_gems", "transport"]:
+                logger.info(f"🗺️ LLM detected {llm_intent.primary_intent} intent, will check specialized handlers")
+                skip_routing = False
+            else:
+                logger.info(f"💬 LLM detected {llm_intent.primary_intent} intent, will use general flow")
+                skip_routing = False
         else:
-            logger.info(f"💬 LLM detected {llm_intent.primary_intent} intent, will use general flow")
+            # Low confidence but still trust LLM - no pattern fallback
+            logger.info(f"🤔 Low confidence LLM intent ({llm_intent.confidence:.2f}) for {llm_intent.primary_intent}, proceeding anyway")
+            # Let specialized handlers try, they can decide
             skip_routing = False
     else:
-        # Low confidence or no LLM intent, fallback to regex-based detection
-        if llm_intent:
-            logger.warning(f"⚠️ Low confidence LLM intent ({llm_intent.confidence:.2f}), falling back to regex")
-        else:
-            logger.warning(f"⚠️ No LLM intent available, falling back to regex")
+        # No LLM intent available - proceed to Pure LLM without specialized routing
+        logger.warning(f"⚠️ No LLM intent extracted, will use Pure LLM for general handling")
         skip_routing = False
+    
+    # === PHASE 2.5: SMART ROUTING BASED ON LLM INTENT (LLM-FIRST ARCHITECTURE) ===
+    # If LLM detected route intent with good confidence, route directly to route handler
+    # Lowered threshold from 0.7 to 0.6 to catch more route queries
+    if llm_intent and llm_intent.primary_intent == "route" and llm_intent.confidence >= 0.6:
+        logger.info(f"🚗 LLM-based routing: ROUTE intent detected ({llm_intent.confidence:.2f})")
+        logger.info(f"   Origin: {llm_intent.origin}, Destination: {llm_intent.destination}")
         
-        # Fallback: Old regex-based information request detection
-        def is_information_request(message: str) -> bool:
-            """Check if asking for information about POIs, not directions to them"""
-            msg_lower = message.lower()
+        try:
+            from services.ai_chat_route_integration import get_chat_route_handler
             
-            # Information request keywords
-            info_keywords = ['what are', 'show me the', 'tell me about', 'recommend', 
-                            'best', 'top', 'list', 'which', 'where can i find',
-                            'what is', 'what\'s', 'tell me', 'can you recommend']
-            has_info_keywords = any(kw in msg_lower for kw in info_keywords)
+            handler = get_chat_route_handler()
             
-            # POI/Attraction keywords (information target)
-            poi_keywords = ['attractions', 'landmarks', 'museums', 'places to visit', 
-                           'sights', 'historical', 'monuments', 'palaces', 'mosques',
-                           'restaurants', 'cafes', 'things to do', 'things to see',
-                           'places to see', 'must see', 'must-see', 'worth visiting']
-            about_pois = any(kw in msg_lower for kw in poi_keywords)
+            # Build route params from LLM intent
+            route_params = {
+                'origin': llm_intent.origin,
+                'destination': llm_intent.destination,
+                'user_location': request.user_location,
+                'preferences': llm_intent.user_preferences or {},
+                'original_query': request.message
+            }
             
-            # Direction keywords (should NOT be present for info requests)
-            direction_keywords = ['from', ' to ', 'route', 'directions', 'how to get', 
-                                'how do i get', 'how can i get', 'take me', 'navigate',
-                                'navigation', 'way to', 'go to']
-            asking_directions = any(kw in msg_lower for kw in direction_keywords)
+            logger.info(f"📍 Calling route handler with LLM-extracted data:")
+            logger.info(f"   - Origin: {route_params['origin']}")
+            logger.info(f"   - Destination: {route_params['destination']}")
+            logger.info(f"   - Has GPS: {route_params['user_location'] is not None}")
             
-            # Special case: "show me" + location name without info keywords = might be directions
-            # But "show me the best/top" = information request
-            if 'show me' in msg_lower and not any(word in msg_lower for word in ['best', 'top', 'all', 'some', 'good']):
-                return False
-            
-            # It's an info request if: has info keywords + about POIs + NOT asking directions
-            return has_info_keywords and about_pois and not asking_directions
+            # Get route using LLM-extracted locations
+            if route_params['destination']:
+                # We have a destination from LLM
+                from services.map_visualization_service import MapVisualizationService
+                
+                map_service = MapVisualizationService()
+                
+                # Determine origin coordinates
+                if route_params['origin']:
+                    # Origin specified in query
+                    origin_coords = handler._get_destination_coordinates(route_params['origin'])
+                    origin_name = route_params['origin']
+                elif route_params['user_location']:
+                    # Use GPS location
+                    origin_coords = (
+                        route_params['user_location']['lat'],
+                        route_params['user_location']['lon']
+                    )
+                    origin_name = "Your Location"
+                else:
+                    # No origin - request GPS
+                    logger.warning("❌ No origin specified and no GPS available")
+                    return ChatResponse(
+                        response="To show you directions, I need to know where you're starting from. Please enable GPS or specify a starting location.",
+                        session_id=request.session_id or 'new',
+                        intent='route_planning',
+                        confidence=llm_intent.confidence,
+                        suggestions=[
+                            "Enable GPS",
+                            f"Route from Sultanahmet to {route_params['destination']}",
+                            f"Tell me about {route_params['destination']}"
+                        ],
+                        map_data={'request_gps': True, 'destination': route_params['destination']}
+                    )
+                
+                # Get destination coordinates
+                dest_coords = handler._get_destination_coordinates(route_params['destination'])
+                
+                if not dest_coords:
+                    logger.error(f"❌ Could not find coordinates for: {route_params['destination']}")
+                    # Fall through to Pure LLM
+                else:
+                    logger.info(f"✅ Coordinates found: {origin_name} {origin_coords} → {route_params['destination']} {dest_coords}")
+                    
+                    # Generate route
+                    try:
+                        route_data = map_service._generate_route_map(
+                            start_location={'lat': origin_coords[0], 'lon': origin_coords[1]},
+                            end_coords=dest_coords,
+                            end_name=route_params['destination'],
+                            language='en'
+                        )
+                        
+                        if route_data:
+                            # Format response message
+                            route_summary = route_data.get('route', {}).get('summary', {})
+                            distance = route_summary.get('distance', 'unknown')
+                            duration = route_summary.get('duration', 'unknown')
+                            modes = route_summary.get('modes', [])
+                            
+                            response_message = f"I found a route from {origin_name} to {route_params['destination']}!\n\n"
+                            response_message += f"📏 Distance: {distance}\n"
+                            response_message += f"⏱️ Duration: {duration}\n"
+                            
+                            if modes:
+                                response_message += f"🚇 Transport: {', '.join(modes)}\n"
+                            
+                            response_message += f"\nCheck the map below for the complete route with all stops and directions."
+                            
+                            # Enhance response with contextual tips
+                            enhanced_msg = await enhance_chat_response(
+                                base_response=response_message,
+                                original_query=request.message,
+                                user_context=user_context,
+                                route_data=route_data,
+                                response_type="route"
+                            )
+                            
+                            logger.info(f"✅ LLM-routed query SUCCESS: Generated route response")
+                            
+                            return ChatResponse(
+                                response=enhanced_msg,
+                                session_id=request.session_id or 'new',
+                                intent='route_planning',
+                                confidence=llm_intent.confidence,
+                                suggestions=[
+                                    "Show me restaurants nearby",
+                                    "What's the weather like?",
+                                    f"Tell me about {route_params['destination']}"
+                                ],
+                                map_data=route_data,
+                                navigation_active=False
+                            )
+                    
+                    except Exception as route_gen_error:
+                        logger.error(f"❌ Route generation failed: {route_gen_error}", exc_info=True)
+                        # Fall through to other handlers
         
-        skip_routing = is_information_request(request.message)
-        if skip_routing:
-            logger.info(f"ℹ️ Fallback regex detected information request: '{request.message[:50]}...'")
+        except Exception as e:
+            logger.error(f"❌ LLM-based route handling failed: {e}", exc_info=True)
+            # Fall through to fallback handlers
     
     # === PHASE 3: SPECIALIZED HANDLERS (if not skipping) ===
     if not skip_routing:
@@ -963,47 +1062,30 @@ async def chat(
         # Use Pure LLM
         return await pure_llm_chat(request, db)
     else:
-        # Fallback with basic intent detection
-        logger.warning("⚠️ Pure LLM Core not available, using basic fallback")
+        # Emergency Fallback: Pure LLM Core not available
+        # No pattern matching - just provide helpful generic response
+        logger.error("❌ Pure LLM Core not available - returning emergency fallback")
         
-        query_lower = request.message.lower()
-        
-        # Try to detect transportation queries
-        transportation_keywords = ['how', 'get', 'go', 'travel', 'kadikoy', 'taksim', 'sultanahmet', 
-                                  'besiktas', 'uskudar', 'directions', 'way', 'route']
-        is_transport = any(keyword in query_lower for keyword in transportation_keywords)
-        
-        if is_transport:
-            response_text = (
-                "I can help you with directions! However, the AI service is currently unavailable. "
-                "Please try:\n\n"
-                "1. Use the interactive map on our homepage\n"
-                "2. Check Istanbul Metro/Tram routes\n"
-                "3. Use Google Maps for real-time directions\n\n"
-                "The AI service will be back shortly. Thank you for your patience!"
-            )
-            intent = "transportation"
-        else:
-            response_text = (
-                "Welcome to Istanbul! The AI assistant is temporarily unavailable, "
-                "but you can still explore our website for information about:\n\n"
-                "• Restaurants and dining\n"
-                "• Tourist attractions\n"
-                "• Neighborhoods and districts\n"
-                "• Transportation options\n\n"
-                "Please try again in a moment!"
-            )
-            intent = "greeting"
+        response_text = (
+            "🤖 I'm the Istanbul AI Assistant, but I'm currently offline for maintenance.\n\n"
+            "While I'm away, you can:\n\n"
+            "• 🗺️ Use the interactive map on our homepage\n"
+            "• 🍽️ Browse restaurants and attractions\n"
+            "• 🚇 Check transportation options\n"
+            "• 📱 Enable GPS for location-based features\n\n"
+            "I'll be back online shortly! Thank you for your patience. 🙏"
+        )
         
         return ChatResponse(
             response=response_text,
             session_id=request.session_id or "new",
-            intent=intent,
-            confidence=0.3,
+            intent="error_fallback",
+            confidence=0.0,
             suggestions=[
-                "Show me restaurants near me",
-                "What are the best attractions?",
-                "How do I use public transport?"
+                "Show me the map",
+                "Browse restaurants",
+                "View attractions",
+                "Check back later"
             ]
         )
 

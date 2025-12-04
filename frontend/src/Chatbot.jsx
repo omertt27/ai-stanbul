@@ -1252,7 +1252,7 @@ function Chatbot({ userLocation: propUserLocation }) {
 
       {/* GPS Location Banner */}
       {!userLocation && showGPSBanner && locationPermission !== 'denied' && (
-        <div className={`px-4 py-3 border-b ${
+        <div className={`px-4 py-3 border-b relative z-[60] ${
           darkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'
         }`}>
           <div className="flex items-center justify-between max-w-5xl mx-auto">
