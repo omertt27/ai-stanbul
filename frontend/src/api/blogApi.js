@@ -9,7 +9,7 @@ import {
 // API configuration
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
-const BLOG_API_URL = `${cleanBaseUrl}/api/blog/`;
+const BLOG_API_URL = `${cleanBaseUrl}/api/blog/posts`;
 
 // Debug logging
 console.log('🔧 API Configuration:');
