@@ -257,64 +257,7 @@ const App = () => {
             padding: isMobile || window.innerWidth <= 768 ? '0 0.5rem' : '1rem',
             zIndex: 10,
           }}>
-            {/* GPS Location Status */}
-            {hasLocation && (
-              <div style={{
-                textAlign: 'center',
-                marginBottom: '0.5rem',
-                padding: '0.5rem',
-                background: 'rgba(16, 185, 129, 0.1)',
-                borderRadius: '8px',
-                fontSize: '0.875rem',
-                color: '#059669'
-              }}>
-                📍 GPS Active - Location-aware responses enabled
-                <button 
-                  onClick={clearLocation}
-                  style={{
-                    marginLeft: '1rem',
-                    padding: '0.25rem 0.75rem',
-                    background: 'transparent',
-                    border: '1px solid #059669',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem',
-                    color: '#059669'
-                  }}
-                >
-                  Disable
-                </button>
-              </div>
-            )}
-            {!hasLocation && (
-              <div style={{
-                textAlign: 'center',
-                marginBottom: '0.5rem',
-                padding: '0.5rem',
-                background: 'rgba(99, 102, 241, 0.1)',
-                borderRadius: '8px',
-                fontSize: '0.875rem',
-                color: '#4f46e5'
-              }}>
-                💡 Enable GPS for personalized, location-aware recommendations
-                <button 
-                  onClick={requestGPSLocation}
-                  style={{
-                    marginLeft: '1rem',
-                    padding: '0.25rem 0.75rem',
-                    background: '#6366f1',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem',
-                    color: 'white'
-                  }}
-                >
-                  📍 Enable GPS
-                </button>
-              </div>
-            )}
-            
+
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}

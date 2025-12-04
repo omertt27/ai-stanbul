@@ -334,14 +334,26 @@ class RunPodLLMClient:
             response.raise_for_status()
             result = response.json()
             
-            # Extract text from vLLM completions format
+            # Handle multiple response formats from different vLLM versions
+            generated_text = None
+            
+            # Format 1: Standard vLLM with choices array
             if 'choices' in result and len(result['choices']) > 0:
-                # vLLM uses 'text' not 'message.content'
                 generated_text = result['choices'][0].get('text', '')
+            
+            # Format 2: Direct text field (RunPod custom format)
+            elif 'text' in result:
+                generated_text = result['text']
+            
+            # Format 3: Generated_text field
+            elif 'generated_text' in result:
+                generated_text = result['generated_text']
+            
+            if generated_text:
                 logger.info(f"✅ LLM generated {len(generated_text)} chars")
                 return {"generated_text": generated_text, "raw": result}
             else:
-                logger.error("❌ Invalid response format from LLM")
+                logger.error(f"❌ Invalid response format from LLM: {result.keys() if isinstance(result, dict) else type(result)}")
                 return None
     
     async def generate_istanbul_response(

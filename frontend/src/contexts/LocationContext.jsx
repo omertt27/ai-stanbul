@@ -343,7 +343,24 @@ export const LocationProvider = ({ children }) => {
     });
 
     const errorUnsubscribe = gpsLocationService.onLocationError((error) => {
-      dispatch({ type: actionTypes.SET_LOCATION_ERROR, payload: error.message });
+      // Enhanced error message with troubleshooting
+      let userFriendlyMessage = error.message;
+      
+      // Check if enhanced error object with tips
+      if (error.title) {
+        userFriendlyMessage = `${error.title}: ${error.message}`;
+      } else {
+        // Format standard error messages
+        if (error.message.includes('unavailable')) {
+          userFriendlyMessage = 'GPS signal unavailable. Try moving to an area with better signal.';
+        } else if (error.message.includes('denied')) {
+          userFriendlyMessage = 'Location access denied. Please enable in settings.';
+        } else if (error.message.includes('timeout')) {
+          userFriendlyMessage = 'GPS request timeout. Signal may be weak.';
+        }
+      }
+      
+      dispatch({ type: actionTypes.SET_LOCATION_ERROR, payload: userFriendlyMessage });
     });
 
     initializeGPS();

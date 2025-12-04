@@ -593,13 +593,36 @@ function Chatbot({ userLocation: propUserLocation }) {
           setLocationError(null);
         },
         (error) => {
-          console.error('❌ GPS error:', error.message);
-          setLocationError(error.message);
+          console.error('❌ GPS error details:', {
+            code: error.code,
+            message: error.message,
+            PERMISSION_DENIED: 1,
+            POSITION_UNAVAILABLE: 2,
+            TIMEOUT: 3
+          });
+          
+          // Enhanced error messages with troubleshooting
+          let userMessage = '';
+          switch(error.code) {
+            case 1: // PERMISSION_DENIED
+              userMessage = 'Location access denied. Please allow location in browser settings.';
+              break;
+            case 2: // POSITION_UNAVAILABLE
+              userMessage = 'GPS signal unavailable. Try moving to an area with better signal or check device location settings.';
+              break;
+            case 3: // TIMEOUT
+              userMessage = 'GPS request timeout. Signal may be weak. Try again.';
+              break;
+            default:
+              userMessage = `GPS error: ${error.message}`;
+          }
+          
+          setLocationError(userMessage);
           setUserLocation(null);
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 15000, // Increased to 15s for better GPS acquisition
           maximumAge: 300000 // 5 minutes
         }
       );
@@ -612,9 +635,12 @@ function Chatbot({ userLocation: propUserLocation }) {
   const requestLocationManually = () => {
     console.log('📍 Manual GPS request triggered');
     if (!('geolocation' in navigator)) {
-      alert('GPS not supported by your browser');
+      alert('❌ GPS not supported by your browser. Please use a modern browser with location support.');
       return;
     }
+
+    // Show loading state
+    setLocationError('Requesting GPS location...');
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -630,14 +656,50 @@ function Chatbot({ userLocation: propUserLocation }) {
         setShowGPSBanner(false);
       },
       (error) => {
-        console.error('❌ Manual GPS error:', error);
-        alert(`GPS Error: ${error.message}. Please check your browser settings.`);
-        setLocationError(error.message);
+        console.error('❌ Manual GPS error:', {
+          code: error.code,
+          message: error.message
+        });
+        
+        // Enhanced error messages with actionable troubleshooting
+        let errorMessage = '';
+        let troubleshootingTips = '';
+        
+        switch(error.code) {
+          case 1: // PERMISSION_DENIED
+            errorMessage = '🚫 Location Access Denied';
+            troubleshootingTips = '\n\nPlease enable location access:\n' +
+              '• iOS: Settings → Privacy → Location Services → Safari → While Using\n' +
+              '• Android: Settings → Location → App Permissions → Browser → Allow\n' +
+              '• Desktop: Click the location icon in address bar';
+            break;
+          case 2: // POSITION_UNAVAILABLE
+            errorMessage = '📡 GPS Signal Unavailable';
+            troubleshootingTips = '\n\nTroubleshooting:\n' +
+              '• Move to an open area for better GPS signal\n' +
+              '• Check if Location Services are enabled on your device\n' +
+              '• Try restarting your browser\n' +
+              '• Ensure you\'re not in an underground location or building with poor signal';
+            break;
+          case 3: // TIMEOUT
+            errorMessage = '⏱️ GPS Request Timeout';
+            troubleshootingTips = '\n\nThe GPS signal is weak. Try:\n' +
+              '• Moving to an area with better signal\n' +
+              '• Waiting a few moments and trying again\n' +
+              '• Restarting location services on your device';
+            break;
+          default:
+            errorMessage = `GPS Error: ${error.message}`;
+            troubleshootingTips = '\n\nPlease check your browser and device location settings.';
+        }
+        
+        alert(errorMessage + troubleshootingTips);
+        setLocationError(errorMessage);
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+        timeout: 15000, // Increased timeout for better GPS acquisition
+        maximumAge: 0 // Force fresh location
       }
     );
   };

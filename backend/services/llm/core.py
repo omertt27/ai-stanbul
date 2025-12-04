@@ -452,11 +452,14 @@ class PureLLMCore:
             
             # Simplified LLM call with circuit breaker only
             async def _generate_with_llm():
-                return await self.llm.generate(
+                logger.info(f"📝 Calling LLM with prompt (first 100 chars): {prompt[:100]}...")
+                result = await self.llm.generate(
                     prompt=prompt,
                     max_tokens=max_tokens,
                     temperature=0.7
                 )
+                logger.info(f"📥 LLM returned response with keys: {list(result.keys()) if isinstance(result, dict) else type(result)}")
+                return result
             
             # Apply circuit breaker protection
             response_data = await self.circuit_breakers['llm'].call(_generate_with_llm)
@@ -464,11 +467,13 @@ class PureLLMCore:
             llm_latency = time.time() - llm_start
             
             if not response_data or "generated_text" not in response_data:
-                raise Exception("Invalid LLM response")
+                error_msg = f"Invalid LLM response structure: {type(response_data)}"
+                logger.error(f"❌ {error_msg}")
+                raise Exception(error_msg)
             
             response_text = response_data["generated_text"]
             
-            logger.info(f"✅ LLM generated response in {llm_latency:.2f}s")
+            logger.info(f"✅ LLM generated response in {llm_latency:.2f}s (length: {len(response_text)} chars)")
             
             # Validate response
             is_valid, validation_error = await self._validate_response(
@@ -485,7 +490,8 @@ class PureLLMCore:
                 # Attempt recovery
                 response_text = await self._fallback_response(
                     query=query,
-                    context=context
+                    context=context,
+                    error_type="validation"
                 )
         
         except CircuitBreakerError as e:
@@ -493,11 +499,11 @@ class PureLLMCore:
             self.analytics.track_llm_failure('circuit_breaker_open')
             
             # Graceful degradation - provide informative error
-            response_text = GracefulDegradation.create_degraded_response(
-                original_query=query,
-                available_data=context,
-                unavailable_services=['LLM']
-            )['metadata']['notice']
+            response_text = await self._fallback_response(
+                query=query,
+                context=context,
+                error_type="circuit_breaker"
+            )
             
             result = {
                 'response': response_text,
@@ -505,21 +511,37 @@ class PureLLMCore:
                 'signals': signals['signals'],
                 'metadata': {
                     'error': 'llm_unavailable',
+                    'error_type': 'circuit_breaker',
                     'degraded_mode': True,
-                    'cached': False
+                    'cached': False,
+                    'message': 'AI service temporarily unavailable due to repeated failures'
                 }
             }
             
             return result
             
         except Exception as e:
-            logger.error(f"❌ LLM generation failed: {e}")
-            self.analytics.track_error('llm_failure', str(e))
+            error_msg = str(e)
+            logger.error(f"❌ LLM generation failed: {error_msg}")
+            self.analytics.track_error('llm_failure', error_msg)
+            
+            # Detect error type for better fallback messages
+            error_type = "unknown"
+            if "404" in error_msg or "Not Found" in error_msg:
+                error_type = "404"
+                logger.error("🔥 LLM endpoint returned 404 - vLLM server may be down!")
+            elif "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+                error_type = "timeout"
+                logger.error("⏱️ LLM request timed out - server may be overloaded")
+            elif "connection" in error_msg.lower():
+                error_type = "connection"
+                logger.error("🔌 Connection error to LLM service")
             
             # Fallback to context-based response
             response_text = await self._fallback_response(
                 query=query,
-                context=context
+                context=context,
+                error_type=error_type
             )
             llm_latency = 0
         
@@ -1001,7 +1023,8 @@ class PureLLMCore:
     async def _fallback_response(
         self,
         query: str,
-        context: Dict[str, Any]
+        context: Dict[str, Any],
+        error_type: str = "unknown"
     ) -> str:
         """
         Generate fallback response when LLM fails.
@@ -1009,6 +1032,7 @@ class PureLLMCore:
         Args:
             query: User query
             context: Built context
+            error_type: Type of error (404, timeout, circuit_breaker, validation)
             
         Returns:
             Fallback response string
@@ -1018,21 +1042,56 @@ class PureLLMCore:
             return (
                 f"Based on available information:\n\n"
                 f"{context['rag'][:500]}\n\n"
-                f"Note: This is a simplified response. Please try rephrasing your question."
+                f"Note: I'm currently experiencing technical difficulties with my AI service. "
+                f"This is a simplified response based on our knowledge base."
             )
         
         # Try to use database context
         if context.get('database'):
             return (
-                f"Here's what I found:\n\n"
+                f"Here's what I found in our database:\n\n"
                 f"{context['database'][:500]}\n\n"
-                f"Note: This is a simplified response. Please try rephrasing your question."
+                f"Note: I'm currently experiencing technical difficulties with my AI service. "
+                f"This information is retrieved directly from our database."
+            )
+        
+        # Friendly greeting fallback for simple queries
+        simple_greetings = ["hi", "hello", "hey", "greetings", "merhaba", "selam"]
+        if query.lower().strip() in simple_greetings:
+            return (
+                "Hello! 👋 I'm your AI assistant for Istanbul tourism. "
+                "I can help you with:\n\n"
+                "• Finding restaurants and cafes\n"
+                "• Planning routes and transportation\n"
+                "• Discovering attractions and hidden gems\n"
+                "• Getting weather updates\n\n"
+                "What would you like to explore in Istanbul today?"
+            )
+        
+        # Error-specific fallback messages
+        if error_type == "404":
+            return (
+                "I apologize, but my AI service is currently offline for maintenance. "
+                "I'm still here to help! Please try:\n\n"
+                "• Asking about specific locations (e.g., 'restaurants in Sultanahmet')\n"
+                "• Planning a route (e.g., 'How do I get to Taksim?')\n"
+                "• Checking the weather\n\n"
+                "My team is working to restore full functionality shortly."
+            )
+        elif error_type == "timeout":
+            return (
+                "My AI service is taking longer than usual to respond. "
+                "This might be due to high traffic. Please try:\n\n"
+                "• Refreshing the page\n"
+                "• Asking a more specific question\n"
+                "• Waiting a moment and trying again"
             )
         
         # Ultimate fallback
         return (
-            "I apologize, but I'm having trouble generating a response right now. "
-            "Please try rephrasing your question or contact support if the issue persists."
+            "I apologize, but I'm experiencing technical difficulties right now. "
+            "Please try asking your question in a different way, or contact support if this continues. "
+            "You can also try specific queries like 'restaurants near me' or 'how to get to Hagia Sophia'."
         )
     
     # ========================================================================

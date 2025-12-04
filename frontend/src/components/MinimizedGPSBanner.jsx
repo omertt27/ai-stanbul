@@ -188,10 +188,29 @@ const MinimizedGPSBanner = ({
             </div>
           )}
 
-          {/* Error Message */}
+          {/* Error Message with Troubleshooting */}
           {locationError && (
-            <div className="text-xs text-red-400 bg-red-500/10 px-2 py-1 rounded">
-              {locationError}
+            <div className="space-y-1">
+              <div className="text-xs text-red-400 bg-red-500/10 px-2 py-1.5 rounded">
+                ⚠️ {locationError}
+              </div>
+              
+              {/* Troubleshooting hints based on error type */}
+              {locationError.includes('unavailable') && (
+                <div className="text-xs text-gray-400 px-2">
+                  💡 Try: Move outdoors • Enable Location Services • Check device settings
+                </div>
+              )}
+              {locationError.includes('denied') && (
+                <div className="text-xs text-gray-400 px-2">
+                  💡 Enable location in browser settings, then reload the page
+                </div>
+              )}
+              {locationError.includes('timeout') && (
+                <div className="text-xs text-gray-400 px-2">
+                  💡 Weak signal. Move to open area and try again
+                </div>
+              )}
             </div>
           )}
 

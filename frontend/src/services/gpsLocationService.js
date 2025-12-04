@@ -343,18 +343,67 @@ class GPSLocationService {
   }
 
   handleGeolocationError(error) {
-    const errorMessages = {
-      1: 'Location access denied by user',
-      2: 'Location information unavailable',
-      3: 'Location request timeout'
-    };
+    console.error('🔴 GPS Error Details:', {
+      code: error.code,
+      message: error.message,
+      PERMISSION_DENIED: error.PERMISSION_DENIED,
+      POSITION_UNAVAILABLE: error.POSITION_UNAVAILABLE,
+      TIMEOUT: error.TIMEOUT
+    });
 
-    // Check for permissions policy error
+    // Check for permissions policy error first
     if (error.message && error.message.includes('permissions policy')) {
-      return new Error('Geolocation has been disabled by permissions policy. Please enable location services or use manual location entry.');
+      return new Error('Location disabled in browser settings. Please enable location access in your browser or device settings.');
     }
 
-    return new Error(errorMessages[error.code] || 'Unknown location error');
+    // Detailed error messages with troubleshooting tips
+    const errorDetails = {
+      1: { // PERMISSION_DENIED
+        title: 'Location Access Denied',
+        message: 'Please allow location access in your browser settings to use GPS features.',
+        tips: [
+          'Check browser location permissions',
+          'Enable location services on your device',
+          'Reload the page after granting permission'
+        ]
+      },
+      2: { // POSITION_UNAVAILABLE
+        title: 'GPS Location Unavailable',
+        message: 'Unable to determine your location. This may be due to GPS signal issues.',
+        tips: [
+          'Make sure you\'re not in a GPS-blocked area (underground, indoors with thick walls)',
+          'Check if location services are enabled on your device',
+          'Try moving to an area with better signal',
+          'Restart your browser or device',
+          'On iOS: Settings → Privacy → Location Services → Safari → While Using',
+          'On Android: Settings → Location → App permissions → Browser → Allow'
+        ]
+      },
+      3: { // TIMEOUT
+        title: 'GPS Timeout',
+        message: 'Location request took too long. Your GPS signal may be weak.',
+        tips: [
+          'Move to an area with better GPS signal',
+          'Try again in a few moments',
+          'Check if location services are enabled'
+        ]
+      }
+    };
+
+    const details = errorDetails[error.code] || {
+      title: 'Location Error',
+      message: `GPS error: ${error.message}`,
+      tips: ['Please try again or use manual location entry']
+    };
+
+    // Create a more informative error object
+    const enhancedError = new Error(details.message);
+    enhancedError.title = details.title;
+    enhancedError.tips = details.tips;
+    enhancedError.code = error.code;
+    enhancedError.originalMessage = error.message;
+
+    return enhancedError;
   }
 
   saveLastKnownPosition() {
