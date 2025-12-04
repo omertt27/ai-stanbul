@@ -144,16 +144,17 @@ async def get_blog_posts(
         # FIX: N+1 Query Problem - Get all comment counts in one query
         post_ids = [post.id for post in posts]
         comment_counts = {}
-        if post_ids:
-            comment_count_query = db.query(
-                BlogComment.blog_post_id,
-                func.count(BlogComment.id).label('count')
-            ).filter(
-                BlogComment.blog_post_id.in_(post_ids),
-                BlogComment.is_approved == True
-            ).group_by(BlogComment.blog_post_id).all()
-            
-            comment_counts = {post_id: count for post_id, count in comment_count_query}
+        # TEMPORARY FIX: Comment model not yet implemented
+        # if post_ids:
+        #     comment_count_query = db.query(
+        #         BlogComment.blog_post_id,
+        #         func.count(BlogComment.id).label('count')
+        #     ).filter(
+        #         BlogComment.blog_post_id.in_(post_ids),
+        #         BlogComment.is_approved == True
+        #     ).group_by(BlogComment.blog_post_id).all()
+        #     
+        #     comment_counts = {post_id: count for post_id, count in comment_count_query}
         
         # Format response
         formatted_posts = []
