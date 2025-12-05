@@ -173,7 +173,7 @@ async def pure_llm_chat(
                 resolved_context = await context_manager.resolve_context(
                     current_query=request.message,
                     session_id=session_id,
-                    user_id=request.user_id,
+                    user_id=getattr(request, 'user_id', None) or session_id,  # Fallback to session_id if user_id not provided
                     user_location=request.user_location
                 )
                 
@@ -430,10 +430,10 @@ async def pure_llm_chat(
                 
                 logger.info(
                     f"✅ LLM Intent Classification complete:\n"
-                    f"   - Primary Intent: {llm_intent.primary_intent}\n"
+                    f"   - Primary Intent: {llm_intent.primary_intent or 'None'}\n"
                     f"   - Confidence: {llm_intent.confidence:.2f}\n"
-                    f"   - Origin: {llm_intent.origin}\n"
-                    f"   - Destination: {llm_intent.destination}\n"
+                    f"   - Origin: {llm_intent.origin or 'N/A'}\n"
+                    f"   - Destination: {llm_intent.destination or 'N/A'}\n"
                     f"   - Method: {llm_intent.classification_method}\n"
                     f"   - Time: {llm_intent.processing_time_ms:.0f}ms"
                 )

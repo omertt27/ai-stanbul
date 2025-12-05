@@ -171,7 +171,7 @@ Extract and classify the following in valid JSON format:
             'cache_ttl_seconds': 3600,  # 1 hour cache
             'confidence_threshold': 0.6,  # Below this = ambiguous
             'max_retries': 2,
-            'timeout_seconds': 5,
+            'timeout_seconds': 120,  # Increased to match main LLM timeout
             'fallback_to_regex': True,
             'log_classifications': True,
             **(config or {})

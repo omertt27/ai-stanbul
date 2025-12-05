@@ -7,6 +7,7 @@ Provides location detection when GPS is not available or permission is denied
 import json
 import logging
 import re
+import math
 import asyncio
 from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass, asdict
@@ -30,10 +31,14 @@ except ImportError:
     ML_TRANSPORT_AVAILABLE = False
     logging.warning("ML enhanced transportation system not available")
     # Define GPSLocation as a fallback type when not available
-    from typing import NamedTuple
-    class GPSLocation(NamedTuple):
+    @dataclass
+    class GPSLocation:
         latitude: float
         longitude: float
+        district: str = ""
+        accuracy: Optional[float] = None
+        address: Optional[str] = None
+        timestamp: Optional[datetime] = None
 
 logger = logging.getLogger(__name__)
 
@@ -593,10 +598,10 @@ def location_fallback_option_to_dict(option: LocationFallbackOption) -> Dict:
         result["location"] = {
             "latitude": option.location.latitude,
             "longitude": option.location.longitude,
-            "accuracy": option.location.accuracy,
-            "address": option.location.address,
-            "district": option.location.district,
-            "timestamp": option.location.timestamp.isoformat() if option.location.timestamp else None
+            "accuracy": getattr(option.location, 'accuracy', None),
+            "address": getattr(option.location, 'address', None),
+            "district": getattr(option.location, 'district', ''),
+            "timestamp": option.location.timestamp.isoformat() if hasattr(option.location, 'timestamp') and option.location.timestamp else None
         }
     result["method"] = option.method.value
     return result
