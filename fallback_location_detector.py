@@ -29,6 +29,11 @@ try:
 except ImportError:
     ML_TRANSPORT_AVAILABLE = False
     logging.warning("ML enhanced transportation system not available")
+    # Define GPSLocation as a fallback type when not available
+    from typing import NamedTuple
+    class GPSLocation(NamedTuple):
+        latitude: float
+        longitude: float
 
 logger = logging.getLogger(__name__)
 
