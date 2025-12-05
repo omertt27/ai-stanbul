@@ -85,6 +85,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(None, description="Session identifier")
     user_location: Optional[Dict[str, float]] = Field(None, description="User GPS location")
     preferences: Optional[Dict[str, Any]] = Field(None, description="User preferences")
+    user_id: Optional[str] = Field(None, description="User ID for personalization")
 
 
 class ChatResponse(BaseModel):
@@ -249,7 +250,7 @@ async def pure_llm_chat(
                 # Detect multiple intents
                 detection_result = await detector.detect_intents(
                     query=request.message,
-                    user_context=user_context
+                    context=user_context
                 )
                 
                 logger.info(
