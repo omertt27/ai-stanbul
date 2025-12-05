@@ -158,11 +158,15 @@ async def pure_llm_chat(
         if pure_llm_core:
             llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
             
-            if llm_client:
+            # DISABLED FOR SPEED: Context resolution adds 20-30s per request
+            # Re-enable when we have a faster LLM or can run it in parallel
+            ENABLE_CONTEXT_RESOLUTION = False
+            
+            if ENABLE_CONTEXT_RESOLUTION and llm_client:
                 context_manager = get_context_manager(
                     llm_client=llm_client,
                     config={
-                        'enable_llm': True,
+                        'enable_llm': False,  # DISABLED: Too slow, using rule-based fallback
                         'fallback_to_rules': True,
                         'timeout_seconds': 2,
                         'max_history_turns': 10
@@ -173,7 +177,7 @@ async def pure_llm_chat(
                 resolved_context = await context_manager.resolve_context(
                     current_query=request.message,
                     session_id=session_id,
-                    user_id=getattr(request, 'user_id', None) or session_id,  # Fallback to session_id if user_id not provided
+                    user_id=getattr(request, 'user_id', None) or session_id,
                     user_location=request.user_location
                 )
                 
@@ -204,8 +208,6 @@ async def pure_llm_chat(
                         response_time=0.1,
                         session_id=session_id
                     )
-            else:
-                logger.warning("⚠️ LLM client not available, skipping context resolution")
         else:
             logger.warning("⚠️ Pure LLM Core not available, skipping context resolution")
             
@@ -404,116 +406,126 @@ async def pure_llm_chat(
             user_context['location'] = request.user_location
             logger.info(f"📍 User GPS available: lat={request.user_location.get('lat')}, lon={request.user_location.get('lon')}")
         
-        # Get or create intent classifier (uses singleton pattern)
-        pure_llm_core = startup_manager.get_pure_llm_core()
-        if not pure_llm_core:
-            logger.warning("⚠️ Pure LLM Core not available, skipping LLM intent classification")
-            llm_intent = None
-        else:
-            # Get the LLM client from pure_llm_core
-            llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
-            
-            if llm_client:
-                intent_classifier = get_intent_classifier(
-                    llm_client=llm_client,
-                    db_connection=db,
-                    cache_manager=None,  # TODO: Add cache manager when available
-                    config={'enable_caching': False}  # Disable for initial testing
-                )
-                
-                # Classify intent using LLM (now with resolved query)
-                llm_intent = await intent_classifier.classify_intent(
-                    query=request.message,
-                    user_context=user_context,
-                    use_cache=True
-                )
-                
-                logger.info(
-                    f"✅ LLM Intent Classification complete:\n"
-                    f"   - Primary Intent: {llm_intent.primary_intent or 'None'}\n"
-                    f"   - Confidence: {llm_intent.confidence:.2f}\n"
-                    f"   - Origin: {llm_intent.origin or 'N/A'}\n"
-                    f"   - Destination: {llm_intent.destination or 'N/A'}\n"
-                    f"   - Method: {llm_intent.classification_method}\n"
-                    f"   - Time: {llm_intent.processing_time_ms:.0f}ms"
-                )
-                
-                # Log preferences if detected
-                if llm_intent.user_preferences:
-                    logger.info(f"   - Detected Preferences: {llm_intent.user_preferences}")
-                
-                # Log ambiguities if any
-                if llm_intent.ambiguities:
-                    logger.warning(f"   - Ambiguities: {llm_intent.ambiguities}")
-        
-                # === PHASE 2: LLM LOCATION RESOLUTION ===
-                # If locations detected or route intent, use LLM location resolver
-                location_resolution = None
-                if llm_intent.primary_intent in ["route", "hidden_gems", "information", "transport"]:
-                    try:
-                        from backend.services.llm import get_location_resolver
-                        
-                        location_resolver = get_location_resolver()
-                        
-                        # Prepare user context for location resolver
-                        loc_context = {
-                            'gps': user_context.get('gps'),
-                            'previous_locations': []  # TODO: Track in conversation history
-                        }
-                        
-                        # Resolve locations using LLM
-                        location_resolution = location_resolver.resolve_locations(
-                            query=request.message,
-                            user_context=loc_context
-                        )
-                        
-                        logger.info(
-                            f"✅ LLM Location Resolution complete:\n"
-                            f"   - Pattern: {location_resolution.pattern}\n"
-                            f"   - Locations Found: {len(location_resolution.locations)}\n"
-                            f"   - Confidence: {location_resolution.confidence:.2f}\n"
-                            f"   - Used LLM: {location_resolution.used_llm}\n"
-                            f"   - Fallback: {location_resolution.fallback_used}"
-                        )
-                        
-                        # Log each location
-                        for i, loc in enumerate(location_resolution.locations, 1):
-                            coords_str = f"{loc.coordinates[0]:.4f}, {loc.coordinates[1]:.4f}" if loc.coordinates else "None"
-                            logger.info(
-                                f"   Location {i}: {loc.name} -> {loc.matched_name} "
-                                f"({coords_str}, confidence={loc.confidence:.2f})"
-                            )
-                        
-                        # Log ambiguities
-                        if location_resolution.ambiguities:
-                            logger.warning(f"   - Location Ambiguities: {location_resolution.ambiguities}")
-                        
-                        # Update llm_intent with resolved locations for downstream handlers
-                        if location_resolution.locations:
-                            if len(location_resolution.locations) >= 2 and location_resolution.pattern == "from_to":
-                                # Two locations: origin and destination
-                                llm_intent.origin = location_resolution.locations[0].matched_name
-                                llm_intent.destination = location_resolution.locations[1].matched_name
-                                logger.info(f"   ✓ Updated intent: origin={llm_intent.origin}, dest={llm_intent.destination}")
-                            elif len(location_resolution.locations) == 1:
-                                # Single location: destination only
-                                llm_intent.destination = location_resolution.locations[0].matched_name
-                                logger.info(f"   ✓ Updated intent: dest={llm_intent.destination}")
-                            elif len(location_resolution.locations) > 2:
-                                # Multi-stop journey
-                                llm_intent.destination = location_resolution.locations[-1].matched_name
-                                logger.info(f"   ✓ Multi-stop journey detected, final dest={llm_intent.destination}")
-                    
-                    except Exception as e:
-                        logger.error(f"❌ LLM Location Resolution failed: {e}", exc_info=True)
-                        location_resolution = None
-            else:
-                logger.warning("⚠️ LLM client not available, skipping intent classification")
-                llm_intent = None
-                
-    except Exception as e:
-        logger.error(f"❌ LLM Intent Classification failed: {e}", exc_info=True)
+        # DISABLED FOR SPEED: Intent classification adds 15-22 seconds
+        # The Pure LLM already handles intent understanding
+        ENABLE_INTENT_CLASSIFICATION = False
         llm_intent = None
+        location_resolution = None
+        
+        if ENABLE_INTENT_CLASSIFICATION:
+            try:
+                # Get or create intent classifier (uses singleton pattern)
+                pure_llm_core = startup_manager.get_pure_llm_core()
+                if not pure_llm_core:
+                    logger.warning("⚠️ Pure LLM Core not available, skipping LLM intent classification")
+                    llm_intent = None
+                else:
+                    # Get the LLM client from pure_llm_core
+                    llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
+                    
+                    if llm_client:
+                        intent_classifier = get_intent_classifier(
+                            llm_client=llm_client,
+                        db_connection=db,
+                        cache_manager=None,  # TODO: Add cache manager when available
+                        config={'enable_caching': False}  # Disable for initial testing
+                    )
+                    
+                    # Classify intent using LLM (now with resolved query)
+                    llm_intent = await intent_classifier.classify_intent(
+                        query=request.message,
+                        user_context=user_context,
+                        use_cache=True
+                    )
+                    
+                    logger.info(
+                        f"✅ LLM Intent Classification complete:\n"
+                        f"   - Primary Intent: {llm_intent.primary_intent or 'None'}\n"
+                        f"   - Confidence: {llm_intent.confidence:.2f}\n"
+                        f"   - Origin: {llm_intent.origin or 'N/A'}\n"
+                        f"   - Destination: {llm_intent.destination or 'N/A'}\n"
+                        f"   - Method: {llm_intent.classification_method}\n"
+                        f"   - Time: {llm_intent.processing_time_ms:.0f}ms"
+                    )
+                    
+                    # Log preferences if detected
+                    if llm_intent.user_preferences:
+                        logger.info(f"   - Detected Preferences: {llm_intent.user_preferences}")
+                    
+                    # Log ambiguities if any
+                    if llm_intent.ambiguities:
+                        logger.warning(f"   - Ambiguities: {llm_intent.ambiguities}")
+            
+                    # === PHASE 2: LLM LOCATION RESOLUTION ===
+                    # If locations detected or route intent, use LLM location resolver
+                    location_resolution = None
+                    if llm_intent.primary_intent in ["route", "hidden_gems", "information", "transport"]:
+                        try:
+                            from backend.services.llm import get_location_resolver
+                            
+                            location_resolver = get_location_resolver()
+                            
+                            # Prepare user context for location resolver
+                            loc_context = {
+                                'gps': user_context.get('gps'),
+                                'previous_locations': []  # TODO: Track in conversation history
+                            }
+                            
+                            # Resolve locations using LLM
+                            location_resolution = location_resolver.resolve_locations(
+                                query=request.message,
+                                user_context=loc_context
+                            )
+                            
+                            logger.info(
+                                f"✅ LLM Location Resolution complete:\n"
+                                f"   - Pattern: {location_resolution.pattern}\n"
+                                f"   - Locations Found: {len(location_resolution.locations)}\n"
+                                f"   - Confidence: {location_resolution.confidence:.2f}\n"
+                                f"   - Used LLM: {location_resolution.used_llm}\n"
+                                f"   - Fallback: {location_resolution.fallback_used}"
+                            )
+                            
+                            # Log each location
+                            for i, loc in enumerate(location_resolution.locations, 1):
+                                coords_str = f"{loc.coordinates[0]:.4f}, {loc.coordinates[1]:.4f}" if loc.coordinates else "None"
+                                logger.info(
+                                    f"   Location {i}: {loc.name} -> {loc.matched_name} "
+                                    f"({coords_str}, confidence={loc.confidence:.2f})"
+                                )
+                            
+                            # Log ambiguities
+                            if location_resolution.ambiguities:
+                                logger.warning(f"   - Location Ambiguities: {location_resolution.ambiguities}")
+                            
+                            # Update llm_intent with resolved locations for downstream handlers
+                            if location_resolution.locations:
+                                if len(location_resolution.locations) >= 2 and location_resolution.pattern == "from_to":
+                                    # Two locations: origin and destination
+                                    llm_intent.origin = location_resolution.locations[0].matched_name
+                                    llm_intent.destination = location_resolution.locations[1].matched_name
+                                    logger.info(f"   ✓ Updated intent: origin={llm_intent.origin}, dest={llm_intent.destination}")
+                                elif len(location_resolution.locations) == 1:
+                                    # Single location: destination only
+                                    llm_intent.destination = location_resolution.locations[0].matched_name
+                                    logger.info(f"   ✓ Updated intent: dest={llm_intent.destination}")
+                                elif len(location_resolution.locations) > 2:
+                                    # Multi-stop journey
+                                    llm_intent.destination = location_resolution.locations[-1].matched_name
+                                    logger.info(f"   ✓ Multi-stop journey detected, final dest={llm_intent.destination}")
+                        
+                        except Exception as e:
+                            logger.error(f"❌ LLM Location Resolution failed: {e}", exc_info=True)
+                            location_resolution = None
+            
+            except Exception as e:
+                logger.error(f"❌ LLM Intent Classification failed: {e}", exc_info=True)
+                llm_intent = None
+    
+    except Exception as e:
+        logger.error(f"❌ Intent/Location resolution setup failed: {e}", exc_info=True)
+        llm_intent = None
+        location_resolution = None
     
     # === PHASE 2: SMART ROUTING BASED ON LLM INTENT (LLM-FIRST ARCHITECTURE) ===
     # Trust LLM for all intent classification - removed pattern matching fallback
@@ -1338,10 +1350,23 @@ def get_suggestion_components():
                 llm_client = pure_llm_core.llm_client
             
             if llm_client:
-                _suggestion_analyzer = get_suggestion_analyzer(llm_client=llm_client)
-                _suggestion_generator = get_suggestion_generator(llm_client=llm_client)
+                _suggestion_analyzer = get_suggestion_analyzer(
+                    llm_client=llm_client,
+                    config={
+                        'use_llm': False,  # DISABLED: Adds 21 seconds!
+                        'fallback_enabled': True
+                    }
+                )
+                _suggestion_generator = get_suggestion_generator(
+                    llm_client=llm_client,
+                    config={
+                        'use_llm': False,  # DISABLED: Adds 47 seconds!
+                        'timeout_seconds': 2,
+                        'fallback_enabled': True
+                    }
+                )
                 _suggestion_presenter = get_suggestion_presenter()
-                logger.info("✅ Phase 4.4 Proactive Suggestions initialized")
+                logger.info("✅ Phase 4.4 Proactive Suggestions initialized (heuristics-only mode)")
             else:
                 logger.warning("⚠️ LLM client not available for suggestions")
                 

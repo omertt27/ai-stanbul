@@ -28,9 +28,13 @@ Date: December 2025
 
 import logging
 from typing import Dict, Any, Optional, List
-from datetime import datetime
-from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 import json
+import asyncio
+from dataclasses import dataclass, field
+
+from .llm_response_parser import parse_llm_json_response
+
 
 logger = logging.getLogger(__name__)
 
@@ -233,36 +237,16 @@ class LLMConversationContextManager:
         # Build comprehensive prompt for LLM
         prompt = self._build_context_resolution_prompt(current_query, session)
         
-        # Call LLM with appropriate method
-        if hasattr(self.llm_client, 'chat') and hasattr(self.llm_client.chat, 'completions'):
-            # OpenAI-style client
-            response = self.llm_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are an expert conversation context analyzer for a travel chatbot in Istanbul. "
-                            "Your role is to understand conversation history, resolve references, infer implicit context, "
-                            "and rewrite queries to be standalone and clear. You have COMPLETE authority over "
-                            "context resolution - use your understanding of natural conversation flow."
-                        )
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.2,  # Low temperature for consistent context resolution
-                max_tokens=600,   # More tokens for detailed context analysis
-                timeout=self.config['timeout_seconds']
-            )
-            
-            llm_output = response.choices[0].message.content.strip()
-        else:
-            # Fallback: assume generate method (for custom LLM clients)
+        # Call our Llama LLM client
+        try:
             llm_output = await self.llm_client.generate(
                 prompt=prompt,
                 max_tokens=600,
                 temperature=0.2
             )
+        except Exception as e:
+            logger.error(f"❌ LLM generation failed in context resolution: {e}")
+            raise
         
         # Parse LLM response
         resolved_context = self._parse_llm_context_response(llm_output, session)
@@ -440,14 +424,13 @@ Return ONLY the JSON object, no markdown or explanation outside the JSON."""
         """
         
         try:
-            # Extract JSON from response (handle markdown code blocks)
-            if "```json" in llm_output:
-                llm_output = llm_output.split("```json")[1].split("```")[0].strip()
-            elif "```" in llm_output:
-                llm_output = llm_output.split("```")[1].split("```")[0].strip()
+            # Parse JSON response (handles both dict and string responses)
+            data = parse_llm_json_response(llm_output)
             
-            # Parse JSON
-            data = json.loads(llm_output)
+            if data is None:
+                # Fallback parsing failed - return fallback dict instead of None
+                logger.warning(f"LLM context resolution failed: unable to parse response, using fallback")
+                return self._rule_based_resolve("", session)
             
             # Extract all fields with defaults
             result = {

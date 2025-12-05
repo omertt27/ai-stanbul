@@ -368,7 +368,7 @@ Extract and classify the following in valid JSON format:
         Parse and validate LLM response into IntentClassification.
         
         Args:
-            llm_response: Raw LLM response (should be JSON)
+            llm_response: Raw LLM response (can be dict or str)
             original_query: Original user query
             has_gps: Whether GPS is available
             
@@ -376,18 +376,14 @@ Extract and classify the following in valid JSON format:
             IntentClassification: Validated intent classification
         """
         try:
-            # Clean response (remove markdown code blocks if present)
-            response = llm_response.strip()
-            if response.startswith("```json"):
-                response = response[7:]
-            if response.startswith("```"):
-                response = response[3:]
-            if response.endswith("```"):
-                response = response[:-3]
-            response = response.strip()
+            # Handle dict response from LLM client
+            # Use robust parser from llm_response_parser
+            from .llm_response_parser import parse_llm_json_response
             
-            # Parse JSON
-            data = json.loads(response)
+            data = parse_llm_json_response(llm_response)
+            
+            if data is None:
+                raise ValueError("LLM returned empty or invalid response")
             
             # Create IntentClassification
             intent = IntentClassification(

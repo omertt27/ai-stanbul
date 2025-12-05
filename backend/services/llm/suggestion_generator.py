@@ -26,6 +26,7 @@ from .models import (
     ProactiveSuggestion,
     ProactiveSuggestionResponse
 )
+from .llm_response_parser import parse_llm_json_response
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ class SuggestionGenerator:
         
         # Configuration
         self.config = {
+            'use_llm': True,  # NEW: Enable/disable LLM for suggestions
             'timeout_seconds': 4,
             'temperature': 0.8,  # Higher for creative suggestions
             'max_tokens': 800,
@@ -68,7 +70,7 @@ class SuggestionGenerator:
             **(config or {})
         }
         
-        logger.info("SuggestionGenerator initialized")
+        logger.info(f"SuggestionGenerator initialized (LLM: {self.config['use_llm']})")
     
     async def generate_suggestions(
         self,
@@ -91,10 +93,15 @@ class SuggestionGenerator:
         max_count = max_suggestions or self.config['max_suggestions']
         
         try:
-            # Generate suggestions using LLM
-            suggestions_data = await self._generate_suggestions_llm(
-                context, max_count, categories
-            )
+            # Check if LLM is disabled - use templates only
+            if not self.config.get('use_llm', True):
+                logger.info("Using template-based suggestions only (LLM disabled)")
+                suggestions_data = self._generate_template_suggestions(context, max_count)
+            else:
+                # Generate suggestions using LLM
+                suggestions_data = await self._generate_suggestions_llm(
+                    context, max_count, categories
+                )
             
             # Convert to ProactiveSuggestion objects
             suggestions = []
@@ -225,8 +232,13 @@ class SuggestionGenerator:
         prompt = self._build_generation_prompt(context, max_count, categories)
         llm_output = await self._call_llm(prompt)
         
-        # Parse JSON response
-        data = json.loads(llm_output)
+        # Parse JSON response using robust parser
+        from .llm_response_parser import parse_llm_json_response
+        
+        data = parse_llm_json_response(llm_output, fallback_value={})
+        if not data:
+            raise ValueError("LLM returned empty or invalid response")
+        
         return data.get('suggestions', [])
     
     async def _rank_suggestions_llm(
@@ -247,7 +259,14 @@ class SuggestionGenerator:
         prompt = self._build_ranking_prompt(suggestions, context)
         llm_output = await self._call_llm(prompt)
         
-        return json.loads(llm_output)
+        # Parse JSON response using robust parser
+        from .llm_response_parser import parse_llm_json_response
+        
+        data = parse_llm_json_response(llm_output, fallback_value={})
+        if not data:
+            raise ValueError("LLM returned empty or invalid response")
+        
+        return data
     
     def _build_generation_prompt(
         self,

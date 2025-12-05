@@ -20,8 +20,12 @@ Date: December 2, 2025
 
 import json
 import logging
-import time
-from typing import Dict, Any, Optional
+import asyncio
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass
+from datetime import datetime
+
+from .llm_response_parser import parse_llm_json_response
 
 from .models import (
     MultiIntentDetection,
@@ -113,12 +117,25 @@ Return ONLY a valid JSON object with the structure specified above."""
             # Call LLM via existing client
             llm_output = await self._call_llm(prompt)
             
-            # Parse JSON response
-            data = json.loads(llm_output)
-
+            # Parse JSON response (handles both dict and string responses)
+            data = parse_llm_json_response(llm_output)
             
-            # Parse JSON response
-            data = json.loads(llm_output)
+            if data is None:
+                # Fallback to single intent
+                logger.error("LLM multi-intent detection failed: unable to parse response, using fallback")
+                return MultiIntentDetection(
+                    intents=[DetectedIntent(
+                        intent_type="unknown",
+                        parameters={},
+                        priority=1,
+                        confidence=0.6,
+                        requires_location=False
+                    )],
+                    is_multi_intent=False,
+                    intent_relationships=[],
+                    execution_mode="sequential",
+                    confidence=0.6
+                )
             
             # Build MultiIntentDetection
             intents = [

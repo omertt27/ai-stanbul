@@ -24,6 +24,7 @@ from .models import (
     SuggestionContext,
     SuggestionAnalysis
 )
+from .llm_response_parser import parse_llm_json_response
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ class SuggestionAnalyzer:
         
         # Configuration
         self.config = {
+            'use_llm': True,  # NEW: Enable/disable LLM  
             'timeout_seconds': 3,
             'temperature': 0.3,  # Lower for more consistent analysis
             'max_tokens': 500,
@@ -64,7 +66,7 @@ class SuggestionAnalyzer:
             **(config or {})
         }
         
-        logger.info("SuggestionAnalyzer initialized")
+        logger.info(f"SuggestionAnalyzer initialized (LLM: {self.config['use_llm']})")
     
     async def analyze_context(
         self,
@@ -108,7 +110,11 @@ class SuggestionAnalyzer:
             )
             
             # Analyze if we should trigger suggestions
-            should_suggest, confidence, reason = await self._should_suggest_llm(context)
+            if self.config.get('use_llm', True):
+                should_suggest, confidence, reason = await self._should_suggest_llm(context)
+            else:
+                should_suggest, confidence, reason = self._heuristic_trigger(context)
+                logger.debug("Using heuristic trigger (LLM disabled)")
             
             context.trigger_confidence = confidence
             context.trigger_reason = reason
@@ -215,8 +221,12 @@ class SuggestionAnalyzer:
             prompt = self._build_trigger_prompt(context)
             llm_output = await self._call_llm(prompt)
             
-            # Parse JSON response
-            data = json.loads(llm_output)
+            # Parse JSON response (handles both dict and string responses)
+            data = parse_llm_json_response(llm_output)
+            
+            if data is None:
+                logger.error("LLM trigger analysis failed: unable to parse response")
+                return self._heuristic_trigger(context)
             
             return (
                 data.get('should_suggest', True),
@@ -245,7 +255,9 @@ class SuggestionAnalyzer:
         prompt = self._build_analysis_prompt(context)
         llm_output = await self._call_llm(prompt)
         
-        return json.loads(llm_output)
+        # Parse JSON response (handles both dict and string responses)
+        data = parse_llm_json_response(llm_output)
+        return data if data is not None else {}
     
     def _build_trigger_prompt(self, context: SuggestionContext) -> str:
         """Build prompt for quick trigger decision."""
