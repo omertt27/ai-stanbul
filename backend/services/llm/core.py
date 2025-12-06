@@ -442,10 +442,13 @@ class PureLLMCore:
             signals=signals['signals'],
             context=context,
             conversation_context=conversation_context,
-            language=language
+            language=language,
+            user_location=user_location  # Pass GPS location to prompt
         )
         
         logger.info(f"📝 Prompt built: {len(prompt)} chars")
+        if user_location:
+            logger.info(f"   📍 GPS location included in prompt: {user_location}")
         
         # STEP 7: LLM Generation with Resilience
         try:
@@ -564,8 +567,8 @@ class PureLLMCore:
             signals['signals'].get('needs_hidden_gems'),
             signals['signals'].get('needs_neighborhood')
         ]):
-            # Try to extract locations from database context
-            map_data = self._generate_map_from_context(context, signals['signals'], user_location)
+            # Try to extract locations from database context or generate GPS-centered map
+            map_data = self._generate_map_from_context(context, signals['signals'], user_location, query)
             if map_data:
                 logger.info(f"✅ Generated map_data from context for location-based query")
         
@@ -1576,7 +1579,8 @@ class PureLLMCore:
         self,
         context: Dict[str, Any],
         signals: Dict[str, bool],
-        user_location: Optional[Dict[str, float]]
+        user_location: Optional[Dict[str, float]],
+        query: str = ""
     ) -> Optional[Dict[str, Any]]:
         """
         Generate basic map_data from database context for location-based queries.
@@ -1585,10 +1589,14 @@ class PureLLMCore:
         from database (restaurants, attractions, etc.), we create a simple map_data
         structure with markers.
         
+        For "nearby" queries with GPS but no specific locations in database,
+        generates map centered on user location.
+        
         Args:
             context: Built context with database/service data
             signals: Detected signals
             user_location: User GPS location
+            query: Original user query (to detect "nearby" keywords)
             
         Returns:
             Map data dict with markers, or None if no locations found
@@ -1603,9 +1611,6 @@ class PureLLMCore:
             # Try to extract locations from database context string
             db_context = context.get('database', '')
             
-            if not db_context:
-                return None
-            
             # Pattern to find coordinates in the database context
             # Looking for patterns like: "Coordinates: (41.012, 28.978)" or "lat: 41.012, lon: 28.978"
             coord_patterns = [
@@ -1617,27 +1622,28 @@ class PureLLMCore:
             # Pattern to find location names (before coordinates)
             name_pattern = r'([A-ZÇĞİÖŞÜ][A-Za-zçğıöşü\s&\'-]+?)(?:\s*[-:]\s*|\s+Coordinates:)'
             
-            # Extract all coordinate pairs
-            for pattern in coord_patterns:
-                for match in re.finditer(pattern, db_context):
-                    try:
-                        lat = float(match.group(1))
-                        lon = float(match.group(2))
-                        
-                        # Find the name before this coordinate
-                        name = "Location"
-                        text_before = db_context[:match.start()]
-                        name_match = re.search(name_pattern, text_before[-200:])  # Look in last 200 chars
-                        if name_match:
-                            name = name_match.group(1).strip()
-                        
-                        locations.append({
-                            'name': name,
-                            'lat': lat,
-                            'lon': lon
-                        })
-                    except (ValueError, IndexError):
-                        continue
+            # Extract all coordinate pairs from database context if available
+            if db_context:
+                for pattern in coord_patterns:
+                    for match in re.finditer(pattern, db_context):
+                        try:
+                            lat = float(match.group(1))
+                            lon = float(match.group(2))
+                            
+                            # Find the name before this coordinate
+                            name = "Location"
+                            text_before = db_context[:match.start()]
+                            name_match = re.search(name_pattern, text_before[-200:])  # Look in last 200 chars
+                            if name_match:
+                                name = name_match.group(1).strip()
+                            
+                            locations.append({
+                                'name': name,
+                                'lat': lat,
+                                'lon': lon
+                            })
+                        except (ValueError, IndexError):
+                            continue
             
             # If we found locations, create markers
             if locations:
@@ -1675,7 +1681,46 @@ class PureLLMCore:
                     "locations_count": len(locations)
                 }
                 
-                logger.info(f"Generated map_data with {len(markers)} markers from context")
+                logger.info(f"✅ Generated map_data with {len(markers)} markers from context")
+                return map_data
+            
+            # No database locations found, but for "nearby" queries with GPS,
+            # still generate map centered on user location
+            # Check query for "nearby", "near me", "close to me", etc.
+            query_lower = query.lower()
+            is_nearby_query = any([
+                'nearby' in query_lower,
+                'near me' in query_lower,
+                'close to me' in query_lower,
+                'around me' in query_lower,
+                'around here' in query_lower,
+                signals.get('needs_restaurant'),
+                signals.get('needs_attraction'),
+                signals.get('needs_hidden_gems')
+            ])
+            
+            if user_location and is_nearby_query:
+                # Create map centered on user location
+                markers.append({
+                    "position": {"lat": user_location['lat'], "lng": user_location['lon']},
+                    "label": "Your Location",
+                    "type": "user"
+                })
+                
+                map_data = {
+                    "type": "user_centered",
+                    "markers": markers,
+                    "center": {"lat": user_location['lat'], "lng": user_location['lon']},
+                    "zoom": 14,
+                    "has_origin": True,
+                    "has_destination": False,
+                    "origin_name": "Your Location",
+                    "destination_name": None,
+                    "locations_count": 0,
+                    "note": "Map centered on your location - results may be shown in text"
+                }
+                
+                logger.info(f"✅ Generated GPS-centered map_data for 'nearby' query (no DB locations)")
                 return map_data
             
             return None

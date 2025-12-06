@@ -195,7 +195,8 @@ Context information will be provided below, followed by the user's question."""
         signals: Dict[str, bool],
         context: Dict[str, Any],
         conversation_context: Optional[Dict[str, Any]] = None,
-        language: str = "en"
+        language: str = "en",
+        user_location: Optional[Dict[str, float]] = None
     ) -> str:
         """
         Build complete optimized prompt.
@@ -209,6 +210,7 @@ Context information will be provided below, followed by the user's question."""
             context: Built context (database, RAG, services)
             conversation_context: Conversation history
             language: Response language
+            user_location: User's GPS coordinates (if available)
             
         Returns:
             Complete prompt string
@@ -217,6 +219,18 @@ Context information will be provided below, followed by the user's question."""
         
         # 1. System prompt (contains all the intelligence)
         system_prompt = self.system_prompts.get(language, self.system_prompts['en'])
+        
+        # ADD GPS CONTEXT if available and this is a route/direction query
+        if user_location and any([
+            signals.get('needs_gps_routing'),
+            signals.get('needs_directions'),
+            signals.get('needs_transportation'),
+            'how' in query.lower() and ('get' in query.lower() or 'go' in query.lower())
+        ]):
+            system_prompt += f"\n\n🌍 **GPS STATUS**: User's current location is AVAILABLE at coordinates ({user_location['lat']}, {user_location['lon']})."
+            system_prompt += "\n✅ IMPORTANT: The user HAS GPS enabled. Use their current location as the starting point for ANY route or direction requests."
+            system_prompt += "\n🚨 DO NOT ask the user to enable GPS - it's already on! Provide directions from their current location."
+        
         prompt_parts.append(system_prompt)
         
         # 2. Conversation context (if available)

@@ -785,11 +785,14 @@ For SIM cards: Turkcell, Vodafone, Türk Telekom stores at airports and malls"""
             return None
         
         try:
+            # Enable routing for both GPS routing and general transportation queries
+            routing = signals.get('needs_gps_routing', False) or signals.get('needs_transportation', False)
+            
             map_data = await self.map_service.generate_map(
                 query=query,
                 user_location=user_location,
                 language=language,
-                routing=signals.get('needs_gps_routing', False)
+                routing=routing
             )
             
             return map_data
