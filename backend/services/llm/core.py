@@ -560,6 +560,16 @@ class PureLLMCore:
         # Enhanced map_data handling: Include locations from context for restaurant/POI queries
         map_data = context.get('map_data')
         
+        # DEBUG LOGGING
+        logger.info(f"🔍 MAP GENERATION DEBUG:")
+        logger.info(f"  - Query: {query}")
+        logger.info(f"  - User location: {user_location}")
+        logger.info(f"  - Initial map_data from context: {map_data}")
+        logger.info(f"  - needs_restaurant: {signals['signals'].get('needs_restaurant')}")
+        logger.info(f"  - needs_attraction: {signals['signals'].get('needs_attraction')}")
+        logger.info(f"  - needs_hidden_gems: {signals['signals'].get('needs_hidden_gems')}")
+        logger.info(f"  - needs_neighborhood: {signals['signals'].get('needs_neighborhood')}")
+        
         # If no map_data but we have location-based signals, generate basic map data
         if not map_data and any([
             signals['signals'].get('needs_restaurant'),
@@ -567,10 +577,17 @@ class PureLLMCore:
             signals['signals'].get('needs_hidden_gems'),
             signals['signals'].get('needs_neighborhood')
         ]):
+            logger.info(f"🗺️ Attempting to generate map from context...")
             # Try to extract locations from database context or generate GPS-centered map
             map_data = self._generate_map_from_context(context, signals['signals'], user_location, query)
             if map_data:
-                logger.info(f"✅ Generated map_data from context for location-based query")
+                logger.info(f"✅ Generated map_data from context for location-based query: {map_data}")
+            else:
+                logger.warning(f"⚠️ _generate_map_from_context returned None")
+        else:
+            logger.info(f"❌ Skipping map generation - conditions not met")
+            logger.info(f"   - map_data exists: {bool(map_data)}")
+            logger.info(f"   - any location signal: {any([signals['signals'].get('needs_restaurant'), signals['signals'].get('needs_attraction'), signals['signals'].get('needs_hidden_gems'), signals['signals'].get('needs_neighborhood')])}")
         
         result = {
             "status": "success",

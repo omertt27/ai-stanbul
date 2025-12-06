@@ -127,26 +127,30 @@ class SignalDetector:
         self.signal_patterns = {
             'needs_restaurant': {
                 'en': [
-                    r'\b(restaurants?|cafes?|food|eat|dining|lunch|dinner|breakfast|cuisine)\b',
-                    r'\b(where\s+to\s+eat|place\s+to\s+eat|grab\s+a\s+bite|places?\s+to\s+dine)\b',
-                    r'\b(hungry|meals?|dishes?|menus?|reservations?|eatery|eateries)\b'
+                    r'\b(restaurants?|cafes?|food|eat|eating|dining|lunch|dinner|breakfast|brunch|cuisine|eatery|eateries)\b',
+                    r'\b(where\s+to\s+eat|where\s+can\s+i\s+eat|place\s+to\s+eat|grab\s+a\s+bite|places?\s+to\s+dine)\b',
+                    r'\b(hungry|meals?|dishes?|menus?|reservations?|food\s+options)\b',
+                    r'\b(nearby|near\s+me|near\s+by|close\s+to\s+me|close\s+by|around\s+me|around\s+here|in\s+the\s+area)\b'  # Nearby patterns
                 ],
                 'tr': [
                     r'\b(restoranlar?|kafeler?|yemek|lokanta|meze|kahvaltı)\b',
                     r'\b(nerede\s+yenir|nerede\s+yemek|yemek\s+yerleri)\b',
-                    r'\b(açım|öğle|akşam\s+yemeği)\b'
+                    r'\b(açım|öğle|akşam\s+yemeği)\b',
+                    r'\b(yakın|yakında|yakınımda|burada|çevrede|civarda)\b'  # Turkish nearby
                 ]
             },
             'needs_attraction': {
                 'en': [
-                    r'\b(museum|attraction|palace|mosque|church|tower|sight|landmark)\b',
-                    r'\b(visit|see|tour|explore|historical|culture)\b',
-                    r'\b(what\s+to\s+see|what\s+to\s+visit|things\s+to\s+do)\b'
+                    r'\b(museums?|attractions?|palaces?|mosques?|churches?|towers?|sights?|landmarks?|monuments?)\b',
+                    r'\b(visit|visiting|see|seeing|tour|tours|explore|exploring|historical|historic|culture|cultural)\b',
+                    r'\b(what\s+to\s+see|what\s+to\s+visit|things\s+to\s+do|places\s+to\s+visit)\b',
+                    r'\b(nearby|near\s+me|near\s+by|close\s+to\s+me|close\s+by|around\s+me|around\s+here|in\s+the\s+area)\b'  # Nearby patterns
                 ],
                 'tr': [
-                    r'\b(müze|saray|cami|kilise|kule|anıt|tarihi)\b',
-                    r'\b(gezilecek|görülecek|ziyaret|tur)\b',
-                    r'\b(ne\s+gezilir|nereye\s+gidilir)\b'
+                    r'\b(müzeler?|saraylar?|camiler?|kiliseler?|kuleler?|anıtlar?|tarihi|yerler)\b',
+                    r'\b(gezilecek|görülecek|ziyaret|tur|gezmek|görmek)\b',
+                    r'\b(ne\s+gezilir|nereye\s+gidilir|neler\s+var)\b',
+                    r'\b(yakın|yakında|yakınımda|burada|çevrede|civarda)\b'  # Turkish nearby patterns
                 ]
             },
             'needs_transportation': {
@@ -177,12 +181,14 @@ class SignalDetector:
                 'en': [
                     r'\b(event|festival|concert|exhibition|show|performance)\b',
                     r'\b(what.*happening|what.*on|activities)\b',
-                    r'\b(tonight|today|weekend|this\s+week)\b'
+                    r'\b(tonight|today|weekend|this\s+week)\b',
+                    r'\b(nearby|near\s+me|close\s+to\s+me|around\s+me|around\s+here)\b'  # Nearby patterns
                 ],
                 'tr': [
                     r'\b(etkinlik|festival|konser|sergi|gösteri)\b',
                     r'\b(ne\s+var|neler\s+oluyor|aktivite)\b',
-                    r'\b(bu\s+gece|bugün|hafta\s+sonu)\b'
+                    r'\b(bu\s+gece|bugün|hafta\s+sonu)\b',
+                    r'\b(yakın|yakında|burada|çevrede|yakınımda)\b'  # Turkish nearby
                 ]
             },
             'needs_weather': {
@@ -201,12 +207,14 @@ class SignalDetector:
                 'en': [
                     r'\b(hidden\s+gem|off.*beaten.*path|local.*secret|authentic)\b',
                     r'\b(less\s+touristy|not\s+many\s+tourist|unknown|secret)\b',
-                    r'\b(locals?\s+go|locals?\s+favorite)\b'
+                    r'\b(locals?\s+go|locals?\s+favorite)\b',
+                    r'\b(nearby|near\s+me|close\s+to\s+me|around\s+me|around\s+here)\b'  # Nearby patterns
                 ],
                 'tr': [
                     r'\b(gizli\s+cennet|turistik\s+olmayan|yerel\s+sır)\b',
                     r'\b(az\s+bilinen|bilinmeyen|saklı)\b',
-                    r'\b(yerel.*gider|yerel.*favori)\b'
+                    r'\b(yerel.*gider|yerel.*favori)\b',
+                    r'\b(yakın|yakında|burada|çevrede|yakınımda)\b'  # Turkish nearby
                 ]
             },
             'needs_map': {
@@ -266,7 +274,8 @@ class SignalDetector:
                     r'\b(post\s+office|mail|package|send)\b',
                     r'\b(hospital|doctor|clinic|medical|dentist)\b',
                     r'\b(sim\s+card|phone|mobile|internet|wifi)\b',
-                    r'\b(practical|daily\s+life|living|expat|local\s+life)\b'
+                    r'\b(practical|daily\s+life|living|expat|local\s+life)\b',
+                    r'\b(nearby|near\s+me|close\s+to\s+me|around\s+me|around\s+here)\b'  # Nearby patterns
                 ],
                 'tr': [
                     r'\b(nerede\s+bulabilirim|nerede\s+alabilirim|nereden\s+alınır)\b',
@@ -276,7 +285,8 @@ class SignalDetector:
                     r'\b(ptt|kargo|posta|gönderi)\b',
                     r'\b(hastane|doktor|klinik|sağlık|diş)\b',
                     r'\b(sim\s+kart|telefon|mobil|internet)\b',
-                    r'\b(pratik|günlük\s+hayat|yaşam|yerel)\b'
+                    r'\b(pratik|günlük\s+hayat|yaşam|yerel)\b',
+                    r'\b(yakın|yakında|burada|çevrede|yakınımda)\b'  # Turkish nearby
                 ],
                 'ru': [
                     r'\b(где\s+купить|где\s+можно\s+купить|где\s+найти)\b',
@@ -286,7 +296,8 @@ class SignalDetector:
                     r'\b(почта|посылка|отправить)\b',
                     r'\b(больница|врач|клиника|медицинский|стоматолог)\b',
                     r'\b(сим[\s-]?карта|телефон|мобильный|интернет)\b',
-                    r'\b(практический|повседневная\s+жизнь|жизнь|местный)\b'
+                    r'\b(практический|повседневная\s+жизнь|жизнь|местный)\b',
+                    r'\b(рядом|рядом\s+со\s+мной|около|близко)\b'  # Russian nearby
                 ],
                 'de': [
                     r'\b(wo\s+kann\s+ich\s+kaufen|wo\s+finde\s+ich|wo\s+bekomme\s+ich)\b',
@@ -296,7 +307,8 @@ class SignalDetector:
                     r'\b(post|paket|senden|versenden)\b',
                     r'\b(krankenhaus|arzt|klinik|medizinisch|zahnarzt)\b',
                     r'\b(sim[\s-]?karte|telefon|handy|internet|wifi)\b',
-                    r'\b(praktisch|alltag|leben|lokal)\b'
+                    r'\b(praktisch|alltag|leben|lokal)\b',
+                    r'\b(in\s+der\s+nähe|nahe|in\s+meiner\s+nähe|um\s+mich\s+herum)\b'  # German nearby
                 ],
                 'fr': [
                     r'\b(où\s+acheter|où\s+puis[\s-]?je\s+acheter|où\s+trouver)\b',
@@ -306,7 +318,8 @@ class SignalDetector:
                     r'\b(poste|colis|envoyer|courrier)\b',
                     r'\b(hôpital|médecin|docteur|clinique|dentiste)\b',
                     r'\b(carte\s+sim|téléphone|mobile|internet|wifi)\b',
-                    r'\b(pratique|vie\s+quotidienne|vivre|local)\b'
+                    r'\b(pratique|vie\s+quotidienne|vivre|local)\b',
+                    r'\b(à\s+proximité|près\s+de\s+moi|proche|autour\s+de\s+moi)\b'  # French nearby
                 ]
             },
             # PHASE 3: New Signals
@@ -314,36 +327,42 @@ class SignalDetector:
                 'en': [
                     r'\b(shop|shopping|mall|market|store|boutique|buy|purchase)\b',
                     r'\b(grand\s+bazaar|spice\s+market|istiklal|shopping\s+street)\b',
-                    r'\b(souvenir|gift|clothes|fashion|retail)\b'
+                    r'\b(souvenir|gift|clothes|fashion|retail)\b',
+                    r'\b(nearby|near\s+me|close\s+to\s+me|around\s+me|around\s+here)\b'  # Nearby patterns
                 ],
                 'tr': [
                     r'\b(alışveriş|mağaza|market|çarşı|pazar|dükkan|satın\s+al)\b',
                     r'\b(kapalı\s+çarşı|mısır\s+çarşısı|istiklal)\b',
-                    r'\b(hediyelik|hediye|kıyafet|moda)\b'
+                    r'\b(hediyelik|hediye|kıyafet|moda)\b',
+                    r'\b(yakın|yakında|burada|çevrede|yakınımda)\b'  # Turkish nearby
                 ]
             },
             'needs_nightlife': {
                 'en': [
                     r'\b(nightlife|bar|club|pub|party|drink|cocktail)\b',
                     r'\b(night\s+out|going\s+out|evening|late\s+night)\b',
-                    r'\b(live\s+music|dj|dance|entertainment)\b'
+                    r'\b(live\s+music|dj|dance|entertainment)\b',
+                    r'\b(nearby|near\s+me|close\s+to\s+me|around\s+me|around\s+here)\b'  # Nearby patterns
                 ],
                 'tr': [
                     r'\b(gece\s+hayatı|bar|kulüp|pub|parti|içki|kokteyl)\b',
                     r'\b(gece\s+çıkma|eğlence|akşam)\b',
-                    r'\b(canlı\s+müzik|dj|dans)\b'
+                    r'\b(canlı\s+müzik|dj|dans)\b',
+                    r'\b(yakın|yakında|burada|çevrede|yakınımda)\b'  # Turkish nearby
                 ]
             },
             'needs_family_friendly': {
                 'en': [
                     r'\b(family|kid|child|children|baby|toddler)\b',
                     r'\b(family.*friendly|kid.*friendly|with\s+kids|with\s+children)\b',
-                    r'\b(playground|aquarium|zoo|park|activity\s+for\s+kids)\b'
+                    r'\b(playground|aquarium|zoo|park|activity\s+for\s+kids)\b',
+                    r'\b(nearby|near\s+me|close\s+to\s+me|around\s+me|around\s+here)\b'  # Nearby patterns
                 ],
                 'tr': [
                     r'\b(aile|çocuk|bebek|küçük)\b',
                     r'\b(aile\s+dostu|çocuklu|çocuklarla)\b',
-                    r'\b(oyun\s+alanı|akvaryum|hayvanat\s+bahçesi|park)\b'
+                    r'\b(oyun\s+alanı|akvaryum|hayvanat\s+bahçesi|park)\b',
+                    r'\b(yakın|yakında|burada|çevrede|yakınımda)\b'  # Turkish nearby
                 ]
             }
         }

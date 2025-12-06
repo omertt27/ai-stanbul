@@ -220,16 +220,33 @@ Context information will be provided below, followed by the user's question."""
         # 1. System prompt (contains all the intelligence)
         system_prompt = self.system_prompts.get(language, self.system_prompts['en'])
         
-        # ADD GPS CONTEXT if available and this is a route/direction query
-        if user_location and any([
-            signals.get('needs_gps_routing'),
-            signals.get('needs_directions'),
-            signals.get('needs_transportation'),
-            'how' in query.lower() and ('get' in query.lower() or 'go' in query.lower())
-        ]):
-            system_prompt += f"\n\n🌍 **GPS STATUS**: User's current location is AVAILABLE at coordinates ({user_location['lat']}, {user_location['lon']})."
-            system_prompt += "\n✅ IMPORTANT: The user HAS GPS enabled. Use their current location as the starting point for ANY route or direction requests."
-            system_prompt += "\n🚨 DO NOT ask the user to enable GPS - it's already on! Provide directions from their current location."
+        # ADD GPS CONTEXT if available - for ANY location-based query
+        if user_location:
+            # Check if this is any location-based query (routing, nearby, recommendations, etc.)
+            is_location_query = any([
+                signals.get('needs_gps_routing'),
+                signals.get('needs_directions'),
+                signals.get('needs_transportation'),
+                signals.get('needs_restaurant'),
+                signals.get('needs_attraction'),
+                signals.get('needs_hidden_gems'),
+                signals.get('needs_shopping'),
+                signals.get('needs_nightlife'),
+                signals.get('needs_events'),
+                signals.get('needs_daily_life'),
+                'nearby' in query.lower(),
+                'near me' in query.lower(),
+                'close to me' in query.lower(),
+                'around me' in query.lower(),
+                'around here' in query.lower(),
+                'how' in query.lower() and ('get' in query.lower() or 'go' in query.lower())
+            ])
+            
+            if is_location_query:
+                system_prompt += f"\n\n🌍 **GPS STATUS**: User's current location is AVAILABLE at coordinates ({user_location['lat']}, {user_location['lon']})."
+                system_prompt += "\n✅ IMPORTANT: The user HAS GPS enabled. Use their current location for recommendations and directions."
+                system_prompt += "\n🚨 DO NOT ask the user to enable GPS or share location - it's already available!"
+                system_prompt += "\n📍 When recommending places or giving directions, reference their current location."
         
         prompt_parts.append(system_prompt)
         
