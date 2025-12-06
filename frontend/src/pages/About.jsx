@@ -230,6 +230,45 @@ const About = () => {
           </div>
         </div>
 
+        {/* Team Section */}
+        <div className="rounded-2xl p-12 mb-16 transition-colors duration-300 bg-gray-800 border border-gray-700">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4 transition-colors duration-300 text-white">
+              {t('about.team.title')}
+            </h2>
+            <p className="text-lg leading-relaxed transition-colors duration-300 text-gray-300">
+              {t('about.team.subtitle')}
+            </p>
+          </div>
+          
+          {/* Founder Card */}
+          <div className="max-w-2xl mx-auto">
+            <div className="p-8 rounded-2xl transition-all duration-300 bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-blue-500/20 hover:border-blue-500/40 shadow-lg hover:shadow-xl">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                {/* Avatar */}
+                <div className="flex-shrink-0">
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
+                    ÖT
+                  </div>
+                </div>
+                
+                {/* Info */}
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-2xl font-bold mb-2 text-white">
+                    {t('about.team.founder.name')}
+                  </h3>
+                  <p className="text-lg text-blue-400 mb-4 font-semibold">
+                    {t('about.team.founder.role')}
+                  </p>
+                  <p className="text-gray-300 leading-relaxed">
+                    {t('about.team.founder.description')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* GDPR & Privacy Section */}
         <div className="rounded-2xl p-12 mb-16 transition-colors duration-300 bg-gray-800 border border-gray-700">
           <div className="text-center mb-8">

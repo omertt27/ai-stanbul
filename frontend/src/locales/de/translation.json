@@ -199,6 +199,15 @@
       "description": "Dieses Projekt ist Open Source und Community-getrieben. Wir begrüßen Beiträge, Feedback und Vorschläge, um AIstanbul noch besser zu machen.",
       "viewGithub": "Auf GitHub ansehen",
       "tryNow": "AIstanbul Jetzt Ausprobieren"
+    },
+    "team": {
+      "title": "Lernen Sie das Team kennen",
+      "subtitle": "Mit Leidenschaft für Istanbul gebaut",
+      "founder": {
+        "name": "Ömer Tahtacı",
+        "role": "Gründer & Schöpfer",
+        "description": "Leidenschaftlich daran interessiert, KI-Technologie mit lokalem Fachwissen zu kombinieren, um Reiseerlebnisse in Istanbul zu verbessern. Entwicklung intelligenter Lösungen, die Kulturen verbinden und Reisende mit authentischen Erfahrungen zusammenbringen."
+      }
     }
   },
   "homepage": {

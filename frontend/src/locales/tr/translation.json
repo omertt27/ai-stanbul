@@ -199,6 +199,15 @@
       "description": "Bu proje açık kaynak kodlu ve topluluk desteklidir. AIstanbul'u daha da iyi hale getirmek için katkıları, geri bildirimleri ve önerileri memnuniyetle karşılıyoruz.",
       "viewGithub": "GitHub'da Görüntüle",
       "tryNow": "AIstanbul'u Şimdi Deneyin"
+    },
+    "team": {
+      "title": "Ekibimizle Tanışın",
+      "subtitle": "İstanbul tutkusuyla inşa edildi",
+      "founder": {
+        "name": "Ömer Tahtacı",
+        "role": "Kurucu & Yaratıcı",
+        "description": "Yapay zeka teknolojisini yerel uzmanlıkla birleştirerek İstanbul'daki seyahat deneyimlerini geliştirmekle tutkulu. Kültürler arası köprü kuran ve gezginleri otantik deneyimlerle buluşturan akıllı çözümler geliştiriyor."
+      }
     }
   },
   "homepage": {

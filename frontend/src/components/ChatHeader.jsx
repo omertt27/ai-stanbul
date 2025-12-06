@@ -15,130 +15,141 @@ const ChatHeader = ({
     localStorage.removeItem('chat_session_id');
     localStorage.removeItem('chat-messages');
     window.location.reload();
-  };
-
-  return (
+  };  return (
     <>
+      {/* Backdrop for mobile - Outside FAB container */}
+      {fabOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-[9998] md:hidden"
+          onClick={() => setFabOpen(false)}
+        />
+      )}
+
       {/* Floating Action Button (FAB) - Bottom Right */}
-      <div className="fixed bottom-16 md:bottom-12 right-4 md:right-6 z-[9999]">
+      <div className="fixed bottom-16 md:bottom-12 right-4 md:right-6 z-[10000]">
         {/* Action Menu - Shows when FAB is clicked */}
         {fabOpen && (
-          <>
-            {/* Backdrop for mobile */}
-            <div 
-              className="fixed inset-0 bg-black/20 z-[9998] md:hidden"
-              onClick={() => setFabOpen(false)}
-            />
-            
-            {/* Action Buttons - Stack above FAB */}
-            <div className="flex flex-col gap-2 mb-3">
-              {/* Sessions Button */}
-              <button
-                onClick={() => {
-                  onToggleSessionsPanel();
-                  setFabOpen(false);
-                }}
-                className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
-                  darkMode 
-                    ? 'bg-gray-800 text-white hover:bg-gray-700' 
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
-                aria-label="Chat sessions"
-                title="Chat Sessions"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-                </svg>
-              </button>
+          <div className="flex flex-col gap-2 mb-3 relative z-[10001] pointer-events-auto">
+            {/* Sessions Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Sessions button clicked');
+                onToggleSessionsPanel();
+                setFabOpen(false);
+              }}
+              className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+                darkMode 
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border-2 border-gray-700' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-200'
+              }`}
+              aria-label="Chat sessions"
+              title="Chat Sessions"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+              </svg>
+            </button>
 
-              {/* New Chat Button */}
-              <button
-                onClick={() => {
-                  handleNewSession();
-                  setFabOpen(false);
-                }}
-                className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
-                  darkMode 
-                    ? 'bg-gray-800 text-white hover:bg-gray-700' 
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
-                aria-label="New chat"
-                title="New Chat"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
+            {/* New Chat Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('New chat button clicked');
+                handleNewSession();
+                setFabOpen(false);
+              }}
+              className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+                darkMode 
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border-2 border-gray-700' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-200'
+              }`}
+              aria-label="New chat"
+              title="New Chat"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
 
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={() => {
-                  onDarkModeToggle();
-                  setFabOpen(false);
-                }}
-                className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
-                  darkMode 
-                    ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' 
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
-                aria-label={`${darkMode ? 'Light' : 'Dark'} mode`}
-                title={`${darkMode ? 'Light' : 'Dark'} Mode`}
-              >
-                {darkMode ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                )}
-              </button>
-
-              {/* Clear History Button */}
-              <button
-                onClick={() => {
-                  onClearHistory();
-                  setFabOpen(false);
-                }}
-                className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
-                  darkMode 
-                    ? 'bg-gray-800 text-red-400 hover:bg-gray-700' 
-                    : 'bg-white text-red-600 hover:bg-red-50'
-                }`}
-                aria-label="Clear history"
-                title="Clear History"
-              >
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Dark mode button clicked');
+                onDarkModeToggle();
+                setFabOpen(false);
+              }}
+              className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+                darkMode 
+                  ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700 border-2 border-gray-700' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-200'
+              }`}
+              aria-label={`${darkMode ? 'Light' : 'Dark'} mode`}
+              title={`${darkMode ? 'Light' : 'Dark'} Mode`}
+            >
+              {darkMode ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-              </button>
-
-              {/* Navigation Menu Button */}
-              <button
-                onClick={() => {
-                  navigate('/');
-                  setFabOpen(false);
-                }}
-                className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
-                  darkMode 
-                    ? 'bg-gray-800 text-white hover:bg-gray-700' 
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
-                aria-label="Home"
-                title="Home"
-              >
+              ) : (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
-              </button>
-            </div>
-          </>
+              )}
+            </button>
+
+            {/* Clear History Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Clear history button clicked');
+                onClearHistory();
+                setFabOpen(false);
+              }}
+              className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+                darkMode 
+                  ? 'bg-gray-800 text-red-400 hover:bg-gray-700 border-2 border-gray-700' 
+                  : 'bg-white text-red-600 hover:bg-red-50 border-2 border-gray-200'
+              }`}
+              aria-label="Clear history"
+              title="Clear History"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+
+            {/* Navigation Menu Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Home button clicked');
+                navigate('/');
+                setFabOpen(false);
+              }}
+              className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+                darkMode 
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border-2 border-gray-700' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-200'
+              }`}
+              aria-label="Home"
+              title="Home"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </button>
+          </div>
         )}
 
         {/* Main FAB Button */}
         <button
-          onClick={() => setFabOpen(!fabOpen)}
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('FAB main button clicked, current state:', fabOpen);
+            setFabOpen(!fabOpen);
+          }}
           className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-200 hover:scale-110 ${
             darkMode 
               ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white' 
