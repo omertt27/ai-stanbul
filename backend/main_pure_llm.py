@@ -382,7 +382,7 @@ async def pure_llm_chat(
             query=request.message,
             user_id=request.user_id or "anonymous",
             language=request.language or "en",
-            max_tokens=250
+            max_tokens=1536  # Increased from 250 to allow full, complete responses
         )
         
         # Build response
@@ -560,7 +560,7 @@ async def rag_retrieve_test(request: RAGTestRequest):
 class LLMTestRequest(BaseModel):
     """Request model for LLM testing"""
     prompt: str = Field(..., description="Prompt for LLM generation")
-    max_tokens: Optional[int] = Field(250, description="Maximum tokens")
+    max_tokens: Optional[int] = Field(1536, description="Maximum tokens (increased for full responses)")
 
 
 class LLMTestResponse(BaseModel):

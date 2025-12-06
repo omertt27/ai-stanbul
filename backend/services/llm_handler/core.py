@@ -82,7 +82,7 @@ class PureLLMHandler:
         user_location: Optional[Dict[str, float]] = None,
         language: str = "en",
         intent: Optional[str] = None,
-        max_tokens: int = 250
+        max_tokens: int = 1536  # Increased from 250 to allow full responses
     ) -> Dict[str, Any]:
         """
         Process query using modular pipeline

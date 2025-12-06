@@ -34,7 +34,7 @@ class RunPodLLMClient:
         api_url: Optional[str] = None,
         api_key: Optional[str] = None,
         timeout: float = 60.0,
-        max_tokens: int = 250
+        max_tokens: int = 1024
     ):
         """
         Initialize LLM client
@@ -46,7 +46,7 @@ class RunPodLLMClient:
                 - OpenAI-compatible: http://localhost:8000/v1
             api_key: API key (from RUNPOD_API_KEY or HUGGING_FACE_API_KEY env)
             timeout: Request timeout in seconds
-            max_tokens: Maximum tokens to generate
+            max_tokens: Maximum tokens to generate (default: 1024 for full responses)
         """
         self.api_url = api_url or os.getenv("LLM_API_URL")
         self.model_name = os.getenv("LLM_MODEL_NAME", "/workspace/llama-3.1-8b")

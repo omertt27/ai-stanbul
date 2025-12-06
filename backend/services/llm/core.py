@@ -28,6 +28,7 @@ from .signals import SignalDetector
 from .context import ContextBuilder
 from .prompts import PromptBuilder
 from .analytics import AnalyticsManager
+from .llm_response_parser import clean_training_data_leakage
 from .query_enhancement import QueryEnhancer
 from .conversation import ConversationManager
 from .caching import CacheManager
@@ -473,6 +474,11 @@ class PureLLMCore:
             
             response_text = response_data["generated_text"]
             
+            # Clean training data leakage from response
+            logger.info(f"🧹 Applying training data leakage filter to {len(response_text)} chars...")
+            response_text = clean_training_data_leakage(response_text)
+            logger.info(f"✅ After filter: {len(response_text)} chars")
+            
             logger.info(f"✅ LLM generated response in {llm_latency:.2f}s (length: {len(response_text)} chars)")
             
             # Validate response
@@ -548,10 +554,25 @@ class PureLLMCore:
         # STEP 8: Build Result
         total_latency = time.time() - start_time
         
+        # Enhanced map_data handling: Include locations from context for restaurant/POI queries
+        map_data = context.get('map_data')
+        
+        # If no map_data but we have location-based signals, generate basic map data
+        if not map_data and any([
+            signals['signals'].get('needs_restaurant'),
+            signals['signals'].get('needs_attraction'),
+            signals['signals'].get('needs_hidden_gems'),
+            signals['signals'].get('needs_neighborhood')
+        ]):
+            # Try to extract locations from database context
+            map_data = self._generate_map_from_context(context, signals['signals'], user_location)
+            if map_data:
+                logger.info(f"✅ Generated map_data from context for location-based query")
+        
         result = {
             "status": "success",
             "response": response_text,
-            "map_data": context.get('map_data'),
+            "map_data": map_data,
             "signals": signals['signals'],
             "metadata": {
                 "signals_detected": active_signals,
@@ -879,6 +900,9 @@ class PureLLMCore:
                     raise Exception("Invalid LLM response")
                 
                 response_text = response_data["generated_text"]
+                
+                # Clean training data leakage from response
+                response_text = clean_training_data_leakage(response_text)
                 
                 # Simulate streaming
                 for i in range(0, len(response_text), 5):
@@ -1547,4 +1571,116 @@ class PureLLMCore:
         except Exception as e:
             logger.error(f"Failed to get tuning report: {e}")
             return {}
+    
+    def _generate_map_from_context(
+        self,
+        context: Dict[str, Any],
+        signals: Dict[str, bool],
+        user_location: Optional[Dict[str, float]]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate basic map_data from database context for location-based queries.
+        
+        When the map service doesn't generate routing data, but we have locations
+        from database (restaurants, attractions, etc.), we create a simple map_data
+        structure with markers.
+        
+        Args:
+            context: Built context with database/service data
+            signals: Detected signals
+            user_location: User GPS location
+            
+        Returns:
+            Map data dict with markers, or None if no locations found
+        """
+        try:
+            import re
+            import json
+            
+            markers = []
+            locations = []
+            
+            # Try to extract locations from database context string
+            db_context = context.get('database', '')
+            
+            if not db_context:
+                return None
+            
+            # Pattern to find coordinates in the database context
+            # Looking for patterns like: "Coordinates: (41.012, 28.978)" or "lat: 41.012, lon: 28.978"
+            coord_patterns = [
+                r'Coordinates:\s*\(([0-9.]+),\s*([0-9.]+)\)',
+                r'lat(?:itude)?:\s*([0-9.]+)[,\s]+lon(?:gitude)?:\s*([0-9.]+)',
+                r'\(([0-9.]+),\s*([0-9.]+)\)',  # Simple tuple format
+            ]
+            
+            # Pattern to find location names (before coordinates)
+            name_pattern = r'([A-ZÇĞİÖŞÜ][A-Za-zçğıöşü\s&\'-]+?)(?:\s*[-:]\s*|\s+Coordinates:)'
+            
+            # Extract all coordinate pairs
+            for pattern in coord_patterns:
+                for match in re.finditer(pattern, db_context):
+                    try:
+                        lat = float(match.group(1))
+                        lon = float(match.group(2))
+                        
+                        # Find the name before this coordinate
+                        name = "Location"
+                        text_before = db_context[:match.start()]
+                        name_match = re.search(name_pattern, text_before[-200:])  # Look in last 200 chars
+                        if name_match:
+                            name = name_match.group(1).strip()
+                        
+                        locations.append({
+                            'name': name,
+                            'lat': lat,
+                            'lon': lon
+                        })
+                    except (ValueError, IndexError):
+                        continue
+            
+            # If we found locations, create markers
+            if locations:
+                for loc in locations:
+                    markers.append({
+                        "position": {"lat": loc['lat'], "lng": loc['lon']},
+                        "label": loc['name'],
+                        "type": "restaurant" if signals.get('needs_restaurant') else "attraction"
+                    })
+                
+                # Calculate center point
+                avg_lat = sum(loc['lat'] for loc in locations) / len(locations)
+                avg_lon = sum(loc['lon'] for loc in locations) / len(locations)
+                
+                # Add user location marker if available
+                if user_location:
+                    markers.append({
+                        "position": {"lat": user_location['lat'], "lng": user_location['lon']},
+                        "label": "Your Location",
+                        "type": "user"
+                    })
+                    # Recalculate center to include user location
+                    avg_lat = (avg_lat * len(locations) + user_location['lat']) / (len(locations) + 1)
+                    avg_lon = (avg_lon * len(locations) + user_location['lon']) / (len(locations) + 1)
+                
+                map_data = {
+                    "type": "markers",
+                    "markers": markers,
+                    "center": {"lat": avg_lat, "lng": avg_lon},
+                    "zoom": 13,
+                    "has_origin": user_location is not None,
+                    "has_destination": False,
+                    "origin_name": "Your Location" if user_location else None,
+                    "destination_name": None,
+                    "locations_count": len(locations)
+                }
+                
+                logger.info(f"Generated map_data with {len(markers)} markers from context")
+                return map_data
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to generate map from context: {e}")
+            return None
 

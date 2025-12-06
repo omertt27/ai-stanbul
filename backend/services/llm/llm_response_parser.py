@@ -28,9 +28,9 @@ def extract_generated_text(llm_response: Union[Dict, str, None]) -> Optional[str
     if llm_response is None:
         return None
     
-    # If it's already a string, return as-is
+    # If it's already a string, clean and return
     if isinstance(llm_response, str):
-        return llm_response
+        return clean_training_data_leakage(llm_response)
     
     # If it's a dict, extract the generated text
     if isinstance(llm_response, dict):
@@ -39,12 +39,12 @@ def extract_generated_text(llm_response: Union[Dict, str, None]) -> Optional[str
             if key in llm_response:
                 text = llm_response[key]
                 if isinstance(text, str):
-                    return text
+                    return clean_training_data_leakage(text)
         
         # If no standard key found, try to get the first string value
         for value in llm_response.values():
             if isinstance(value, str) and len(value) > 0:
-                return value
+                return clean_training_data_leakage(value)
         
         # Last resort: convert dict to string
         logger.warning(f"Could not extract text from dict response, keys: {llm_response.keys()}")
@@ -192,3 +192,72 @@ def clean_json_string(json_str: str) -> str:
             cleaned = cleaned[start_idx:end_idx+1]
     
     return cleaned
+
+
+def clean_training_data_leakage(text: str) -> str:
+    """
+    Remove training data/example conversations that the LLM might have leaked.
+    
+    Args:
+        text: Generated text from LLM
+        
+    Returns:
+        Cleaned text with training examples removed
+    """
+    if not text or not isinstance(text, str):
+        return text
+    
+    # Patterns that indicate training data leakage
+    # Looking for these as separate lines/sections to avoid false positives
+    leak_patterns = [
+        "\n### USER QUESTION",
+        "\n### User's question",
+        "\n### User Question",
+        "\n## User's Question",
+        "\n## User Question",
+        "\n## Context:",
+        "\n### Context:",
+        "\nUSER QUESTION:",
+        "\nUser's question:",
+        "\nUser Question:",
+        "\nUser:",
+        "\nAssistant:",
+        "\nA:",
+        "\nQ:",
+        "\nExample:",
+        "\nFor instance,",
+        "\nHere's an example",
+        "\n### EXAMPLE",
+        "\nEXAMPLE:",
+        "\n## Step 1:",
+        "\n## Step 2:",
+        "\n### Example",
+        "\nNow, let's get started!",
+        "\nThe user has asked:",
+        "\n**Your response should",
+        "\nYour response should",
+        "\nPlease respond with",
+        "\n(Hello KAM!",
+        "\nMerhaba KAM!",
+        "\n### What's your answer",
+        "\nWhat's your answer",
+    ]
+    
+    # Find the first occurrence of any leak pattern
+    first_leak_pos = len(text)
+    found_pattern = None
+    
+    for pattern in leak_patterns:
+        pos = text.find(pattern)
+        if pos != -1 and pos < first_leak_pos:
+            first_leak_pos = pos
+            found_pattern = pattern
+    
+    # If we found a leak pattern, truncate the text before it
+    if found_pattern:
+        cleaned = text[:first_leak_pos].strip()
+        logger.warning(f"🧹 Removed training data leakage starting with '{found_pattern.strip()}' at position {first_leak_pos}")
+        logger.info(f"📏 Original: {len(text)} chars → Cleaned: {len(cleaned)} chars (removed {len(text) - len(cleaned)} chars)")
+        return cleaned
+    
+    return text
