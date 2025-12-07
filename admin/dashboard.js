@@ -1679,6 +1679,26 @@ async function loadLearningStats() {
     }
 }
 
+// Load learning tabs (patterns, deployments, etc.)
+async function loadLearningTabs() {
+    try {
+        // Load patterns
+        await loadLearnedPatterns();
+        
+        // Load canary deployments if that function exists
+        if (typeof loadCanaryDeployments === 'function') {
+            await loadCanaryDeployments();
+        }
+        
+        // Load feedback data if needed
+        if (typeof loadFeedbackData === 'function') {
+            await loadFeedbackData();
+        }
+    } catch (error) {
+        console.error('Error loading learning tabs:', error);
+    }
+}
+
 async function runLearningCycle() {
     if (!confirm('Run a learning cycle? This will analyze recent feedback and deploy improvements.')) return;
     

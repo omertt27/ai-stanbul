@@ -35,6 +35,9 @@ from core.startup import startup_manager
 
 # Import API routers
 from api import health, auth, chat, llm
+from api.admin import experiments as admin_experiments
+from api.admin import routes as admin_routes
+from api import monitoring_routes
 
 # Import blog API
 try:
@@ -44,6 +47,17 @@ except ImportError as e:
     logger.warning(f"⚠️ Blog API not available: {e}")
     BLOG_API_AVAILABLE = False
     blog_api_router = None
+
+# Import additional routes
+try:
+    from routes.cache_monitoring import router as cache_router
+    from routes.intent_feedback import router as intent_router
+    ADDITIONAL_ROUTES_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Additional routes not available: {e}")
+    ADDITIONAL_ROUTES_AVAILABLE = False
+    cache_router = None
+    intent_router = None
 
 # Import legacy routes
 try:
@@ -81,11 +95,23 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(llm.router)
+app.include_router(admin_experiments.router)
+app.include_router(admin_routes.router)
+app.include_router(monitoring_routes.router)
 
 # Register Blog API if available
 if BLOG_API_AVAILABLE:
     app.include_router(blog_api_router)
     logger.info("✅ Blog API registered at /api/blog")
+
+# Register additional routes if available
+if ADDITIONAL_ROUTES_AVAILABLE:
+    if cache_router:
+        app.include_router(cache_router)
+        logger.info("✅ Cache monitoring routes registered at /api/cache")
+    if intent_router:
+        app.include_router(intent_router)
+        logger.info("✅ Intent feedback routes registered at /api/feedback")
 
 # Register legacy routes if available
 if LEGACY_ROUTES_AVAILABLE:
@@ -100,6 +126,14 @@ if LEGACY_ROUTES_AVAILABLE:
 async def startup_event():
     """Application startup"""
     await startup_manager.initialize()
+    
+    # Initialize admin experiments managers
+    try:
+        from api.admin.experiments import initialize_managers
+        initialize_managers()
+        logger.info("✅ Admin experiment managers initialized")
+    except Exception as e:
+        logger.warning(f"⚠️ Could not initialize admin managers: {e}")
     
     # Auto-seed blog posts if database is empty
     try:

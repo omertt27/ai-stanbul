@@ -8,9 +8,9 @@ from typing import Dict, Any
 from datetime import datetime, timedelta
 import logging
 
-from backend.services.realtime_feedback_loop import get_realtime_feedback_loop
-from backend.database import SessionLocal
-from backend.models import FeedbackEvent, UserInteractionAggregate
+from services.realtime_feedback_loop import get_realtime_feedback_loop
+from database import SessionLocal
+from models import FeedbackEvent, UserInteractionAggregate
 from sqlalchemy import func, distinct
 
 logger = logging.getLogger(__name__)

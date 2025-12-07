@@ -9,11 +9,11 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncio
 
-from backend.services.feedback_collector import get_feedback_collector, FeedbackEventType
-from backend.ml.online_learning import get_online_learning_engine
-from backend.services.redis_cache import get_redis_cache
-from backend.database import SessionLocal
-from backend.models import FeedbackEvent, UserInteractionAggregate
+from services.feedback_collector import get_feedback_collector, FeedbackEventType
+from ml.online_learning import get_online_learning_engine
+from services.redis_cache import get_redis_cache
+from database import SessionLocal
+from models import FeedbackEvent, UserInteractionAggregate
 
 logger = logging.getLogger(__name__)
 

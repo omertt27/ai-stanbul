@@ -3,7 +3,14 @@
  * 
  * Helper functions for tracking events across AI Istanbul application
  * Requires Amplitude SDK to be loaded first
+ * 
+ * Usage: AIAnalytics.track('Event Name', { properties })
+ *        AIAnalytics.chatMessageSent(message, context)
+ *        etc.
  */
+
+(function() {
+  'use strict';
 
 // Check if Amplitude is loaded
 const isAmplitudeLoaded = () => {
@@ -31,7 +38,7 @@ const trackEvent = (eventName, properties = {}) => {
 
 // ===== CHAT & MESSAGING =====
 
-export const trackChatMessageSent = (message, context = {}) => {
+const trackChatMessageSent = (message, context = {}) => {
   trackEvent('Chat Message Sent', {
     message_length: message.length,
     has_location: !!context.user_location,
@@ -40,7 +47,7 @@ export const trackChatMessageSent = (message, context = {}) => {
   });
 };
 
-export const trackBotResponse = (response, context = {}) => {
+const trackBotResponse = (response, context = {}) => {
   trackEvent('Bot Response Generated', {
     intent: context.intent,
     confidence: context.confidence,
@@ -52,7 +59,7 @@ export const trackBotResponse = (response, context = {}) => {
   });
 };
 
-export const trackChatError = (error, context = {}) => {
+const trackChatError = (error, context = {}) => {
   trackEvent('Chat Error', {
     error_message: error.message || error,
     error_type: error.name || 'unknown',
@@ -62,7 +69,7 @@ export const trackChatError = (error, context = {}) => {
 
 // ===== ROUTE PLANNING =====
 
-export const trackRouteRequested = (origin, destination, preferences = {}) => {
+const trackRouteRequested = (origin, destination, preferences = {}) => {
   trackEvent('Route Requested', {
     origin: typeof origin === 'string' ? origin : origin.name,
     destination: typeof destination === 'string' ? destination : destination.name,
@@ -72,7 +79,7 @@ export const trackRouteRequested = (origin, destination, preferences = {}) => {
   });
 };
 
-export const trackRouteSelected = (route) => {
+const trackRouteSelected = (route) => {
   trackEvent('Route Selected', {
     route_id: route.id,
     transport_mode: route.mode || route.transport_mode,
@@ -83,7 +90,7 @@ export const trackRouteSelected = (route) => {
   });
 };
 
-export const trackNavigationStarted = (route, context = {}) => {
+const trackNavigationStarted = (route, context = {}) => {
   trackEvent('Navigation Started', {
     route_id: route.id,
     gps_enabled: !!context.gps_enabled,
@@ -92,7 +99,7 @@ export const trackNavigationStarted = (route, context = {}) => {
   });
 };
 
-export const trackNavigationCompleted = (route, context = {}) => {
+const trackNavigationCompleted = (route, context = {}) => {
   trackEvent('Navigation Completed', {
     route_id: route.id,
     actual_duration: context.actual_duration,
@@ -102,7 +109,7 @@ export const trackNavigationCompleted = (route, context = {}) => {
 
 // ===== PLACES & GEMS =====
 
-export const trackGemDiscovered = (gem) => {
+const trackGemDiscovered = (gem) => {
   trackEvent('Gem Discovered', {
     gem_name: gem.name,
     gem_category: gem.category,
@@ -112,7 +119,7 @@ export const trackGemDiscovered = (gem) => {
   });
 };
 
-export const trackPlaceSearch = (searchTerm, results = [], filters = {}) => {
+const trackPlaceSearch = (searchTerm, results = [], filters = {}) => {
   trackEvent('Place Search', {
     search_term: searchTerm,
     results_count: results.length,
@@ -121,7 +128,7 @@ export const trackPlaceSearch = (searchTerm, results = [], filters = {}) => {
   });
 };
 
-export const trackPlaceViewed = (place) => {
+const trackPlaceViewed = (place) => {
   trackEvent('Place Viewed', {
     place_name: place.name,
     place_type: place.type || place.category,
@@ -132,14 +139,14 @@ export const trackPlaceViewed = (place) => {
 
 // ===== ADMIN DASHBOARD =====
 
-export const trackAdminDashboardAccess = (section = 'dashboard') => {
+const trackAdminDashboardAccess = (section = 'dashboard') => {
   trackEvent('Admin Dashboard Accessed', {
     section: section,
     user_agent: navigator.userAgent
   });
 };
 
-export const trackExperimentCreated = (experiment) => {
+const trackExperimentCreated = (experiment) => {
   trackEvent('Experiment Created', {
     experiment_name: experiment.name,
     experiment_id: experiment.id,
@@ -149,7 +156,7 @@ export const trackExperimentCreated = (experiment) => {
   });
 };
 
-export const trackExperimentAction = (action, experimentId, context = {}) => {
+const trackExperimentAction = (action, experimentId, context = {}) => {
   trackEvent('Experiment Action', {
     action: action, // 'started', 'stopped', 'deleted'
     experiment_id: experimentId,
@@ -157,7 +164,7 @@ export const trackExperimentAction = (action, experimentId, context = {}) => {
   });
 };
 
-export const trackFeatureFlagAction = (action, flagName, context = {}) => {
+const trackFeatureFlagAction = (action, flagName, context = {}) => {
   trackEvent('Feature Flag Action', {
     action: action, // 'created', 'toggled', 'updated', 'deleted'
     flag_name: flagName,
@@ -167,7 +174,7 @@ export const trackFeatureFlagAction = (action, flagName, context = {}) => {
   });
 };
 
-export const trackLearningCycleRun = (result) => {
+const trackLearningCycleRun = (result) => {
   trackEvent('Learning Cycle Executed', {
     status: result.status,
     patterns_learned: result.patterns_learned || 0,
@@ -179,7 +186,7 @@ export const trackLearningCycleRun = (result) => {
 
 // ===== USER ENGAGEMENT =====
 
-export const trackPageView = (pageName, context = {}) => {
+const trackPageView = (pageName, context = {}) => {
   trackEvent('Page Viewed', {
     page_name: pageName,
     referrer: document.referrer,
@@ -190,14 +197,14 @@ export const trackPageView = (pageName, context = {}) => {
   });
 };
 
-export const trackButtonClick = (buttonName, context = {}) => {
+const trackButtonClick = (buttonName, context = {}) => {
   trackEvent('Button Clicked', {
     button_name: buttonName,
     ...context
   });
 };
 
-export const trackFormSubmitted = (formName, success, context = {}) => {
+const trackFormSubmitted = (formName, success, context = {}) => {
   trackEvent('Form Submitted', {
     form_name: formName,
     success: success,
@@ -207,7 +214,7 @@ export const trackFormSubmitted = (formName, success, context = {}) => {
 
 // ===== FEEDBACK & ERRORS =====
 
-export const trackFeedbackSubmitted = (feedback) => {
+const trackFeedbackSubmitted = (feedback) => {
   trackEvent('Feedback Submitted', {
     feedback_type: feedback.type,
     original_intent: feedback.original_intent,
@@ -217,7 +224,7 @@ export const trackFeedbackSubmitted = (feedback) => {
   });
 };
 
-export const trackError = (errorType, errorMessage, context = {}) => {
+const trackError = (errorType, errorMessage, context = {}) => {
   trackEvent('Error Occurred', {
     error_type: errorType,
     error_message: errorMessage,
@@ -230,7 +237,7 @@ export const trackError = (errorType, errorMessage, context = {}) => {
 
 // ===== USER IDENTIFICATION =====
 
-export const identifyUser = (userId, properties = {}) => {
+const identifyUser = (userId, properties = {}) => {
   if (!isAmplitudeLoaded()) return;
   
   try {
@@ -250,7 +257,7 @@ export const identifyUser = (userId, properties = {}) => {
   }
 };
 
-export const incrementUserProperty = (property, value = 1) => {
+const incrementUserProperty = (property, value = 1) => {
   if (!isAmplitudeLoaded()) return;
   
   try {
@@ -262,10 +269,10 @@ export const incrementUserProperty = (property, value = 1) => {
   }
 };
 
-// ===== CONVENIENCE EXPORTS =====
+// ===== GLOBAL EXPORT =====
 
-// Export all tracking functions as a namespace
-export const Analytics = {
+// Create global Analytics object
+window.AIAnalytics = {
   // Core
   track: trackEvent,
   identify: identifyUser,
@@ -304,9 +311,7 @@ export const Analytics = {
   error: trackError
 };
 
-// Make it globally available
-if (typeof window !== 'undefined') {
-  window.AIAnalytics = Analytics;
-}
+console.log('[Analytics] AIAnalytics helper loaded successfully');
 
-export default Analytics;
+})(); // End IIFE
+
