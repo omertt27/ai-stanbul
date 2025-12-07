@@ -74,17 +74,23 @@ class BlogPost(Base):
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(200), nullable=False)
+    slug = Column(String(250), nullable=True, unique=True)
     content = Column(Text, nullable=False)
+    excerpt = Column(Text, nullable=True)
     author = Column(String(100), nullable=True)  # Matches existing 'author' column
+    status = Column(String(20), default='draft')  # draft, published, archived
+    featured_image = Column(String(500), nullable=True)
+    category = Column(String(100), nullable=True)
+    tags = Column(JSON, default=list)
+    views = Column(Integer, default=0)
+    likes = Column(Integer, default=0)
     district = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    published_at = Column(DateTime, nullable=True)
     likes_count = Column(Integer, default=0)
     
     # Add missing columns with defaults for compatibility
-    @property
-    def tags(self):
-        return None
-    
     @property
     def author_name(self):
         return self.author
@@ -94,12 +100,8 @@ class BlogPost(Base):
         return None
     
     @property
-    def updated_at(self):
-        return self.created_at
-    
-    @property
     def is_published(self):
-        return True
+        return self.status == 'published'
 
 
 # Real-Time Feedback Models for Online Learning
@@ -117,6 +119,9 @@ class FeedbackEvent(Base):
     event_type = Column(String(50), nullable=False, index=True)  # view, click, save, rating, etc.
     item_id = Column(String(100), nullable=False, index=True)
     item_type = Column(String(50), nullable=False)  # hidden_gem, restaurant, attraction, etc.
+    rating = Column(Integer, nullable=True)  # Rating value if applicable
+    feedback_text = Column(Text, nullable=True)  # Text feedback if provided
+    context = Column(JSON, nullable=True)  # Contextual information
     event_metadata = Column('metadata', JSON)  # Additional event data (rating value, dwell time, etc.)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
     processed = Column(Boolean, default=False, index=True)  # For streaming pipeline

@@ -25,7 +25,8 @@ from sqlalchemy import func, distinct, desc
 logger = logging.getLogger(__name__)
 
 # Create main admin router
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+# Note: Prefix is added during router registration in main_modular.py
+router = APIRouter(tags=["admin"])
 
 
 # ============================================================================

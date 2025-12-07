@@ -96,7 +96,9 @@ app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(llm.router)
 app.include_router(admin_experiments.router)
-app.include_router(admin_routes.router)
+logger.info(f"📋 Admin routes router has {len(admin_routes.router.routes)} routes")
+app.include_router(admin_routes.router, prefix="/api/admin")
+logger.info("✅ Admin routes registered at /api/admin")
 app.include_router(monitoring_routes.router)
 
 # Register Blog API if available
