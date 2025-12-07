@@ -4,6 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Istanbul Admin Dashboard</title>
+    
+    <!-- Amplitude Analytics with Enhanced Autocapture & Session Replay -->
+    <script src="https://cdn.amplitude.com/script/d1288055adec91b66d5bce71829fc4d.js"></script>
+    <script>
+      window.amplitude.add(window.sessionReplay.plugin({sampleRate: 1}));
+      window.amplitude.init('d1288055adec91b66d5bce71829fc4d', {
+        "fetchRemoteConfig": true,
+        "autocapture": {
+          "attribution": true,
+          "fileDownloads": true,
+          "formInteractions": true,
+          "pageViews": true,
+          "sessions": true,
+          "elementInteractions": true,
+          "networkTracking": true,
+          "webVitals": true,
+          "frustrationInteractions": true
+        }
+      });
+      
+      // Track admin dashboard access
+      window.amplitude.track('Admin Dashboard Accessed', {
+        timestamp: new Date().toISOString(),
+        page: 'dashboard'
+      });
+    </script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -248,243 +275,301 @@
             background: var(--primary-dark);
         }
 
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: var(--light);
-            color: var(--text);
-        }
-
-        /* Table */
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        thead {
-            background: var(--light);
-        }
-
-        th {
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-light);
-        }
-
-        td {
-            padding: 16px 12px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        tr:hover {
-            background: var(--light);
-        }
-
-        .badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .badge-success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-danger {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .badge-info {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        /* System Performance Styles */
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            margin-left: 8px;
-            background: var(--danger);
-            color: white;
-        }
-
-        .trend-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 12px;
-            margin-top: 4px;
-        }
-
-        .trend-indicator.up {
-            color: var(--success);
-        }
-
-        .trend-indicator.down {
-            color: var(--danger);
-        }
-
-        .trend-indicator.stable {
-            color: var(--text-light);
-        }
-
-        .health-component {
+        /* Tabs */
+        .tabs {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            background: var(--light);
+            gap: 4px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 0;
+            padding: 0 20px;
         }
 
-        .health-component-name {
+        .tab-btn {
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
             display: flex;
             align-items: center;
             gap: 8px;
-            font-weight: 500;
         }
 
-        .health-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .health-status.healthy {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .health-status.warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .health-status.degraded {
-            background: #fecaca;
-            color: #991b1b;
-        }
-
-        .health-status.error {
-            background: #fee2e2;
-            color: #7f1d1d;
-        }
-
-        .alert-item {
-            padding: 12px;
-            margin-bottom: 8px;
-            border-left: 3px solid;
-            border-radius: 4px;
+        .tab-btn:hover {
+            color: var(--primary);
             background: var(--light);
         }
 
-        .alert-item.critical {
-            border-color: var(--danger);
-            background: #fef2f2;
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
         }
 
-        .alert-item.warning {
-            border-color: var(--warning);
-            background: #fffbeb;
+        .tab-content {
+            display: none;
         }
 
-        .alert-item.info {
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Experiment Card */
+        .experiment-card {
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+
+        .experiment-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             border-color: var(--primary);
-            background: #eff6ff;
         }
 
-        .alert-header {
+        .experiment-header {
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .experiment-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--dark);
             margin-bottom: 4px;
         }
 
-        .alert-title {
+        .experiment-description {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 12px;
+        }
+
+        .experiment-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 12px;
+        }
+
+        .experiment-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .metric-item {
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .metric-change {
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        .metric-change.positive {
+            color: var(--success);
+        }
+
+        .metric-change.negative {
+            color: var(--danger);
+        }
+
+        /* Feature Flag Card */
+        .flag-card {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .flag-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .flag-info h4 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .flag-info p {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .flag-rollout {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .rollout-bar {
+            width: 100px;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .rollout-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+
+        .toggle-switch.active {
+            background: var(--success);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(24px);
+        }
+
+        /* Feedback Item */
+        .feedback-item {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .feedback-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .feedback-user {
             font-weight: 600;
             font-size: 14px;
         }
 
-        .alert-time {
-            font-size: 12px;
-            color: var(--text-light);
+        .feedback-rating {
+            color: #f59e0b;
         }
 
-        .alert-message {
+        .feedback-query {
             font-size: 13px;
-            color: var(--text);
+            color: var(--text-light);
+            margin-bottom: 8px;
+            padding: 8px;
+            background: var(--light);
+            border-radius: 4px;
         }
 
-        .intent-bar {
+        /* Pattern Card */
+        .pattern-card {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .pattern-type {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .pattern-confidence {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--success);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+
+        /* Canary Card */
+        .canary-card {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .canary-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
         }
 
-        .intent-name {
-            width: 150px;
-            font-size: 13px;
-            font-weight: 500;
+        .canary-version {
+            font-weight: 600;
+            font-size: 15px;
         }
 
-        .intent-progress {
-            flex: 1;
-            height: 24px;
-            background: var(--light);
-            border-radius: 4px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .intent-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            transition: width 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 8px;
-            color: white;
-            font-size: 11px;
+        .canary-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
             font-weight: 600;
         }
 
-        .intent-count {
-            margin-left: 12px;
+        .canary-status.canary {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .canary-status.production {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .canary-metrics {
+            display: flex;
+            gap: 16px;
             font-size: 13px;
-            color: var(--text-light);
-            min-width: 60px;
-            text-align: right;
+            margin-bottom: 12px;
+        }
+
+        .canary-actions {
+            display: flex;
+            gap: 8px;
         }
 
         /* Responsive */
@@ -542,6 +627,18 @@
             <a class="nav-item" data-section="system-performance">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>System Performance</span>
+            </a>
+            <a class="nav-item" data-section="experiments">
+                <i class="fas fa-flask"></i>
+                <span>A/B Testing</span>
+            </a>
+            <a class="nav-item" data-section="feature-flags">
+                <i class="fas fa-flag"></i>
+                <span>Feature Flags</span>
+            </a>
+            <a class="nav-item" data-section="continuous-learning">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Continuous Learning</span>
             </a>
             <a class="nav-item" data-section="users">
                 <i class="fas fa-users"></i>
@@ -936,6 +1033,226 @@
             </div>
         </div>
 
+        <!-- A/B Testing / Experiments Section -->
+        <div class="content-section" id="experiments">
+            <div class="section-header">
+                <h3><i class="fas fa-flask"></i> A/B Testing & Experiments</h3>
+                <button class="btn btn-primary" onclick="createExperiment()">
+                    <i class="fas fa-plus"></i> Create Experiment
+                </button>
+            </div>
+
+            <!-- Experiments Overview Stats -->
+            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-label">Total Experiments</div>
+                    <div class="stat-value" id="total-experiments">0</div>
+                    <div class="stat-trend positive">
+                        <i class="fas fa-arrow-up"></i> 3 this month
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Running</div>
+                    <div class="stat-value" id="running-experiments">0</div>
+                    <div class="stat-trend">
+                        <i class="fas fa-play"></i> Active
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Completed</div>
+                    <div class="stat-value" id="completed-experiments">0</div>
+                    <div class="stat-trend">
+                        <i class="fas fa-check"></i> Success
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Improvement</div>
+                    <div class="stat-value">+5.2%</div>
+                    <div class="stat-trend positive">
+                        <i class="fas fa-arrow-up"></i> Accuracy
+                    </div>
+                </div>
+            </div>
+
+            <!-- Experiments List -->
+            <div class="card">
+                <div class="card-header">
+                    <h4>Active Experiments</h4>
+                    <div class="filters">
+                        <select onchange="filterExperiments(this.value)" style="padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                            <option value="all">All Status</option>
+                            <option value="running">Running</option>
+                            <option value="draft">Draft</option>
+                            <option value="completed">Completed</option>
+                            <option value="stopped">Stopped</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="experiments-list">
+                    <!-- Experiments will be loaded here -->
+                    <div style="padding: 40px; text-align: center; color: var(--text-light);">
+                        <i class="fas fa-flask" style="font-size: 48px; margin-bottom: 16px;"></i>
+                        <p>No experiments yet. Create your first experiment to start optimizing!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Flags Section -->
+        <div class="content-section" id="feature-flags">
+            <div class="section-header">
+                <h3><i class="fas fa-flag"></i> Feature Flags</h3>
+                <button class="btn btn-primary" onclick="createFeatureFlag()">
+                    <i class="fas fa-plus"></i> Create Flag
+                </button>
+            </div>
+
+            <!-- Feature Flags Stats -->
+            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-label">Total Flags</div>
+                    <div class="stat-value" id="total-flags">0</div>
+                    <div class="stat-trend">
+                        <i class="fas fa-flag"></i> Managed
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Flags</div>
+                    <div class="stat-value" id="active-flags">0</div>
+                    <div class="stat-trend positive">
+                        <i class="fas fa-check"></i> Enabled
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Rollout</div>
+                    <div class="stat-value">45%</div>
+                    <div class="stat-trend">
+                        <i class="fas fa-users"></i> Coverage
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Flags List -->
+            <div class="card">
+                <div class="card-header">
+                    <h4>Feature Flags</h4>
+                    <input type="text" placeholder="Search flags..." onkeyup="searchFlags(this.value)" 
+                           style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; width: 250px;">
+                </div>
+                <div id="feature-flags-list">
+                    <!-- Feature flags will be loaded here -->
+                    <div style="padding: 40px; text-align: center; color: var(--text-light);">
+                        <i class="fas fa-flag" style="font-size: 48px; margin-bottom: 16px;"></i>
+                        <p>No feature flags yet. Create your first flag for gradual rollouts!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Continuous Learning Section -->
+        <div class="content-section" id="continuous-learning">
+            <div class="section-header">
+                <h3><i class="fas fa-graduation-cap"></i> Continuous Learning</h3>
+                <button class="btn btn-success" onclick="runLearningCycle()">
+                    <i class="fas fa-play"></i> Run Learning Cycle
+                </button>
+            </div>
+
+            <!-- Learning Stats -->
+            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-label">Feedback Collected</div>
+                    <div class="stat-value" id="feedback-collected">0</div>
+                    <div class="stat-trend positive">
+                        <i class="fas fa-arrow-up"></i> +15 today
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Patterns Learned</div>
+                    <div class="stat-value" id="patterns-learned">0</div>
+                    <div class="stat-trend">
+                        <i class="fas fa-brain"></i> Active
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Canary Deployments</div>
+                    <div class="stat-value" id="canary-deployments">0</div>
+                    <div class="stat-trend">
+                        <i class="fas fa-rocket"></i> Live
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Accuracy Improvement</div>
+                    <div class="stat-value">+3.2%</div>
+                    <div class="stat-trend positive">
+                        <i class="fas fa-arrow-up"></i> This month
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Pipeline Tabs -->
+            <div class="card">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchLearningTab('feedback')">
+                        <i class="fas fa-comments"></i> Feedback
+                    </button>
+                    <button class="tab-btn" onclick="switchLearningTab('patterns')">
+                        <i class="fas fa-brain"></i> Patterns
+                    </button>
+                    <button class="tab-btn" onclick="switchLearningTab('canary')">
+                        <i class="fas fa-rocket"></i> Canary Deployments
+                    </button>
+                    <button class="tab-btn" onclick="switchLearningTab('history')">
+                        <i class="fas fa-history"></i> Learning History
+                    </button>
+                </div>
+
+                <!-- Feedback Tab -->
+                <div class="tab-content active" id="feedback-tab">
+                    <div style="padding: 20px;">
+                        <h4 style="margin-bottom: 16px;">Recent Feedback</h4>
+                        <div id="recent-feedback-list">
+                            <!-- Feedback items will be loaded here -->
+                            <div style="padding: 40px; text-align: center; color: var(--text-light);">
+                                <i class="fas fa-comments" style="font-size: 48px; margin-bottom: 16px;"></i>
+                                <p>No feedback yet. System will collect feedback automatically.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patterns Tab -->
+                <div class="tab-content" id="patterns-tab">
+                    <div style="padding: 20px;">
+                        <h4 style="margin-bottom: 16px;">Learned Patterns</h4>
+                        <div id="patterns-list">
+                            <!-- Patterns will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Canary Tab -->
+                <div class="tab-content" id="canary-tab">
+                    <div style="padding: 20px;">
+                        <h4 style="margin-bottom: 16px;">Canary Deployments</h4>
+                        <div id="canary-list">
+                            <!-- Canary deployments will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div class="tab-content" id="history-tab">
+                    <div style="padding: 20px;">
+                        <h4 style="margin-bottom: 16px;">Learning Cycle History</h4>
+                        <div id="learning-history-list">
+                            <!-- Learning history will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Settings Section -->
         <div class="content-section" id="settings">
             <div class="section-header">
@@ -1027,6 +1344,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="amplitude-helpers.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>

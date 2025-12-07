@@ -5,6 +5,17 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
     ? `http://${window.location.hostname}:5001` 
     : 'https://api.aistanbul.net';
 
+// Analytics Helper - Available as window.AIAnalytics
+const Analytics = window.AIAnalytics || {
+    track: () => console.warn('Analytics not loaded'),
+    pageView: () => {},
+    experimentCreated: () => {},
+    experimentAction: () => {},
+    featureFlagAction: () => {},
+    learningCycleRun: () => {},
+    error: () => {}
+};
+
 // State Management
 let currentSection = 'dashboard';
 let blogPosts = [];
@@ -42,6 +53,12 @@ function initializeNavigation() {
             const sectionId = this.getAttribute('data-section');
             document.getElementById(sectionId).classList.add('active');
             currentSection = sectionId;
+            
+            // Track section navigation
+            Analytics.pageView(sectionId, {
+                section_type: 'dashboard',
+                previous_section: currentSection
+            });
             
             // Load section data
             loadSectionData(sectionId);
@@ -122,6 +139,16 @@ async function loadSectionData(section) {
         case 'users':
             await loadUsers();
             renderUsers();
+            break;
+        case 'experiments':
+            loadExperiments();
+            break;
+        case 'feature-flags':
+            loadFeatureFlags();
+            break;
+        case 'continuous-learning':
+            loadLearningStats();
+            loadLearningTabs();
             break;
     }
 }
@@ -435,36 +462,6 @@ async function loadFeedback() {
                         date: item.timestamp || new Date().toISOString()
                     });
                 });
-            }
-            
-            // If no feedback data, use mock data
-            if (feedbackData.length === 0) {
-                feedbackData = [
-                    {
-                        id: 1,
-                        query: 'Where is Blue Mosque?',
-                        predicted_intent: 'find_attraction',
-                        confidence: 0.95,
-                        feedback: 'Correct',
-                        date: '2025-10-27 10:30'
-                    },
-                    {
-                        id: 2,
-                        query: 'Best restaurants in Taksim',
-                        predicted_intent: 'find_restaurant',
-                        confidence: 0.88,
-                        feedback: 'Correct',
-                        date: '2025-10-27 11:15'
-                    },
-                    {
-                        id: 3,
-                        query: 'How to get to airport',
-                        predicted_intent: 'get_directions',
-                        confidence: 0.65,
-                        feedback: 'Corrected to: get_transportation',
-                        date: '2025-10-27 12:00'
-                    }
-                ];
             }
         }
         return feedbackData;
@@ -1291,3 +1288,612 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// ===================================================================
+// PHASE 5: A/B TESTING, FEATURE FLAGS & CONTINUOUS LEARNING
+// ===================================================================
+
+// A/B Testing / Experiments
+async function loadExperiments(statusFilter = 'all') {
+    try {
+        const url = statusFilter === 'all' 
+            ? `${API_BASE_URL}/api/admin/experiments/experiments`
+            : `${API_BASE_URL}/api/admin/experiments/experiments?status=${statusFilter}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            renderExperiments(data.experiments || []);
+            updateExperimentsStats(data.experiments || []);
+        }
+    } catch (error) {
+        console.error('Error loading experiments:', error);
+        showError('Failed to load experiments');
+    }
+}
+
+function renderExperiments(experiments) {
+    const container = document.getElementById('experiments-list');
+    
+    if (!experiments || experiments.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-light);">
+                <i class="fas fa-flask" style="font-size: 48px; margin-bottom: 16px;"></i>
+                <p>No experiments yet. Create your first experiment to start optimizing!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const html = experiments.map(exp => `
+        <div class="experiment-card">
+            <div class="experiment-header">
+                <div>
+                    <div class="experiment-title">${exp.name}</div>
+                    <div class="experiment-description">${exp.description}</div>
+                </div>
+                <span class="badge badge-${getStatusColor(exp.status)}">${exp.status}</span>
+            </div>
+            <div class="experiment-meta">
+                <span><i class="fas fa-calendar"></i> ${exp.start_date} - ${exp.end_date}</span>
+                <span><i class="fas fa-users"></i> ${exp.variants ? Object.keys(exp.variants).length : 0} variants</span>
+                <span><i class="fas fa-chart-line"></i> ${exp.metrics ? exp.metrics.length : 0} metrics</span>
+            </div>
+            <div class="experiment-metrics">
+                ${renderVariantMetrics(exp)}
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                ${exp.status === 'draft' ? `<button class="btn btn-sm btn-success" onclick="startExperiment('${exp.id}')"><i class="fas fa-play"></i> Start</button>` : ''}
+                ${exp.status === 'running' ? `<button class="btn btn-sm btn-warning" onclick="stopExperiment('${exp.id}')"><i class="fas fa-stop"></i> Stop</button>` : ''}
+                <button class="btn btn-sm btn-primary" onclick="viewExperimentDetails('${exp.id}')"><i class="fas fa-eye"></i> View Details</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteExperiment('${exp.id}')"><i class="fas fa-trash"></i> Delete</button>
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+function renderVariantMetrics(experiment) {
+    if (!experiment.variants) return '';
+    
+    return Object.entries(experiment.variants).map(([name, config]) => `
+        <div class="metric-item">
+            <div class="metric-label">${name}</div>
+            <div class="metric-value">${config.weight * 100}%</div>
+        </div>
+    `).join('');
+}
+
+function updateExperimentsStats(experiments) {
+    const total = experiments.length;
+    const running = experiments.filter(e => e.status === 'running').length;
+    const completed = experiments.filter(e => e.status === 'completed').length;
+    
+    document.getElementById('total-experiments').textContent = total;
+    document.getElementById('running-experiments').textContent = running;
+    document.getElementById('completed-experiments').textContent = completed;
+}
+
+function filterExperiments(status) {
+    loadExperiments(status);
+}
+
+async function createExperiment() {
+    const name = prompt('Experiment Name:');
+    if (!name) return;
+    
+    const description = prompt('Description:');
+    
+    const experiment = {
+        name: name,
+        description: description || '',
+        variants: {
+            'control': { weight: 0.5, config: {} },
+            'treatment': { weight: 0.5, config: {} }
+        },
+        metrics: ['accuracy', 'latency'],
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        minimum_sample_size: 100
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/experiments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(experiment)
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Track experiment creation
+            Analytics.experimentCreated({
+                name: experiment.name,
+                id: data.experiment?.id || 'unknown',
+                variant_count: Object.keys(experiment.variants).length,
+                metrics: experiment.metrics,
+                duration_days: 14
+            });
+            
+            showSuccess('Experiment created successfully!');
+            loadExperiments();
+        } else {
+            showError('Failed to create experiment');
+        }
+    } catch (error) {
+        console.error('Error creating experiment:', error);
+        Analytics.error('experiment_creation_failed', error.message, {
+            experiment_name: experiment.name
+        });
+        showError('Failed to create experiment');
+    }
+}
+
+async function startExperiment(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/experiments/${id}/start`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Track experiment started
+            if (window.AIAnalytics) {
+                window.AIAnalytics.experimentAction('started', id);
+            }
+            showSuccess('Experiment started!');
+            loadExperiments();
+        } else {
+            showError('Failed to start experiment');
+        }
+    } catch (error) {
+        console.error('Error starting experiment:', error);
+        showError('Failed to start experiment');
+    }
+}
+
+async function stopExperiment(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/experiments/${id}/stop`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Track experiment stopped
+            if (window.AIAnalytics) {
+                window.AIAnalytics.experimentAction('stopped', id);
+            }
+            showSuccess('Experiment stopped!');
+            loadExperiments();
+        } else {
+            showError('Failed to stop experiment');
+        }
+    } catch (error) {
+        console.error('Error stopping experiment:', error);
+        showError('Failed to stop experiment');
+    }
+}
+
+function viewExperimentDetails(id) {
+    const exp = experiments.find(e => e.id === id);
+    if (!exp) return;
+    
+    // Fetch experiment results
+    fetch(`${API_BASE_URL}/api/admin/experiments/experiments/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            const results = data.results;
+            
+            alert(`Experiment: ${exp.name}\n\nStatus: ${exp.status}\n\nVariants: ${Object.keys(exp.variants || {}).join(', ')}\n\nResults: ${JSON.stringify(results, null, 2)}`);
+        })
+        .catch(error => {
+            console.error('Error viewing experiment:', error);
+            showError('Failed to load experiment details');
+        });
+}
+
+async function deleteExperiment(id) {
+    if (!confirm('Are you sure you want to delete this experiment?')) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/experiments/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Track experiment deletion
+            Analytics.experimentAction('deleted', id);
+            
+            showSuccess('Experiment deleted successfully!');
+            loadExperiments();
+        } else {
+            showError('Failed to delete experiment');
+        }
+    } catch (error) {
+        console.error('Error deleting experiment:', error);
+        Analytics.error('experiment_deletion_failed', error.message, {
+            experiment_id: id
+        });
+        showError('Failed to delete experiment');
+    }
+}
+
+// Feature Flags Functions
+async function loadFeatureFlags() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/flags`);
+        const data = await response.json();
+        if (data.success) {
+            renderFeatureFlags(data.flags || []);
+            updateFlagsStats(data.flags || []);
+        }
+    } catch (error) {
+        console.error('Error loading feature flags:', error);
+        showError('Failed to load feature flags');
+    }
+}
+
+function renderFeatureFlags(flags) {
+    const container = document.getElementById('feature-flags-list');
+    
+    if (!flags || flags.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-light);">
+                <i class="fas fa-flag" style="font-size: 48px; margin-bottom: 16px;"></i>
+                <p>No feature flags yet. Create your first flag for gradual rollouts!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const html = flags.map(flag => `
+        <div class="flag-card">
+            <div class="flag-info">
+                <h4>${flag.name}</h4>
+                <p>${flag.description || 'No description'}</p>
+                <div class="flag-rollout">
+                    <span>${flag.rollout_percentage}% rollout</span>
+                    <div class="rollout-bar">
+                        <div class="rollout-fill" style="width: ${flag.rollout_percentage}%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="flag-actions">
+                <div class="toggle-switch ${flag.enabled ? 'active' : ''}" onclick="toggleFlag('${flag.name}', ${!flag.enabled})">
+                    <div class="toggle-slider"></div>
+                </div>
+                <button class="btn btn-sm btn-primary" onclick="editFlag('${flag.name}')">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteFlag('${flag.name}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+function updateFlagsStats(flags) {
+    const total = flags.length;
+    const active = flags.filter(f => f.enabled).length;
+    document.getElementById('total-flags').textContent = total;
+    document.getElementById('active-flags').textContent = active;
+}
+
+function searchFlags(query) {
+    // TODO: Implement flag search
+    console.log('Searching flags:', query);
+}
+
+async function createFeatureFlag() {
+    const name = prompt('Flag Name (lowercase, no spaces):');
+    if (!name) return;
+    const description = prompt('Description:');
+    const rollout = prompt('Initial Rollout % (0-100):', '10');
+    
+    const flag = {
+        name: name.toLowerCase().replace(/\s/g, '_'),
+        description: description || '',
+        enabled: true,
+        rollout_percentage: parseInt(rollout) || 10
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/flags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(flag)
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Track flag creation
+            Analytics.featureFlagAction('created', flag.name, {
+                enabled: flag.enabled,
+                rollout_percentage: flag.rollout_percentage,
+                has_description: !!flag.description
+            });
+            
+            showSuccess('Feature flag created successfully!');
+            loadFeatureFlags();
+        } else {
+            showError('Failed to create feature flag');
+        }
+    } catch (error) {
+        console.error('Error creating flag:', error);
+        Analytics.error('flag_creation_failed', error.message, {
+            flag_name: flag.name
+        });
+        showError('Failed to create feature flag');
+    }
+}
+
+async function toggleFlag(name, enabled) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/flags/${name}`, {
+            method: 'PUT',   
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            // Track flag toggle
+            Analytics.featureFlagAction('toggled', name, {
+                enabled: enabled,
+                action: enabled ? 'enabled' : 'disabled'
+            });
+            
+            showSuccess(`Flag ${enabled ? 'enabled' : 'disabled'}!`);
+            loadFeatureFlags();
+        }
+    } catch (error) {
+        console.error('Error toggling flag:', error);
+        Analytics.error('flag_toggle_failed', error.message, {
+            flag_name: name
+        });
+        showError('Failed to toggle flag');
+    }
+}
+
+// Continuous Learning
+async function loadLearningStats() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/learning/statistics`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const stats = data.statistics;
+            document.getElementById('feedback-collected').textContent = stats.feedback?.total_feedback || 0;
+            document.getElementById('patterns-learned').textContent = stats.patterns?.total || 0;
+            document.getElementById('canary-deployments').textContent = stats.deployments?.total || 0;
+        }
+    } catch (error) {
+        console.error('Error loading learning stats:', error);
+    }
+}
+
+async function runLearningCycle() {
+    if (!confirm('Run a learning cycle? This will analyze recent feedback and deploy improvements.')) return;
+    
+    const startTime = Date.now();
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/learning/run-cycle`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            const result = data.result || {};
+            const duration = (Date.now() - startTime) / 1000;
+            
+            // Track learning cycle
+            Analytics.learningCycleRun({
+                status: result.status || 'completed',
+                patterns_learned: result.patterns_learned || 0,
+                feedback_analyzed: result.feedback_analyzed || 0,
+                improvements_deployed: result.improvements_deployed || false,
+                duration: duration
+            });
+            
+            showSuccess(`Learning cycle complete! Status: ${result.status}, Patterns: ${result.patterns_learned || 0}`);
+            loadLearningStats();
+            loadLearningTabs();
+        }
+    } catch (error) {
+        console.error('Error running learning cycle:', error);
+        Analytics.error('learning_cycle_failed', error.message);
+        showError('Failed to run learning cycle');
+    }
+}
+
+async function loadLearnedPatterns() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/learning/patterns`);
+        const data = await response.json();
+        
+        const container = document.getElementById('patterns-list');
+        
+        if (data.success && data.patterns && data.patterns.length > 0) {
+            const html = data.patterns.map(pattern => `
+                <div class="pattern-card">
+                    <div class="pattern-type">${pattern.pattern_type}</div>
+                    <div style="margin-bottom: 8px;">
+                        <strong>Pattern ID:</strong> ${pattern.pattern_id}
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <span class="pattern-confidence">Confidence: ${(pattern.confidence * 100).toFixed(1)}%</span>
+                        <span style="margin-left: 12px; font-size: 13px; color: var(--text-light);">
+                            Support: ${pattern.support} samples
+                        </span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-light);">
+                        Created: ${new Date(pattern.created_at * 1000).toLocaleString()}
+                    </div>
+                </div>
+            `).join('');
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `
+                <div style="padding: 40px; text-align: center; color: var(--text-light);">
+                    <i class="fas fa-brain" style="font-size: 48px; margin-bottom: 16px;"></i>
+                    <p>No patterns learned yet. Run a learning cycle to discover patterns!</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading patterns:', error);
+    }
+}
+
+async function loadCanaryDeployments() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/canary/deployments`);
+        const data = await response.json();
+        
+        const container = document.getElementById('canary-list');
+        
+        if (data.success && data.deployments && data.deployments.length > 0) {
+            const html = data.deployments.map(canary => `
+                <div class="canary-card">
+                    <div class="canary-header">
+                        <div class="canary-version">${canary.model_type} - ${canary.model_version}</div>
+                        <span class="canary-status ${canary.status}">${canary.status}</span>
+                    </div>
+                    <div class="canary-metrics">
+                        <span><i class="fas fa-tachometer-alt"></i> Traffic: ${(canary.traffic_percentage * 100).toFixed(0)}%</span>
+                        <span><i class="fas fa-check"></i> Requests: ${canary.metrics?.requests || 0}</span>
+                        <span><i class="fas fa-exclamation-triangle"></i> Error Rate: ${((canary.metrics?.error_rate || 0) * 100).toFixed(2)}%</span>
+                        <span><i class="fas fa-clock"></i> Latency: ${(canary.metrics?.avg_latency || 0).toFixed(2)}s</span>
+                    </div>
+                    <div class="canary-actions">
+                        ${canary.status === 'canary' ? `
+                            <button class="btn btn-sm btn-success" onclick="promoteCanary('${canary.model_type}_${canary.model_version}')">
+                                <i class="fas fa-arrow-up"></i> Promote
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="rollbackCanary('${canary.model_type}_${canary.model_version}')">
+                                <i class="fas fa-undo"></i> Rollback
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `
+                <div style="padding: 40px; text-align: center; color: var(--text-light);">
+                    <i class="fas fa-rocket" style="font-size: 48px; margin-bottom: 16px;"></i>
+                    <p>No canary deployments active.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading canary deployments:', error);
+    }
+}
+
+async function loadLearningHistory() {
+    const container = document.getElementById('learning-history-list');
+    container.innerHTML = `
+        <div style="padding: 40px; text-align: center; color: var(--text-light);">
+            <i class="fas fa-history" style="font-size: 48px; margin-bottom: 16px;"></i>
+            <p>Learning history will be displayed here.</p>
+        </div>
+    `;
+}
+
+async function promoteCanary(deploymentId) {
+    if (!confirm('Promote this canary to production?')) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/canary/${deploymentId}/promote`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            showSuccess('Canary promoted to production!');
+            loadCanaryDeployments();
+        }
+    } catch (error) {
+        console.error('Error promoting canary:', error);
+        showError('Failed to promote canary');
+    }
+}
+
+async function rollbackCanary(deploymentId) {
+    if (!confirm('Rollback this canary deployment?')) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/experiments/canary/${deploymentId}/rollback`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            showSuccess('Canary rolled back!');
+            loadCanaryDeployments();
+        }
+    } catch (error) {
+        console.error('Error rolling back canary:', error);
+        showError('Failed to rollback canary');
+    }
+}
+
+function switchLearningTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+}
+
+// Helper function to get status color
+function getStatusColor(status) {
+    const colors = {
+        'draft': 'secondary',
+        'running': 'primary',
+        'completed': 'success',
+        'stopped': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+
+// Add to section data loading
+const originalLoadSectionData = window.loadSectionData;
+window.loadSectionData = function(section) {
+    if (originalLoadSectionData) {
+        originalLoadSectionData(section);
+    }
+    
+    // Load Phase 5 sections
+    switch(section) {
+        case 'experiments':
+            loadExperiments();
+            break;
+        case 'feature-flags':
+            loadFeatureFlags();
+            break;
+        case 'continuous-learning':
+            loadLearningStats();
+            loadLearningTabs();
+            break;
+    }
+};

@@ -11,6 +11,26 @@
       gtag('config', 'G-2XXEMVNC7Z');
     </script>
     
+    <!-- Amplitude Analytics with Enhanced Autocapture & Session Replay -->
+    <script src="https://cdn.amplitude.com/script/d1288055adec91b66d5bce71829fc4d.js"></script>
+    <script>
+      window.amplitude.add(window.sessionReplay.plugin({sampleRate: 1}));
+      window.amplitude.init('d1288055adec91b66d5bce71829fc4d', {
+        "fetchRemoteConfig": true,
+        "autocapture": {
+          "attribution": true,
+          "fileDownloads": true,
+          "formInteractions": true,
+          "pageViews": true,
+          "sessions": true,
+          "elementInteractions": true,
+          "networkTracking": true,
+          "webVitals": true,
+          "frustrationInteractions": true
+        }
+      });
+    </script>
+    
     <meta charset="UTF-8" />
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

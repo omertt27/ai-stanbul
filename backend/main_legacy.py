@@ -845,6 +845,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ═══════════════════════════════════════════════════════════════════
+# MOUNT API ROUTERS
+# ═══════════════════════════════════════════════════════════════════
+print("\n🔌 Mounting API Routers...")
+
+# Import and mount Experiments & Feature Flags API
+try:
+    from api.admin.experiments import router as experiments_router
+    app.include_router(experiments_router)
+    print("✅ Experiments & Feature Flags API mounted at /api/admin/experiments")
+except ImportError as e:
+    print(f"⚠️ Could not mount Experiments API: {e}")
+except Exception as e:
+    print(f"⚠️ Error mounting Experiments API: {e}")
+
+print("=" * 70)
+print()
+
 # =============================
 # PYDANTIC MODELS FOR AUTHENTICATION
 # =============================
