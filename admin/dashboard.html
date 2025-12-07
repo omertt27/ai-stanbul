@@ -321,178 +321,170 @@
             color: #1e40af;
         }
 
-        /* Action Buttons */
-        .action-buttons {
-            display: flex;
-            gap: 8px;
+        /* System Performance Styles */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+            background: var(--danger);
+            color: white;
         }
 
-        .action-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
+        .trend-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .trend-indicator.up {
+            color: var(--success);
+        }
+
+        .trend-indicator.down {
+            color: var(--danger);
+        }
+
+        .trend-indicator.stable {
+            color: var(--text-light);
+        }
+
+        .health-component {
             display: flex;
             align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
+            justify-content: space-between;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: var(--light);
         }
 
-        .action-btn.edit {
-            background: #dbeafe;
-            color: #1e40af;
+        .health-component-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
         }
 
-        .action-btn.delete {
-            background: #fee2e2;
+        .health-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .health-status.healthy {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .health-status.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .health-status.degraded {
+            background: #fecaca;
             color: #991b1b;
         }
 
-        .action-btn.view {
-            background: #d1fae5;
-            color: #065f46;
+        .health-status.error {
+            background: #fee2e2;
+            color: #7f1d1d;
         }
 
-        .action-btn:hover {
-            transform: scale(1.1);
-        }
-
-        /* Search Bar */
-        .search-bar {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
-        .search-bar input {
-            width: 100%;
-            padding: 12px 16px 12px 44px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .search-bar i {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-light);
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 32px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            margin-bottom: 24px;
-        }
-
-        .modal-header h3 {
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
+        .alert-item {
             padding: 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        .form-group textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 24px;
-        }
-
-        /* Charts */
-        .chart-container {
-            height: 300px;
-            margin: 20px 0;
-        }
-
-        /* Loading State */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-light);
-        }
-
-        .loading i {
-            font-size: 32px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .empty-state i {
-            font-size: 64px;
-            color: var(--text-light);
-            margin-bottom: 16px;
-        }
-
-        .empty-state h4 {
-            font-size: 18px;
             margin-bottom: 8px;
+            border-left: 3px solid;
+            border-radius: 4px;
+            background: var(--light);
         }
 
-        .empty-state p {
+        .alert-item.critical {
+            border-color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .alert-item.warning {
+            border-color: var(--warning);
+            background: #fffbeb;
+        }
+
+        .alert-item.info {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .alert-time {
+            font-size: 12px;
             color: var(--text-light);
+        }
+
+        .alert-message {
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .intent-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .intent-name {
+            width: 150px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .intent-progress {
+            flex: 1;
+            height: 24px;
+            background: var(--light);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .intent-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .intent-count {
+            margin-left: 12px;
+            font-size: 13px;
+            color: var(--text-light);
+            min-width: 60px;
+            text-align: right;
         }
 
         /* Responsive */
@@ -546,6 +538,10 @@
             <a class="nav-item" data-section="intents">
                 <i class="fas fa-brain"></i>
                 <span>Intent Stats</span>
+            </a>
+            <a class="nav-item" data-section="system-performance">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>System Performance</span>
             </a>
             <a class="nav-item" data-section="users">
                 <i class="fas fa-users"></i>
@@ -799,6 +795,111 @@
                         <!-- Dynamic content -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- System Performance Section -->
+        <div class="content-section" id="system-performance">
+            <div class="header">
+                <h2>System Performance</h2>
+                <p>Real-time monitoring of LLM system health and performance metrics</p>
+            </div>
+
+            <!-- Real-time Metrics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="sys-latency">-</h3>
+                        <p>Avg. Latency (ms)</p>
+                        <small id="sys-latency-trend" class="trend-indicator">-</small>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="sys-accuracy">-</h3>
+                        <p>Intent Accuracy</p>
+                        <small id="sys-accuracy-trend" class="trend-indicator">-</small>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="sys-error-rate">-</h3>
+                        <p>Error Rate</p>
+                        <small id="sys-error-trend" class="trend-indicator">-</small>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="sys-requests">-</h3>
+                        <p>Requests/Min</p>
+                        <small id="sys-requests-trend" class="trend-indicator">-</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Health Status -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">
+                    <i class="fas fa-heart-pulse"></i> System Health
+                </h3>
+                <div id="system-health-status">
+                    <p style="text-align: center; color: var(--text-light); padding: 20px;">
+                        Loading system health...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Performance Charts -->
+            <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 16px;">
+                        <i class="fas fa-chart-line"></i> Latency Trend (24h)
+                    </h3>
+                    <canvas id="latency-trend-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 16px;">
+                        <i class="fas fa-chart-area"></i> Accuracy Trend (24h)
+                    </h3>
+                    <canvas id="accuracy-trend-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Alerts -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">
+                    <i class="fas fa-bell"></i> Recent Alerts
+                    <span id="alert-badge" class="badge" style="display: none;">0</span>
+                </h3>
+                <div id="recent-alerts-list">
+                    <p style="text-align: center; color: var(--text-light); padding: 20px;">
+                        No alerts in the last 24 hours
+                    </p>
+                </div>
+            </div>
+
+            <!-- Intent Breakdown -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">
+                    <i class="fas fa-pie-chart"></i> Intent Distribution
+                </h3>
+                <div id="intent-breakdown">
+                    <p style="text-align: center; color: var(--text-light); padding: 20px;">
+                        Loading intent breakdown...
+                    </p>
+                </div>
             </div>
         </div>
 

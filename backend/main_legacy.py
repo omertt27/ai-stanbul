@@ -7,6 +7,9 @@ import json
 import time
 import html
 import uuid
+import jwt
+import bcrypt
+import redis
 from datetime import datetime, date, timedelta
 import logging
 from typing import List, Dict, Any, Optional, Tuple, Union
@@ -196,6 +199,15 @@ except ImportError as e:
     EVENTS_SCHEDULER_AVAILABLE = False
     print(f"⚠️ Monthly Events Scheduler not available: {e}")
 
+# Add Enhanced Authentication Manager import
+try:
+    from enhanced_auth_manager import EnhancedAuthManager
+    ENHANCED_AUTH_AVAILABLE = True
+    print("✅ Enhanced Authentication Manager loaded successfully")
+except ImportError as e:
+    ENHANCED_AUTH_AVAILABLE = False
+    print(f"⚠️ Enhanced Authentication Manager not available: {e}")
+
 # Enhanced Query Understanding Configuration
 ENHANCED_QUERY_UNDERSTANDING_ENABLED = ADVANCED_UNDERSTANDING_AVAILABLE
 
@@ -345,259 +357,25 @@ except ImportError as e:
 # Global Pure LLM Core instance
 pure_llm_core = None
 
-# Enhanced Authentication imports
+# ═══════════════════════════════════════════════════════════════════
+# PRODUCTION MONITORING SYSTEM
+# ═══════════════════════════════════════════════════════════════════
+print("\n📊 Initializing Production Monitoring System...")
+
 try:
-    from enhanced_auth import (
-        EnhancedAuthManager,
-        get_current_user,
-        UserRegistrationRequest,
-        UserLoginRequest,
-        TokenRefreshRequest,  # Fixed: was UserRefreshRequest
-        TokenResponse,
-        UserResponse
-    )
-    ENHANCED_AUTH_AVAILABLE = True
-    print("✅ Enhanced Authentication module loaded")
+    from backend.services.llm.monitoring import LLMMonitoringSystem
+    MONITORING_SYSTEM_AVAILABLE = True
+    monitoring_system = LLMMonitoringSystem()
+    print("✅ Production Monitoring System loaded")
+    print("   - Real-time metrics collection")
+    print("   - Intent accuracy tracking")
+    print("   - Automated alerting")
+    print("   - Dashboard API endpoints")
 except ImportError as e:
-    print(f"⚠️ Enhanced Authentication not available: {e}")
-    ENHANCED_AUTH_AVAILABLE = False
-    
-    # Define fallback models if authentication is not available
-    class TokenResponse(BaseModel):
-        """Fallback TokenResponse when auth is unavailable"""
-        access_token: str
-        refresh_token: str
-        token_type: str = "bearer"
-    
-    class UserResponse(BaseModel):
-        """Fallback UserResponse when auth is unavailable"""
-        id: int
-        email: str
-        username: str
-    
-    class UserRegistrationRequest(BaseModel):
-        """Fallback registration request"""
-        email: str
-        password: str
-        username: str
-        full_name: Optional[str] = None
-    
-    class UserLoginRequest(BaseModel):
-        """Fallback login request"""
-        email: str
-        password: str
-    
-    class TokenRefreshRequest(BaseModel):
-        """Fallback refresh request"""
-        refresh_token: str
-    
-    # Define fallback for get_current_user dependency
-    async def get_current_user() -> Dict[str, Any]:
-        """Fallback get_current_user when auth is unavailable"""
-        return {
-            "sub": "fallback_user",
-            "username": "fallback_user",
-            "email": "fallback@example.com",
-            "role": "user"
-        }
-
-# === Pydantic Models for API Endpoints ===
-
-class ChatRequest(BaseModel):
-    """Request model for chat endpoints"""
-    message: str = Field(..., description="User message")
-    session_id: Optional[str] = Field(None, description="Session identifier")
-    user_location: Optional[Dict[str, float]] = Field(None, description="User GPS location")
-    preferences: Optional[Dict[str, Any]] = Field(None, description="User preferences")
-
-class ChatResponse(BaseModel):
-    """Response model for chat endpoints"""
-    response: str = Field(..., description="AI response")
-    session_id: str = Field(..., description="Session identifier")
-    intent: Optional[str] = Field(None, description="Detected intent")
-    confidence: Optional[float] = Field(None, description="Confidence score")
-    suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
-class RouteResponse(BaseModel):
-    """Response model for route planning"""
-    route: List[Dict[str, Any]] = Field(..., description="Optimized route")
-    total_duration: float = Field(..., description="Total route duration in hours")
-    total_distance: float = Field(..., description="Total distance in kilometers")
-    transport_info: Optional[Dict[str, Any]] = Field(None, description="Transportation information")
-    recommendations: Optional[List[str]] = Field(None, description="Route recommendations")
-
-class GPSRouteRequest(BaseModel):
-    """Request model for GPS-based route planning"""
-    user_location: Dict[str, float] = Field(..., description="User GPS coordinates (lat, lng)")
-    radius_km: Optional[float] = Field(5.0, description="Search radius in kilometers")
-    duration_hours: Optional[int] = Field(4, description="Available time in hours")
-    transport_mode: Optional[str] = Field("walking", description="Transportation mode")
-    interests: Optional[List[str]] = Field(None, description="User interests")
-    session_id: Optional[str] = Field(None, description="Session identifier")
-
-class NearbyAttractionsRequest(BaseModel):
-    """Request model for finding nearby attractions"""
-    location: Dict[str, float] = Field(..., description="GPS coordinates (lat, lng)")
-    radius_km: Optional[float] = Field(2.0, description="Search radius in kilometers")
-    attraction_types: Optional[List[str]] = Field(None, description="Types of attractions")
-    limit: Optional[int] = Field(10, description="Maximum number of results")
-
-class LocationBasedRecommendationResponse(BaseModel):
-    """Response model for location-based recommendations"""
-    recommendations: List[Dict[str, Any]] = Field(..., description="List of recommendations")
-    user_location: Dict[str, float] = Field(..., description="User location used")
-    search_radius: float = Field(..., description="Search radius used")
-    total_found: int = Field(..., description="Total number of recommendations")
-    response_time_ms: Optional[float] = Field(None, description="Response time in milliseconds")
-
-class TransportRequest(BaseModel):
-    """Request model for transportation queries"""
-    origin: str = Field(..., description="Origin location")
-    destination: str = Field(..., description="Destination location")
-    transport_mode: Optional[str] = Field(None, description="Preferred transport mode")
-    time_preference: Optional[str] = Field(None, description="Time preference")
-
-class TransportResponse(BaseModel):
-    """Response model for transportation queries"""
-    routes: List[Dict[str, Any]] = Field(..., description="Available routes")
-    recommendations: str = Field(..., description="Transportation recommendations")
-    duration_estimate: Optional[str] = Field(None, description="Estimated duration")
-    cost_estimate: Optional[str] = Field(None, description="Estimated cost")
-
-class MuseumRequest(BaseModel):
-    """Request model for museum queries"""
-    query: str = Field(..., description="Museum query")
-    location: Optional[str] = Field(None, description="Preferred location/area")
-    interests: Optional[List[str]] = Field(None, description="User interests")
-
-class MuseumResponse(BaseModel):
-    """Response model for museum queries"""
-    museums: List[Dict[str, Any]] = Field(..., description="Museum recommendations")
-    response: str = Field(..., description="Detailed response")
-    total_found: int = Field(..., description="Total museums found")
-
-class MuseumRouteRequest(BaseModel):
-    """Request model for museum route planning"""
-    query: str = Field(..., description="Museum route planning query (e.g., 'plan a museum tour for 5 hours')")
-    duration_hours: Optional[int] = Field(None, description="Duration in hours (e.g., 3, 5, 8)")
-    starting_location: Optional[str] = Field(None, description="Starting location or neighborhood")
-    interests: Optional[List[str]] = Field(None, description="Specific interests (e.g., byzantine, ottoman, art)")
-    budget_level: Optional[str] = Field("medium", description="Budget level: low, medium, high")
-    accessibility_needs: Optional[bool] = Field(False, description="Special accessibility requirements")
-    districts: Optional[List[str]] = Field(None, description="Preferred districts (e.g., ['Fatih', 'Beyoğlu'])")
-    neighborhoods: Optional[List[str]] = Field(None, description="Preferred neighborhoods (e.g., ['Sultanahmet', 'Karaköy'])")
-    session_id: Optional[str] = Field(None, description="Session ID for conversation context")
-
-class MuseumRouteResponse(BaseModel):
-    """Response model for museum route planning"""
-    route_plan: str = Field(..., description="Detailed route plan with museums and timing")
-    museums: List[Dict[str, Any]] = Field(..., description="List of museums in the route")
-    total_duration: int = Field(..., description="Total duration in hours")
-    estimated_cost: str = Field(..., description="Estimated total cost")
-    transportation_guide: str = Field(..., description="Transportation instructions")
-    local_tips: List[str] = Field(..., description="Local insider tips")
-    success: bool = Field(True, description="Whether route planning succeeded")
-
-# Feedback Models for ML Monitoring
-class FeedbackResponse(BaseModel):
-    """Response model for feedback submission"""
-    status: str = Field(..., description="Submission status (success/error)")
-    feedback_id: Optional[str] = Field(None, description="Unique feedback identifier")
-    message: str = Field(..., description="Response message")
-
-class FeedbackIntentCorrectionRequest(BaseModel):
-    """Request model for intent correction feedback"""
-    query: str = Field(..., description="Original user query")
-    response: str = Field(..., description="AI response")
-    predicted_intent: str = Field(..., description="Intent predicted by system")
-    correct_intent: str = Field(..., description="Correct intent provided by user")
-    session_id: Optional[str] = Field(None, description="Session identifier")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
-
-class FeedbackCommentRequest(BaseModel):
-    """Request model for free-text feedback"""
-    query: str = Field(..., description="Original user query")
-    response: str = Field(..., description="AI response")
-    predicted_intent: Optional[str] = Field(None, description="Predicted intent")
-    comment: str = Field(..., description="User feedback comment")
-    session_id: Optional[str] = Field(None, description="Session identifier")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
-
-# Import system monitoring tools
-try:
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-    print("⚠️ psutil not available - system metrics will be limited")
-
-try:
-    import redis
-    REDIS_AVAILABLE = True
-except ImportError:
-    REDIS_AVAILABLE = False
-    print("⚠️ redis not available - some caching features may be limited")
-
-# Load environment variables first, before any other imports
-load_dotenv()
-
-# Daily usage tracking completely removed for unrestricted testing
-
-# System metrics for monitoring
-system_metrics = {
-    "requests_total": 0,
-    "cache_hits": 0,
-    "cache_misses": 0,
-    "errors": 0,
-    "response_times": [],
-    "api_costs": 0.0,
-    "cache_savings": 0.0,
-    "start_time": datetime.now()
-}
-
-# Using Ultra-Specialized Istanbul AI only - template-based with neural ranking
-use_neural_ranking = True
-
-# Redis availability flag and client initialization
-redis_available = REDIS_AVAILABLE
-redis_client = None
-if REDIS_AVAILABLE:
-    try:
-        redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-        # Test connection
-        redis_client.ping()
-        print("✅ Redis client initialized successfully")
-        
-        # Initialize Redis-based conversational memory
-        try:
-            from redis_conversational_memory import initialize_redis_memory
-            redis_memory = initialize_redis_memory(redis_client)
-            print("✅ Redis conversational memory system activated")
-        except ImportError as e:
-            print(f"⚠️ Redis memory system not available: {e}")
-            redis_memory = None
-            
-    except Exception as e:
-        print(f"⚠️ Redis connection failed: {e}")
-        redis_available = False
-        redis_client = None
-        redis_memory = None
-else:
-    redis_memory = None
-
-# Add the current directory to Python path for imports (must be before project imports)
-# Handle different deployment scenarios
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
-# Also add parent directory for potential nested deployment structures
-parent_dir = os.path.dirname(current_dir)
-backend_in_parent = os.path.join(parent_dir, 'backend')
-if os.path.exists(backend_in_parent) and backend_in_parent not in sys.path:
-    sys.path.insert(0, backend_in_parent)
-
-print(f"Python path configured. Current dir: {current_dir}")
-print(f"Python paths: {[p for p in sys.path[:3]]}")  # Show first 3 paths
+    MONITORING_SYSTEM_AVAILABLE = False
+    monitoring_system = None
+    print(f"⚠️ Production Monitoring System not available: {e}")
+    print("   System will run without monitoring")
 
 # --- Rate Limiting Removed ---
 # Rate limiting has been completely removed for unrestricted testing
@@ -1066,6 +844,115 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# =============================
+# PYDANTIC MODELS FOR AUTHENTICATION
+# =============================
+
+class UserRegistrationRequest(BaseModel):
+    """User registration request model"""
+    username: str
+    email: str
+    password: str
+    full_name: Optional[str] = None
+
+class UserLoginRequest(BaseModel):
+    """User login request model"""
+    username: str
+    password: str
+
+class TokenResponse(BaseModel):
+    """Token response model"""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: Optional[Dict[str, Any]] = None
+
+class RefreshTokenRequest(BaseModel):
+    """Refresh token request model"""
+    refresh_token: str
+
+class TokenRefreshRequest(BaseModel):
+    """Token refresh request model (alias)"""
+    refresh_token: str
+
+class UserResponse(BaseModel):
+    """User response model"""
+    id: int
+    email: str
+    username: str
+    full_name: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+
+# =============================
+# AUTHENTICATION HELPER FUNCTIONS
+# =============================
+
+async def get_current_user(
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Dependency to get current authenticated user from JWT token
+    
+    Args:
+        authorization: Authorization header with Bearer token
+        db: Database session
+        
+    Returns:
+        Dict with user information
+        
+    Raises:
+        HTTPException: If token is invalid or user not found
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    token = authorization.replace("Bearer ", "")
+    
+    try:
+        # Decode JWT token
+        jwt_secret = os.getenv('JWT_SECRET_KEY', os.getenv('SECRET_KEY', 'default-secret'))
+        payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+        
+        # Check if admin token
+        if payload.get('role') == 'admin':
+            return {
+                "user_id": payload.get('username'),
+                "username": payload.get('username'),
+                "role": "admin"
+            }
+        
+        # Regular user token
+        user_id = payload.get("user_id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication token"
+            )
+        
+        return {
+            "user_id": user_id,
+            "username": payload.get("username"),
+            "email": payload.get("email")
+        }
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired"
+        )
+    except jwt.JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token"
+        )
 
 # Initialize Authentication Manager
 auth_manager = None
@@ -2112,814 +1999,57 @@ async def pure_llm_chat(
         )
 
 
-@app.get("/api/chat/status", tags=["Pure LLM Chat"])
-async def pure_llm_status():
-    """Get Pure LLM system status"""
-    if not pure_llm_core:
-        return {
-            "enabled": False,
-            "available": PURE_LLM_HANDLER_AVAILABLE,
-            "reason": "Pure LLM Core not initialized or disabled",
-            "use_endpoint": "/api/v1/chat"
-        }
-    
-    try:
-        # Get statistics from the modular core
-        stats = {
-            "architecture": "Modular (9 specialized modules)",
-            "llm_model": "Llama 3.1 8B (4-bit)",
-            "cache_enabled": pure_llm_core.cache is not None,
-            "analytics_enabled": pure_llm_core.analytics is not None,
-            "conversation_enabled": pure_llm_core.conversation is not None,
-            "query_enhancement_enabled": pure_llm_core.query_enhancer is not None,
-            "rag_enabled": pure_llm_core.rag_service is not None,
-            "modules": [
-                "SignalDetector",
-                "ContextBuilder", 
-                "PromptBuilder",
-                "AnalyticsManager",
-                "CacheManager",
-                "QueryEnhancer",
-                "ConversationManager"
-            ]
-        }
-        
-        return {
-            "enabled": True,
-            "available": True,
-            "llm_model": "Llama 3.1 8B (4-bit)",
-            "statistics": stats,
-            "endpoint": "/api/chat"
-        }
-    except Exception as e:
-        logger.error(f"Error getting Pure LLM status: {e}")
-        return {
-            "enabled": True,
-            "available": False,
-            "error": str(e)
-        }
-
-
-@app.post("/api/feedback/intent-correction", response_model=FeedbackResponse, tags=["ML Feedback"])
-async def submit_intent_correction(request: FeedbackIntentCorrectionRequest):
+@app.get("/api/admin/system/metrics", tags=["Admin Dashboard - System Performance"])
+async def get_system_metrics():
     """
-    Submit intent correction feedback
+    Get comprehensive system performance metrics for admin dashboard
     
-    When the AI misunderstands user intent, this allows correction for model improvement.
-    """
-    if not ML_MONITORING_AVAILABLE or not feedback_collector:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Feedback collection service is not available"
-        )
-    
-    try:
-        feedback_id = feedback_collector.collect_intent_correction(
-            query=request.query,
-            response=request.response,
-            predicted_intent=request.predicted_intent,
-            correct_intent=request.correct_intent,
-            session_id=request.session_id,
-            metadata=request.metadata
-        )
-        
-        # Log to ML monitor for retraining
-        if ml_monitor:
-            ml_monitor.log_prediction(
-                query=request.query,
-                predicted_intent=request.predicted_intent,
-                confidence=0.0,  # Mark as incorrect
-                latency_ms=0,
-                actual_intent=request.correct_intent,
-                user_feedback='wrong'
-            )
-        
-        return FeedbackResponse(
-            status="success",
-            feedback_id=feedback_id,
-            message="Thank you for the correction! This helps improve our system."
-               )
-    
-    except Exception as e:
-        logger.error(f"Failed to collect intent correction: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit correction"
-        )
-
-
-@app.post("/api/feedback/comment", response_model=FeedbackResponse, tags=["ML Feedback"])
-async def submit_comment_feedback(request: FeedbackCommentRequest):
-    """
-    Submit free-text comment feedback
-    
-    Allows users to provide detailed feedback comments.
-    """
-    if not ML_MONITORING_AVAILABLE or not feedback_collector:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Feedback collection service is not available"
-        )
-    
-    try:
-        feedback_id = feedback_collector.collect_comment(
-            query=request.query,
-            response=request.response,
-            predicted_intent=request.predicted_intent,
-            comment=request.comment,
-            session_id=request.session_id,
-            metadata=request.metadata
-        )
-        
-        logger.info(f"✅ Comment feedback collected: {feedback_id}")
-        
-        return FeedbackResponse(
-            status="success",
-            feedback_id=feedback_id,
-            message="Thank you for your detailed feedback!"
-        )
-    
-    except Exception as e:
-        logger.error(f"Failed to collect comment feedback: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit feedback"
-        )
-
-
-@app.get("/api/monitoring/metrics", tags=["ML Monitoring"])
-async def get_ml_metrics():
-    """
-    Get current ML performance metrics
-    
-    Returns real-time monitoring data including accuracy, latency, and quality metrics.
-    """
-    if not ML_MONITORING_AVAILABLE or not ml_monitor:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="ML monitoring service is not available"
-        )
-    
-    try:
-        metrics = ml_monitor.get_current_metrics()
-        return metrics
-    
-    except Exception as e:
-        logger.error(f"Failed to get ML metrics: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve metrics"
-        )
-
-
-@app.get("/api/monitoring/feedback-analysis", tags=["ML Monitoring"])
-async def get_feedback_analysis(days: int = Query(7, ge=1, le=90, description="Number of days to analyze")):
-    """
-    Get user feedback analysis
-    
-    Returns aggregated user feedback statistics and insights.
-    """
-    if not ML_MONITORING_AVAILABLE or not feedback_collector:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Feedback collection service is not available"
-        )
-
-    
-    try:
-        analysis = feedback_collector.analyze_feedback(days=days)
-        return analysis
-    
-    except Exception as e:
-        logger.error(f"Failed to analyze feedback: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to analyze feedback"
-        )
-
-
-# =============================================================================
-# ADMIN DASHBOARD API ENDPOINTS
-# =============================================================================
-
-@app.get("/api/admin/stats", tags=["Admin Dashboard"])
-async def get_admin_stats(db: Session = Depends(get_db)):
-    """
-    Get overall statistics for admin dashboard using real database data
+    Returns:
+    - Real-time metrics (requests, response times, error rates)
+    - System health (CPU, memory, disk, database)
+    - Active alerts
+    - Performance trends
     """
     try:
-        from sqlalchemy import func, and_
-        from datetime import timedelta
-        
-        stats = {
-            "blog_posts": 0,
-            "comments": 0,
-            "feedback": 0,
-            "active_users": 0,
-            "model_accuracy": 95.2,
-            "pending_comments": 0
-        }
-        
-        # Get real blog post count from database
-
-        stats["blog_posts"] = db.query(func.count(BlogPost.id)).scalar() or 0
-        
-        # Get real comments count and pending count from database
-        stats["comments"] = db.query(func.count(BlogComment.id)).scalar() or 0
-        stats["pending_comments"] = db.query(func.count(BlogComment.id)).filter(
-            BlogComment.is_approved == False
-        ).scalar() or 0
-        
-        
-        return {"posts": posts_list, "total": len(posts_list)}
-        
-    except Exception as e:
-        logger.error(f"Error getting blog posts: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/admin/blog/posts", tags=["Admin Dashboard - Blog"])
-async def create_blog_post(post_data: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
-    """
-    Create a new blog post in the database
-    """
-    try:
-        from models import BlogPost
-        
-        # Create new post
-        new_post = BlogPost(
-            title=post_data.get("title", "Untitled"),
-            content=post_data.get("content", ""),
-            author=post_data.get("author", "Admin"),
-            district=post_data.get("category") or post_data.get("district"),
-            likes_count=0
-        )
-        
-        db.add(new_post)
-        db.commit()
-        db.refresh(new_post)
-        
-        logger.info(f"Created blog post: {new_post.title}")
-        
-        return {
-            "success": True, 
-            "post": {
-                "id": new_post.id,
-                "title": new_post.title,
-                "content": new_post.content,
-                "author": new_post.author,
-                "district": new_post.district,
-                "created_at": new_post.created_at.isoformat(),
-                "likes_count": new_post.likes_count,
-                "status": "published"
+        # Check if monitoring system is available
+        if not MONITORING_SYSTEM_AVAILABLE or not monitoring_system:
+            logger.warning("Monitoring system not available, returning fallback metrics")
+            return {
+                "status": "unavailable",
+                "message": "Monitoring system not initialized",
+                "realtime_metrics": {
+                    "total_requests": 0,
+                    "avg_response_time": 0,
+                    "error_rate": 0,
+                    "requests_per_minute": 0
+                },
+                "system_health": {
+                    "cpu_usage": 0,
+                    "memory_usage": 0,
+                    "disk_usage": 0,
+                    "database_status": "unknown"
+                },
+                "recent_alerts": [],
+                "trends": {
+                    "response_time_trend": [],
+                    "error_rate_trend": [],
+                    "request_volume_trend": []
+                }
             }
-        }
+        
+        # Get metrics from monitoring system
+        dashboard_data = monitoring_system.get_dashboard_data()
+        
+        logger.info("✅ System metrics retrieved successfully")
+        return dashboard_data
         
     except Exception as e:
-        db.rollback()
-        logger.error(f"Error creating blog post: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.put("/api/admin/blog/posts/{post_id}", tags=["Admin Dashboard - Blog"])
-async def update_blog_post(post_id: int, post_data: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
-    """
-    Update an existing blog post in the database
-    """
-    try:
-        from models import BlogPost
-        
-        # Find post
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
-        
-        if not post:
-            raise HTTPException(status_code=404, detail="Post not found")
-        
-        # Update fields
-        if "title" in post_data:
-            post.title = post_data["title"]
-        if "content" in post_data:
-            post.content = post_data["content"]
-        if "author" in post_data:
-            post.author = post_data["author"]
-        if "category" in post_data or "district" in post_data:
-            post.district = post_data.get("category") or post_data.get("district")
-        
-        db.commit()
-        db.refresh(post)
-        
-        logger.info(f"Updated blog post: {post_id}")
-        return {"success": True, "message": "Post updated"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error updating blog post: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.delete("/api/admin/blog/posts/{post_id}", tags=["Admin Dashboard - Blog"])
-async def delete_blog_post(post_id: int, db: Session = Depends(get_db)):
-    """
-    Delete a blog post from the database
-    """
-    try:
-        from models import BlogPost
-        
-        # Find post
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
-        
-        if not post:
-            raise HTTPException(status_code=404, detail="Post not found")
-        
-        # Delete post (related comments will be handled by cascade if configured)
-        db.delete(post)
-        db.commit()
-        
-        logger.info(f"Deleted blog post: {post_id}")
-        return {"success": True, "message": "Post deleted"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error deleting blog post: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/comments", tags=["Admin Dashboard - Comments"])
-async def get_comments(status: Optional[str] = None, post_id: Optional[int] = None, limit: int = 100, db: Session = Depends(get_db)):
-    """
-    Get all comments for admin management (from database)
-    """
-    try:
-        from models import BlogComment
-        
-        # Query database for comments
-        query = db.query(BlogComment)
-        
-        # Filter by approval status
-        if status:
-            if status.lower() == "approved":
-                query = query.filter(BlogComment.is_approved == True)
-            elif status.lower() == "pending":
-                query = query.filter(BlogComment.is_approved == False)
-            elif status.lower() == "flagged":
-                query = query.filter(BlogComment.is_flagged == True)
-            elif status.lower() == "spam":
-                query = query.filter(BlogComment.is_spam == True)
-        
-        # Filter by post_id
-        if post_id:
-            query = query.filter(BlogComment.blog_post_id == post_id)
-        
-        # Get comments ordered by created_at descending
-        comments = query.order_by(BlogComment.created_at.desc()).limit(limit).all()
-        
-        # Convert to dict format for API response
-        comments_list = []
-        for comment in comments:
-            # Determine status based on flags
-            comment_status = "approved" if comment.is_approved else "pending"
-            if comment.is_spam:
-                comment_status = "spam"
-            elif comment.is_flagged:
-                comment_status = "flagged"
-            
-            comments_list.append({
-                "id": comment.id,
-                "post_id": comment.blog_post_id,
-                "author": comment.author_name,
-                "email": comment.author_email,
-                "content": comment.content,
-                "status": comment_status,
-                "is_approved": comment.is_approved,
-                "is_flagged": comment.is_flagged,
-                "is_spam": comment.is_spam,
-                "created_at": comment.created_at.isoformat() if comment.created_at else None,
-                "approved_at": comment.approved_at.isoformat() if comment.approved_at else None,
-                               "approved_by": comment.approved_by
-            })
-        
-        return {"comments": comments_list, "total": len(comments_list)}
-        
-    except Exception as e:
-        logger.error(f"Error getting comments: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.put("/api/admin/comments/{comment_id}/approve", tags=["Admin Dashboard - Comments"])
-async def approve_comment(comment_id: int, db: Session = Depends(get_db)):
-    """
-    Approve a pending comment in the database
-    """
-    try:
-        from models import BlogComment
-        
-        # Find comment
-        comment = db.query(BlogComment).filter(BlogComment.id == comment_id).first()
-        
-        if not comment:
-            raise HTTPException(status_code=404, detail="Comment not found")
-        
-        # Approve comment
-        comment.is_approved = True
-        comment.approved_at = datetime.utcnow()
-        comment.approved_by = "Admin"  # You can update this with actual admin user
-        comment.is_flagged = False
-        comment.is_spam = False
-        
-        db.commit()
-        
-        return {"success": True, "message": "Comment approved"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error approving comment: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.delete("/api/admin/comments/{comment_id}", tags=["Admin Dashboard - Comments"])
-async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
-    """
-    Delete a comment from the database
-    """
-    try:
-        from models import BlogComment
-        
-        # Find comment
-        comment = db.query(BlogComment).filter(BlogComment.id == comment_id).first()
-        
-        if not comment:
-            raise HTTPException(status_code=404, detail="Comment not found")
-        
-        # Delete comment
-        db.delete(comment)
-        db.commit()
-        
-        return {"success": True, "message": "Comment deleted"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error deleting comment: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/feedback/export", tags=["Admin Dashboard - Feedback"])
-async def export_feedback_data():
-    """
-    Export all feedback data as JSON
-    """
-    try:
-        if not FEEDBACK_INTEGRATION_AVAILABLE:
-            raise HTTPException(status_code=503, detail="Feedback system not available")
-        
-        from user_feedback_collection_system import get_feedback_collector
-        collector = get_feedback_collector()
-        
-        # Get all feedback
-        feedback_summary = collector.get_feedback_summary(days=365)  # Last year
-        misclass_report = collector.get_misclassification_report()
-        
-        export_data = {
-            "export_date": datetime.now().isoformat(),
-            "summary": feedback_summary,
-            "misclassification_report": misclass_report,
-            "total_records": feedback_summary.get("total", 0)
-        };
-        
-        return export_data
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error exporting feedback: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/analytics", tags=["Admin Dashboard - Analytics"])
-async def get_analytics(days: int = 30, db: Session = Depends(get_db)):
-    """
-    Get analytics data for charts and insights using real database data
-    """
-    try:
-        from sqlalchemy import func, and_
-        from datetime import timedelta
-        
-        analytics = {
-            "period": f"last_{days}_days",
-            "user_queries": [],
-            "blog_views": [],
-            "comments": [],
-            "dates": []
-        }
-        
-        today = datetime.now()
-        
-        for i in range(days):
-            date = today - timedelta(days=days-i-1)
-            date_str = date.strftime("%b %d")
-            analytics["dates"].append(date_str)
-            
-            # Get real user query count for this day
-            start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
-            end_of_day = start_of_day + timedelta(days=1)
-            
-            # Count chat history entries for this day
-            query_count = db.query(func.count(ChatHistory.id)).filter(
-                and_(
-                    ChatHistory.timestamp >= start_of_day,
-                    ChatHistory.timestamp < end_of_day
-                )
-            ).scalar() or 0
-            analytics["user_queries"].append(query_count)
-            
-            # Count blog views (using blog likes as proxy for views)
-            from models import BlogLike
-            blog_views = db.query(func.count(BlogLike.id)).filter(
-                and_(
-                    BlogLike.created_at >= start_of_day,
-                    BlogLike.created_at < end_of_day
-                )
-            ).scalar() or 0
-            analytics["blog_views"].append(blog_views)
-            
-            # Count comments for this day
-            comment_count = db.query(func.count(BlogComment.id)).filter(
-                and_(
-                    BlogComment.created_at >= start_of_day,
-                    BlogComment.created_at < end_of_day
-                )
-            ).scalar() or 0
-            analytics["comments"].append(comment_count)
-        
-        return analytics
-        
-    except Exception as e:
-        logger.error(f"Error getting analytics: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/intents/stats", tags=["Admin Dashboard - Intents"])
-async def get_intent_statistics(db: Session = Depends(get_db)):
-    """
-    Get detailed intent classification statistics from real database data
-    """
-    try:
-        from sqlalchemy import func, and_
-        from datetime import timedelta
-        from models import UserInteraction, EnhancedChatHistory
-        
-        # Get intent statistics from UserInteraction table (last 30 days)
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-        
-        # Query intent counts and average confidence
-        intent_data = db.query(
-            UserInteraction.processed_intent,
-            func.count(UserInteraction.id).label('count'),
-            func.avg(UserInteraction.confidence_score).label('avg_confidence')
-        ).filter(
-            UserInteraction.timestamp >= thirty_days_ago,
-            UserInteraction.processed_intent.isnot(None)
-        ).group_by(
-            UserInteraction.processed_intent
-        ).all()
-        
-        # Also query from EnhancedChatHistory as a fallback/supplement
-        if not intent_data or len(intent_data) == 0:
-            intent_data = db.query(
-                EnhancedChatHistory.detected_intent,
-                func.count(EnhancedChatHistory.id).label('count'),
-                func.avg(EnhancedChatHistory.intent_confidence).label('avg_confidence')
-            ).filter(
-                EnhancedChatHistory.timestamp >= thirty_days_ago,
-                EnhancedChatHistory.detected_intent.isnot(None)
-            ).group_by(
-                EnhancedChatHistory.detected_intent
-            ).all()
-        
-        # Calculate accuracy based on user feedback
-        intent_stats = []
-        for intent_name, count, avg_conf in intent_data:
-            if not intent_name:
-                continue
-                
-            # Count negative feedback for this intent
-            negative_feedback = db.query(func.count(UserFeedback.id)).filter(
-                and_(
-                    UserFeedback.timestamp >= thirty_days_ago,
-                    UserFeedback.feedback_type == "dislike",
-                    UserFeedback.message_content.contains(intent_name)
-                )
-            ).scalar() or 0
-            
-            # Calculate accuracy (percentage of non-negative feedback)
-            accuracy = 100.0
-            if count > 0:
-                accuracy = ((count - negative_feedback) / count) * 100
-            
-            intent_stats.append({
-                "intent": intent_name,
-                "count": count,
-                "accuracy": round(accuracy, 1),
-                "confidence": round(float(avg_conf or 0.85), 2),
-                "corrections": negative_feedback
-            })
-        
-        # Sort by count (most frequent first)
-        intent_stats.sort(key=lambda x: x['count'], reverse=True)
-        
-        # If no data found, return empty array instead of mock data
-        if not intent_stats:
-            return {"intents": []}
-        
-        return {"intents": intent_stats}
-        
-    except Exception as e:
-        logger.error(f"Error getting intent stats: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/admin/model/retrain", tags=["Admin Dashboard - Model"])
-async def trigger_model_retraining():
-    """
-    Trigger model retraining process
-    """
-    try:
-        # This would trigger the actual retraining script
-        # For now, return success message
-        
-        logger.info("Model retraining triggered from admin dashboard")
-        
-        return {
-            "success": True,
-            "message": "Model retraining initiated",
-            "estimated_time": "15-30 minutes",
-            "notification": "You will be notified when retraining is complete"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error triggering retraining: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/route/from-gps", tags=["GPS Route Planning"])
-async def plan_journey_from_gps(request: Dict[str, Any] = Body(...)):
-    """
-    Plan complete journey from GPS location to destination
-    Returns walking directions + transit journey + final walking
-    """
-    try:
-        gps_lat = request.get('gps_lat')
-        gps_lng = request.get('gps_lng')
-        destination = request.get('destination')
-        max_walking_m = request.get('max_walking_m', 1000)
-        minimize_transfers = request.get('minimize_transfers', True)
-        
-        logger.info(f"GPS journey planning from ({gps_lat}, {gps_lng}) to '{destination}'")
-        
-        if not gps_lat or not gps_lng or not destination:
-            raise HTTPException(status_code=400, detail="Missing required parameters")
-        
-        from services.journey_planner import JourneyPlanner
-        from services.intelligent_route_finder import RoutePreferences
-        from services.route_network_builder import load_transportation_network
-        
-        network = load_transportation_network()
-        if not network:
-            raise HTTPException(status_code=503, detail="Transportation network not available")
-        
-        planner = JourneyPlanner(network)
-        preferences = RoutePreferences(minimize_transfers=minimize_transfers)
-        
-        journey_plan = planner.plan_journey_from_gps(
-            gps_lat=gps_lat,
-            gps_lng=gps_lng,
-            destination=destination,
-            max_start_walking_m=max_walking_m,
-            preferences=preferences
+        logger.error(f"❌ Error retrieving system metrics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve system metrics: {str(e)}"
         )
-        
-        if not journey_plan:
-            return {"success": False, "error": "No route found"}
-        
-        return {"success": True, "journey": journey_plan}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"GPS journey planning error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
-
-# =============================================================================
-# ADMIN DASHBOARD HTML ROUTES
-# =============================================================================
-
-from fastapi.responses import HTMLResponse, FileResponse
-
-admin_path = os.path.join(os.path.dirname(__file__), '..', 'admin')
-
-@app.get("/admin/", response_class=HTMLResponse)
-@app.get("/admin/index.html", response_class=HTMLResponse)
-async def serve_admin_index():
-    """Serve admin dashboard index page"""
-    index_file = os.path.join(admin_path, 'index.html')
-    if os.path.exists(index_file):
-        with open(index_file, 'r', encoding='utf-8') as f:
-            return f.read()
-    return "<h1>Admin Dashboard Not Found</h1>"
-
-@app.get("/admin/dashboard.html", response_class=HTMLResponse)
-async def serve_admin_dashboard():
-    """Serve admin dashboard main page"""
-    dashboard_file = os.path.join(admin_path, 'dashboard.html')
-    if os.path.exists(dashboard_file):
-        with open(dashboard_file, 'r', encoding='utf-8') as f:
-            return f.read()
-    return "<h1>Dashboard Not Found</h1>"
-
-@app.get("/admin/dashboard.js")
-async def serve_admin_js():
-    """Serve admin dashboard JavaScript"""
-    js_file = os.path.join(admin_path, 'dashboard.js')
-    if os.path.exists(js_file):
-        return FileResponse(js_file, media_type="application/javascript")
-    raise HTTPException(status_code=404, detail="JavaScript file not found")
-
-@app.get("/admin/{filename}")
-async def serve_admin_static(filename: str):
-    """Serve other admin static files"""
-    file_path = os.path.join(admin_path, filename)
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404, detail="File not found")
-
-print(f"✅ Admin dashboard routes configured (path: {admin_path})")
-
-# =============================
-# WEEK 3-4: MONITORING, A/B TESTING & RECOMMENDATIONS API
-# =============================
-print("\n🔧 Loading Week 3-4 Production APIs...")
-
-# Import and register API routers
-try:
-    from backend.api.monitoring_routes import router as monitoring_router
-    app.include_router(monitoring_router)
-    print("✅ Monitoring API routes registered")
-except ImportError as e:
-    print(f"⚠️ Monitoring routes not available: {e}")
-
-try:
-    from backend.api.ab_testing_routes import router as ab_testing_router
-    app.include_router(ab_testing_router)
-    print("✅ A/B Testing API routes registered")
-except ImportError as e:
-    print(f"⚠️ A/B Testing routes not available: {e}")
-
-try:
-    from backend.api.recommendation_routes import router as recommendation_router
-    app.include_router(recommendation_router)
-    print("✅ Recommendation API routes registered")
-except ImportError as e:
-    print(f"⚠️ Recommendation routes not available: {e}")
-
-try:
-    from backend.api.feedback_routes import router as feedback_router
-    app.include_router(feedback_router)
-    print("✅ Feedback API routes registered")
-except ImportError as e:
-    print(f"⚠️ Feedback routes not available: {e}")
-
-try:
-    from backend.api.route_planner_routes import router as route_planner_router
-    app.include_router(route_planner_router)
-    print("✅ Route Planner API routes registered")
-except ImportError as e:
-    print(f"⚠️ Route Planner routes not available: {e}")
-
-# LLM Statistics API
-try:
-    from routes.llm_stats import router as llm_stats_router
-    app.include_router(llm_stats_router)
-    print("✅ LLM Statistics API routes registered")
-except ImportError as e:
-    print(f"⚠️ LLM Statistics routes not available: {e}")
-
-# Blog API with Analytics
-try:
-    from routes.blog import router as blog_router
-    app.include_router(blog_router)  # Blog router already has prefix="/blog"
-    print("✅ Blog API routes registered (with analytics)")
-except ImportError as e:
-    print(f"⚠️ Blog routes not available: {e}")
-
-print("✅ Week 3-4 APIs loaded\n")
 
 # ═══════════════════════════════════════════════════════════════════
 # APPLICATION STARTUP

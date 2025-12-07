@@ -262,6 +262,169 @@ class PureLLMCore:
         
         logger.info("✅ All subsystems initialized (including Phase 2 features)")
     
+    async def _rewrite_query_with_llm(
+        self,
+        query: str,
+        language: str,
+        user_location: Optional[Dict[str, float]] = None
+    ) -> Dict[str, Any]:
+        """
+        Use LLM to rewrite query for better signal detection (PRIORITY 1).
+        
+        Handles:
+        - Typos and misspellings
+        - Slang and informal language
+        - Abbreviations (e.g., "2" → "to", "hw" → "how")
+        - Ambiguous phrasing
+        
+        Args:
+            query: Original user query
+            language: Language code
+            user_location: User's GPS location (optional)
+            
+        Returns:
+            {
+                'rewritten_query': str,
+                'needs_rewriting': bool,
+                'confidence': float,
+                'reason': str
+            }
+        """
+        # Quick check: Does query need rewriting?
+        needs_rewriting = any([
+            len(query.split()) < 3,  # Very short
+            re.search(r'\d(?!\d)', query),  # Number substitutions like "2" for "to"
+            not re.search(r'[aeiouAEIOU]{2}', query),  # Very few vowels (likely many typos)
+            any(word in query.lower() for word in [
+                'wat', 'wher', 'hw', 'pls', 'thx', 'plz', 'wanna', 'gonna',
+                'u', 'r', 'ur', 'sum', 'closeby', 'neer', 'restarant', 'restorant'
+            ])  # Obvious typos or slang
+        ])
+        
+        if not needs_rewriting:
+            return {
+                'rewritten_query': query,
+                'needs_rewriting': False,
+                'confidence': 1.0,
+                'reason': 'query_is_clear'
+            }
+        
+        # Build rewriting prompt
+        rewrite_prompt = f"""Task: Rewrite this query to be clear and grammatically correct for a travel assistant.
+
+Rules:
+1. Keep the EXACT same meaning and intent
+2. Fix typos and spelling errors
+3. Expand abbreviations (e.g., "2" → "to", "hw" → "how", "thx" → "thanks")
+4. Make location references explicit if possible
+5. Respond with ONLY the rewritten query, nothing else
+6. Do NOT add extra information or change the meaning
+
+Original query: "{query}"
+Language: {language}
+
+Rewritten query:"""
+        
+        try:
+            result = await self.llm.generate(
+                prompt=rewrite_prompt,
+                max_tokens=100,
+                temperature=0.3  # Low temperature for consistency
+            )
+            
+            rewritten = result['generated_text'].strip()
+            
+            # Remove any quotes that might be added
+            rewritten = rewritten.strip('"\'')
+            
+            # Validation: Rewritten should be similar length (not too different)
+            if len(rewritten) > len(query) * 3 or len(rewritten) < len(query) * 0.4:
+                logger.warning(f"⚠️ Query rewriting suspicious length: '{query}' ({len(query)}) → '{rewritten}' ({len(rewritten)})")
+                return {
+                    'rewritten_query': query,
+                    'needs_rewriting': True,
+                    'confidence': 0.3,
+                    'reason': 'rewriting_validation_failed'
+                }
+            
+            # Check if rewritten is substantially different
+            if rewritten.lower() == query.lower():
+                return {
+                    'rewritten_query': query,
+                    'needs_rewriting': False,
+                    'confidence': 1.0,
+                    'reason': 'no_changes_needed'
+                }
+            
+            logger.info(f"✨ Query rewritten: '{query}' → '{rewritten}'")
+            
+            return {
+                'rewritten_query': rewritten,
+                'needs_rewriting': True,
+                'confidence': 0.9,
+                'reason': 'successfully_rewritten'
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Query rewriting failed: {e}")
+            return {
+                'rewritten_query': query,
+                'needs_rewriting': True,
+                'confidence': 0.0,
+                'reason': f'error: {str(e)}'
+            }
+    
+    def extract_intents_from_response(self, response_text: str) -> Dict[str, bool]:
+        """
+        Extract LLM-classified intents from response (PRIORITY 2).
+        
+        Looks for pattern:
+        Intents: [X] Transportation [ ] Restaurant [X] Attraction ...
+        
+        Args:
+            response_text: LLM response text
+            
+        Returns:
+            Dict of signal_name -> bool
+        """
+        import re  # Import re module for pattern matching
+        
+        intent_map = {
+            'Transportation/Directions': 'needs_transportation',
+            'Restaurant Recommendation': 'needs_restaurant',
+            'Attraction Information': 'needs_attraction',
+            'Neighborhood/Area Info': 'needs_neighborhood',
+            'Event/Activity Query': 'needs_events',
+            'Shopping': 'needs_shopping',
+            'Nightlife': 'needs_nightlife',
+            'General Question': 'needs_general_info'
+        }
+        
+        llm_intents = {}
+        
+        # Find intent classification line (handle both single and multi-line format)
+        match = re.search(r'Intents:\s*(.+?)(?:\n\n|\n(?=[A-Z])|$)', response_text, re.IGNORECASE | re.DOTALL)
+        if match:
+            intent_line = match.group(1).strip()
+            
+            for display_name, signal_name in intent_map.items():
+                # Check if [X] or [x] appears before this intent name
+                # Pattern: [X] IntentName or IntentName: [X]
+                pattern1 = rf'\[X\]\s*{re.escape(display_name)}'
+                pattern2 = rf'{re.escape(display_name)}:\s*\[X\]'
+                
+                has_match = (
+                    bool(re.search(pattern1, intent_line, re.IGNORECASE)) or
+                    bool(re.search(pattern2, intent_line, re.IGNORECASE))
+                )
+                llm_intents[signal_name] = has_match
+        else:
+            # Initialize all to False if no match found
+            for signal_name in intent_map.values():
+                llm_intents[signal_name] = False
+        
+        return llm_intents
+    
     async def process_query(
         self,
         query: str,
@@ -340,6 +503,24 @@ class PureLLMCore:
             logger.warning(f"Query enhancement failed: {e}")
             query = original_query
         
+        # STEP 1.5: LLM-Based Query Rewriting (PRIORITY 1) - NEW
+        if self.config.get('enable_llm_query_rewriting', True):
+            try:
+                rewrite_result = await self._rewrite_query_with_llm(query, language, user_location)
+                
+                if rewrite_result['needs_rewriting'] and rewrite_result['confidence'] > 0.5:
+                    original_query_pre_rewrite = query
+                    query = rewrite_result['rewritten_query']
+                    
+                    enhancement_metadata['query_rewritten'] = True
+                    enhancement_metadata['original_query_pre_rewrite'] = original_query_pre_rewrite
+                    enhancement_metadata['rewrite_reason'] = rewrite_result['reason']
+                    enhancement_metadata['rewrite_confidence'] = rewrite_result['confidence']
+                    
+                    logger.info(f"🔄 Using rewritten query for signal detection: {query}")
+            except Exception as e:
+                logger.warning(f"LLM query rewriting failed: {e}")
+        
         # STEP 2: Cache Check
         cached_response = await self.cache_manager.get_cached_response(
             query=query,
@@ -397,12 +578,15 @@ class PureLLMCore:
             except Exception as e:
                 logger.warning(f"Conversation context failed: {e}")
         
-        # STEP 5: Context Building
+        # STEP 5: Context Building (PRIORITY 3: Pass signal confidence)
+        overall_confidence = signals.get('overall_confidence', 1.0)
+        
         context = await self.context_builder.build_context(
             query=query,
             signals=signals['signals'],
             user_location=user_location,
-            language=language
+            language=language,
+            signal_confidence=overall_confidence  # NEW: Pass confidence for adaptive context
         )
         
         logger.info(
@@ -437,18 +621,27 @@ class PureLLMCore:
                 logger.warning(f"Personalization filtering failed: {e}")
         
         # STEP 6: Prompt Engineering
+        # Get overall confidence from signals
+        overall_confidence = signals.get('overall_confidence', 1.0)
+        enable_intent_classification = self.config.get('enable_llm_intent_classification', True)
+        
         prompt = self.prompt_builder.build_prompt(
             query=query,
             signals=signals['signals'],
             context=context,
             conversation_context=conversation_context,
             language=language,
-            user_location=user_location  # Pass GPS location to prompt
+            user_location=user_location,  # Pass GPS location to prompt
+            enable_intent_classification=enable_intent_classification,  # Priority 2
+            signal_confidence=overall_confidence  # Priority 3
         )
         
-        logger.info(f"📝 Prompt built: {len(prompt)} chars")
+        logger.info(f"📝 Prompt built: {len(prompt)} chars, signal confidence: {overall_confidence:.2f}")
         if user_location:
             logger.info(f"   📍 GPS location included in prompt: {user_location}")
+        if overall_confidence < 0.6:
+            logger.warning(f"   ⚠️ Low signal confidence - added explicit instructions to prompt")
+
         
         # STEP 7: LLM Generation with Resilience
         try:
@@ -481,6 +674,40 @@ class PureLLMCore:
             logger.info(f"🧹 Applying training data leakage filter to {len(response_text)} chars...")
             response_text = clean_training_data_leakage(response_text)
             logger.info(f"✅ After filter: {len(response_text)} chars")
+            
+            # STEP 7.5: Extract LLM-classified intents (PRIORITY 2) - NEW
+            llm_intents = {}
+            if enable_intent_classification:
+                try:
+                    llm_intents = self.extract_intents_from_response(response_text)
+                    
+                    if llm_intents:
+                        logger.info(f"🎯 LLM-detected intents: {[k for k, v in llm_intents.items() if v]}")
+                        
+                        # Track intent comparison for analytics
+                        await self.analytics.track_intent_comparison(
+                            regex_intents=signals['signals'],
+                            llm_intents=llm_intents,
+                            query=query,
+                            user_id=user_id
+                        )
+                        
+                        # Remove intent classification from final response (clean it up)
+                        response_text = re.sub(
+                            r'🎯\s*INTENT\s+CLASSIFICATION.*?Intents:.*?\n\n',
+                            '',
+                            response_text,
+                            flags=re.DOTALL | re.IGNORECASE
+                        )
+                        # Also remove any stray intent markers
+                        response_text = re.sub(
+                            r'Intents:\s*\[.*?\]\s*\n',
+                            '',
+                            response_text,
+                            flags=re.IGNORECASE
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to extract LLM intents: {e}")
             
             logger.info(f"✅ LLM generated response in {llm_latency:.2f}s (length: {len(response_text)} chars)")
             
@@ -575,15 +802,61 @@ class PureLLMCore:
             signals['signals'].get('needs_restaurant'),
             signals['signals'].get('needs_attraction'),
             signals['signals'].get('needs_hidden_gems'),
-            signals['signals'].get('needs_neighborhood')
+            signals['signals'].get('needs_neighborhood'),
+            signals['signals'].get('needs_shopping'),
+            signals['signals'].get('needs_nightlife'),
+            signals['signals'].get('needs_events'),
+            signals['signals'].get('needs_daily_life'),
+            signals['signals'].get('needs_family_friendly')
         ]):
             logger.info(f"🗺️ Attempting to generate map from context...")
             # Try to extract locations from database context or generate GPS-centered map
             map_data = self._generate_map_from_context(context, signals['signals'], user_location, query)
             if map_data:
-                logger.info(f"✅ Generated map_data from context for location-based query: {map_data}")
+                logger.info(f"✅ Generated map_data from context for location-based query")
             else:
                 logger.warning(f"⚠️ _generate_map_from_context returned None")
+                
+                # FORCE GPS-centered map for "nearby" queries with GPS
+                # This ensures users ALWAYS get a map when they have GPS enabled
+                query_lower = query.lower()
+                is_nearby_query = any([
+                    'nearby' in query_lower,
+                    'near me' in query_lower,
+                    'near by' in query_lower,
+                    'close to me' in query_lower,
+                    'close by' in query_lower,
+                    'around me' in query_lower,
+                    'around here' in query_lower,
+                    'in the area' in query_lower,
+                    # Turkish
+                    'yakın' in query_lower,
+                    'yakında' in query_lower,
+                    'yakınımda' in query_lower,
+                    'burada' in query_lower,
+                    'çevrede' in query_lower,
+                    'civarda' in query_lower
+                ])
+                
+                if user_location and is_nearby_query:
+                    logger.info(f"🚀 FORCING GPS-centered map for nearby query with GPS")
+                    map_data = {
+                        "type": "user_centered",
+                        "markers": [{
+                            "position": {"lat": user_location['lat'], "lng": user_location['lon']},
+                            "label": "Your Location",
+                            "type": "user"
+                        }],
+                        "center": {"lat": user_location['lat'], "lng": user_location['lon']},
+                        "zoom": 14,
+                        "has_origin": True,
+                        "has_destination": False,
+                        "origin_name": "Your Location",
+                        "destination_name": None,
+                        "locations_count": 0,
+                        "note": "Map centered on your current location. Recommendations shown in text above."
+                    }
+                    logger.info(f"✅ Force-generated GPS-centered map for nearby query")
         else:
             logger.info(f"❌ Skipping map generation - conditions not met")
             logger.info(f"   - map_data exists: {bool(map_data)}")

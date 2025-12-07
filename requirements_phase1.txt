@@ -1,0 +1,9 @@
+# Phase 1 Enhancement Dependencies
+# Fuzzy matching for misspelling detection
+rapidfuzz>=3.0.0
+fuzzywuzzy>=0.18.0
+python-Levenshtein>=0.21.0
+
+# Phonetic matching
+metaphone>=0.6
+jellyfish>=1.0.0

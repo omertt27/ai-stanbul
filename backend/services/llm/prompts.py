@@ -4,20 +4,13 @@ prompts.py - Prompt Engineering System
 Advanced prompt construction for optimal LLM performance.
 
 Features:
-- Intent-specif   c) ALWAYS provide detailed step-by-step directions:
-      - Start location: Explicitly mentioned origin OR user's GPS location (if no origin mentioned) OR ask user
-      - Transport mode: metro, tram, bus, ferry, walking
-      - Line numbers and colors (e.g., "M2 Red Line")
-      - Transfer points with platform info
-      - Estimated time and cost
-      - Alternative routes (at least 2 options)
-   
-   d) ALWAYS indicate that a visual map should be generated:s
+- Intent-specific prompts
 - Dynamic context injection
 - Conversation history formatting
 - Multi-language support
 - Token optimization
 - Few-shot examples
+- Advanced prompt engineering for low-signal scenarios (Phase 4 Priority 3)
 
 Author: AI Istanbul Team
 Date: November 2025
@@ -25,6 +18,14 @@ Date: November 2025
 
 import logging
 from typing import Dict, Any, Optional, List
+
+# Import Phase 4 Priority 3: Advanced Prompt Engineering
+try:
+    from .advanced_prompts import get_prompt_engineer
+    ADVANCED_PROMPTS_AVAILABLE = True
+except ImportError:
+    ADVANCED_PROMPTS_AVAILABLE = False
+    logger.warning("⚠️ Advanced prompt engineering module not available")
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +197,9 @@ Context information will be provided below, followed by the user's question."""
         context: Dict[str, Any],
         conversation_context: Optional[Dict[str, Any]] = None,
         language: str = "en",
-        user_location: Optional[Dict[str, float]] = None
+        user_location: Optional[Dict[str, float]] = None,
+        enable_intent_classification: bool = False,
+        signal_confidence: float = 1.0
     ) -> str:
         """
         Build complete optimized prompt.
@@ -211,6 +214,8 @@ Context information will be provided below, followed by the user's question."""
             conversation_context: Conversation history
             language: Response language
             user_location: User's GPS coordinates (if available)
+            enable_intent_classification: Enable LLM intent classification (Priority 2)
+            signal_confidence: Overall signal detection confidence (Priority 3)
             
         Returns:
             Complete prompt string
@@ -301,8 +306,99 @@ Context information will be provided below, followed by the user's question."""
             
             prompt_parts.append("Reference this map in your response to help guide the user.")
         
+        # 6.5. Add intent classification request (PRIORITY 2) - NEW
+        if enable_intent_classification:
+            intent_classification_prompt = """
+
+---
+
+🎯 INTENT CLASSIFICATION (Required - Mark first, then answer):
+Before answering, identify the user's intents by marking with [X]:
+
+Transportation/Directions: [ ] (how to get somewhere, routes, transit info)
+Restaurant Recommendation: [ ] (places to eat, cuisine, dining)
+Attraction Information: [ ] (museums, sites, historical places)
+Neighborhood/Area Info: [ ] (districts, areas, local info)
+Event/Activity Query: [ ] (concerts, festivals, things to do)
+Shopping: [ ] (shopping areas, malls, markets)
+Nightlife: [ ] (bars, clubs, entertainment)
+General Question: [ ] (other queries about Istanbul)
+
+Example:
+Query: "how do I get to a good kebab place near Taksim"
+Intents: [X] Transportation/Directions [X] Restaurant Recommendation [ ] Attraction Information [ ] Neighborhood/Area Info [ ] Event/Activity Query [ ] Shopping [ ] Nightlife [ ] General Question"""
+
+            prompt_parts.append(intent_classification_prompt)
+        
+        # 6.6. Add low-confidence signal instructions (PRIORITY 3) - NEW
+        if signal_confidence < 0.6:
+            low_confidence_prompt = f"""
+
+---
+
+🚨 UNCERTAIN INTENT DETECTED (Confidence: {signal_confidence:.2f})
+
+The user's query may be ambiguous or unclear. Here's what we know:
+- Query: "{query}"
+- Detected intents: {[k for k, v in signals.items() if v]} (LOW CONFIDENCE)
+- User location: {"Available" if user_location else "Not available"}
+
+Please:
+1. Carefully analyze the query to infer the user's actual intent
+2. Use ALL the provided context below (it may contain relevant information)
+3. If truly ambiguous, ask ONE clarifying question (see strategies below)
+4. Be helpful even with limited information
+
+The context below may include:
+- Restaurants nearby
+- Attractions and museums
+- Transportation options
+- Neighborhood information
+- Events and activities
+- General Istanbul information
+
+Use whichever context is most relevant to answer the query.
+
+📋 CLARIFYING QUESTION STRATEGIES:
+If the query is truly ambiguous, use ONE of these approaches:
+- Option-based: "Are you looking for [option A] or [option B]?"
+- Specific detail: "What type of [category] are you interested in?"
+- Context-seeking: "Could you tell me more about [missing detail]?"
+- Location-based: "Which neighborhood/area are you interested in?"
+
+Example: Query "what's around" → "Are you looking for restaurants, attractions, or something else nearby?"""
+
+            prompt_parts.append(low_confidence_prompt)
+        
+        # 6.7. Add multi-intent query handling (PRIORITY 3) - NEW
+        active_signal_count = sum(1 for v in signals.values() if v)
+        if active_signal_count >= 2:
+            multi_intent_prompt = f"""
+
+---
+
+🎯 MULTI-INTENT QUERY DETECTED ({active_signal_count} intents)
+
+This query involves multiple needs. Active intents: {[k for k, v in signals.items() if v]}
+
+HANDLING STRATEGY:
+1. **Identify Primary Intent**: What's the user's MAIN need?
+2. **Address Secondary Intents**: Incorporate related information naturally
+3. **Structured Response**: Organize your answer into clear sections
+4. **Smooth Integration**: Connect different aspects logically
+
+Example structures:
+- Restaurant + Transportation: Recommend places THEN explain how to get there
+- Attraction + Neighborhood: Describe attraction THEN provide area context
+- Shopping + Dining: Suggest shopping areas THEN mention nearby food options
+
+Be comprehensive but concise - address all intents without overwhelming the user."""
+
+            prompt_parts.append(multi_intent_prompt)
+        
         # 7. User query - simplified format to prevent template generation
         prompt_parts.append(f"\n---\n\n🚨 REMEMBER: Answer ONLY this user's question directly. Do NOT include example dialogues.\n\nCurrent User Question: {query}\n\nYour Direct Answer:")
+
         
         # Join all parts
         full_prompt = "\n".join(prompt_parts)

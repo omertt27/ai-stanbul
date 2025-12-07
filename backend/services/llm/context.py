@@ -99,16 +99,22 @@ class ContextBuilder:
         query: str,
         signals: Dict[str, bool],
         user_location: Optional[Dict[str, float]] = None,
-        language: str = "en"
+        language: str = "en",
+        signal_confidence: float = 1.0
     ) -> Dict[str, Any]:
         """
         Build smart context based on detected signals.
+        
+        PRIORITY 3 ENHANCEMENT: Adjust context breadth based on signal confidence.
+        Low confidence → Provide MORE context to help LLM infer intent.
+        High confidence → Provide focused context.
         
         Args:
             query: User query
             signals: Detected signals
             user_location: User GPS location
             language: Language code
+            signal_confidence: Overall signal detection confidence (0.0-1.0)
             
         Returns:
             Dict with:
@@ -124,25 +130,40 @@ class ContextBuilder:
             'map_data': None
         }
         
-        # Build database context
+        # PRIORITY 3: Adjust context provisioning based on signal confidence
+        if signal_confidence < 0.5:
+            logger.info(f"⚠️ Low signal confidence ({signal_confidence:.2f}), providing BROADER context")
+            context_strategy = 'broad'  # Fetch more data
+            rag_top_k = 10  # More RAG documents
+        elif signal_confidence < 0.7:
+            logger.info(f"ℹ️ Medium signal confidence ({signal_confidence:.2f}), providing STANDARD context")
+            context_strategy = 'standard'
+            rag_top_k = 5
+        else:
+            logger.info(f"✅ High signal confidence ({signal_confidence:.2f}), providing FOCUSED context")
+            context_strategy = 'focused'  # Only relevant data
+            rag_top_k = 3
+        
+        # Build database context (with strategy)
         if self._needs_database_context(signals):
             context['database'] = await self._build_database_context(
                 query=query,
                 signals=signals,
                 user_location=user_location,
-                language=language
+                language=language,
+                context_strategy=context_strategy  # Pass strategy
             )
         
-        # Get RAG context with retry and circuit breaker
+        # Get RAG context with retry and circuit breaker (with confidence-based top_k)
         if self.rag_service:
             try:
                 rag_cb = self.circuit_breakers.get('rag')
                 if rag_cb:
                     context['rag'] = await rag_cb.call(
-                        self._get_rag_context_with_retry, query, language
+                        self._get_rag_context_with_retry, query, language, rag_top_k
                     )
                 else:
-                    context['rag'] = await self._get_rag_context_with_retry(query, language)
+                    context['rag'] = await self._get_rag_context_with_retry(query, language, rag_top_k)
             except CircuitBreakerError:
                 logger.warning("RAG circuit breaker is open, using fallback")
                 context['rag'] = GracefulDegradation.get_fallback_context('rag').get('message', '')

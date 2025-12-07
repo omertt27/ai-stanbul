@@ -24,6 +24,7 @@ class IntentFeedback(Base):
     Used for active learning and model improvement
     """
     __tablename__ = "intent_feedback"
+    __table_args__ = {'extend_existing': True}  # Allow table redefinition
     
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)

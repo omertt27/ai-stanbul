@@ -12,15 +12,25 @@ Tracks:
 - User behavior
 - Service health
 - Cache efficiency
+- Intent discrepancies and feedback loop (PHASE 2)
+- Production monitoring with real-time metrics (PHASE 4 PRIORITY 4)
 
 Author: AI Istanbul Team
-Date: November 2025
+Date: December 7, 2025
 """
 
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from collections import defaultdict, deque
+
+# Import Phase 4 Priority 4: Production Monitoring
+try:
+    from .monitoring import get_monitor, track_query as monitor_track_query
+    MONITORING_AVAILABLE = True
+except ImportError:
+    MONITORING_AVAILABLE = False
+    logger.warning("⚠️ Production monitoring module not available")
 
 logger = logging.getLogger(__name__)
 
@@ -34,16 +44,39 @@ class AnalyticsManager:
     - Error tracking and debugging
     - User behavior analysis
     - System health monitoring
+    - Feedback loop training (PHASE 2)
     """
     
-    def __init__(self, enable_detailed_tracking: bool = True):
+    def __init__(
+        self, 
+        enable_detailed_tracking: bool = True,
+        enable_feedback_loop: bool = True,
+        feedback_trainer = None
+    ):
         """
         Initialize analytics manager.
         
         Args:
             enable_detailed_tracking: Enable detailed metrics (may impact performance)
+            enable_feedback_loop: Enable feedback loop training (PHASE 2)
+            feedback_trainer: FeedbackTrainer instance (optional, will create if None)
         """
         self.enable_detailed = enable_detailed_tracking
+        self.enable_feedback_loop = enable_feedback_loop
+        
+        # Initialize feedback trainer (PHASE 2)
+        self.feedback_trainer = None
+        if self.enable_feedback_loop:
+            try:
+                if feedback_trainer is not None:
+                    self.feedback_trainer = feedback_trainer
+                else:
+                    from .feedback_trainer import FeedbackTrainer
+                    self.feedback_trainer = FeedbackTrainer()
+                logger.info("✅ Feedback loop enabled for continuous improvement")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not initialize feedback trainer: {e}")
+                self.enable_feedback_loop = False
         
         # Basic counters
         self.stats = {
@@ -146,6 +179,145 @@ class AnalyticsManager:
         # Track multi-intent
         if active_count > 2:
             self.signals['multi_intent_queries'] += 1
+    
+    async def track_intent_comparison(
+        self,
+        regex_intents: Dict[str, bool],
+        llm_intents: Dict[str, bool],
+        query: str,
+        user_id: str = "anonymous",
+        language: str = "en",
+        user_location: Optional[Dict[str, float]] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Track comparison between regex-detected and LLM-detected intents (PRIORITY 2).
+        
+        This helps identify when signal detection fails and LLM compensates.
+        Also logs training samples for feedback loop (PHASE 2).
+        
+        Args:
+            regex_intents: Intents detected by regex patterns
+            llm_intents: Intents detected by LLM
+            query: Original query
+            user_id: User identifier
+            language: Query language
+            user_location: User's GPS location (if available)
+            metadata: Additional metadata (confidence scores, etc.)
+        """
+        # Find discrepancies
+        false_positives = [
+            signal for signal in regex_intents
+            if regex_intents.get(signal, False) and not llm_intents.get(signal, False)
+        ]
+        
+        false_negatives = [
+            signal for signal in llm_intents
+            if llm_intents.get(signal, False) and not regex_intents.get(signal, False)
+        ]
+        
+        # Track discrepancies
+        if not hasattr(self, 'intent_discrepancies'):
+            self.intent_discrepancies = {
+                'false_positives': defaultdict(int),
+                'false_negatives': defaultdict(int),
+                'total_comparisons': 0,
+                'perfect_matches': 0,
+                'recent_mismatches': deque(maxlen=100)
+            }
+        
+        self.intent_discrepancies['total_comparisons'] += 1
+        
+        # PHASE 2: Log training sample to feedback trainer
+        if self.enable_feedback_loop and self.feedback_trainer:
+            try:
+                self.feedback_trainer.log_training_sample(
+                    query=query,
+                    regex_intents=regex_intents,
+                    llm_intents=llm_intents,
+                    language=language,
+                    user_location=user_location,
+                    metadata=metadata
+                )
+            except Exception as e:
+                logger.warning(f"Failed to log training sample: {e}")
+        
+        if false_positives or false_negatives:
+            # Record discrepancies
+            for signal in false_positives:
+                self.intent_discrepancies['false_positives'][signal] += 1
+            
+            for signal in false_negatives:
+                self.intent_discrepancies['false_negatives'][signal] += 1
+            
+            # Store recent mismatch for analysis
+            self.intent_discrepancies['recent_mismatches'].append({
+                'timestamp': datetime.now(),
+                'query': query,
+                'user_id': user_id,
+                'regex_intents': [k for k, v in regex_intents.items() if v],
+                'llm_intents': [k for k, v in llm_intents.items() if v],
+                'false_positives': false_positives,
+                'false_negatives': false_negatives
+            })
+            
+            logger.info(
+                f"🎯 Intent mismatch detected:\n"
+                f"   Query: {query}\n"
+                f"   Regex detected: {[k for k, v in regex_intents.items() if v]}\n"
+                f"   LLM detected: {[k for k, v in llm_intents.items() if v]}\n"
+                f"   False positives: {false_positives}\n"
+                f"   False negatives: {false_negatives}"
+            )
+        else:
+            # Perfect match
+            self.intent_discrepancies['perfect_matches'] += 1
+    
+    def get_intent_comparison_report(self) -> Dict[str, Any]:
+        """
+        Generate report on intent detection accuracy (PRIORITY 2).
+        
+        Returns:
+            Report with accuracy metrics and common discrepancies
+        """
+        if not hasattr(self, 'intent_discrepancies'):
+            return {'error': 'No intent comparison data available'}
+        
+        disc = self.intent_discrepancies
+        
+        # Calculate accuracy
+        total = disc['total_comparisons']
+        perfect = disc['perfect_matches']
+        accuracy = (perfect / total * 100) if total > 0 else 0
+        
+        # Find most common false positives/negatives
+        top_fp = sorted(
+            disc['false_positives'].items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:5]
+        
+        top_fn = sorted(
+            disc['false_negatives'].items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:5]
+        
+        return {
+            'total_comparisons': total,
+            'perfect_matches': perfect,
+            'accuracy_percentage': accuracy,
+            'total_discrepancies': total - perfect,
+            'top_false_positives': [
+                {'signal': sig, 'count': count, 'percentage': count/total*100}
+                for sig, count in top_fp
+            ],
+            'top_false_negatives': [
+                {'signal': sig, 'count': count, 'percentage': count/total*100}
+                for sig, count in top_fn
+            ],
+            'recent_mismatches': list(disc['recent_mismatches'])[-10:]
+        }
     
     def track_context(self, context: Dict[str, Any]):
         """
@@ -418,6 +590,82 @@ class AnalyticsManager:
                 error_rate, avg_latency, cache_hit_rate
             )
         }
+    
+    def get_feedback_loop_status(self) -> Dict[str, Any]:
+        """
+        Get feedback loop training status (PHASE 2).
+        
+        Returns:
+            Dict with training statistics and retraining readiness
+        """
+        if not self.enable_feedback_loop or not self.feedback_trainer:
+            return {
+                'enabled': False,
+                'message': 'Feedback loop not enabled'
+            }
+        
+        try:
+            stats = self.feedback_trainer.get_statistics()
+            readiness = self.feedback_trainer.get_retraining_readiness()
+            
+            return {
+                'enabled': True,
+                'statistics': stats,
+                'readiness': readiness,
+                'can_retrain': readiness['is_ready']
+            }
+        except Exception as e:
+            logger.error(f"Error getting feedback loop status: {e}")
+            return {
+                'enabled': True,
+                'error': str(e)
+            }
+    
+    def trigger_retraining(self) -> Dict[str, Any]:
+        """
+        Trigger pattern retraining from feedback loop (PHASE 2).
+        
+        Returns:
+            Dict with retraining results
+        """
+        if not self.enable_feedback_loop or not self.feedback_trainer:
+            return {
+                'success': False,
+                'message': 'Feedback loop not enabled'
+            }
+        
+        try:
+            # Check readiness
+            readiness = self.feedback_trainer.get_retraining_readiness()
+            if not readiness['is_ready']:
+                return {
+                    'success': False,
+                    'message': readiness['recommendation'],
+                    'readiness': readiness
+                }
+            
+            # Generate report
+            report = self.feedback_trainer.generate_retraining_report()
+            
+            # Export learned patterns
+            success = self.feedback_trainer.export_learned_patterns()
+            
+            return {
+                'success': success,
+                'message': 'Retraining completed successfully' if success else 'Retraining failed',
+                'report_summary': {
+                    'total_samples': report['statistics']['total_samples'],
+                    'intents_analyzed': len(report['intent_analyses']),
+                    'patterns_suggested': self.feedback_trainer.stats['patterns_suggested']
+                },
+                'report': report
+            }
+        except Exception as e:
+            logger.error(f"Error during retraining: {e}")
+            return {
+                'success': False,
+                'message': f'Retraining error: {str(e)}'
+            }
     
     def _get_health_recommendations(
         self,

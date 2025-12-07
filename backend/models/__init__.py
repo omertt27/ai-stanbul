@@ -92,12 +92,17 @@ except Exception as e:
     UserPreferences = None
     ConversationHistory = None
 
-from .intent_feedback import IntentFeedback, FeedbackStatistics, create_tables
+# Temporarily comment out to fix SQLAlchemy MetaData conflict
+# from .intent_feedback import IntentFeedback, FeedbackStatistics, create_tables
+IntentFeedback = None
+FeedbackStatistics = None
+create_tables = None
 
 __all__ = [
     'Base', 'Restaurant', 'Museum', 'Event', 'Place', 'UserFeedback', 'ChatSession', 
     'BlogPost', 'BlogComment', 'BlogLike', 'BlogImage', 'ChatHistory', 'User',
-    'IntentFeedback', 'FeedbackStatistics', 'create_tables',
+    # 'IntentFeedback', 'FeedbackStatistics', 'create_tables',  # Temporarily disabled
+    'UserInteraction', 'UserInteractionAggregate', 'FeedbackEvent',
     'FeedbackEvent', 'UserInteractionAggregate', 'ItemFeatureVector', 'OnlineLearningModel',
     'LocationHistory', 'NavigationSession', 'RouteHistory', 'NavigationEvent',
     'UserPreferences', 'ConversationHistory'

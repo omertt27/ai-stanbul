@@ -116,6 +116,9 @@ async function loadSectionData(section) {
         case 'intents':
             await loadIntentStats();
             break;
+        case 'system-performance':
+            await loadSystemPerformance();
+            break;
         case 'users':
             await loadUsers();
             renderUsers();
@@ -962,3 +965,329 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// =============================
+// SYSTEM PERFORMANCE FUNCTIONS
+// =============================
+
+let latencyChart = null;
+let accuracyChart = null;
+let performanceRefreshInterval = null;
+
+async function loadSystemPerformance() {
+    try {
+        showLoading('system-performance');
+        
+        // Fetch system metrics from backend
+        const response = await fetch(`${API_BASE_URL}/api/admin/system/metrics?hours=24`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Render all components
+        renderRealtimeMetrics(data.realtime_metrics);
+        renderSystemHealth(data.system_health);
+        renderPerformanceCharts(data.trends);
+        renderRecentAlerts(data.recent_alerts || data.alerts);
+        renderIntentBreakdown(data.intent_breakdown);
+        
+        hideLoading('system-performance');
+        
+        // Set up auto-refresh every 30 seconds
+        if (performanceRefreshInterval) {
+            clearInterval(performanceRefreshInterval);
+        }
+        performanceRefreshInterval = setInterval(() => {
+            if (currentSection === 'system-performance') {
+                loadSystemPerformance();
+            }
+        }, 30000); // 30 seconds
+        
+    } catch (error) {
+        console.error('Error loading system performance:', error);
+        showError('Failed to load system performance data');
+        hideLoading('system-performance');
+        
+        // Show error state
+        renderErrorState();
+    }
+}
+
+function renderRealtimeMetrics(metrics) {
+    // Update latency
+    const latencyEl = document.getElementById('sys-latency');
+    if (latencyEl) {
+        latencyEl.textContent = metrics.avg_latency_ms ? `${Math.round(metrics.avg_latency_ms)}ms` : '-';
+    }
+    
+    // Update accuracy
+    const accuracyEl = document.getElementById('sys-accuracy');
+    if (accuracyEl) {
+        accuracyEl.textContent = metrics.intent_accuracy ? `${metrics.intent_accuracy.toFixed(1)}%` : '-';
+    }
+    
+    // Update error rate
+    const errorEl = document.getElementById('sys-error-rate');
+    if (errorEl) {
+        errorEl.textContent = metrics.error_rate ? `${metrics.error_rate.toFixed(2)}%` : '-';
+    }
+    
+    // Update requests per minute
+    const requestsEl = document.getElementById('sys-requests');
+    if (requestsEl) {
+        requestsEl.textContent = metrics.requests_per_minute ? metrics.requests_per_minute.toFixed(1) : '-';
+    }
+}
+
+function renderSystemHealth(health) {
+    const container = document.getElementById('system-health-status');
+    if (!container) return;
+    
+    if (!health || !health.components || health.components.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 20px;">No health data available</p>';
+        return;
+    }
+    
+    let html = '';
+    health.components.forEach(component => {
+        const statusClass = component.status || 'unknown';
+        const statusIcon = {
+            'healthy': 'fa-check-circle',
+            'warning': 'fa-exclamation-triangle',
+            'degraded': 'fa-exclamation-circle',
+            'error': 'fa-times-circle',
+            'unknown': 'fa-question-circle'
+        }[statusClass] || 'fa-question-circle';
+        
+        html += `
+            <div class="health-component">
+                <div class="health-component-name">
+                    <i class="fas ${statusIcon}"></i>
+                    <span>${component.name}</span>
+                </div>
+                <div class="health-status ${statusClass}">
+                    <i class="fas ${statusIcon}"></i>
+                    ${statusClass.charAt(0).toUpperCase() + statusClass.slice(1)}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function renderPerformanceCharts(trends) {
+    if (!trends || !trends.timestamps || trends.timestamps.length === 0) {
+        console.warn('No trend data available for charts');
+        return;
+    }
+    
+    // Latency Chart
+    const latencyCtx = document.getElementById('latency-trend-chart');
+    if (latencyCtx) {
+        if (latencyChart) {
+            latencyChart.destroy();
+        }
+        
+        latencyChart = new Chart(latencyCtx, {
+            type: 'line',
+            data: {
+                labels: trends.timestamps.map(t => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
+                datasets: [{
+                    label: 'Latency (ms)',
+                    data: trends.latency || [],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Milliseconds'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Accuracy Chart
+    const accuracyCtx = document.getElementById('accuracy-trend-chart');
+    if (accuracyCtx) {
+        if (accuracyChart) {
+            accuracyChart.destroy();
+        }
+        
+        accuracyChart = new Chart(accuracyCtx, {
+            type: 'line',
+            data: {
+                labels: trends.timestamps.map(t => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
+                datasets: [{
+                    label: 'Accuracy (%)',
+                    data: trends.accuracy || [],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 80,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Percentage'
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function renderRecentAlerts(alerts) {
+    const container = document.getElementById('recent-alerts-list');
+    const badge = document.getElementById('alert-badge');
+    
+    if (!container) return;
+    
+    if (!alerts || alerts.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 20px;">No alerts in the last 24 hours</p>';
+        if (badge) badge.style.display = 'none';
+        return;
+    }
+    
+    // Update badge
+    if (badge) {
+        badge.textContent = alerts.length;
+        badge.style.display = 'inline-block';
+    }
+    
+    // Render alerts
+    let html = '';
+    alerts.forEach(alert => {
+        const severity = alert.severity || 'info';
+        const severityIcon = {
+            'critical': 'fa-exclamation-circle',
+            'warning': 'fa-exclamation-triangle',
+            'info': 'fa-info-circle'
+        }[severity] || 'fa-info-circle';
+        
+        const timeAgo = formatTimeAgo(new Date(alert.timestamp));
+        
+        html += `
+            <div class="alert-item ${severity}">
+                <div class="alert-header">
+                    <div class="alert-title">
+                        <i class="fas ${severityIcon}"></i>
+                        ${alert.title || 'System Alert'}
+                    </div>
+                    <div class="alert-time">${timeAgo}</div>
+                </div>
+                <div class="alert-message">${alert.message || 'No details available'}</div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function renderIntentBreakdown(intentData) {
+    const container = document.getElementById('intent-breakdown');
+    if (!container) return;
+    
+    if (!intentData || Object.keys(intentData).length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 20px;">No intent data available</p>';
+        return;
+    }
+    
+    // Convert to array and sort by count
+    const intents = Object.entries(intentData)
+        .map(([name, count]) => ({name, count}))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10); // Top 10
+    
+    const total = intents.reduce((sum, intent) => sum + intent.count, 0);
+    
+    let html = '';
+    intents.forEach(intent => {
+        const percentage = total > 0 ? (intent.count / total * 100).toFixed(1) : 0;
+        html += `
+            <div class="intent-bar">
+                <div class="intent-name">${intent.name}</div>
+                <div class="intent-progress">
+                    <div class="intent-progress-bar" style="width: ${percentage}%">
+                        ${percentage}%
+                    </div>
+                </div>
+                <div class="intent-count">${intent.count} req</div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function renderErrorState() {
+    const container = document.getElementById('system-health-status');
+    if (container) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 16px;"></i>
+                <h4 style="margin-bottom: 8px;">Unable to Load System Metrics</h4>
+                <p style="color: var(--text-light);">The monitoring system may be unavailable. Please try again later.</p>
+            </div>
+        `;
+    }
+}
+
+function formatTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+}
+
+// Cleanup on section change
+document.addEventListener('DOMContentLoaded', function() {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Clear performance refresh interval when leaving the section
+            if (currentSection === 'system-performance' && performanceRefreshInterval) {
+                clearInterval(performanceRefreshInterval);
+                performanceRefreshInterval = null;
+            }
+        });
+    });
+});
