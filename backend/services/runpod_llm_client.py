@@ -351,10 +351,11 @@ class RunPodLLMClient:
     ) -> Optional[Dict[str, Any]]:
         """Generate using OpenAI-compatible API format (vLLM, RunPod, etc.)"""
         
-        # Format prompt for Llama 3.1 chat template
-        # This fixes the echo issue where LLM was returning prompt fragments
-        formatted_prompt = self._format_llama_chat_prompt(prompt)
-        logger.debug(f"Formatted prompt length: {len(formatted_prompt)} chars")
+        # TEMPORARILY DISABLED: Format prompt for Llama 3.1 chat template
+        # Testing if raw prompt works better
+        # formatted_prompt = self._format_llama_chat_prompt(prompt)
+        formatted_prompt = prompt  # Use raw prompt for now
+        logger.debug(f"Using RAW prompt (chat template disabled for testing), length: {len(formatted_prompt)} chars")
         
         # Use standard completions format for vLLM
         payload = {
