@@ -1,0 +1,272 @@
+/**
+ * MobileErrorNotification Styles
+ * ===============================
+ * Mobile-optimized error notification styles
+ */
+
+.mobile-error-notification {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  border-left: 4px solid;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  z-index: 9999;
+  animation: slideUpFade 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.mobile-error-notification.light {
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+}
+
+.mobile-error-notification.dark {
+  background: rgba(31, 41, 55, 0.95);
+  color: #f9fafb;
+}
+
+.error-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.error-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.error-message {
+  font-size: 14px;
+  opacity: 0.8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.error-countdown {
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 8px 0 0 0;
+  font-style: italic;
+}
+
+.error-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.retry-button,
+.dismiss-button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 18px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.retry-button {
+  background: rgba(139, 92, 246, 0.2);
+  color: #8b5cf6;
+}
+
+.retry-button:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.3);
+  transform: scale(1.05);
+}
+
+.retry-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.retry-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dismiss-button {
+  background: rgba(107, 114, 128, 0.2);
+  color: #6b7280;
+}
+
+.dismiss-button:hover {
+  background: rgba(107, 114, 128, 0.3);
+  transform: scale(1.05);
+}
+
+.dismiss-button:active {
+  transform: scale(0.95);
+}
+
+.spinner-small {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Network status indicator */
+.network-status-indicator {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 16px);
+  right: 16px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 9999;
+  animation: slideDown 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.network-status-indicator.light {
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+}
+
+.network-status-indicator.dark {
+  background: rgba(31, 41, 55, 0.95);
+  color: #f9fafb;
+}
+
+.network-status-indicator.offline {
+  background: #ef4444;
+  color: #fff;
+}
+
+.network-status-indicator.online {
+  background: #10b981;
+  color: #fff;
+}
+
+.status-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.status-text {
+  line-height: 1;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .mobile-error-notification {
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    left: 12px;
+    right: 12px;
+    padding: 14px;
+  }
+
+  .error-icon {
+    font-size: 20px;
+  }
+
+  .error-title {
+    font-size: 15px;
+  }
+
+  .error-message {
+    font-size: 13px;
+  }
+
+  .retry-button,
+  .dismiss-button {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+}
+
+/* Landscape mode */
+@media (max-height: 500px) and (orientation: landscape) {
+  .mobile-error-notification {
+    bottom: 16px;
+    left: 16px;
+    right: auto;
+    max-width: 400px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-error-notification,
+  .network-status-indicator,
+  .spinner-small {
+    animation: none !important;
+  }
+
+  .retry-button:hover:not(:disabled),
+  .retry-button:active:not(:disabled),
+  .dismiss-button:hover,
+  .dismiss-button:active {
+    transform: none !important;
+  }
+}
+
+/* High contrast */
+@media (prefers-contrast: high) {
+  .mobile-error-notification {
+    border-width: 3px !important;
+  }
+
+  .mobile-error-notification.light {
+    background: #fff !important;
+    border-color: #000 !important;
+  }
+
+  .mobile-error-notification.dark {
+    background: #000 !important;
+    border-color: #fff !important;
+  }
+}

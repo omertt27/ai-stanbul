@@ -1,0 +1,192 @@
+/**
+ * SkeletonMessage Styles
+ * ======================
+ * Animated loading skeletons for chat messages
+ */
+
+.skeleton-message-container {
+  padding: 12px 16px;
+  animation: fadeIn 0.3s ease;
+}
+
+.skeleton-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.skeleton-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 200, 200, 0.3) 25%,
+    rgba(200, 200, 200, 0.5) 50%,
+    rgba(200, 200, 200, 0.3) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-line {
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 200, 200, 0.3) 25%,
+    rgba(200, 200, 200, 0.5) 50%,
+    rgba(200, 200, 200, 0.3) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-line-1 {
+  width: 85%;
+  animation-delay: 0s;
+}
+
+.skeleton-line-2 {
+  width: 70%;
+  animation-delay: 0.1s;
+}
+
+.skeleton-line-3 {
+  width: 60%;
+  animation-delay: 0.2s;
+}
+
+/* Dark mode */
+.skeleton-message-container.dark .skeleton-avatar,
+.skeleton-message-container.dark .skeleton-line {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* Compact skeleton for inline use */
+.skeleton-message-compact {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 18px;
+  border-radius: 20px;
+  margin-left: 12px;
+}
+
+.skeleton-message-compact.light {
+  background: rgba(243, 244, 246, 0.8);
+}
+
+.skeleton-message-compact.dark {
+  background: rgba(31, 41, 55, 0.8);
+}
+
+.skeleton-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.skeleton-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.6);
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.skeleton-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.skeleton-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.skeleton-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .skeleton-message {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .skeleton-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .skeleton-line {
+    height: 14px;
+  }
+
+  .skeleton-message-compact {
+    padding: 10px 16px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-avatar,
+  .skeleton-line,
+  .skeleton-dot {
+    animation: none !important;
+  }
+
+  .skeleton-avatar,
+  .skeleton-line {
+    background: rgba(200, 200, 200, 0.4);
+  }
+
+  .skeleton-message-container.dark .skeleton-avatar,
+  .skeleton-message-container.dark .skeleton-line {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}

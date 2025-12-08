@@ -66,6 +66,10 @@ class RunPodLLMClient:
         # Detect API type
         self.api_type = self._detect_api_type()
         
+        # Override max_tokens to a more reasonable default for faster responses
+        if self.max_tokens > 150:
+            self.max_tokens = 150  # Reduce from 1024 to 150 for faster, more concise responses
+        
         if self.enabled:
             logger.info("🚀 LLM Client initialized")
             logger.info(f"   Type: {self.api_type}")
@@ -247,7 +251,9 @@ class RunPodLLMClient:
             logger.error(f"❌ LLM HTTP error: {e.response.status_code}")
             return None
         except Exception as e:
+            import traceback
             logger.error(f"❌ LLM generation failed: {e}")
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
             return None
     
     async def _generate_huggingface(
@@ -358,34 +364,85 @@ class RunPodLLMClient:
             if len(parts) > 1:
                 user_query = parts[1].replace("Your Direct Answer:", "").strip()
         
-        # Handle greetings specially - they need context
-        greeting_words = ['hi', 'hello', 'hey', 'selam', 'merhaba', 'bonjour', 'hallo', 'привет']
-        is_greeting = any(user_query.lower().strip() in [g, f"{g}!", f"{g}?"] for g in greeting_words)
+        # Detect language from query
+        query_language = self._detect_language(user_query)
+        
+        # Handle greetings specially
+        greeting_words = ['hi', 'hello', 'hey', 'selam', 'merhaba', 'bonjour', 'hallo', 'привет', 'hola', 'مرحبا']
+        cleaned_query = user_query.lower().strip().rstrip('!?.,')
+        is_greeting = cleaned_query in [g.lower() for g in greeting_words]
         
         if is_greeting:
-            # For greetings, provide a helpful prompt
+            # For greetings, provide a context-aware welcoming prompt
             formatted_prompt = (
-                "You are KAM, a friendly Istanbul tour guide assistant. "
-                "A user just said 'Hi' to start a conversation. "
-                "Greet them warmly and ask what they'd like to know about Istanbul. "
-                "Keep it short (2-3 sentences max)."
+                f"Respond with ONLY a friendly greeting in {query_language}. Say you're KAM, an Istanbul tour guide who can help with restaurants, attractions, and directions. "
+                f"Keep it under 2 sentences. DO NOT add any extra dialogue or questions."
             )
-            logger.info("🎯 Detected greeting - using greeting-specific prompt")
+            logger.info(f"🎯 Detected greeting in {query_language}")
+            # Override max_tokens for greetings - we don't need much!
+            max_tokens = 40  # Even shorter for greetings - just a quick hello!
         else:
-            # For real questions, use direct prompt
-            formatted_prompt = f"You are KAM, a helpful Istanbul tour guide. Answer this clearly and concisely: {user_query}"
-            logger.info(f"📝 Using direct prompt for: {user_query[:50]}...")
+            # For real questions, extract context and build a direct prompt
+            # Extract any context from the full prompt
+            context_data = ""
+            
+            # Look for database/context sections
+            if "Database Information:" in prompt:
+                db_start = prompt.find("Database Information:")
+                db_end = prompt.find("\n## ", db_start + 1)
+                if db_end == -1:
+                    db_end = prompt.find("\n---", db_start + 1)
+                if db_end > db_start:
+                    context_data = prompt[db_start:db_end].strip()
+            
+            # Look for real-time information
+            if "Real-Time Information:" in prompt:
+                rt_start = prompt.find("Real-Time Information:")
+                rt_end = prompt.find("\n## ", rt_start + 1)
+                if rt_end == -1:
+                    rt_end = prompt.find("\n---", rt_start + 1)
+                if rt_end > rt_start:
+                    if context_data:
+                        context_data += "\n\n" + prompt[rt_start:rt_end].strip()
+                    else:
+                        context_data = prompt[rt_start:rt_end].strip()
+            
+            # Check if user provided GPS location
+            has_gps = "GPS STATUS" in prompt and "AVAILABLE" in prompt
+            
+            # Build a concise, focused prompt
+            if context_data:
+                # Query with context data
+                formatted_prompt = (
+                    f"You are KAM, an Istanbul tour guide. Answer this question in {query_language} using the context below.\n\n"
+                    f"CONTEXT:\n{context_data}\n\n"
+                    f"QUESTION: {user_query}\n\n"
+                    f"Provide a direct, helpful answer in {query_language}. Be specific and use details from the context."
+                )
+            else:
+                # Query without context - use general knowledge
+                formatted_prompt = (
+                    f"You are KAM, an Istanbul tour guide. Answer this question in {query_language}:\n\n"
+                    f"{user_query}\n\n"
+                    f"Provide a helpful, accurate answer based on your knowledge of Istanbul. Be specific and concise."
+                )
+            
+            # Add GPS note if available
+            if has_gps:
+                formatted_prompt += "\n\nNote: User's GPS location is available for personalized recommendations."
+            
+            logger.info(f"📝 Direct prompt built - Query length: {len(user_query)}, Context: {len(context_data)} chars")
         
         logger.debug(f"Prompt length: {len(formatted_prompt)} chars")
         
         # Use standard completions format for vLLM
         payload = {
             "model": self.model_name,
-            "prompt": formatted_prompt,  # Use formatted prompt with chat template
+            "prompt": formatted_prompt,
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": temperature,
             "top_p": top_p,
-            "stop": ["<|eot_id|>", "\n\nUser:", "\n\n---"]  # Stop at end-of-turn token
+            "stop": ["<|eot_id|>", "\n\nUser:", "\n\n---", "\n\nLet me know", "\n\n(Also"]  # Stop at common hallucination patterns
         }
         
         headers = {"Content-Type": "application/json"}
@@ -415,8 +472,12 @@ class RunPodLLMClient:
             generated_text = None
             
             # Format 1: Standard vLLM with choices array
-            if 'choices' in result and len(result['choices']) > 0:
-                generated_text = result['choices'][0].get('text', '')
+            if 'choices' in result:
+                choices = result['choices']
+                if isinstance(choices, list) and len(choices) > 0:
+                    generated_text = choices[0].get('text', '')
+                else:
+                    logger.error(f"❌ Invalid 'choices' format: {type(choices)}, value: {choices}")
             
             # Format 2: Direct text field (RunPod custom format)
             elif 'text' in result:
@@ -427,10 +488,17 @@ class RunPodLLMClient:
                 generated_text = result['generated_text']
             
             if generated_text:
+                # Hard limit: truncate responses that are too long
+                MAX_RESPONSE_LENGTH = 500  # Maximum 500 characters
+                if len(generated_text) > MAX_RESPONSE_LENGTH:
+                    logger.warning(f"⚠️ Response too long ({len(generated_text)} chars), truncating to {MAX_RESPONSE_LENGTH}")
+                    generated_text = generated_text[:MAX_RESPONSE_LENGTH].rsplit('.', 1)[0] + '.'  # Cut at last sentence
+                
                 logger.info(f"✅ LLM generated {len(generated_text)} chars")
                 return {"generated_text": generated_text, "raw": result}
             else:
                 logger.error(f"❌ Invalid response format from LLM: {result.keys() if isinstance(result, dict) else type(result)}")
+                logger.error(f"❌ Full result: {result}")
                 return None
     
     async def generate_istanbul_response(
@@ -476,7 +544,7 @@ USER QUESTION: {query}
 
 YOUR RESPONSE (in {detected_language}):"""
         
-        result = await self.generate(prompt=prompt, max_tokens=200)
+        result = await self.generate(prompt=prompt, max_tokens=100)  # Reduced from 150 for faster responses
         
         if result and 'generated_text' in result:
             # Extract just the response part (after the prompt)
@@ -566,7 +634,7 @@ YOUR RESPONSE (in {detected_language}):"""
         
         result = await self.generate(
             prompt=prompt,
-            max_tokens=300,  # Allow longer responses with service data
+            max_tokens=150,  # Reduced from 200 for faster responses
             temperature=0.7,
             top_p=0.9
         )

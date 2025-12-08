@@ -1,0 +1,80 @@
+/**
+ * SwipeableMessage Styles
+ * =======================
+ * Styles for swipeable message interactions
+ */
+
+.swipeable-message {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  touch-action: pan-y; /* Allow vertical scrolling, handle horizontal swipe */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.message-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  will-change: transform;
+}
+
+.action-indicator {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  border-radius: 12px;
+  transition: opacity 0.2s ease;
+}
+
+.action-indicator.left {
+  right: 0;
+}
+
+.action-indicator.right {
+  left: 0;
+}
+
+.action-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Prevent text selection during swipe */
+.swipeable-message * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Smooth transition when releasing */
+.message-content {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .action-indicator {
+    width: 70px;
+  }
+
+  .action-icon {
+    font-size: 20px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .message-content {
+    transition: none !important;
+  }
+
+  .action-indicator {
+    transition: none !important;
+  }
+}

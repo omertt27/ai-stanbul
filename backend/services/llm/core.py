@@ -898,7 +898,15 @@ Fixed version (max 50 chars):"""
                     'civarda' in query_lower
                 ])
                 
-                if user_location and is_nearby_query:
+                # Check if user_location has valid coordinates
+                has_valid_location = (user_location and 
+                                    isinstance(user_location, dict) and 
+                                    'lat' in user_location and 
+                                    'lon' in user_location and
+                                    user_location['lat'] is not None and
+                                    user_location['lon'] is not None)
+                
+                if has_valid_location and is_nearby_query:
                     logger.info(f"🚀 FORCING GPS-centered map for nearby query with GPS")
                     map_data = {
                         "type": "user_centered",
@@ -2009,7 +2017,7 @@ Fixed version (max 50 chars):"""
                 avg_lon = sum(loc['lon'] for loc in locations) / len(locations)
                 
                 # Add user location marker if available
-                if user_location:
+                if user_location and isinstance(user_location, dict) and 'lat' in user_location and 'lon' in user_location:
                     markers.append({
                         "position": {"lat": user_location['lat'], "lng": user_location['lon']},
                         "label": "Your Location",
@@ -2049,7 +2057,15 @@ Fixed version (max 50 chars):"""
                 signals.get('needs_hidden_gems')
             ])
             
-            if user_location and is_nearby_query:
+            # Check if user_location has valid coordinates
+            has_valid_location = (user_location and 
+                                isinstance(user_location, dict) and 
+                                'lat' in user_location and 
+                                'lon' in user_location and
+                                user_location['lat'] is not None and
+                                user_location['lon'] is not None)
+            
+            if has_valid_location and is_nearby_query:
                 # Create map centered on user location
                 markers.append({
                     "position": {"lat": user_location['lat'], "lng": user_location['lon']},

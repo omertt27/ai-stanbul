@@ -38,6 +38,11 @@ import './styles/mobile-ergonomics-phase1.css';
 // ChatGPT-style mobile components
 import MobileTypingIndicator from './components/mobile/TypingIndicator';
 import JumpToBottomFAB from './components/mobile/JumpToBottomFAB';
+import QuickReplies from './components/mobile/QuickReplies';
+import SkeletonMessage from './components/mobile/SkeletonMessage';
+import SmartChatInput from './components/mobile/SmartChatInput';
+import SwipeableMessage from './components/mobile/SwipeableMessage';
+import MobileErrorNotification from './components/mobile/MobileErrorNotification';
 
 console.log('🔄 Chatbot component loaded');
 
@@ -806,6 +811,15 @@ function Chatbot({ userLocation: propUserLocation }) {
   const chatMessagesRef = useRef(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+  
+  // Quick replies state
+  const [quickReplySuggestions, setQuickReplySuggestions] = useState([
+    'Show restaurants',
+    'Find attractions', 
+    'Get directions',
+    'Weather today'
+  ]);
+  const [showQuickReplies, setShowQuickReplies] = useState(true);
 
   // Enhanced message management
   const addMessage = (text, sender = 'assistant', metadata = {}) => {
@@ -1578,101 +1592,215 @@ function Chatbot({ userLocation: propUserLocation }) {
               ) : (
                 // AI MESSAGE - FULL WIDTH (ChatGPT Style)
                 <div className="flex justify-start px-4 md:px-8">
-                  <div className="flex items-start gap-3 w-full max-w-full">
-                    {/* Avatar */}
-                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
-                      darkMode 
-                        ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
-                        : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
-                    }`}>
-                      <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                      </svg>
-                    </div>
-                    
-                    {/* Message content - NO BUBBLE, full width */}
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-xs font-semibold mb-2 transition-colors duration-200 ${
-                        darkMode ? 'text-gray-300' : 'text-gray-600'
-                      }`}>KAM Assistant</div>
-                      
-                      {/* NO background, just text - ChatGPT style */}
-                      <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 ${
-                        darkMode ? 'text-gray-100' : 'text-gray-800'
+                  {window.innerWidth <= 768 ? (
+                    // Mobile: Swipeable message
+                    <SwipeableMessage
+                      onSwipeLeft={() => {
+                        // Delete message
+                        setMessages(prev => prev.filter(m => m.id !== msg.id));
+                      }}
+                      onSwipeRight={() => {
+                        // Copy message
+                        copyMessageToClipboard(msg);
+                      }}
+                      leftAction="delete"
+                      rightAction="copy"
+                      darkMode={darkMode}
+                    >
+                      <div className="flex items-start gap-3 w-full max-w-full">
+                        {/* Avatar */}
+                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                          darkMode 
+                            ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
+                            : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
+                        }`}>
+                          <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                          </svg>
+                        </div>
+                        
+                        {/* Message content - NO BUBBLE, full width */}
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-xs font-semibold mb-2 transition-colors duration-200 ${
+                            darkMode ? 'text-gray-300' : 'text-gray-600'
+                          }`}>KAM Assistant</div>
+                          
+                          {/* NO background, just text - ChatGPT style */}
+                          <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 ${
+                            darkMode ? 'text-gray-100' : 'text-gray-800'
+                          }`}>
+                            {renderMessageContent(msg.text || msg.content, darkMode)}
+                          </div>
+                          
+                          {/* Restaurant Cards */}
+                          {msg.restaurants && msg.restaurants.length > 0 && (
+                            <div className="mt-4 space-y-4">
+                              <div className={`text-sm font-medium mb-3 ${
+                                darkMode ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                📍 Restaurant Recommendations:
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {msg.restaurants.slice(0, 4).map((restaurant, idx) => (
+                                  <RestaurantCard 
+                                    key={restaurant.place_id || idx}
+                                    restaurant={restaurant}
+                                    index={idx}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Map Visualization */}
+                          {msg.mapData && (msg.mapData.markers || msg.mapData.routes) && (
+                            <div className="mt-4">
+                              <div className={`text-sm font-medium mb-3 ${
+                                darkMode ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                🗺️ Map View:
+                              </div>
+                              <MapVisualization 
+                                mapData={msg.mapData} 
+                                height="400px" 
+                                className="rounded-lg shadow-md"
+                              />
+                              <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
+                                darkMode ? 'text-gray-500' : 'text-gray-600'
+                              }`}>
+                                📍 {msg.mapData.markers?.length || 0} locations • 🗺️ {msg.mapData.routes?.length || 0} routes
+                              </div>
+                            </div>
+                          )}
+                          
+                          {msg.timestamp && (
+                            <div className={`text-xs mt-2 flex items-center space-x-2 transition-colors duration-200 ${
+                              darkMode ? 'text-gray-500' : 'text-gray-500'
+                            }`}>
+                              <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              {msg.type && (
+                                <span className={`px-2 py-1 rounded text-xs ${
+                                  darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                                }`}>
+                                  {msg.type}
+                                </span>
+                              )}
+                              {msg.resultCount && (
+                                <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {msg.resultCount} results
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <MessageActions 
+                          message={msg}
+                          onCopy={copyMessageToClipboard}
+                          onShare={shareMessage}
+                          onRetry={msg.canRetry ? () => handleSend(msg.originalInput) : null}
+                          darkMode={darkMode}
+                        />
+                      </div>
+                    </SwipeableMessage>
+                  ) : (
+                    // Desktop: Standard message layout
+                    <div className="flex items-start gap-3 w-full max-w-full">
+                      {/* Avatar */}
+                      <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                        darkMode 
+                          ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
+                          : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
                       }`}>
-                        {renderMessageContent(msg.text || msg.content, darkMode)}
+                        <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                        </svg>
                       </div>
                       
-                      {/* Restaurant Cards - Display when message has restaurant data */}
-                      {msg.restaurants && msg.restaurants.length > 0 && (
-                        <div className="mt-4 space-y-4">
-                          <div className={`text-sm font-medium mb-3 ${
-                            darkMode ? 'text-gray-300' : 'text-gray-700'
-                          }`}>
-                            📍 Restaurant Recommendations:
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {msg.restaurants.slice(0, 4).map((restaurant, idx) => (
-                              <RestaurantCard 
-                                key={restaurant.place_id || idx}
-                                restaurant={restaurant}
-                                index={idx}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Map Visualization - Display when message has map data */}
-                      {msg.mapData && (msg.mapData.markers || msg.mapData.routes) && (
-                        <div className="mt-4">
-                          <div className={`text-sm font-medium mb-3 ${
-                            darkMode ? 'text-gray-300' : 'text-gray-700'
-                          }`}>
-                            🗺️ Map View:
-                          </div>
-                          <MapVisualization 
-                            mapData={msg.mapData} 
-                            height="400px" 
-                            className="rounded-lg shadow-md"
-                          />
-                          <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
-                            darkMode ? 'text-gray-500' : 'text-gray-600'
-                          }`}>
-                            📍 {msg.mapData.markers?.length || 0} locations • 🗺️ {msg.mapData.routes?.length || 0} routes
-                          </div>
-                        </div>
-                      )}
-                      
-                      {msg.timestamp && (
-                        <div className={`text-xs mt-2 flex items-center space-x-2 transition-colors duration-200 ${
-                          darkMode ? 'text-gray-500' : 'text-gray-500'
+                      {/* Message content - NO BUBBLE, full width */}
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-xs font-semibold mb-2 transition-colors duration-200 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>KAM Assistant</div>
+                        
+                        {/* NO background, just text - ChatGPT style */}
+                        <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 ${
+                          darkMode ? 'text-gray-100' : 'text-gray-800'
                         }`}>
-                          <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                          {msg.type && (
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-                            }`}>
-                              {msg.type}
-                            </span>
-                          )}
-                          {msg.resultCount && (
-                            <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {msg.resultCount} results
-                            </span>
-                          )}
+                          {renderMessageContent(msg.text || msg.content, darkMode)}
                         </div>
-                      )}
+                        
+                        {/* Restaurant Cards - Display when message has restaurant data */}
+                        {msg.restaurants && msg.restaurants.length > 0 && (
+                          <div className="mt-4 space-y-4">
+                            <div className={`text-sm font-medium mb-3 ${
+                              darkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              📍 Restaurant Recommendations:
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {msg.restaurants.slice(0, 4).map((restaurant, idx) => (
+                                <RestaurantCard 
+                                  key={restaurant.place_id || idx}
+                                  restaurant={restaurant}
+                                  index={idx}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Map Visualization - Display when message has map data */}
+                        {msg.mapData && (msg.mapData.markers || msg.mapData.routes) && (
+                          <div className="mt-4">
+                            <div className={`text-sm font-medium mb-3 ${
+                              darkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              🗺️ Map View:
+                            </div>
+                            <MapVisualization 
+                              mapData={msg.mapData} 
+                              height="400px" 
+                              className="rounded-lg shadow-md"
+                            />
+                            <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
+                              darkMode ? 'text-gray-500' : 'text-gray-600'
+                            }`}>
+                              📍 {msg.mapData.markers?.length || 0} locations • 🗺️ {msg.mapData.routes?.length || 0} routes
+                            </div>
+                          </div>
+                        )}
+                        
+                        {msg.timestamp && (
+                          <div className={`text-xs mt-2 flex items-center space-x-2 transition-colors duration-200 ${
+                            darkMode ? 'text-gray-500' : 'text-gray-500'
+                          }`}>
+                            <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            {msg.type && (
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                              }`}>
+                                {msg.type}
+                              </span>
+                            )}
+                            {msg.resultCount && (
+                              <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {msg.resultCount} results
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <MessageActions 
+                        message={msg}
+                        onCopy={copyMessageToClipboard}
+                        onShare={shareMessage}
+                        onRetry={msg.canRetry ? () => handleSend(msg.originalInput) : null}
+                        darkMode={darkMode}
+                      />
                     </div>
-                    
-                    <MessageActions 
-                      message={msg}
-                      onCopy={copyMessageToClipboard}
-                      onShare={shareMessage}
-                      onRetry={msg.canRetry ? () => handleSend(msg.originalInput) : null}
-                      darkMode={darkMode}
-                    />
-                  </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1685,10 +1813,10 @@ function Chatbot({ userLocation: propUserLocation }) {
             darkMode={darkMode}
           />
           
-          {/* ChatGPT-style mobile typing indicator (more prominent) */}
+          {/* ChatGPT-style mobile typing indicator + skeleton loader */}
           {loading && (
             <div className="flex justify-start px-4 md:px-8">
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 w-full">
                 {/* Avatar */}
                 <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
                   darkMode 
@@ -1697,11 +1825,17 @@ function Chatbot({ userLocation: propUserLocation }) {
                 }`}>
                   <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                </svg>
+                  </svg>
                 </div>
                 
-                {/* Typing indicator */}
-                <MobileTypingIndicator darkMode={darkMode} />
+                {/* Mobile: Show SkeletonMessage, Desktop: Show typing indicator */}
+                <div className="flex-1">
+                  {window.innerWidth <= 768 ? (
+                    <SkeletonMessage darkMode={darkMode} count={1} />
+                  ) : (
+                    <MobileTypingIndicator darkMode={darkMode} />
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -1723,6 +1857,17 @@ function Chatbot({ userLocation: propUserLocation }) {
         bottomOffset={100} // Above input area
       />
 
+      {/* Quick Reply Suggestions - Mobile optimized */}
+      <QuickReplies
+        suggestions={quickReplySuggestions}
+        onSelect={(suggestion) => {
+          handleSend(suggestion);
+          setShowQuickReplies(false);
+        }}
+        darkMode={darkMode}
+        visible={showQuickReplies && !loading}
+      />
+
       {/* Enhanced Input Area - ChatGPT Style - Fixed at bottom on mobile with spacing */}
       <div className={`border-t p-4 md:relative md:bottom-auto md:left-auto md:right-auto fixed bottom-4 left-0 right-0 z-50 transition-colors duration-200 ${
         darkMode 
@@ -1730,14 +1875,28 @@ function Chatbot({ userLocation: propUserLocation }) {
           : 'bg-white border-gray-200'
       }`} style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         <div className="max-w-5xl mx-auto">
-          <SimpleChatInput
-            value={input}
-            onChange={setInput}
-            onSend={handleSend}
-            loading={loading}
-            placeholder="Ask about Istanbul..."
-            darkMode={darkMode}
-          />
+          {/* Use SmartChatInput on mobile, SimpleChatInput on desktop */}
+          {window.innerWidth <= 768 ? (
+            <SmartChatInput
+              value={input}
+              onChange={setInput}
+              onSend={() => handleSend(input)}
+              loading={loading}
+              placeholder="Ask about Istanbul..."
+              darkMode={darkMode}
+              enableVoice={true}
+              showCharCounter={true}
+            />
+          ) : (
+            <SimpleChatInput
+              value={input}
+              onChange={setInput}
+              onSend={handleSend}
+              loading={loading}
+              placeholder="Ask about Istanbul..."
+              darkMode={darkMode}
+            />
+          )}
           <div className={`text-xs text-center mt-2.5 opacity-50 transition-colors duration-200 ${
             darkMode ? 'text-gray-400' : 'text-gray-500'
           }`}>
@@ -1746,15 +1905,28 @@ function Chatbot({ userLocation: propUserLocation }) {
         </div>
       </div>
 
-      {/* Error Notification - with safety check */}
+      {/* Error Notification - Mobile optimized */}
       {currentError && typeof currentError === 'object' && (
-        <ErrorNotification
-          error={currentError}
-          onRetry={handleRetry}
-          onDismiss={dismissError}
-          autoHide={false}
-          darkMode={darkMode}
-        />
+        <>
+          {window.innerWidth <= 768 ? (
+            <MobileErrorNotification
+              error={currentError}
+              onRetry={handleRetry}
+              onDismiss={dismissError}
+              darkMode={darkMode}
+              autoRetry={true}
+              maxRetries={3}
+            />
+          ) : (
+            <ErrorNotification
+              error={currentError}
+              onRetry={handleRetry}
+              onDismiss={dismissError}
+              autoHide={false}
+              darkMode={darkMode}
+            />
+          )}
+        </>
       )}
       
       {/* Network Status Indicator */}
