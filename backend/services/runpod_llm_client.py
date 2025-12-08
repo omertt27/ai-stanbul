@@ -351,20 +351,30 @@ class RunPodLLMClient:
     ) -> Optional[Dict[str, Any]]:
         """Generate using OpenAI-compatible API format (vLLM, RunPod, etc.)"""
         
-        # Use SIMPLIFIED prompt - extract only the user question
-        # The full prompt has too many instructions which confuses the model
+        # Extract user query from complex prompt
+        user_query = prompt
         if "Current User Question:" in prompt:
-            # Extract just the user question
             parts = prompt.split("Current User Question:")
             if len(parts) > 1:
                 user_query = parts[1].replace("Your Direct Answer:", "").strip()
-                # Create a simple, direct prompt
-                formatted_prompt = f"You are KAM, a friendly Istanbul tour guide. Answer this question: {user_query}"
-                logger.info(f"📝 Using SIMPLIFIED prompt: {formatted_prompt[:100]}...")
-            else:
-                formatted_prompt = prompt
+        
+        # Handle greetings specially - they need context
+        greeting_words = ['hi', 'hello', 'hey', 'selam', 'merhaba', 'bonjour', 'hallo', 'привет']
+        is_greeting = any(user_query.lower().strip() in [g, f"{g}!", f"{g}?"] for g in greeting_words)
+        
+        if is_greeting:
+            # For greetings, provide a helpful prompt
+            formatted_prompt = (
+                "You are KAM, a friendly Istanbul tour guide assistant. "
+                "A user just said 'Hi' to start a conversation. "
+                "Greet them warmly and ask what they'd like to know about Istanbul. "
+                "Keep it short (2-3 sentences max)."
+            )
+            logger.info("🎯 Detected greeting - using greeting-specific prompt")
         else:
-            formatted_prompt = prompt
+            # For real questions, use direct prompt
+            formatted_prompt = f"You are KAM, a helpful Istanbul tour guide. Answer this clearly and concisely: {user_query}"
+            logger.info(f"📝 Using direct prompt for: {user_query[:50]}...")
         
         logger.debug(f"Prompt length: {len(formatted_prompt)} chars")
         
