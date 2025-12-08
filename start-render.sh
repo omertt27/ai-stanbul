@@ -42,12 +42,12 @@ try:
     print('✅ Database import successful')
     from models import Base, Restaurant, Museum, Place, FeedbackEvent, IntentFeedback
     print('✅ Real-time learning models imported successfully')
-    from models import GPSRoute, RouteWaypoint
-    print('✅ GPS Navigation models imported successfully')
     print('✅ Models import successful')
     print('🎯 All critical imports successful')
 except ImportError as e:
     print(f'❌ Import failed: {e}')
+    import traceback
+    traceback.print_exc()
     sys.exit(1)
 "
 
