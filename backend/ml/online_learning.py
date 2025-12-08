@@ -4,7 +4,7 @@ Implements incremental learning, Thompson Sampling, and concept drift detection
 """
 
 import logging
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Union
 from datetime import datetime, timedelta
 from collections import defaultdict, deque
 import json
@@ -14,9 +14,11 @@ import math
 try:
     import numpy as np
     NUMPY_AVAILABLE = True
+    NDArray = np.ndarray
 except ImportError:
     NUMPY_AVAILABLE = False
     np = None
+    NDArray = List[float]  # Fallback type for when numpy isn't available
 
 # Import scipy with fallback
 try:
@@ -50,10 +52,16 @@ class ThompsonSampling:
             beta_prior: Prior beta parameter for Beta distribution
         """
         self.n_arms = n_arms
-        self.alpha = np.ones(n_arms) * alpha_prior
-        self.beta = np.ones(n_arms) * beta_prior
-        self.total_pulls = np.zeros(n_arms)
-        self.total_rewards = np.zeros(n_arms)
+        if NUMPY_AVAILABLE:
+            self.alpha = np.ones(n_arms) * alpha_prior
+            self.beta = np.ones(n_arms) * beta_prior
+            self.total_pulls = np.zeros(n_arms)
+            self.total_rewards = np.zeros(n_arms)
+        else:
+            self.alpha = [alpha_prior] * n_arms
+            self.beta = [beta_prior] * n_arms
+            self.total_pulls = [0.0] * n_arms
+            self.total_rewards = [0.0] * n_arms
         
         logger.info(f"✅ ThompsonSampling initialized with {n_arms} arms")
     
@@ -64,9 +72,19 @@ class ThompsonSampling:
         Returns:
             int: Selected arm index
         """
-        # Sample from Beta distribution for each arm
-        samples = np.random.beta(self.alpha, self.beta)
-        return int(np.argmax(samples))
+        if NUMPY_AVAILABLE:
+            # Sample from Beta distribution for each arm
+            samples = np.random.beta(self.alpha, self.beta)
+            return int(np.argmax(samples))
+        else:
+            # Fallback: Simple epsilon-greedy
+            import random
+            if random.random() < 0.1:  # 10% exploration
+                return random.randint(0, self.n_arms - 1)
+            else:  # 90% exploitation
+                # Select arm with highest mean reward
+                means = [self.total_rewards[i] / max(self.total_pulls[i], 1) for i in range(self.n_arms)]
+                return means.index(max(means))
     
     def update(self, arm: int, reward: float):
         """
@@ -198,13 +216,21 @@ class IncrementalEmbeddingLearner:
     def _initialize_user(self, user_id: str):
         """Initialize embeddings for a new user"""
         if user_id not in self.user_embeddings:
-            self.user_embeddings[user_id] = np.random.normal(0, 0.1, self.embedding_dim)
+            if NUMPY_AVAILABLE:
+                self.user_embeddings[user_id] = np.random.normal(0, 0.1, self.embedding_dim)
+            else:
+                import random
+                self.user_embeddings[user_id] = [random.gauss(0, 0.1) for _ in range(self.embedding_dim)]
             self.user_bias[user_id] = 0.0
     
     def _initialize_item(self, item_id: str):
         """Initialize embeddings for a new item"""
         if item_id not in self.item_embeddings:
-            self.item_embeddings[item_id] = np.random.normal(0, 0.1, self.embedding_dim)
+            if NUMPY_AVAILABLE:
+                self.item_embeddings[item_id] = np.random.normal(0, 0.1, self.embedding_dim)
+            else:
+                import random
+                self.item_embeddings[item_id] = [random.gauss(0, 0.1) for _ in range(self.embedding_dim)]
             self.item_bias[item_id] = 0.0
     
     def predict(self, user_id: str, item_id: str) -> float:
@@ -225,10 +251,17 @@ class IncrementalEmbeddingLearner:
         item_emb = self.item_embeddings[item_id]
         
         # Dot product + biases
-        score = np.dot(user_emb, item_emb) + \
-                self.user_bias[user_id] + \
-                self.item_bias[item_id] + \
-                self.global_bias
+        if NUMPY_AVAILABLE:
+            score = np.dot(user_emb, item_emb) + \
+                    self.user_bias[user_id] + \
+                    self.item_bias[item_id] + \
+                    self.global_bias
+        else:
+            # Fallback: manual dot product
+            score = sum(a * b for a, b in zip(user_emb, item_emb)) + \
+                    self.user_bias[user_id] + \
+                    self.item_bias[item_id] + \
+                    self.global_bias
         
         # Apply sigmoid to bound between 0 and 1
         return 1.0 / (1.0 + np.exp(-score))
@@ -272,12 +305,12 @@ class IncrementalEmbeddingLearner:
         if self.update_count % 100 == 0:
             logger.debug(f"📊 Embedding update #{self.update_count} (error={error:.4f})")
     
-    def get_user_embedding(self, user_id: str) -> np.ndarray:
+    def get_user_embedding(self, user_id: str) -> NDArray:
         """Get user embedding vector"""
         self._initialize_user(user_id)
         return self.user_embeddings[user_id].copy()
     
-    def get_item_embedding(self, item_id: str) -> np.ndarray:
+    def get_item_embedding(self, item_id: str) -> NDArray:
         """Get item embedding vector"""
         self._initialize_item(item_id)
         return self.item_embeddings[item_id].copy()
@@ -304,8 +337,15 @@ class IncrementalEmbeddingLearner:
                 continue
             
             # Cosine similarity
-            sim = np.dot(target_emb, other_emb) / \
-                  (np.linalg.norm(target_emb) * np.linalg.norm(other_emb))
+            if NUMPY_AVAILABLE:
+                sim = np.dot(target_emb, other_emb) / \
+                      (np.linalg.norm(target_emb) * np.linalg.norm(other_emb))
+            else:
+                # Fallback: manual cosine similarity
+                dot_product = sum(a * b for a, b in zip(target_emb, other_emb))
+                norm_target = sum(x ** 2 for x in target_emb) ** 0.5
+                norm_other = sum(x ** 2 for x in other_emb) ** 0.5
+                sim = dot_product / (norm_target * norm_other) if norm_target and norm_other else 0
             similarities.append((other_id, float(sim)))
         
         # Sort by similarity and return top K
