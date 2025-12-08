@@ -240,7 +240,11 @@ class LocationBasedContextEnhancer:
             return []
         
         try:
-            # Get events (this depends on how your events service works)
+            # Get events (check if method exists)
+            if not hasattr(self.events_service, 'get_upcoming_events'):
+                logger.warning("Events service doesn't have get_upcoming_events method")
+                return []
+            
             all_events = self.events_service.get_upcoming_events()
             
             # Filter by district if possible

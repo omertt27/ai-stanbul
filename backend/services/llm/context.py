@@ -264,7 +264,7 @@ class ContextBuilder:
                 elif signals.get('needs_hidden_gems'):
                     intent = 'hidden_gems'
                 
-                # Enhance context with location-based data
+                # Enhance context with location-based data (safely handle None user_location)
                 enriched_context = await enhancer.enhance_context(
                     query=query,
                     base_context=context,
@@ -274,6 +274,8 @@ class ContextBuilder:
                 # Merge enriched context
                 context = self._merge_location_enriched_context(context, enriched_context)
                 logger.info("✅ Location-based context enhancement applied")
+            except KeyError as ke:
+                logger.error(f"Location-based context enhancement failed with KeyError: {ke} - likely missing user_location key")
             except Exception as e:
                 logger.warning(f"Location-based context enhancement failed: {e}")
         
@@ -636,14 +638,22 @@ POPULAR ROUTES:
             return ""
         
         try:
+            # Check if method exists
+            if not hasattr(self.events_service, 'get_upcoming_events'):
+                logger.warning("Events service doesn't have get_upcoming_events method")
+                return ""
+            
             # Use circuit breaker if available
             if 'events' in self.circuit_breakers:
                 async def _get_events():
-                    return await self.events_service.get_upcoming_events(limit=5)
+                    # Call synchronously if not async
+                    events_result = self.events_service.get_upcoming_events(limit=5)
+                    return events_result
                 
                 events = await self.circuit_breakers['events'].call(_get_events)
             else:
-                events = await self.events_service.get_upcoming_events(limit=5)
+                # Call synchronously
+                events = self.events_service.get_upcoming_events(limit=5)
             
             if not events:
                 return ""
