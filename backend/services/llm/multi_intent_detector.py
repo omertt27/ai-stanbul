@@ -138,7 +138,27 @@ Return ONLY a valid JSON object with the structure specified above."""
                     confidence=0.6
                 )
             
-            # Build MultiIntentDetection
+            # Validate and sanitize data before creating MultiIntentDetection
+            # Ensure intent_count is at least 1
+            intent_count = data.get("intent_count", 1)
+            if intent_count < 1:
+                logger.warning(f"Invalid intent_count ({intent_count}), setting to 1")
+                intent_count = 1
+            
+            # Ensure execution_strategy is valid
+            valid_strategies = ["sequential", "parallel", "conditional", "mixed"]
+            execution_strategy = data.get("execution_strategy", "sequential")
+            if execution_strategy not in valid_strategies:
+                logger.warning(f"Invalid execution_strategy ('{execution_strategy}'), defaulting to 'sequential'")
+                execution_strategy = "sequential"
+            
+            # Ensure we have at least one intent
+            intents_data = data.get("intents", [])
+            if not intents_data:
+                logger.warning("No intents in LLM response, using fallback")
+                return self._fallback_detection(query, context)
+            
+            # Build DetectedIntent objects
             intents = [
                 DetectedIntent(
                     intent_type=intent_data["intent_type"],
@@ -149,9 +169,10 @@ Return ONLY a valid JSON object with the structure specified above."""
                     depends_on=intent_data.get("depends_on"),
                     condition=intent_data.get("condition")
                 )
-                for i, intent_data in enumerate(data["intents"])
+                for i, intent_data in enumerate(intents_data)
             ]
             
+            # Build IntentRelationship objects
             relationships = [
                 IntentRelationship(
                     relationship_type=rel_data["relationship_type"],
@@ -165,11 +186,11 @@ Return ONLY a valid JSON object with the structure specified above."""
             
             result = MultiIntentDetection(
                 original_query=query,
-                intent_count=data["intent_count"],
+                intent_count=intent_count,
                 intents=intents,
                 relationships=relationships,
-                execution_strategy=data["execution_strategy"],
-                is_multi_intent=data["is_multi_intent"],
+                execution_strategy=execution_strategy,
+                is_multi_intent=data.get("is_multi_intent", len(intents) > 1),
                 confidence=data.get("confidence", 0.85),
                 detection_method="llm",
                 processing_time_ms=processing_time
