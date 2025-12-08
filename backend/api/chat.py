@@ -250,75 +250,75 @@ async def pure_llm_chat(
     # Keep these - they're fast and useful for specific intents
     # Try hidden gems GPS request first
     try:
-            from services.hidden_gems_gps_integration import get_hidden_gems_gps_integration
+        from services.hidden_gems_gps_integration import get_hidden_gems_gps_integration
+        
+        gems_handler = get_hidden_gems_gps_integration(db)
+        
+        # Try to handle as hidden gem request
+        gems_result = gems_handler.handle_hidden_gem_chat_request(
+            message=request.message,
+            user_location=request.user_location,
+            session_id=request.session_id or 'new'
+        )
+        
+        if gems_result:
+            # This was a hidden gems request
+            if gems_result.get('error'):
+                # Error occurred (no enhancement for errors)
+                return ChatResponse(
+                    response=gems_result.get('message', 'Sorry, something went wrong with hidden gems.'),
+                    session_id=request.session_id or 'new',
+                    intent='hidden_gems',
+                    confidence=0.8,
+                    suggestions=["Show me restaurants", "What are popular attractions?"]
+                )
             
-            gems_handler = get_hidden_gems_gps_integration(db)
-            
-            # Try to handle as hidden gem request
-            gems_result = gems_handler.handle_hidden_gem_chat_request(
-                message=request.message,
-                user_location=request.user_location,
-                session_id=request.session_id or 'new'
-            )
-            
-            if gems_result:
-                # This was a hidden gems request
-                if gems_result.get('error'):
-                    # Error occurred (no enhancement for errors)
-                    return ChatResponse(
-                        response=gems_result.get('message', 'Sorry, something went wrong with hidden gems.'),
-                        session_id=request.session_id or 'new',
-                        intent='hidden_gems',
-                        confidence=0.8,
-                        suggestions=["Show me restaurants", "What are popular attractions?"]
-                    )
-                
-                # Check if navigation was started
-                if gems_result.get('navigation_active'):
-                    # Enhance navigation response
-                    enhanced_msg = await enhance_chat_response(
-                        base_response=gems_result.get('message', ''),
-                        original_query=request.message,
-                        user_context=user_context,
-                        route_data=gems_result.get('navigation_data'),
-                        response_type="navigation"
-                    )
-                    
-                    return ChatResponse(
-                        response=enhanced_msg,
-                        session_id=request.session_id or 'new',
-                        intent='hidden_gems_navigation',
-                        confidence=1.0,
-                        suggestions=["What's next?", "Stop navigation", "Show nearby hidden gems"],
-                        map_data=gems_result.get('map_data'),
-                        navigation_active=True,
-                        navigation_data=gems_result.get('navigation_data')
-                    )
-                
-                # Return gems discovery response with enhancement
-                gems = gems_result.get('gems', [])
-                response_text = _format_hidden_gems_response(gems, request.user_location)
-                
-                # Phase 3: Enhance hidden gems response
-                enhanced_response = await enhance_chat_response(
-                    base_response=response_text,
+            # Check if navigation was started
+            if gems_result.get('navigation_active'):
+                # Enhance navigation response
+                enhanced_msg = await enhance_chat_response(
+                    base_response=gems_result.get('message', ''),
                     original_query=request.message,
                     user_context=user_context,
-                    response_type="hidden_gems"
+                    route_data=gems_result.get('navigation_data'),
+                    response_type="navigation"
                 )
                 
                 return ChatResponse(
-                    response=enhanced_response,
+                    response=enhanced_msg,
                     session_id=request.session_id or 'new',
-                    intent='hidden_gems',
+                    intent='hidden_gems_navigation',
                     confidence=1.0,
-                    suggestions=_get_hidden_gems_suggestions(gems),
+                    suggestions=["What's next?", "Stop navigation", "Show nearby hidden gems"],
                     map_data=gems_result.get('map_data'),
-                    navigation_active=False
+                    navigation_active=True,
+                    navigation_data=gems_result.get('navigation_data')
                 )
-                
-        except Exception as e:
-            logger.warning(f"Hidden gems GPS check failed: {e}")
+            
+            # Return gems discovery response with enhancement
+            gems = gems_result.get('gems', [])
+            response_text = _format_hidden_gems_response(gems, request.user_location)
+            
+            # Phase 3: Enhance hidden gems response
+            enhanced_response = await enhance_chat_response(
+                base_response=response_text,
+                original_query=request.message,
+                user_context=user_context,
+                response_type="hidden_gems"
+            )
+            
+            return ChatResponse(
+                response=enhanced_response,
+                session_id=request.session_id or 'new',
+                intent='hidden_gems',
+                confidence=1.0,
+                suggestions=_get_hidden_gems_suggestions(gems),
+                map_data=gems_result.get('map_data'),
+                navigation_active=False
+            )
+            
+    except Exception as e:
+        logger.warning(f"Hidden gems GPS check failed: {e}")
         
         # Check if this is a GPS navigation command
         try:
