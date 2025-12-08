@@ -40,7 +40,10 @@ sys.path.insert(0, os.getcwd())
 try:
     from database import engine, SessionLocal
     print('✅ Database import successful')
-    from models import Base, Restaurant, Museum, Place
+    from models import Base, Restaurant, Museum, Place, FeedbackEvent, IntentFeedback
+    print('✅ Real-time learning models imported successfully')
+    from models import GPSRoute, RouteWaypoint
+    print('✅ GPS Navigation models imported successfully')
     print('✅ Models import successful')
     print('🎯 All critical imports successful')
 except ImportError as e:

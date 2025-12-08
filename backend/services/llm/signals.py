@@ -29,7 +29,16 @@ import re
 import time
 from typing import Dict, Any, Optional, List, Tuple, Set
 from collections import defaultdict
-import numpy as np
+
+# Import numpy with fallback
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    np = None
+    logger = logging.getLogger(__name__)
+    logger.warning("⚠️ NumPy not available - using fallback implementations")
 
 # Import fuzzy matching and enhanced patterns (Phase 1 improvements)
 try:
@@ -1410,23 +1419,29 @@ class SignalDetector:
     
     def _cosine_similarity(
         self,
-        embedding1: np.ndarray,
-        embedding2: np.ndarray
+        embedding1,
+        embedding2
     ) -> float:
         """
         Calculate cosine similarity between two embeddings.
         
         Args:
-            embedding1: First embedding
-            embedding2: Second embedding
+            embedding1: First embedding (list or numpy array)
+            embedding2: Second embedding (list or numpy array)
             
         Returns:
             Similarity score (0-1)
         """
         try:
-            dot_product = np.dot(embedding1, embedding2)
-            norm1 = np.linalg.norm(embedding1)
-            norm2 = np.linalg.norm(embedding2)
+            if NUMPY_AVAILABLE and np is not None:
+                dot_product = np.dot(embedding1, embedding2)
+                norm1 = np.linalg.norm(embedding1)
+                norm2 = np.linalg.norm(embedding2)
+            else:
+                # Fallback implementation using pure Python
+                dot_product = sum(a * b for a, b in zip(embedding1, embedding2))
+                norm1 = sum(x ** 2 for x in embedding1) ** 0.5
+                norm2 = sum(x ** 2 for x in embedding2) ** 0.5
             
             if norm1 == 0 or norm2 == 0:
                 return 0.0
