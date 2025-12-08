@@ -351,11 +351,22 @@ class RunPodLLMClient:
     ) -> Optional[Dict[str, Any]]:
         """Generate using OpenAI-compatible API format (vLLM, RunPod, etc.)"""
         
-        # TEMPORARILY DISABLED: Format prompt for Llama 3.1 chat template
-        # Testing if raw prompt works better
-        # formatted_prompt = self._format_llama_chat_prompt(prompt)
-        formatted_prompt = prompt  # Use raw prompt for now
-        logger.debug(f"Using RAW prompt (chat template disabled for testing), length: {len(formatted_prompt)} chars")
+        # Use SIMPLIFIED prompt - extract only the user question
+        # The full prompt has too many instructions which confuses the model
+        if "Current User Question:" in prompt:
+            # Extract just the user question
+            parts = prompt.split("Current User Question:")
+            if len(parts) > 1:
+                user_query = parts[1].replace("Your Direct Answer:", "").strip()
+                # Create a simple, direct prompt
+                formatted_prompt = f"You are KAM, a friendly Istanbul tour guide. Answer this question: {user_query}"
+                logger.info(f"📝 Using SIMPLIFIED prompt: {formatted_prompt[:100]}...")
+            else:
+                formatted_prompt = prompt
+        else:
+            formatted_prompt = prompt
+        
+        logger.debug(f"Prompt length: {len(formatted_prompt)} chars")
         
         # Use standard completions format for vLLM
         payload = {
