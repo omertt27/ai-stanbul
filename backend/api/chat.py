@@ -5,11 +5,13 @@ All chat-related endpoints including ML chat, Pure LLM chat, and legacy chat
 """
 
 from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 import time
 import logging
+import json
 
 from database import get_db
 from core.startup import startup_manager
@@ -215,480 +217,39 @@ async def pure_llm_chat(
         logger.error(f"Context resolution error: {e}", exc_info=True)
         # Continue without context resolution - non-blocking
     
-    # === PHASE 4.3: MULTI-INTENT DETECTION & HANDLING (NEW!) ===
-    # Check if query contains multiple intents that need orchestration
-    logger.info(f"🎯 Phase 4.3: Multi-Intent Detection for query: '{request.message[:60]}...'")
+    # === PHASE 4.3: MULTI-INTENT DETECTION - DISABLED FOR PERFORMANCE ===
+    # REMOVED: Multi-intent detection was taking 12-35 seconds per request
+    # The Pure LLM Core is smart enough to handle multi-intent queries naturally
+    # If needed in future, can be re-enabled with proper optimization
+    logger.info(f"⚡ Skipping multi-intent detection - using Pure LLM for fast response")
     
-    multi_intent_result = None
+    # === PHASE 1: LLM INTENT CLASSIFICATION - DISABLED FOR PERFORMANCE ===
+    # REMOVED: Intent classification was taking 15-22 seconds per request
+    # The Pure LLM Core already understands intent internally - no need for separate layer
+    logger.info(f"⚡ Skipping intent classification - Pure LLM handles this naturally")
+    
+    # Prepare user context for downstream handlers
+    user_context = {
+        'preferences': request.preferences or {},
+    }
+    
+    if request.user_location:
+        user_context['gps'] = request.user_location
+        user_context['location'] = request.user_location
+        logger.info(f"📍 User GPS available: lat={request.user_location.get('lat')}, lon={request.user_location.get('lon')}")
+    
+    # Add resolved context if available
+    if resolved_context:
+        user_context['resolved_context'] = resolved_context.get('implicit_context', {})
+    
+    # No LLM intent classification - Pure LLM will handle everything
+    llm_intent = None
+    location_resolution = None
+    
+    # === PHASE 3: SPECIALIZED HANDLERS ===
+    # Keep these - they're fast and useful for specific intents
+    # Try hidden gems GPS request first
     try:
-        from services.llm import get_multi_intent_detector, get_intent_orchestrator, get_response_synthesizer
-        
-        # Get or create multi-intent detector
-        pure_llm_core = startup_manager.get_pure_llm_core()
-        if pure_llm_core:
-            llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
-            
-            if llm_client:
-                # Initialize multi-intent components
-                detector = get_multi_intent_detector(
-                    llm_client=llm_client,
-                    config={
-                        'enable_llm': True,
-                        'fallback_to_rules': True,
-                        'min_confidence': 0.7
-                    }
-                )
-                
-                # Prepare context for detection
-                user_context = {
-                    'preferences': request.preferences or {},
-                }
-                if request.user_location:
-                    user_context['gps'] = request.user_location
-                    user_context['location'] = request.user_location
-                if resolved_context:
-                    user_context['resolved_context'] = resolved_context.get('implicit_context', {})
-                
-                # Detect multiple intents
-                detection_result = await detector.detect_intents(
-                    query=request.message,
-                    context=user_context
-                )
-                
-                logger.info(
-                    f"✅ Multi-Intent Detection complete:\n"
-                    f"   - Intents Found: {len(detection_result.intents)}\n"
-                    f"   - Has Multiple: {detection_result.is_multi_intent}\n"
-                    f"   - Confidence: {detection_result.confidence:.2f}\n"
-                    f"   - Method: {detection_result.detection_method}"
-                )
-                
-                # If multiple intents detected with high confidence, orchestrate handling
-                if detection_result.is_multi_intent and detection_result.confidence >= 0.7:
-                    logger.info(f"🎭 Multiple intents detected, orchestrating execution...")
-                    
-                    # Log each intent
-                    for i, intent_info in enumerate(detection_result.intents, 1):
-                        logger.info(
-                            f"   Intent {i}: {intent_info.intent_type} "
-                            f"(confidence={intent_info.confidence:.2f}, "
-                            f"priority={intent_info.priority})"
-                        )
-                    
-                    # Initialize orchestrator and synthesizer
-                    orchestrator = get_intent_orchestrator(
-                        llm_client=llm_client,
-                        config={'enable_llm': True, 'enable_parallel': True}
-                    )
-                    synthesizer = get_response_synthesizer(
-                        llm_client=llm_client,
-                        config={'enable_llm': True}
-                    )
-                    
-                    # Plan execution
-                    execution_plan = await orchestrator.create_execution_plan(
-                        intents=detection_result.intents,
-                        user_context=user_context
-                    )
-                    
-                    logger.info(
-                        f"📋 Execution Plan:\n"
-                        f"   - Groups: {len(execution_plan.execution_groups)}\n"
-                        f"   - Can Parallelize: {execution_plan.can_parallelize}\n"
-                        f"   - Method: {execution_plan.planning_method}"
-                    )
-                    
-                    # Execute each intent group (simplified - call existing handlers)
-                    all_responses = []
-                    for group_idx, group in enumerate(execution_plan.execution_groups, 1):
-                        logger.info(f"   Executing group {group_idx} with {len(group.intent_ids)} intents...")
-                        
-                        for intent_id in group.intent_ids:
-                            # Find the intent info
-                            intent_info = next(
-                                (i for i in detection_result.intents if i.intent_id == intent_id),
-                                None
-                            )
-                            
-                            if intent_info:
-                                # Create a mock response for this intent
-                                # In a real implementation, we'd call the appropriate handler
-                                intent_response = {
-                                    'intent_id': intent_id,
-                                    'intent_type': intent_info.intent_type,
-                                    'response': f"[Handled {intent_info.intent_type}]",
-                                    'confidence': intent_info.confidence,
-                                    'data': intent_info.parameters
-                                }
-                                all_responses.append(intent_response)
-                    
-                    # Synthesize combined response
-                    logger.info(f"🔗 Synthesizing {len(all_responses)} responses...")
-                    
-                    synthesis_result = await synthesizer.synthesize_responses(
-                        query=request.message,
-                        intent_responses=all_responses,
-                        user_context=user_context
-                    )
-                    
-                    logger.info(
-                        f"✅ Response Synthesis complete:\n"
-                        f"   - Method: {synthesis_result.synthesis_method}\n"
-                        f"   - Combined Response Length: {len(synthesis_result.combined_response)}"
-                    )
-                    
-                    # Store multi-intent result to return early
-                    multi_intent_result = {
-                        'response': synthesis_result.combined_response,
-                        'intents': detection_result.intents,
-                        'execution_plan': execution_plan,
-                        'synthesis': synthesis_result
-                    }
-                    
-                    # Record conversation for context
-                    await record_conversation_turn(
-                        session_id=session_id,
-                        user_query=original_query,
-                        bot_response=synthesis_result.combined_response,
-                        intent='multi_intent',
-                        locations=[p.get('location') for i in detection_result.intents 
-                                  for p in [i.parameters] if p.get('location')]
-                    )
-                    
-                    # Extract map data from synthesis result if available
-                    map_data = None
-                    if hasattr(synthesis_result, 'map_data') and synthesis_result.map_data:
-                        map_data = synthesis_result.map_data
-                    elif hasattr(synthesis_result, 'metadata') and synthesis_result.metadata:
-                        map_data = synthesis_result.metadata.get('map_data')
-                    
-                    logger.info(f"🗺️ Multi-intent map data: {'available' if map_data else 'not available'}")
-                    
-                    # Return early with multi-intent response
-                    return ChatResponse(
-                        response=synthesis_result.combined_response,
-                        session_id=session_id,
-                        intent='multi_intent',
-                        confidence=detection_result.confidence,
-                        suggestions=synthesis_result.follow_up_suggestions or [],
-                        map_data=map_data,  # Include map data from multi-intent handling
-                        navigation_active=False
-                    )
-                else:
-                    logger.info(f"✓ Single intent detected, continuing with normal flow")
-            else:
-                logger.warning("⚠️ LLM client not available, skipping multi-intent detection")
-        else:
-            logger.warning("⚠️ Pure LLM Core not available, skipping multi-intent detection")
-            
-    except Exception as e:
-        logger.error(f"Multi-intent detection error: {e}", exc_info=True)
-        # Continue with single-intent flow on error - non-blocking
-    
-    # === PHASE 1: LLM INTENT CLASSIFICATION ===
-    # This gives the LLM the primary role in understanding user intent
-    logger.info(f"🤖 Phase 1: LLM Intent Classification for query: '{request.message[:60]}...'")
-    
-    try:
-        from services.llm import get_intent_classifier
-        
-        # Prepare context for intent classification
-        user_context = {
-            'preferences': request.preferences or {},
-        }
-        
-        # Add resolved context if available
-        if resolved_context:
-            user_context['resolved_context'] = resolved_context.get('implicit_context', {})
-        
-        if request.user_location:
-            user_context['gps'] = request.user_location
-            user_context['location'] = request.user_location
-            logger.info(f"📍 User GPS available: lat={request.user_location.get('lat')}, lon={request.user_location.get('lon')}")
-        
-        # DISABLED FOR SPEED: Intent classification adds 15-22 seconds
-        # The Pure LLM already handles intent understanding
-        ENABLE_INTENT_CLASSIFICATION = False
-        llm_intent = None
-        location_resolution = None
-        
-        if ENABLE_INTENT_CLASSIFICATION:
-            try:
-                # Get or create intent classifier (uses singleton pattern)
-                pure_llm_core = startup_manager.get_pure_llm_core()
-                if not pure_llm_core:
-                    logger.warning("⚠️ Pure LLM Core not available, skipping LLM intent classification")
-                    llm_intent = None
-                else:
-                    # Get the LLM client from pure_llm_core
-                    llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
-                    
-                    if llm_client:
-                        intent_classifier = get_intent_classifier(
-                            llm_client=llm_client,
-                        db_connection=db,
-                        cache_manager=None,  # TODO: Add cache manager when available
-                        config={'enable_caching': False}  # Disable for initial testing
-                    )
-                    
-                    # Classify intent using LLM (now with resolved query)
-                    llm_intent = await intent_classifier.classify_intent(
-                        query=request.message,
-                        user_context=user_context,
-                        use_cache=True
-                    )
-                    
-                    logger.info(
-                        f"✅ LLM Intent Classification complete:\n"
-                        f"   - Primary Intent: {llm_intent.primary_intent or 'None'}\n"
-                        f"   - Confidence: {llm_intent.confidence:.2f}\n"
-                        f"   - Origin: {llm_intent.origin or 'N/A'}\n"
-                        f"   - Destination: {llm_intent.destination or 'N/A'}\n"
-                        f"   - Method: {llm_intent.classification_method}\n"
-                        f"   - Time: {llm_intent.processing_time_ms:.0f}ms"
-                    )
-                    
-                    # Log preferences if detected
-                    if llm_intent.user_preferences:
-                        logger.info(f"   - Detected Preferences: {llm_intent.user_preferences}")
-                    
-                    # Log ambiguities if any
-                    if llm_intent.ambiguities:
-                        logger.warning(f"   - Ambiguities: {llm_intent.ambiguities}")
-            
-                    # === PHASE 2: LLM LOCATION RESOLUTION ===
-                    # If locations detected or route intent, use LLM location resolver
-                    location_resolution = None
-                    if llm_intent.primary_intent in ["route", "hidden_gems", "information", "transport"]:
-                        try:
-                            from backend.services.llm import get_location_resolver
-                            
-                            location_resolver = get_location_resolver()
-                            
-                            # Prepare user context for location resolver
-                            loc_context = {
-                                'gps': user_context.get('gps'),
-                                'previous_locations': []  # TODO: Track in conversation history
-                            }
-                            
-                            # Resolve locations using LLM
-                            location_resolution = location_resolver.resolve_locations(
-                                query=request.message,
-                                user_context=loc_context
-                            )
-                            
-                            logger.info(
-                                f"✅ LLM Location Resolution complete:\n"
-                                f"   - Pattern: {location_resolution.pattern}\n"
-                                f"   - Locations Found: {len(location_resolution.locations)}\n"
-                                f"   - Confidence: {location_resolution.confidence:.2f}\n"
-                                f"   - Used LLM: {location_resolution.used_llm}\n"
-                                f"   - Fallback: {location_resolution.fallback_used}"
-                            )
-                            
-                            # Log each location
-                            for i, loc in enumerate(location_resolution.locations, 1):
-                                coords_str = f"{loc.coordinates[0]:.4f}, {loc.coordinates[1]:.4f}" if loc.coordinates else "None"
-                                logger.info(
-                                    f"   Location {i}: {loc.name} -> {loc.matched_name} "
-                                    f"({coords_str}, confidence={loc.confidence:.2f})"
-                                )
-                            
-                            # Log ambiguities
-                            if location_resolution.ambiguities:
-                                logger.warning(f"   - Location Ambiguities: {location_resolution.ambiguities}")
-                            
-                            # Update llm_intent with resolved locations for downstream handlers
-                            if location_resolution.locations:
-                                if len(location_resolution.locations) >= 2 and location_resolution.pattern == "from_to":
-                                    # Two locations: origin and destination
-                                    llm_intent.origin = location_resolution.locations[0].matched_name
-                                    llm_intent.destination = location_resolution.locations[1].matched_name
-                                    logger.info(f"   ✓ Updated intent: origin={llm_intent.origin}, dest={llm_intent.destination}")
-                                elif len(location_resolution.locations) == 1:
-                                    # Single location: destination only
-                                    llm_intent.destination = location_resolution.locations[0].matched_name
-                                    logger.info(f"   ✓ Updated intent: dest={llm_intent.destination}")
-                                elif len(location_resolution.locations) > 2:
-                                    # Multi-stop journey
-                                    llm_intent.destination = location_resolution.locations[-1].matched_name
-                                    logger.info(f"   ✓ Multi-stop journey detected, final dest={llm_intent.destination}")
-                        
-                        except Exception as e:
-                            logger.error(f"❌ LLM Location Resolution failed: {e}", exc_info=True)
-                            location_resolution = None
-            
-            except Exception as e:
-                logger.error(f"❌ LLM Intent Classification failed: {e}", exc_info=True)
-                llm_intent = None
-    
-    except Exception as e:
-        logger.error(f"❌ Intent/Location resolution setup failed: {e}", exc_info=True)
-        llm_intent = None
-        location_resolution = None
-    
-    # === PHASE 2: SMART ROUTING BASED ON LLM INTENT (LLM-FIRST ARCHITECTURE) ===
-    # Trust LLM for all intent classification - removed pattern matching fallback
-    # Lowered confidence threshold from 0.7 to 0.5 to trust LLM more broadly
-    skip_routing = False  # Default: don't skip routing, let specialized handlers check
-    
-    if llm_intent:
-        # We have LLM intent - trust it even with moderate confidence
-        if llm_intent.confidence >= 0.5:  # Lowered from 0.7 - trust LLM more
-            logger.info(f"🎯 LLM intent: {llm_intent.primary_intent} (confidence: {llm_intent.confidence:.2f})")
-            
-            # Route based on LLM intent classification
-            if llm_intent.primary_intent == "information":
-                logger.info("ℹ️ LLM detected information request, skipping GPS/route handlers")
-                skip_routing = True
-            elif llm_intent.primary_intent in ["route", "hidden_gems", "transport"]:
-                logger.info(f"🗺️ LLM detected {llm_intent.primary_intent} intent, will check specialized handlers")
-                skip_routing = False
-            else:
-                logger.info(f"💬 LLM detected {llm_intent.primary_intent} intent, will use general flow")
-                skip_routing = False
-        else:
-            # Low confidence but still trust LLM - no pattern fallback
-            logger.info(f"🤔 Low confidence LLM intent ({llm_intent.confidence:.2f}) for {llm_intent.primary_intent}, proceeding anyway")
-            # Let specialized handlers try, they can decide
-            skip_routing = False
-    else:
-        # No LLM intent available - proceed to Pure LLM without specialized routing
-        logger.warning(f"⚠️ No LLM intent extracted, will use Pure LLM for general handling")
-        skip_routing = False
-    
-    # === PHASE 2.5: SMART ROUTING BASED ON LLM INTENT (LLM-FIRST ARCHITECTURE) ===
-    # If LLM detected route intent with good confidence, route directly to route handler
-    # Lowered threshold from 0.7 to 0.6 to catch more route queries
-    if llm_intent and llm_intent.primary_intent == "route" and llm_intent.confidence >= 0.6:
-        logger.info(f"🚗 LLM-based routing: ROUTE intent detected ({llm_intent.confidence:.2f})")
-        logger.info(f"   Origin: {llm_intent.origin}, Destination: {llm_intent.destination}")
-        
-        try:
-            from services.ai_chat_route_integration import get_chat_route_handler
-            
-            handler = get_chat_route_handler()
-            
-            # Build route params from LLM intent
-            route_params = {
-                'origin': llm_intent.origin,
-                'destination': llm_intent.destination,
-                'user_location': request.user_location,
-                'preferences': llm_intent.user_preferences or {},
-                'original_query': request.message
-            }
-            
-            logger.info(f"📍 Calling route handler with LLM-extracted data:")
-            logger.info(f"   - Origin: {route_params['origin']}")
-            logger.info(f"   - Destination: {route_params['destination']}")
-            logger.info(f"   - Has GPS: {route_params['user_location'] is not None}")
-            
-            # Get route using LLM-extracted locations
-            if route_params['destination']:
-                # We have a destination from LLM
-                from services.map_visualization_service import MapVisualizationService
-                
-                map_service = MapVisualizationService()
-                
-                # Determine origin coordinates
-                if route_params['origin']:
-                    # Origin specified in query
-                    origin_coords = handler._get_destination_coordinates(route_params['origin'])
-                    origin_name = route_params['origin']
-                elif route_params['user_location']:
-                    # Use GPS location
-                    origin_coords = (
-                        route_params['user_location']['lat'],
-                        route_params['user_location']['lon']
-                    )
-                    origin_name = "Your Location"
-                else:
-                    # No origin - request GPS
-                    logger.warning("❌ No origin specified and no GPS available")
-                    return ChatResponse(
-                        response="To show you directions, I need to know where you're starting from. Please enable GPS or specify a starting location.",
-                        session_id=request.session_id or 'new',
-                        intent='route_planning',
-                        confidence=llm_intent.confidence,
-                        suggestions=[
-                            "Enable GPS",
-                            f"Route from Sultanahmet to {route_params['destination']}",
-                            f"Tell me about {route_params['destination']}"
-                        ],
-                        map_data={'request_gps': True, 'destination': route_params['destination']}
-                    )
-                
-                # Get destination coordinates
-                dest_coords = handler._get_destination_coordinates(route_params['destination'])
-                
-                if not dest_coords:
-                    logger.error(f"❌ Could not find coordinates for: {route_params['destination']}")
-                    # Fall through to Pure LLM
-                else:
-                    logger.info(f"✅ Coordinates found: {origin_name} {origin_coords} → {route_params['destination']} {dest_coords}")
-                    
-                    # Generate route
-                    try:
-                        route_data = map_service._generate_route_map(
-                            start_location={'lat': origin_coords[0], 'lon': origin_coords[1]},
-                            end_coords=dest_coords,
-                            end_name=route_params['destination'],
-                            language='en'
-                        )
-                        
-                        if route_data:
-                            # Format response message
-                            route_summary = route_data.get('route', {}).get('summary', {})
-                            distance = route_summary.get('distance', 'unknown')
-                            duration = route_summary.get('duration', 'unknown')
-                            modes = route_summary.get('modes', [])
-                            
-                            response_message = f"I found a route from {origin_name} to {route_params['destination']}!\n\n"
-                            response_message += f"📏 Distance: {distance}\n"
-                            response_message += f"⏱️ Duration: {duration}\n"
-                            
-                            if modes:
-                                response_message += f"🚇 Transport: {', '.join(modes)}\n"
-                            
-                            response_message += f"\nCheck the map below for the complete route with all stops and directions."
-                            
-                            # Enhance response with contextual tips
-                            enhanced_msg = await enhance_chat_response(
-                                base_response=response_message,
-                                original_query=request.message,
-                                user_context=user_context,
-                                route_data=route_data,
-                                response_type="route"
-                            )
-                            
-                            logger.info(f"✅ LLM-routed query SUCCESS: Generated route response")
-                            
-                            return ChatResponse(
-                                response=enhanced_msg,
-                                session_id=request.session_id or 'new',
-                                intent='route_planning',
-                                confidence=llm_intent.confidence,
-                                suggestions=[
-                                    "Show me restaurants nearby",
-                                    "What's the weather like?",
-                                    f"Tell me about {route_params['destination']}"
-                                ],
-                                map_data=route_data,
-                                navigation_active=False
-                            )
-                    
-                    except Exception as route_gen_error:
-                        logger.error(f"❌ Route generation failed: {route_gen_error}", exc_info=True)
-                        # Fall through to other handlers
-        
-        except Exception as e:
-            logger.error(f"❌ LLM-based route handling failed: {e}", exc_info=True)
-            # Fall through to fallback handlers
-    
-    # === PHASE 3: SPECIALIZED HANDLERS (if not skipping) ===
-    if not skip_routing:
-        # First check if this is a hidden gems GPS request
-        try:
             from services.hidden_gems_gps_integration import get_hidden_gems_gps_integration
             
             gems_handler = get_hidden_gems_gps_integration(db)
@@ -1450,4 +1011,106 @@ async def generate_proactive_suggestions(
     except Exception as e:
         logger.error(f"Proactive suggestion generation failed: {e}", exc_info=True)
         return None
-# ==========================================
+
+
+@router.post("/pure-llm/stream")
+async def pure_llm_chat_stream(
+    request: ChatRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Pure LLM chat endpoint with STREAMING support for real-time UX.
+    
+    This endpoint provides Server-Sent Events (SSE) streaming for:
+    - Real-time progress updates (enhancement, cache, signals, context)
+    - Token-by-token response streaming
+    - Improved perceived performance (TTFB < 1s)
+    
+    Response Format (SSE):
+    - Each event is a JSON object with 'type' and 'data'/'message' fields
+    - Event types: 'progress', 'enhancement', 'cache_hit', 'signals', 'context', 'token', 'complete', 'error'
+    
+    Usage:
+    ```javascript
+    const response = await fetch('/api/chat/pure-llm/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: "Hello" })
+    });
+    
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\\n');
+        
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const event = JSON.parse(line.slice(6));
+                
+                if (event.type === 'token') {
+                    // Append token to response
+                    responseText += event.data;
+                } else if (event.type === 'complete') {
+                    // Final metadata
+                    metadata = event.data.metadata;
+                }
+            }
+        }
+    }
+    ```
+    """
+    
+    # Generate or use provided session_id
+    session_id = request.session_id or f"session_{hash(request.message)}"
+    
+    async def event_generator():
+        """Generate SSE events from Pure LLM Core streaming."""
+        try:
+            # Get Pure LLM Core instance
+            pure_llm_core = startup_manager.get_pure_llm_core()
+            
+            if not pure_llm_core:
+                yield f"data: {json.dumps({'type': 'error', 'message': 'Pure LLM Core not available'})}\n\n"
+                return
+            
+            # Prepare user context
+            user_context = {
+                'preferences': request.preferences or {},
+            }
+            
+            if request.user_location:
+                user_context['gps'] = request.user_location
+                user_context['location'] = request.user_location
+            
+            # Stream from Pure LLM Core
+            async for event in pure_llm_core.process_query_stream(
+                query=request.message,
+                user_id=request.user_id or session_id,
+                session_id=session_id,
+                user_location=request.user_location,
+                language="en",  # TODO: Get from request
+                max_tokens=500,
+                enable_conversation=True
+            ):
+                # Forward event to client in SSE format
+                yield f"data: {json.dumps(event)}\n\n"
+        
+        except Exception as e:
+            logger.error(f"Streaming error: {e}", exc_info=True)
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+    
+    # Return StreamingResponse with SSE format
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )

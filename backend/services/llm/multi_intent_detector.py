@@ -67,13 +67,14 @@ class MultiIntentDetector:
         
         # Configuration
         self.config = {
-            'timeout_seconds': 5,
-            'max_retries': 2,
+            'timeout_seconds': 5,  # Fast timeout for multi-intent detection
+            'max_retries': 1,  # Reduced retries for speed
             'fallback_enabled': True,
+            'enable_fast_path': True,  # NEW: Skip LLM for simple queries
             **(config or {})
         }
         
-        logger.info(f"MultiIntentDetector initialized")
+        logger.info(f"MultiIntentDetector initialized with fast-path optimization")
     
     async def detect_intents(
         self,
@@ -93,13 +94,16 @@ class MultiIntentDetector:
         start_time = time.time()
         
         try:
-            # Prepare context information
+            # FAST PATH: Check if query is obviously single-intent
+            if self.config.get('enable_fast_path', True):
+                if self._is_simple_query(query):
+                    logger.info(f"Fast-path: Query appears single-intent, skipping LLM detection")
+                    return self._single_intent_response(query, context)
+            
+            # Prepare context information (minimal for speed)
             context_info = ""
-            if context:
-                if context.get("session_history"):
-                    context_info += f"\nRecent conversation: {context['session_history'][-3:]}"
-                if context.get("user_location"):
-                    context_info += f"\nUser location: {context['user_location']}"
+            if context and context.get("user_location"):
+                context_info = f"\nUser location: {context['user_location']}"
             
             # Build prompt
             prompt = f"""Analyze this query for multiple intents:
@@ -210,78 +214,30 @@ Return ONLY a valid JSON object with the structure specified above."""
             return self._fallback_detection(query, context)
     
     def _get_detection_instructions(self) -> str:
-        """Get multi-intent detection instructions for LLM."""
-        return """You are an expert at analyzing travel queries to detect multiple intents.
+        """Get multi-intent detection instructions for LLM (OPTIMIZED FOR SPEED)."""
+        return """Analyze query for multiple intents. Return JSON ONLY.
 
-Your task is to:
-1. Identify ALL intents in the query (primary and secondary)
-2. Extract parameters for each intent
-3. Detect relationships between intents (sequential, parallel, dependent, conditional)
-4. Recommend execution strategy
+INTENT TYPES: route, restaurant, attraction, museum, event, weather, transport, shopping, nightlife, hotel, hidden_gems, general
 
-INTENT TYPES:
-- route: Navigation/directions
-- restaurant: Restaurant recommendations
-- information: POI information
-- hidden_gems: Off-beaten-path recommendations
-- event: Event information
-- weather: Weather information
-- museum: Museum information
-- transport: Transportation info
-- attraction: Tourist attractions
-- shopping: Shopping recommendations
-- nightlife: Nightlife recommendations
-- hotel: Hotel recommendations
-- general: General chat
-
-RELATIONSHIPS:
-- sequential: Execute one after another (e.g., "route then restaurants")
-- parallel: Execute simultaneously (e.g., "weather and attractions")
-- dependent: Second intent depends on first result (e.g., "route to X and find restaurants NEAR THAT location")
-- conditional: Execute based on condition (e.g., "if sunny, outdoor tour; if rainy, museums")
-
-RESPOND IN JSON:
+JSON FORMAT:
 {
   "intent_count": <number>,
   "is_multi_intent": <boolean>,
-  "intents": [
-    {
-      "intent_type": "<type>",
-      "parameters": {
-        "origin": "...",
-        "destination": "...",
-        "category": "...",
-        "time": "...",
-        "preferences": "..."
-      },
-      "priority": 1,
-      "confidence": 0.95,
-      "requires_location": true/false,
-      "depends_on": [0],
-      "condition": null
-    }
-  ],
-  "relationships": [
-    {
-      "relationship_type": "sequential|parallel|conditional|dependent",
-      "intent_indices": [0, 1],
-      "description": "Intent 2 needs location from Intent 1"
-    }
-  ],
+  "intents": [{"intent_type": "<type>", "parameters": {}, "priority": 1, "confidence": 0.9, "requires_location": false}],
+  "relationships": [{"relationship_type": "sequential|parallel|dependent|conditional", "intent_indices": [0,1], "description": "..."}],
   "execution_strategy": "sequential|parallel|conditional|mixed",
   "confidence": 0.9
 }
 
-IMPORTANT:
-- If only ONE clear intent: is_multi_intent = false, intent_count = 1
-- Mark depends_on when second intent uses first intent's result
-- Use "dependent" relationship when location/data flows between intents
-- Use "conditional" for if/else logic
-- Be precise with parameters extraction"""
+Examples:
+- Single: "Show me restaurants" → intent_count=1, is_multi_intent=false
+- Multi: "Route to museum and nearby restaurants" → intent_count=2, is_multi_intent=true, execution_strategy="sequential"
+
+Be fast and accurate."""
     
     async def _call_llm(self, prompt: str) -> str:
         """
-        Call LLM via existing client.
+        Call LLM via existing client with timeout.
         
         Args:
             prompt: Prompt to send
@@ -289,27 +245,42 @@ IMPORTANT:
         Returns:
             LLM response text
         """
+        timeout = self.config['timeout_seconds']
+        
         try:
-            # Check if client has OpenAI-style interface
-            if hasattr(self.llm_client, 'chat') and hasattr(self.llm_client.chat, 'completions'):
-                # OpenAI-style client
-                response = await self.llm_client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "You are an expert travel query analyzer."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.3,
-                    timeout=self.config['timeout_seconds']
-                )
-                return response.choices[0].message.content.strip()
-            else:
-                # Generic LLM client with generate method
-                return await self.llm_client.generate(
-                    prompt=prompt,
-                    max_tokens=800,
-                    temperature=0.3
-                )
+            # Wrap in asyncio.wait_for for timeout enforcement
+            async def _make_call():
+                # Check if client has OpenAI-style interface
+                if hasattr(self.llm_client, 'chat') and hasattr(self.llm_client.chat, 'completions'):
+                    # OpenAI-style client
+                    response = await self.llm_client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": "You are a fast travel query analyzer."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.2,  # Lower for speed
+                        max_tokens=500  # Reduced for speed
+                    )
+                    return response.choices[0].message.content.strip()
+                else:
+                    # Generic LLM client with generate method
+                    result = await self.llm_client.generate(
+                        prompt=prompt,
+                        max_tokens=500,  # Reduced for speed
+                        temperature=0.2  # Lower for speed
+                    )
+                    # Handle both dict and string responses
+                    if isinstance(result, dict):
+                        return result.get('generated_text', '')
+                    return str(result)
+            
+            # Apply timeout
+            return await asyncio.wait_for(_make_call(), timeout=timeout)
+            
+        except asyncio.TimeoutError:
+            logger.warning(f"Multi-intent LLM call timed out after {timeout}s")
+            raise Exception(f"LLM timeout after {timeout}s")
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             raise
@@ -392,6 +363,77 @@ IMPORTANT:
             is_multi_intent=len(intents) > 1,
             confidence=0.5,
             detection_method="fallback"
+        )
+    
+    def _is_simple_query(self, query: str) -> bool:
+        """
+        Check if query is obviously single-intent (fast-path optimization).
+        
+        Looks for multi-intent markers like "and", "then", "also", multiple question marks, etc.
+        
+        Args:
+            query: User query
+            
+        Returns:
+            True if query appears to be single-intent
+        """
+        query_lower = query.lower()
+        
+        # Multi-intent markers
+        multi_intent_markers = [
+            " and ", " then ", " also ", " plus ",
+            " after that", " first ", " second ",
+            " both ", " or ", " either "
+        ]
+        
+        # Count potential intents
+        if any(marker in query_lower for marker in multi_intent_markers):
+            return False
+        
+        # Multiple questions
+        if query.count("?") > 1:
+            return False
+        
+        # Very long queries are more likely to be multi-intent
+        if len(query.split()) > 20:
+            return False
+        
+        # Otherwise, assume single intent
+        return True
+    
+    def _single_intent_response(
+        self,
+        query: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> MultiIntentDetection:
+        """
+        Create a single-intent response (fast-path).
+        
+        Args:
+            query: User query
+            context: Optional context
+            
+        Returns:
+            MultiIntentDetection with single intent
+        """
+        intent_type = self._guess_intent_type(query.lower())
+        
+        return MultiIntentDetection(
+            original_query=query,
+            intent_count=1,
+            intents=[DetectedIntent(
+                intent_type=intent_type,
+                parameters={},
+                priority=1,
+                confidence=0.8,
+                requires_location=False
+            )],
+            relationships=[],
+            execution_strategy="sequential",
+            is_multi_intent=False,
+            confidence=0.8,
+            detection_method="fast_path",
+            processing_time_ms=0.0
         )
     
     def _guess_intent_type(self, query: str) -> str:

@@ -384,12 +384,13 @@ class TimeoutManager:
             'query_enhancement': 2.0,
             'cache_lookup': 0.5,
             'signal_detection': 1.0,
+            'multi_intent_detection': 5.0,  # Fast timeout for multi-intent
             'context_building': 5.0,
             'database_query': 3.0,
             'rag_search': 4.0,
             'weather_api': 2.0,
             'events_api': 2.0,
-            'llm_generation': 15.0,
+            'llm_generation': 30.0,  # Increased from 15s to 30s
             'cache_storage': 1.0
         }
         self.metrics = {
