@@ -4,15 +4,34 @@ Implements incremental learning, Thompson Sampling, and concept drift detection
 """
 
 import logging
-import numpy as np
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta
 from collections import defaultdict, deque
 import json
 import math
-from scipy import stats
+
+# Import numpy with fallback
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
+    np = None
+
+# Import scipy with fallback
+try:
+    from scipy import stats
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    stats = None
 
 logger = logging.getLogger(__name__)
+
+if not NUMPY_AVAILABLE:
+    logger.warning("⚠️ NumPy not available - using fallback implementations for online learning")
+if not SCIPY_AVAILABLE:
+    logger.warning("⚠️ SciPy not available - using fallback implementations for statistical functions")
 
 
 class ThompsonSampling:

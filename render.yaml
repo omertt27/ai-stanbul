@@ -21,15 +21,17 @@ services:
     
     # Build Configuration
     buildCommand: |
-      echo "🚀 Installing production dependencies..."
-      pip install --upgrade pip
-      pip install -r production_requirements.txt
-      echo "✅ Dependencies installed"
+      echo "🚀 Building Istanbul AI Backend..."
+      cd backend
+      chmod +x build.sh
+      ./build.sh
+      echo "✅ Build completed"
       
-    # Start Command - Uses production server with async, caching, rate limiting
+    # Start Command - Uses the start script
     startCommand: |
-      echo "🌟 Starting Istanbul AI Production Server..."
-      uvicorn production_server:app --host 0.0.0.0 --port $PORT --workers 2 --log-level info
+      echo "🌟 Starting Istanbul AI Backend..."
+      chmod +x start-render.sh
+      ./start-render.sh
       
     healthCheckPath: /health
     autoDeploy: true  # Auto-deploy on git push
