@@ -135,6 +135,53 @@ export const vercelTrackEvent = {
       action,
       timestamp: new Date().toISOString()
     })
+  },
+
+  // Mobile chat: Quick reply tracking
+  quickReply: (suggestion, index, category = 'general') => {
+    track('quick_reply_clicked', {
+      suggestion,
+      index,
+      category,
+      timestamp: new Date().toISOString()
+    })
+  },
+
+  // Mobile chat: Swipe gesture tracking
+  swipeGesture: (action, messageType = 'ai') => {
+    track('swipe_gesture', {
+      action, // 'copy', 'share', 'regenerate'
+      message_type: messageType,
+      timestamp: new Date().toISOString()
+    })
+  },
+
+  // Mobile chat: Voice input tracking
+  voiceInput: (success = true, duration = null, error = null) => {
+    track('voice_input', {
+      success,
+      duration,
+      error,
+      timestamp: new Date().toISOString()
+    })
+  },
+
+  // Mobile chat: Message tracking
+  chatMessage: (direction = 'sent', length = 0, responseTime = null) => {
+    track('chat_message', {
+      direction, // 'sent' or 'received'
+      length,
+      response_time: responseTime,
+      timestamp: new Date().toISOString()
+    })
+  },
+
+  // Mobile chat: Jump to bottom FAB usage
+  jumpToBottom: (unreadCount = 0) => {
+    track('jump_to_bottom', {
+      unread_count: unreadCount,
+      timestamp: new Date().toISOString()
+    })
   }
 }
 

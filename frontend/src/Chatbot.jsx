@@ -33,12 +33,14 @@ import RestaurantCard from './components/RestaurantCard';
 import MinimizedGPSBanner from './components/MinimizedGPSBanner';
 import { useKeyboardDetection, scrollIntoViewSafe } from './utils/keyboardDetection';
 import safeStorage from './utils/safeStorage';
+import { trackEvents } from './utils/analytics';
+import { AB_TESTS, isTreatment, trackConversion } from './utils/abTesting';
 import './styles/mobile-ergonomics-phase1.css';
 
 // ChatGPT-style mobile components
 import MobileTypingIndicator from './components/mobile/TypingIndicator';
 import JumpToBottomFAB from './components/mobile/JumpToBottomFAB';
-import QuickReplies from './components/mobile/QuickReplies';
+import QuickReplies, { getSmartSuggestions } from './components/mobile/QuickReplies';
 import SkeletonMessage from './components/mobile/SkeletonMessage';
 import SmartChatInput from './components/mobile/SmartChatInput';
 import SwipeableMessage from './components/mobile/SwipeableMessage';
@@ -812,6 +814,10 @@ function Chatbot({ userLocation: propUserLocation }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   
+  // A/B Testing: Mobile components vs standard UI
+  const useMobileComponents = isTreatment(AB_TESTS.MOBILE_COMPONENTS, 50);
+  const useSmartQuickReplies = isTreatment(AB_TESTS.SMART_QUICK_REPLIES, 50);
+  
   // Quick replies state
   const [quickReplySuggestions, setQuickReplySuggestions] = useState([
     'Show restaurants',
@@ -820,6 +826,19 @@ function Chatbot({ userLocation: propUserLocation }) {
     'Weather today'
   ]);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
+
+  // Update quick replies dynamically based on last AI message (if in treatment group)
+  useEffect(() => {
+    if (!useSmartQuickReplies) return; // Only for treatment group
+    
+    const aiMessages = messages.filter(m => m.sender === 'assistant');
+    if (aiMessages.length > 0) {
+      const lastAIMessage = aiMessages[aiMessages.length - 1];
+      const newSuggestions = getSmartSuggestions(lastAIMessage.text);
+      setQuickReplySuggestions(newSuggestions);
+      setShowQuickReplies(true);
+    }
+  }, [messages, useSmartQuickReplies]);
 
   // Enhanced message management
   const addMessage = (text, sender = 'assistant', metadata = {}) => {
@@ -1147,6 +1166,14 @@ function Chatbot({ userLocation: propUserLocation }) {
     const originalUserInput = customInput || input.trim();
     if (!originalUserInput) return;
 
+    // Track message sent (analytics)
+    const messageStartTime = Date.now();
+    try {
+      trackEvents.chatMessage('sent', originalUserInput.length);
+    } catch (e) {
+      console.warn('Analytics tracking failed:', e);
+    }
+
     // Create retry action for this message
     const retryCurrentMessage = () => {
       console.log('🔄 Retrying message:', originalUserInput);
@@ -1289,11 +1316,27 @@ function Chatbot({ userLocation: propUserLocation }) {
         backend: usePureLLM ? 'pure-llm' : 'standard'
       });
       
+      // Track message received (analytics)
+      try {
+        const responseTime = Date.now() - messageStartTime;
+        const responseLength = (chatResponse.response || chatResponse.message).length;
+        trackEvents.chatMessage('received', responseLength, responseTime);
+      } catch (e) {
+        console.warn('Analytics tracking failed:', e);
+      }
+      
       // Clear failed message on success
       setLastFailedMessage(null);
       
     } catch (error) {
       handleError(error, 'message sending', lastFailedMessage);
+      
+      // Track error (analytics)
+      try {
+        trackEvents.error(classifyError(error), error.message, 'chatbot');
+      } catch (e) {
+        console.warn('Analytics tracking failed:', e);
+      }
       
       // Add error message with enhanced metadata
       const errorMessage = error.message.includes('fetch')
@@ -1455,7 +1498,6 @@ function Chatbot({ userLocation: propUserLocation }) {
                 darkMode ? 'text-black' : 'text-white'
               }`} fill="currentColor" viewBox="0 0 24 24">
                 <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-              </svg>
             </div>
             <h2 className={`text-2xl md:text-3xl font-bold mb-4 transition-colors duration-200 ${
               darkMode ? 'text-white' : 'text-gray-900'
@@ -1616,7 +1658,6 @@ function Chatbot({ userLocation: propUserLocation }) {
                         }`}>
                           <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                          </svg>
                         </div>
                         
                         {/* Message content - NO BUBBLE, full width */}
@@ -1825,7 +1866,6 @@ function Chatbot({ userLocation: propUserLocation }) {
                 }`}>
                   <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                  </svg>
                 </div>
                 
                 {/* Mobile: Show SkeletonMessage, Desktop: Show typing indicator */}
@@ -1857,10 +1897,21 @@ function Chatbot({ userLocation: propUserLocation }) {
         bottomOffset={100} // Above input area
       />
 
-      {/* Quick Reply Suggestions - Mobile optimized */}
+      {/* Quick Reply Suggestions - Mobile optimized with dynamic suggestions */}
       <QuickReplies
         suggestions={quickReplySuggestions}
-        onSelect={(suggestion) => {
+        onSelect={(suggestion, index) => {
+          // Track quick reply click (analytics)
+          try {
+            trackEvents.quickReply(suggestion, index || 0, useSmartQuickReplies ? 'smart' : 'static');
+            // Track A/B test conversion
+            trackConversion(AB_TESTS.SMART_QUICK_REPLIES, 'quick_reply_click', { suggestion });
+            if (useMobileComponents) {
+              trackConversion(AB_TESTS.MOBILE_COMPONENTS, 'feature_usage', { feature: 'quick_replies' });
+            }
+          } catch (e) {
+            console.warn('Analytics tracking failed:', e);
+          }
           handleSend(suggestion);
           setShowQuickReplies(false);
         }}

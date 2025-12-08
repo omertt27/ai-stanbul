@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { trackEvents } from '../../utils/analytics';
 import './JumpToBottomFAB.css';
 
 const JumpToBottomFAB = ({ 
@@ -41,6 +42,13 @@ const JumpToBottomFAB = ({
   const scrollToBottom = () => {
     const container = containerRef?.current;
     if (!container) return;
+
+    // Track jump to bottom usage (analytics)
+    try {
+      trackEvents.jumpToBottom(unreadCount);
+    } catch (e) {
+      console.warn('Analytics tracking failed:', e);
+    }
 
     container.scrollTo({
       top: container.scrollHeight,

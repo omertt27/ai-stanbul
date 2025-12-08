@@ -29,7 +29,7 @@ const QuickReplies = ({
         {suggestions.map((suggestion, index) => (
           <button
             key={`${suggestion}-${index}`}
-            onClick={() => onSelect(suggestion)}
+            onClick={() => onSelect(suggestion, index)}
             className="quick-reply-chip"
             aria-label={`Send quick reply: ${suggestion}`}
           >

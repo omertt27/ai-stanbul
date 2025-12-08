@@ -375,8 +375,10 @@ class RunPodLLMClient:
         if is_greeting:
             # For greetings, provide a context-aware welcoming prompt
             formatted_prompt = (
-                f"Respond with ONLY a friendly greeting in {query_language}. Say you're KAM, an Istanbul tour guide who can help with restaurants, attractions, and directions. "
-                f"Keep it under 2 sentences. DO NOT add any extra dialogue or questions."
+                f"You MUST respond ONLY in {query_language}. You are KAM, an Istanbul tour guide.\n\n"
+                f"Say a friendly greeting in {query_language}. Mention you can help with restaurants, attractions, and directions. "
+                f"Keep it under 2 sentences. DO NOT add any extra dialogue or questions.\n\n"
+                f"IMPORTANT: Your response MUST be in {query_language}, NOT in any other language like French or Turkish."
             )
             logger.info(f"🎯 Detected greeting in {query_language}")
             # Override max_tokens for greetings - we don't need much!
@@ -410,28 +412,35 @@ class RunPodLLMClient:
             # Check if user provided GPS location
             has_gps = "GPS STATUS" in prompt and "AVAILABLE" in prompt
             
-            # Build a concise, focused prompt
+            # Build a concise, focused prompt with STRONG language enforcement
             if context_data:
                 # Query with context data
                 formatted_prompt = (
-                    f"You are KAM, an Istanbul tour guide. Answer this question in {query_language} using the context below.\n\n"
+                    f"CRITICAL INSTRUCTION: You MUST respond ONLY in {query_language}. Never use French, Turkish, or any other language.\n"
+                    f"If the user asks in {query_language}, respond in {query_language}.\n"
+                    f"If the context is in another language, translate your answer to {query_language}.\n\n"
+                    f"You are KAM, an Istanbul tour guide. Answer this question using the context below.\n\n"
                     f"CONTEXT:\n{context_data}\n\n"
                     f"QUESTION: {user_query}\n\n"
-                    f"Provide a direct, helpful answer in {query_language}. Be specific and use details from the context."
+                    f"Provide a direct, helpful answer in {query_language}. Be specific and use details from the context.\n"
+                    f"FINAL REMINDER: Your ENTIRE response must be in {query_language} only."
                 )
             else:
                 # Query without context - use general knowledge
                 formatted_prompt = (
-                    f"You are KAM, an Istanbul tour guide. Answer this question in {query_language}:\n\n"
+                    f"CRITICAL INSTRUCTION: You MUST respond ONLY in {query_language}. Never use French, Turkish, or any other language.\n"
+                    f"If the user asks in {query_language}, respond in {query_language}.\n\n"
+                    f"You are KAM, an Istanbul tour guide. Answer this question:\n\n"
                     f"{user_query}\n\n"
-                    f"Provide a helpful, accurate answer based on your knowledge of Istanbul. Be specific and concise."
+                    f"Provide a helpful, accurate answer based on your knowledge of Istanbul. Be specific and concise.\n"
+                    f"FINAL REMINDER: Your ENTIRE response must be in {query_language} only."
                 )
             
             # Add GPS note if available
             if has_gps:
                 formatted_prompt += "\n\nNote: User's GPS location is available for personalized recommendations."
             
-            logger.info(f"📝 Direct prompt built - Query length: {len(user_query)}, Context: {len(context_data)} chars")
+            logger.info(f"📝 Direct prompt built - Query language: {query_language}, Query length: {len(user_query)}, Context: {len(context_data)} chars")
         
         logger.debug(f"Prompt length: {len(formatted_prompt)} chars")
         
