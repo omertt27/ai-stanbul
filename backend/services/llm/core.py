@@ -19,6 +19,7 @@ Date: November 2025
 import asyncio
 import time
 import logging
+import re
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple, AsyncGenerator
 from collections import defaultdict

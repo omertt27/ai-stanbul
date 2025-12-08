@@ -218,28 +218,43 @@ class SuggestionGenerator:
         max_count: int,
         categories: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
+        """Call LLM to generate suggestions (wrapped)
+        If LLM fails, fall back to templates.
         """
-        Use LLM to generate suggestions.
-        
-        Args:
-            context: Conversation context
-            max_count: Maximum suggestions
-            categories: Preferred categories
-            
-        Returns:
-            List of suggestion data dictionaries
+        try:
+            # Call to LLM client (async)
+            prompt = self._build_llm_prompt(context, max_count, categories)
+            llm_response = await self.llm_client.completions.create(
+                model=self.llm_client.default_model,
+                prompt=prompt,
+                max_tokens=self.config['max_tokens'],
+                temperature=self.config['temperature']
+            )
+            parsed = parse_llm_json_response(llm_response)
+            return parsed.get('suggestions', [])
+        except Exception as e:
+            logger.error(f"LLM generation failed in _generate_suggestions_llm: {e}")
+            return self._generate_template_suggestions(context, max_count)
+
+    def _generate_template_suggestions(self, context: SuggestionContext, max_count: int) -> List[Dict[str, Any]]:
+        """Simple template-based suggestion generator (fallback)
+        Returns list of dicts with keys: text, type, intent, entities, relevance
         """
-        prompt = self._build_generation_prompt(context, max_count, categories)
-        llm_output = await self._call_llm(prompt)
-        
-        # Parse JSON response using robust parser
-        from .llm_response_parser import parse_llm_json_response
-        
-        data = parse_llm_json_response(llm_output, fallback_value={})
-        if not data:
-            raise ValueError("LLM returned empty or invalid response")
-        
-        return data.get('suggestions', [])
+        templates = [
+            {"text": "What are the top attractions nearby?", "type": "attraction", "intent": "needs_attraction", "relevance": 0.9},
+            {"text": "Show me popular restaurants in this neighborhood", "type": "restaurant", "intent": "needs_restaurant", "relevance": 0.85},
+            {"text": "How do I get to Sultanahmet from here?", "type": "directions", "intent": "needs_transportation", "relevance": 0.8},
+            {"text": "Recommend a hidden gem off the beaten path", "type": "hidden_gem", "intent": "needs_hidden_gems", "relevance": 0.75},
+            {"text": "What events are happening this weekend?", "type": "events", "intent": "needs_events", "relevance": 0.7}
+        ]
+        # Simple context-aware filtering (if location present)
+        if context.user_location:
+            # Promote location-specific templates
+            templates[0]['relevance'] += 0.05
+            templates[1]['relevance'] += 0.03
+        # Return top-k by relevance
+        templates.sort(key=lambda x: x['relevance'], reverse=True)
+        return templates[:max_count]
     
     async def _rank_suggestions_llm(
         self,

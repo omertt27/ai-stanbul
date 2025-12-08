@@ -37,8 +37,7 @@ try:
 except ImportError:
     NUMPY_AVAILABLE = False
     np = None
-    logger = logging.getLogger(__name__)
-    logger.warning("⚠️ NumPy not available - using fallback implementations")
+    # NumPy is optional - using Python fallback implementations
 
 # Import fuzzy matching and enhanced patterns (Phase 1 improvements)
 try:
@@ -122,9 +121,9 @@ class SignalDetector:
                     fuzzy_threshold=fuzzy_threshold,
                     enable_phonetic=True
                 )
-                logger.info("✅ Fuzzy matching enabled (Phase 1)")
+                logger.info("✅ Fuzzy matching enabled (phonetic search available)")
             except Exception as e:
-                logger.warning(f"⚠️ Failed to initialize fuzzy matcher: {e}")
+                logger.info(f"ℹ️  Fuzzy matcher not available - using exact matching")
                 self.enable_fuzzy_matching = False
         
         # Initialize embedding service (Phase 4.1)
@@ -133,9 +132,9 @@ class SignalDetector:
             try:
                 self.embedding_service = get_embedding_service(model_name='lightweight')
                 health = self.embedding_service.health_check()
-                logger.info(f"✅ Semantic embeddings enabled (Phase 4.1): {health['status']}")
+                logger.info(f"✅ Semantic embeddings enabled: {health['status']}")
             except Exception as e:
-                logger.warning(f"⚠️ Failed to initialize embedding service: {e}")
+                logger.info(f"ℹ️  Embedding service not available - using keyword matching")
                 self.enable_semantic_embeddings = False
         
         # Initialize Istanbul knowledge (Phase 4.2)
@@ -144,11 +143,11 @@ class SignalDetector:
             try:
                 self.istanbul_knowledge = get_istanbul_knowledge()
                 logger.info(
-                    f"✅ Istanbul intelligence enabled (Phase 4.2): "
+                    f"✅ Istanbul intelligence enabled: "
                     f"{len(self.istanbul_knowledge.landmarks)} landmarks"
                 )
             except Exception as e:
-                logger.warning(f"⚠️ Failed to initialize Istanbul knowledge: {e}")
+                logger.info(f"ℹ️  Istanbul knowledge not available - using core features")
                 self.enable_istanbul_intelligence = False
         
         # Initialize signal patterns

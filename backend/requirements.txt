@@ -24,6 +24,7 @@ python-jose[cryptography]>=3.3.0
 requests>=2.31.0
 thefuzz>=0.19.0
 python-levenshtein>=0.21.0
+jellyfish>=1.0.0  # Phonetic matching for better fuzzy search
 
 # Additional FastAPI dependencies
 pydantic>=2.5.0,<3.0.0

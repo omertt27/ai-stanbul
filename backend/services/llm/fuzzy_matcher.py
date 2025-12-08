@@ -71,9 +71,9 @@ class FuzzyMatcher:
         self.enable_cache = enable_cache
         
         if not RAPIDFUZZ_AVAILABLE:
-            logger.warning("⚠️ Fuzzy matching disabled - install rapidfuzz or fuzzywuzzy")
+            logger.info("ℹ️  Fuzzy matching library not available - using exact matching")
         
-        logger.info(f"✅ FuzzyMatcher initialized (fuzzy={fuzzy_threshold}, phonetic={enable_phonetic})")
+        logger.info(f"✅ FuzzyMatcher initialized (threshold={fuzzy_threshold}, phonetic={enable_phonetic})")
     
     def extract_words(self, text: str) -> List[str]:
         """Extract words from text, removing punctuation."""

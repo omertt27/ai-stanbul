@@ -72,8 +72,8 @@ class EmbeddingService:
             logger.info(f"✅ Loaded embedding model: {model_id}")
             
         except Exception as e:
-            logger.warning(f"⚠️ Could not load SentenceTransformer: {e}")
-            logger.warning("⚠️ Falling back to offline mode (simple similarity)")
+            logger.info(f"ℹ️  SentenceTransformer not available - using keyword-based matching")
+            logger.debug(f"Embedding model error: {e}")
             self.offline_mode = True
             self.model = None
     

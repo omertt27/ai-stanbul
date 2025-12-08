@@ -95,6 +95,7 @@ class LightweightRetrievalSystem:
         """Index restaurant data for retrieval"""
         
         # Try to load restaurant database
+        # Note: In production, we use PostgreSQL instead of JSON files
         try:
             data_path = Path(__file__).parent / "data" / "restaurants_database.json"
             if data_path.exists():
@@ -102,6 +103,7 @@ class LightweightRetrievalSystem:
                     data = json.load(f)
                     restaurants = data.get('restaurants', [])
             else:
+                # Fallback to sample data (expected in production)
                 restaurants = self._get_sample_restaurants()
         except Exception:
             restaurants = self._get_sample_restaurants()

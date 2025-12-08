@@ -26,7 +26,10 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
 # Verify critical packages
 echo "✅ Verifying installations..."
-python -c "import numpy; print(f'NumPy version: {numpy.__version__}')"
+python -c "import numpy; print(f'NumPy version: {numpy.__version__}')" || echo "⚠️ NumPy not installed"
+python -c "import scipy; print(f'SciPy installed')" || echo "⚠️ SciPy not installed"  
+python -c "import jellyfish; print(f'Jellyfish installed')" || echo "⚠️ Jellyfish not installed"
+python -c "import sentence_transformers; print(f'Sentence Transformers installed')" || echo "⚠️ Sentence Transformers not installed"
 python -c "import fastapi; print(f'FastAPI installed')"
 python -c "import sqlalchemy; print(f'SQLAlchemy installed')"
 

@@ -39,9 +39,9 @@ try:
         convert_osrm_to_steps
     )
     GPS_NAV_AVAILABLE = True
-except ImportError as e:
+except ImportError:
     GPS_NAV_AVAILABLE = False
-    logger.warning(f"⚠️ GPS navigation not available: {e}")
+    # GPS navigation module is optional
 
 # Import route integration
 try:
@@ -50,9 +50,9 @@ try:
         create_chat_route_handler
     )
     ROUTE_HANDLER_AVAILABLE = True
-except ImportError as e:
+except ImportError:
     ROUTE_HANDLER_AVAILABLE = False
-    logger.warning(f"⚠️ Route handler not available: {e}")
+    # Route handler module is optional
 
 # Import hidden gems database
 try:

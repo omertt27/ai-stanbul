@@ -30,10 +30,11 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Log once at startup if optional packages are missing (info level, not warning)
 if not NUMPY_AVAILABLE:
-    logger.warning("⚠️ NumPy not available - using fallback implementations for online learning")
+    logger.info("ℹ️  NumPy not available - using Python fallback implementations")
 if not SCIPY_AVAILABLE:
-    logger.warning("⚠️ SciPy not available - using fallback implementations for statistical functions")
+    logger.info("ℹ️  SciPy not available - using simplified statistical functions")
 
 
 class ThompsonSampling:

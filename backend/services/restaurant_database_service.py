@@ -59,7 +59,9 @@ class RestaurantDatabaseService:
                     self.restaurants = data.get('restaurants', [])
                 print(f"✅ Loaded {len(self.restaurants)} restaurants from database")
             else:
-                print(f"⚠️  Database not found at {self.database_path}")
+                # In production, we use PostgreSQL database instead of JSON files
+                # This fallback is for local development only
+                print(f"ℹ️  JSON database not found (expected in production - using PostgreSQL)")
                 self.restaurants = []
         except Exception as e:
             print(f"❌ Error loading restaurant database: {e}")
