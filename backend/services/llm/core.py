@@ -291,14 +291,23 @@ class PureLLMCore:
                 'reason': str
             }
         """
+        # Skip rewriting for simple greetings - they don't need it
+        simple_greetings = ['hi', 'hello', 'hey', 'merhaba', 'selam', 'greetings']
+        if query.lower().strip() in simple_greetings:
+            return {
+                'rewritten_query': query,
+                'needs_rewriting': False,
+                'confidence': 1.0,
+                'reason': 'simple_greeting_skipped'
+            }
+        
         # Quick check: Does query need rewriting?
         needs_rewriting = any([
-            len(query.split()) < 3,  # Very short
-            re.search(r'\d(?!\d)', query),  # Number substitutions like "2" for "to"
-            not re.search(r'[aeiouAEIOU]{2}', query),  # Very few vowels (likely many typos)
+            len(query.split()) >= 3 and re.search(r'\d(?!\d)', query),  # Number substitutions like "2" for "to"
             any(word in query.lower() for word in [
                 'wat', 'wher', 'hw', 'pls', 'thx', 'plz', 'wanna', 'gonna',
-                'u', 'r', 'ur', 'sum', 'closeby', 'neer', 'restarant', 'restorant'
+                'u', 'r', 'ur', 'sum', 'closeby', 'neer', 'restarant', 'restorant',
+                'restraunt', 'resturant', 'resteraunt'
             ])  # Obvious typos or slang
         ])
         
@@ -310,42 +319,50 @@ class PureLLMCore:
                 'reason': 'query_is_clear'
             }
         
-        # Build rewriting prompt
-        rewrite_prompt = f"""Task: Rewrite this query to be clear and grammatically correct for a travel assistant.
+        # Build rewriting prompt with stricter constraints
+        rewrite_prompt = f"""Fix only typos/abbreviations in this query. Keep it SHORT and SIMPLE.
 
-Rules:
-1. Keep the EXACT same meaning and intent
-2. Fix typos and spelling errors
-3. Expand abbreviations (e.g., "2" → "to", "hw" → "how", "thx" → "thanks")
-4. Make location references explicit if possible
-5. Respond with ONLY the rewritten query, nothing else
-6. Do NOT add extra information or change the meaning
+Query: "{query}"
 
-Original query: "{query}"
-Language: {language}
-
-Rewritten query:"""
+Fixed version (max 50 chars):"""
         
         try:
             result = await self.llm.generate(
                 prompt=rewrite_prompt,
-                max_tokens=100,
-                temperature=0.3  # Low temperature for consistency
+                max_tokens=30,  # Drastically reduced to prevent long outputs
+                temperature=0.1  # Very low temperature for consistency
             )
             
             rewritten = result['generated_text'].strip()
             
-            # Remove any quotes that might be added
-            rewritten = rewritten.strip('"\'')
+            # Remove any quotes, newlines, or extra formatting
+            rewritten = rewritten.strip('"\'').split('\n')[0].strip()
             
-            # Validation: Rewritten should be similar length (not too different)
-            if len(rewritten) > len(query) * 3 or len(rewritten) < len(query) * 0.4:
-                logger.warning(f"⚠️ Query rewriting suspicious length: '{query}' ({len(query)}) → '{rewritten}' ({len(rewritten)})")
+            # STRICT Validation: Must be similar length and reasonable
+            max_length = max(len(query) * 2.5, len(query) + 20)  # More forgiving but still bounded
+            min_length = max(len(query) * 0.5, 2)  # At least half the length
+            
+            if len(rewritten) > max_length or len(rewritten) < min_length or len(rewritten) > 100:
+                logger.warning(f"⚠️ Query rewriting failed validation: '{query}' ({len(query)}) → '{rewritten}' ({len(rewritten)})")
                 return {
                     'rewritten_query': query,
                     'needs_rewriting': True,
-                    'confidence': 0.3,
+                    'confidence': 0.0,
                     'reason': 'rewriting_validation_failed'
+                }
+            
+            # Check if rewritten contains suspicious patterns (training data leakage)
+            suspicious_patterns = [
+                '#', 'twitter', 'hashtag', 'example:', 'question:', 'answer:',
+                'training', 'dataset', 'sample', 'dialogue'
+            ]
+            if any(pattern in rewritten.lower() for pattern in suspicious_patterns):
+                logger.warning(f"⚠️ Query rewriting contains suspicious patterns: '{rewritten}'")
+                return {
+                    'rewritten_query': query,
+                    'needs_rewriting': True,
+                    'confidence': 0.0,
+                    'reason': 'suspicious_output_detected'
                 }
             
             # Check if rewritten is substantially different
