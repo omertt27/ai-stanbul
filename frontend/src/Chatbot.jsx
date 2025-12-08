@@ -1623,6 +1623,27 @@ function Chatbot({ userLocation: propUserLocation }) {
                         </div>
                       )}
                       
+                      {/* Map Visualization - Display when message has map data */}
+                      {msg.mapData && (msg.mapData.markers || msg.mapData.routes) && (
+                        <div className="mt-4">
+                          <div className={`text-sm font-medium mb-3 ${
+                            darkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            🗺️ Map View:
+                          </div>
+                          <MapVisualization 
+                            mapData={msg.mapData} 
+                            height="400px" 
+                            className="rounded-lg shadow-md"
+                          />
+                          <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
+                            darkMode ? 'text-gray-500' : 'text-gray-600'
+                          }`}>
+                            📍 {msg.mapData.markers?.length || 0} locations • 🗺️ {msg.mapData.routes?.length || 0} routes
+                          </div>
+                        </div>
+                      )}
+                      
                       {msg.timestamp && (
                         <div className={`text-xs mt-2 flex items-center space-x-2 transition-colors duration-200 ${
                           darkMode ? 'text-gray-500' : 'text-gray-500'
