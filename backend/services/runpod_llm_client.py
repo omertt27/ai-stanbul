@@ -292,6 +292,56 @@ class RunPodLLMClient:
                 logger.error("❌ Invalid response format from Hugging Face")
                 return None
     
+    def _format_llama_chat_prompt(self, prompt: str) -> str:
+        """
+        Format prompt using Llama 3.1 chat template.
+        
+        Llama 3.1 requires special tokens for proper instruction following:
+        <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+        {system_message}<|eot_id|>
+        <|start_header_id|>user<|end_header_id|>
+        {user_message}<|eot_id|>
+        <|start_header_id|>assistant<|end_header_id|>
+        
+        Args:
+            prompt: Raw prompt text
+            
+        Returns:
+            Formatted prompt with Llama 3.1 chat tokens
+        """
+        # Split prompt into system instructions and user query
+        # Look for patterns like "Current User Question:" to separate
+        if "Current User Question:" in prompt:
+            parts = prompt.split("Current User Question:")
+            system_part = parts[0].strip()
+            user_part = parts[1].replace("Your Direct Answer:", "").strip()
+        elif "User Question:" in prompt:
+            parts = prompt.split("User Question:")
+            system_part = parts[0].strip()
+            user_part = parts[1].strip()
+        else:
+            # If no clear separation, treat first 80% as system, last 20% as user
+            split_point = int(len(prompt) * 0.8)
+            system_part = prompt[:split_point].strip()
+            user_part = prompt[split_point:].strip()
+        
+        # Build Llama 3.1 chat format
+        formatted = (
+            "<|begin_of_text|>"
+            "<|start_header_id|>system<|end_header_id|>\n\n"
+            f"{system_part}<|eot_id|>"
+            "<|start_header_id|>user<|end_header_id|>\n\n"
+            f"{user_part}<|eot_id|>"
+            "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        )
+        
+        logger.debug(f"🔄 Llama chat template applied:")
+        logger.debug(f"   System part length: {len(system_part)} chars")
+        logger.debug(f"   User part length: {len(user_part)} chars")
+        logger.debug(f"   User part preview: {user_part[:100]}...")
+        
+        return formatted
+
     async def _generate_openai_compatible(
         self,
         prompt: str,
@@ -301,14 +351,19 @@ class RunPodLLMClient:
     ) -> Optional[Dict[str, Any]]:
         """Generate using OpenAI-compatible API format (vLLM, RunPod, etc.)"""
         
+        # Format prompt for Llama 3.1 chat template
+        # This fixes the echo issue where LLM was returning prompt fragments
+        formatted_prompt = self._format_llama_chat_prompt(prompt)
+        logger.debug(f"Formatted prompt length: {len(formatted_prompt)} chars")
+        
         # Use standard completions format for vLLM
         payload = {
             "model": self.model_name,
-            "prompt": prompt,  # vLLM uses 'prompt' not 'messages'
+            "prompt": formatted_prompt,  # Use formatted prompt with chat template
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": temperature,
             "top_p": top_p,
-            "stop": ["\n\nUser:", "\n\n---", "## User Question:", "## Your Response:"]  # Stop sequences to prevent extra generation
+            "stop": ["<|eot_id|>", "\n\nUser:", "\n\n---"]  # Stop at end-of-turn token
         }
         
         headers = {"Content-Type": "application/json"}

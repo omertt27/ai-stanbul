@@ -18,6 +18,7 @@ import json
 import logging
 import time
 import uuid
+import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -98,10 +99,15 @@ class SuggestionGenerator:
                 logger.info("Using template-based suggestions only (LLM disabled)")
                 suggestions_data = self._generate_template_suggestions(context, max_count)
             else:
-                # Generate suggestions using LLM
-                suggestions_data = await self._generate_suggestions_llm(
-                    context, max_count, categories
-                )
+                # Generate suggestions using LLM with timeout protection
+                try:
+                    suggestions_data = await asyncio.wait_for(
+                        self._generate_suggestions_llm(context, max_count, categories),
+                        timeout=self.config['timeout_seconds']
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(f"LLM suggestion generation timed out after {self.config['timeout_seconds']}s, using templates")
+                    suggestions_data = self._generate_template_suggestions(context, max_count)
             
             # Convert to ProactiveSuggestion objects
             suggestions = []
@@ -153,6 +159,13 @@ class SuggestionGenerator:
         """
         if not suggestions:
             return []
+        
+        # Check if LLM ranking is disabled
+        if not self.config.get('use_llm', True):
+            logger.debug("Skipping LLM ranking (use_llm=False), sorting by relevance")
+            # Just sort by relevance score
+            suggestions.sort(key=lambda s: s.relevance_score, reverse=True)
+            return suggestions
         
         try:
             # Use LLM for intelligent ranking

@@ -294,7 +294,8 @@ class ContextBuilder:
         query: str,
         signals: Dict[str, bool],
         user_location: Optional[Dict[str, float]],
-        language: str
+        language: str,
+        context_strategy: str = 'standard'
     ) -> str:
         """
         Build database context based on signals.
@@ -304,6 +305,7 @@ class ContextBuilder:
             signals: Detected signals
             user_location: User GPS location
             language: Language code
+            context_strategy: Strategy for context building ('broad', 'standard', 'focused')
             
         Returns:
             Formatted database context string

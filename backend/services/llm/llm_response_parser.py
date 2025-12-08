@@ -10,9 +10,67 @@ Date: December 2024
 
 import json
 import logging
+import re
 from typing import Any, Dict, Union, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def clean_response_formatting(text: str) -> str:
+    """
+    Remove formatting artifacts from LLM response.
+    
+    Cleans:
+    - Checkbox patterns: [ ], [X], [x]
+    - Duplicate emoji sequences
+    - Incomplete meta-questions at the end
+    - Intent classification artifacts
+    - Extra instruction text
+    
+    Args:
+        text: LLM response text
+        
+    Returns:
+        Cleaned text without artifacts
+    """
+    if not text or not isinstance(text, str):
+        return text
+    
+    original_length = len(text)
+    
+    # Remove checkbox patterns with labels (e.g., "[ ] Transportation/Directions")
+    text = re.sub(r'\[\s*[Xx]?\s*\]\s*[A-Z][a-zA-Z/\s-]+', '', text)
+    
+    # Remove standalone checkboxes
+    text = re.sub(r'\[\s*[Xx]?\s*\]', '', text)
+    
+    # Remove duplicate emoji sequences (e.g., "🎉\n\n🎉")
+    text = re.sub(r'([\U0001F300-\U0001F9FF])\s*\n+\s*\1', r'\1', text)
+    
+    # Remove incomplete meta-questions at end (e.g., "👋 How can I help? 🤔")
+    text = re.sub(r'\n+👋.*?(\?|🤔).*?$', '', text, flags=re.DOTALL)
+    
+    # Remove "ANSWER ONLY:" artifacts
+    text = re.sub(r'\n*ANSWER ONLY:\s*', '\n', text)
+    
+    # Remove intent classification sections that might leak through
+    text = re.sub(r'\n+\*\*Intent Classification:\*\*.*?(?=\n\n[A-Z]|\n\n\w|$)', '', text, flags=re.DOTALL)
+    
+    # Remove trailing emojis followed by arrows or similar
+    text = re.sub(r'\s+[🚗👉⬇️📍🗺️]+\s*$', '', text)
+    
+    # Clean up multiple newlines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # Remove leading emojis at the very start if they're just decorative
+    text = re.sub(r'^[\U0001F300-\U0001F9FF\s]+\n+', '', text)
+    
+    cleaned = text.strip()
+    
+    if len(cleaned) != original_length:
+        logger.info(f"🧹 Formatting cleanup: {original_length} → {len(cleaned)} chars (removed {original_length - len(cleaned)} chars)")
+    
+    return cleaned
 
 
 def extract_generated_text(llm_response: Union[Dict, str, None]) -> Optional[str]:
@@ -194,12 +252,63 @@ def clean_json_string(json_str: str) -> str:
     return cleaned
 
 
-def clean_training_data_leakage(text: str) -> str:
+def _detect_response_language(text: str) -> str:
+    """
+    Detect the language of the response text.
+    
+    Args:
+        text: Response text
+        
+    Returns:
+        Language name: 'Russian', 'Arabic', 'Turkish', 'German', 'French', or 'English'
+    """
+    if not text:
+        return 'English'
+    
+    # Check for Cyrillic (Russian)
+    cyrillic_count = sum(1 for char in text if '\u0400' <= char <= '\u04FF')
+    if cyrillic_count > 5:
+        return 'Russian'
+    
+    # Check for Arabic
+    arabic_count = sum(1 for char in text if '\u0600' <= char <= '\u06FF')
+    if arabic_count > 5:
+        return 'Arabic'
+    
+    # Check for Turkish special chars
+    if any(char in text for char in ['ı', 'ş', 'ğ', 'ü', 'ö', 'ç', 'İ', 'Ş', 'Ğ']):
+        return 'Turkish'
+    
+    # Check for German umlauts
+    if any(char in text for char in ['ä', 'ö', 'ü', 'ß', 'Ä', 'Ö', 'Ü']):
+        return 'German'
+    
+    # Check for French accents
+    if any(char in text for char in ['é', 'è', 'ê', 'à', 'ù', 'û', 'ô', 'î', 'ç']):
+        return 'French'
+    
+    return 'English'
+
+
+def clean_training_data_leakage(text: str, prompt: Optional[str] = None) -> str:
     """
     Remove training data/example conversations that the LLM might have leaked.
     
+    LANGUAGE-AWARE: Applies different cleaning strategies based on detected language.
+    Non-Latin scripts (Russian, Arabic) get gentler cleaning to avoid over-removal.
+    
+    Strategy:
+    1. Detect response language
+    2. Check if LLM is echoing the prompt (common issue)
+    3. Look for training format markers (EMBER:, Assistant:, etc.)
+    4. Apply language-appropriate cleaning patterns
+    5. If found at the start, try to extract the actual response after the marker
+    6. If no valid content after marker, return empty string
+    7. Otherwise, truncate at the first leak pattern
+    
     Args:
         text: Generated text from LLM
+        prompt: Optional original prompt (to detect echo)
         
     Returns:
         Cleaned text with training examples removed
@@ -207,9 +316,103 @@ def clean_training_data_leakage(text: str) -> str:
     if not text or not isinstance(text, str):
         return text
     
+    original_text = text
+    original_length = len(text)
+    
+    # Detect language for appropriate cleaning
+    detected_lang = _detect_response_language(text)
+    logger.debug(f"Detected response language: {detected_lang}")
+    
+    # NEW: Check if LLM is echoing the prompt (common failure mode)
+    if prompt and len(prompt) > 100:
+        # Check if response contains large chunks of the prompt
+        prompt_fragments = [
+            "🚨 CRITICAL INSTRUCTION",
+            "DO NOT write \"EMBER",
+            "Your response MUST start",
+            "Follow the response guidelines",
+            "Multi-Intent Query Handling",
+            "Intent Classification:",
+            "User's Question:",
+            "Current User Question:",
+            "The user writes in",
+            "unnecessary information",
+            "Provide a clear, concise response",
+        ]
+        
+        # If response contains multiple prompt fragments, it's likely an echo
+        fragment_count = sum(1 for frag in prompt_fragments if frag.lower() in text.lower())
+        if fragment_count >= 2:
+            logger.error(f"🚨 LLM is echoing the prompt! Found {fragment_count} prompt fragments in response")
+            return ""  # Trigger fallback
+        
+        # Also check if response starts with a fragment from middle of prompt
+        # These indicate the LLM started generating from partway through the prompt
+        mid_prompt_fragments = [
+            "ues or unnecessary",
+            "or unnecessary information",
+            "Provide a clear, concise",
+            "The user writes in",
+            "Follow the response",
+            "unnecessary information. Provide",
+        ]
+        
+        for fragment in mid_prompt_fragments:
+            if text.strip().startswith(fragment):
+                logger.error(f"🚨 Response starts with mid-prompt fragment: '{fragment[:30]}...'")
+                return ""  # Trigger fallback
+    
+    # First, check if the response starts with a training format marker
+    start_markers = [
+        "EMBER:",
+        "Assistant:",
+        "KAM:",
+        "User:",
+        "A:",
+        "Q:",
+    ]
+    
+    for marker in start_markers:
+        if text.strip().startswith(marker):
+            # Found a marker at the start - try to extract content after it
+            logger.warning(f"🧹 Response starts with training marker '{marker}' - attempting to extract content")
+            
+            # Remove the marker and get what's after
+            after_marker = text[len(marker):].strip()
+            
+            # Check if there's substantial content after the marker (at least 20 chars)
+            if len(after_marker) >= 20:
+                # Use the content after the marker
+                text = after_marker
+                logger.info(f"✅ Extracted {len(text)} chars of content after '{marker}'")
+                break
+            else:
+                # Not enough content - this is likely just a training example
+                logger.warning(f"⚠️  Insufficient content after '{marker}' - treating as training data")
+                # Continue to check for other patterns
+    
     # Patterns that indicate training data leakage or debug output
-    # Looking for these as separate lines/sections to avoid false positives
-    leak_patterns = [
+    # For non-Latin scripts (Russian, Arabic), use ONLY critical patterns
+    # For Latin scripts, use full pattern list
+    
+    if detected_lang in ['Russian', 'Arabic']:
+        # Minimal patterns for non-Latin scripts to avoid over-cleaning
+        leak_patterns = [
+            "\n🎯 INTENT CLASSIFICATION",
+            "\n🚨 UNCERTAIN INTENT",
+            "\n---\n\n🎯",
+            "\n---\n\n🚨",
+            "\nEMBER:",
+            "\nAssistant:",
+            "\n\n**Context information available:**",
+            "\n**Identify Primary Intent",
+            "🚨 CRITICAL:",
+            "⚠️ IMPORTANT:",
+        ]
+        logger.debug(f"Using minimal leak patterns for {detected_lang}")
+    else:
+        # Full leak pattern list for Latin scripts
+        leak_patterns = [
         "\n🎯 INTENT CLASSIFICATION",
         "\n🚨 UNCERTAIN INTENT",
         "\n🎯 MULTI-INTENT",
@@ -238,8 +441,14 @@ def clean_training_data_leakage(text: str) -> str:
         "\nHere's an example",
         "\n### EXAMPLE",
         "\nEXAMPLE:",
+        "\n**Step 1:",
+        "\n**Step 2:",
+        "\n**Step 3:",
+        "\n**Step 4:",
         "\n## Step 1:",
         "\n## Step 2:",
+        "\n## Step 3:",
+        "\n## Step 4:",
         "\n### Example",
         "\nNow, let's get started!",
         "\nThe user has asked:",
@@ -250,7 +459,40 @@ def clean_training_data_leakage(text: str) -> str:
         "\nMerhaba KAM!",
         "\n### What's your answer",
         "\nWhat's your answer",
-    ]
+        # Meta-instructions that LLM echoes back
+        "\n---\n\nWhat's your response",
+        "\nWhat's your response",
+        "\nType your answer directly",
+        "\nType your response now",
+        "\nPlease use the correct format",
+        "\nDO NOT write \"EMBER",
+        "\nDO NOT write \"Assistant",
+        "\nYour response should start with",
+        "\nLet's chat about",
+        "\nHow can I help",
+        "\n📝 Type your",
+        "\n👋 Let's",
+        "\n💬 How can",
+        "\n\n Wait... How did I do",
+        "\nWait... How did I do",
+        "\n**Identify Primary Intent",
+        "\n**Address Secondary Intents",
+        "\n- User's MAIN need",
+        "\n- Since the user",
+        # EMBER system instruction patterns (in the middle of response)
+        "\nEMBER:",
+        "\n- Your response should",
+        "\n- Only respond with",
+        "\n- Start with a direct",
+        "\n- NOT include example",
+        # Catch critical markers anywhere in text
+        "🚨 CRITICAL:",
+        "CRITICAL:",
+        "⚠️ IMPORTANT:",
+        "IMPORTANT:",
+        "\n**Context information available:**",
+        ]
+        logger.debug(f"Using full leak patterns for {detected_lang}")
     
     # Find the first occurrence of any leak pattern
     first_leak_pos = len(text)
@@ -265,8 +507,20 @@ def clean_training_data_leakage(text: str) -> str:
     # If we found a leak pattern, truncate the text before it
     if found_pattern:
         cleaned = text[:first_leak_pos].strip()
+        
+        # Final validation: make sure we have substantial content
+        if len(cleaned) < 10:
+            logger.error(f"❌ After removing training data, only {len(cleaned)} chars remain - likely all training data")
+            logger.debug(f"Original text (first 200 chars): {original_text[:200]}")
+            # Return empty to trigger fallback
+            return ""
+        
         logger.warning(f"🧹 Removed training data leakage starting with '{found_pattern.strip()}' at position {first_leak_pos}")
-        logger.info(f"📏 Original: {len(text)} chars → Cleaned: {len(cleaned)} chars (removed {len(text) - len(cleaned)} chars)")
+        logger.info(f"📏 Original: {original_length} chars → Cleaned: {len(cleaned)} chars (removed {original_length - len(cleaned)} chars)")
         return cleaned
+    
+    # No leak patterns found - return the text as is (possibly already cleaned from start marker)
+    if len(text) != original_length:
+        logger.info(f"📏 Cleaned start marker: {original_length} chars → {len(text)} chars")
     
     return text

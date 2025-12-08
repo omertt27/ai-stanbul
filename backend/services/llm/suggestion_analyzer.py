@@ -17,6 +17,7 @@ Date: December 3, 2025
 import json
 import logging
 import time
+import asyncio
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
 
@@ -111,7 +112,14 @@ class SuggestionAnalyzer:
             
             # Analyze if we should trigger suggestions
             if self.config.get('use_llm', True):
-                should_suggest, confidence, reason = await self._should_suggest_llm(context)
+                try:
+                    should_suggest, confidence, reason = await asyncio.wait_for(
+                        self._should_suggest_llm(context),
+                        timeout=self.config['timeout_seconds']
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(f"LLM trigger analysis timed out after {self.config['timeout_seconds']}s, using heuristics")
+                    should_suggest, confidence, reason = self._heuristic_trigger(context)
             else:
                 should_suggest, confidence, reason = self._heuristic_trigger(context)
                 logger.debug("Using heuristic trigger (LLM disabled)")

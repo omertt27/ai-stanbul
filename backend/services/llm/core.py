@@ -667,7 +667,9 @@ Fixed version (max 50 chars):"""
             
             # Simplified LLM call with circuit breaker only
             async def _generate_with_llm():
-                logger.info(f"📝 Calling LLM with prompt (first 100 chars): {prompt[:100]}...")
+                logger.info(f"📝 Calling LLM...")
+                logger.info(f"📏 Prompt length: {len(prompt)} chars")
+                logger.info(f"🔚 Prompt ending (last 300 chars): ...{prompt[-300:]}")
                 result = await self.llm.generate(
                     prompt=prompt,
                     max_tokens=max_tokens,
@@ -681,17 +683,26 @@ Fixed version (max 50 chars):"""
             
             llm_latency = time.time() - llm_start
             
+            logger.info(f"🔍 Response data type: {type(response_data)}, keys: {list(response_data.keys()) if isinstance(response_data, dict) else 'not a dict'}")
             if not response_data or "generated_text" not in response_data:
                 error_msg = f"Invalid LLM response structure: {type(response_data)}"
                 logger.error(f"❌ {error_msg}")
                 raise Exception(error_msg)
             
             response_text = response_data["generated_text"]
+            logger.info(f"🔍 Response text length: {len(response_text)}, type: {type(response_text)}")
+            logger.info(f"🔍 RAW LLM RESPONSE (FULL): {repr(response_text)}")
             
             # Clean training data leakage from response
             logger.info(f"🧹 Applying training data leakage filter to {len(response_text)} chars...")
-            response_text = clean_training_data_leakage(response_text)
+            response_text = clean_training_data_leakage(response_text, prompt=prompt)
             logger.info(f"✅ After filter: {len(response_text)} chars")
+            
+            # Clean formatting artifacts (checkboxes, duplicate emojis, etc.)
+            from .llm_response_parser import clean_response_formatting
+            response_text = clean_response_formatting(response_text)
+            logger.info(f"✅ After formatting cleanup: {len(response_text)} chars")
+            logger.info(f"🔍 FINAL CLEANED RESPONSE: {response_text[:500]}...")
             
             # STEP 7.5: Extract LLM-classified intents (PRIORITY 2) - NEW
             llm_intents = {}

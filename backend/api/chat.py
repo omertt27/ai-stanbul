@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 import time
 import logging
 import json
+import asyncio
 
 from database import get_db
 from core.startup import startup_manager
@@ -471,6 +472,7 @@ async def pure_llm_chat(
         
         # === PHASE 4.4: GENERATE PROACTIVE SUGGESTIONS ===
         # Generate intelligent suggestions for the user's next steps
+        # Protected with timeout to prevent frontend hangs
         proactive_suggestions = None
         try:
             # Extract entities from LLM intent
@@ -490,16 +492,23 @@ async def pure_llm_chat(
                 if conv_ctx.get('history'):
                     conversation_history = conv_ctx['history'][-5:]  # Last 5 turns
             
-            # Generate suggestions
-            proactive_suggestions = await generate_proactive_suggestions(
-                query=original_query,
-                response=enhanced_response,
-                intent=result.get('intent'),
-                entities=entities,
-                conversation_history=conversation_history,
-                user_location=llm_intent.origin if llm_intent else None,
-                session_id=session_id
-            )
+            # Generate suggestions with timeout protection (5 seconds max)
+            try:
+                proactive_suggestions = await asyncio.wait_for(
+                    generate_proactive_suggestions(
+                        query=original_query,
+                        response=enhanced_response,
+                        intent=result.get('intent'),
+                        entities=entities,
+                        conversation_history=conversation_history,
+                        user_location=llm_intent.origin if llm_intent else None,
+                        session_id=session_id
+                    ),
+                    timeout=5.0  # 5 second timeout for suggestion generation
+                )
+            except asyncio.TimeoutError:
+                logger.warning("Suggestion generation timed out after 5s, using fallback")
+                proactive_suggestions = None
             
             if proactive_suggestions:
                 logger.info(f"✨ Added {len(proactive_suggestions)} proactive suggestions")
@@ -507,8 +516,18 @@ async def pure_llm_chat(
             logger.warning(f"Proactive suggestion generation failed: {e}")
             proactive_suggestions = None
         
-        # Use proactive suggestions if available, fallback to original
+        # Use proactive suggestions if available, fallback to original or defaults
         final_suggestions = proactive_suggestions if proactive_suggestions else result.get('suggestions', [])
+        
+        # If no suggestions at all, provide helpful defaults
+        if not final_suggestions:
+            final_suggestions = [
+                "What are the top attractions in Istanbul?",
+                "Show me popular restaurants nearby",
+                "How do I get around the city?",
+                "Tell me about hidden gems",
+                "What's the weather like today?"
+            ]
         
         # If proactive suggestions are dict format, extract text
         if final_suggestions and isinstance(final_suggestions[0], dict):

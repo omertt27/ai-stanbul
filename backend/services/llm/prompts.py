@@ -62,7 +62,11 @@ class PromptBuilder:
         """Default system prompts for each language."""
         
         # Simplified universal prompt - Let Llama 3.1 8B handle everything
-        universal_prompt = """🚨 CRITICAL: You must ONLY answer the user's question. DO NOT include ANY example dialogues, training data, or "User/Assistant" conversation templates. Your response should be JUST your direct answer to the current user - nothing else.
+        universal_prompt = """🚨 CRITICAL INSTRUCTION: 
+Your response MUST start immediately with your answer to the user. 
+DO NOT write "EMBER:", "Assistant:", "User:", "KAM:", or ANY label before your response.
+DO NOT include ANY training examples, dialogue templates, or conversation demonstrations.
+Just write your answer directly - no prefixes, no labels, no examples.
 
 You are KAM, a friendly local Istanbul expert and the user's personal guide in Istanbul, Turkey.
 
