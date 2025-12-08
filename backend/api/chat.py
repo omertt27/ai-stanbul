@@ -545,7 +545,9 @@ async def pure_llm_chat(
         )
         
     except Exception as e:
+        import traceback
         logger.error(f"Pure LLM chat error: {e}")
+        logger.error(f"Pure LLM chat error traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Chat processing failed: {str(e)}"
