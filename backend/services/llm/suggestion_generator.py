@@ -241,11 +241,11 @@ class SuggestionGenerator:
         Returns list of dicts with keys: text, type, intent, entities, relevance
         """
         templates = [
-            {"text": "What are the top attractions nearby?", "type": "attraction", "intent": "needs_attraction", "relevance": 0.9},
-            {"text": "Show me popular restaurants in this neighborhood", "type": "restaurant", "intent": "needs_restaurant", "relevance": 0.85},
-            {"text": "How do I get to Sultanahmet from here?", "type": "directions", "intent": "needs_transportation", "relevance": 0.8},
-            {"text": "Recommend a hidden gem off the beaten path", "type": "hidden_gem", "intent": "needs_hidden_gems", "relevance": 0.75},
-            {"text": "What events are happening this weekend?", "type": "events", "intent": "needs_events", "relevance": 0.7}
+            {"text": "What are the top attractions nearby?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+            {"text": "Show me popular restaurants in this neighborhood", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+            {"text": "How do I get to Sultanahmet from here?", "type": "practical", "intent": "needs_transportation", "relevance": 0.8},
+            {"text": "Recommend a hidden gem off the beaten path", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+            {"text": "What events are happening this weekend?", "type": "cultural", "intent": "needs_events", "relevance": 0.7}
         ]
         # Simple context-aware filtering (if location present)
         if context.user_location:

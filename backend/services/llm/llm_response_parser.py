@@ -207,9 +207,18 @@ def clean_training_data_leakage(text: str) -> str:
     if not text or not isinstance(text, str):
         return text
     
-    # Patterns that indicate training data leakage
+    # Patterns that indicate training data leakage or debug output
     # Looking for these as separate lines/sections to avoid false positives
     leak_patterns = [
+        "\n🎯 INTENT CLASSIFICATION",
+        "\n🚨 UNCERTAIN INTENT",
+        "\n🎯 MULTI-INTENT",
+        "\n---\n\n🎯",
+        "\n---\n\n🚨",
+        "\nIntents:",
+        "\nTransportation/Directions:",
+        "\nRestaurant Recommendation:",
+        "\nAttraction Information:",
         "\n### USER QUESTION",
         "\n### User's question",
         "\n### User Question",

@@ -694,19 +694,50 @@ Rewritten query:"""
                         )
                         
                         # Remove intent classification from final response (clean it up)
+                        # Remove the entire intent classification section including checkboxes
                         response_text = re.sub(
-                            r'🎯\s*INTENT\s+CLASSIFICATION.*?Intents:.*?\n\n',
+                            r'---\s*\n*🎯\s*INTENT\s+CLASSIFICATION.*?(?=\n\n[A-Z]|\n\n\w|$)',
                             '',
                             response_text,
                             flags=re.DOTALL | re.IGNORECASE
                         )
-                        # Also remove any stray intent markers
+                        
+                        # Remove uncertain intent detection section
                         response_text = re.sub(
-                            r'Intents:\s*\[.*?\]\s*\n',
+                            r'---\s*\n*🚨\s*UNCERTAIN\s+INTENT.*?(?=\n\n[A-Z]|\n\n\w|$)',
+                            '',
+                            response_text,
+                            flags=re.DOTALL | re.IGNORECASE
+                        )
+                        
+                        # Remove multi-intent detection section
+                        response_text = re.sub(
+                            r'---\s*\n*🎯\s*MULTI-INTENT.*?(?=\n\n[A-Z]|\n\n\w|$)',
+                            '',
+                            response_text,
+                            flags=re.DOTALL | re.IGNORECASE
+                        )
+                        
+                        # Remove any standalone "Intents:" lines with checkboxes
+                        response_text = re.sub(
+                            r'Intents:\s*\[.*?\].*?\n',
                             '',
                             response_text,
                             flags=re.IGNORECASE
                         )
+                        
+                        # Remove checkbox patterns at start of line
+                        response_text = re.sub(
+                            r'^\s*\[[Xx ]\].*?(?:Transportation|Restaurant|Attraction|Neighborhood|Event|Shopping|Nightlife|General).*?\n',
+                            '',
+                            response_text,
+                            flags=re.MULTILINE
+                        )
+                        
+                        # Clean up any leftover separators
+                        response_text = re.sub(r'\n---\n+', '\n\n', response_text)
+                        response_text = re.sub(r'\n{3,}', '\n\n', response_text)
+                        response_text = response_text.strip()
                 except Exception as e:
                     logger.warning(f"Failed to extract LLM intents: {e}")
             
