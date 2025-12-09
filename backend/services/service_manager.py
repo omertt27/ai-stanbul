@@ -151,14 +151,22 @@ class ServiceManager:
             self._service_errors.append(f"info_service: {e}")
     
     def _init_weather_service(self):
-        """Initialize weather service"""  # NEW: Weather service initialization
+        """Initialize weather service with real API"""  # NEW: Weather service initialization
         try:
-            from services.weather_service import WeatherService
-            self.weather_service = WeatherService()
-            logger.info("✅ Weather service loaded")
+            # Try EnhancedWeatherClient with real API first
+            from api_clients.enhanced_weather import EnhancedWeatherClient
+            self.weather_service = EnhancedWeatherClient()
+            logger.info("✅ Enhanced weather service loaded (real API with OpenWeatherMap)")
         except Exception as e:
-            logger.warning(f"⚠️ Weather service not available: {e}")
-            self._service_errors.append(f"weather_service: {e}")
+            logger.warning(f"⚠️ Enhanced weather service failed: {e}, trying fallback...")
+            # Fallback to mock service
+            try:
+                from services.weather_service import WeatherService
+                self.weather_service = WeatherService()
+                logger.warning("⚠️ Using fallback weather service (MOCK DATA)")
+            except Exception as e2:
+                logger.warning(f"⚠️ Weather service not available: {e2}")
+                self._service_errors.append(f"weather_service: {e2}")
     
     def _init_entity_extractor(self):
         """Initialize entity extractor"""

@@ -513,3 +513,52 @@ INFO:     127.0.0.1:54084 - "POST /api/chat HTTP/1.1" 200 OK
 2025-12-09 20:45:25,106 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
 2025-12-09 20:56:13,186 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
 2025-12-09 20:56:13,186 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+2025-12-09 21:01:13,191 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
+2025-12-09 21:01:13,192 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+2025-12-09 21:06:13,196 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
+2025-12-09 21:06:13,197 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+2025-12-09 21:11:13,200 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
+2025-12-09 21:11:13,200 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+2025-12-09 21:16:13,197 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
+2025-12-09 21:16:13,197 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+2025-12-09 21:21:13,200 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
+2025-12-09 21:21:13,200 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+2025-12-09 21:26:13,203 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
+2025-12-09 21:26:13,203 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+2025-12-09 21:31:13,209 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
+2025-12-09 21:31:13,210 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+WARNING:  StatReload detected changes in 'services/llm/response_enhancer.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-09 21:31:15,426 - core.startup - INFO - 👋 Shutting down services...
+2025-12-09 21:31:15,426 - core.startup - INFO - ✅ Redis cache closed
+2025-12-09 21:31:15,426 - main_modular - INFO - 👋 AI Istanbul Backend shut down complete
+INFO:     Application shutdown complete.
+INFO:     Finished server process [58932]
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x0000000204d40800 (most recent call first):
+  <no Python frame>
+WARNING:  StatReload detected changes in 'services/llm/response_enhancer.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x0000000204d40800 (most recent call first):
+  <no Python frame>
+WARNING:  StatReload detected changes in 'services/service_manager.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x0000000204d40800 (most recent call first):
+  <no Python frame>
+WARNING:  StatReload detected changes in 'services/service_manager.py'. Reloading...
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descriptor
+
+Current thread 0x0000000204d40800 (most recent call first):
+  <no Python frame>

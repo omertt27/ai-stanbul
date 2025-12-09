@@ -363,16 +363,31 @@ Return ONLY the enhancement text (do not include the base response).
         """
         enhancements = []
         
-        # Weather tip
-        if 'weather' in context and context['weather'].get('is_raining'):
-            enhancements.append("🌧️ It's raining - consider taking metro/tram instead of walking.")
-        elif 'weather' in context and context['weather'].get('condition') == 'sunny':
-            enhancements.append("☀️ Beautiful weather today - perfect for walking!")
+        # Only add transportation-specific enhancements for relevant query types
+        is_transport_query = response_type in ['route', 'transportation', 'directions', 'gps_routing']
         
-        # Time tip
-        time_context = context.get('time_context', {})
-        if time_context.get('is_rush_hour'):
-            enhancements.append("⏰ Rush hour traffic - public transport may be crowded.")
+        # Weather tip - relevant for outdoor activities and transportation
+        if 'weather' in context:
+            weather_condition = context['weather'].get('condition', '').lower()
+            if context['weather'].get('is_raining'):
+                enhancements.append("🌧️ It's raining - consider taking metro/tram instead of walking.")
+            elif weather_condition in ['sunny', 'clear'] and is_transport_query:
+                enhancements.append("☀️ Beautiful weather today - perfect for walking!")
+        
+        # Time tip - ONLY for transportation queries
+        if is_transport_query:
+            time_context = context.get('time_context', {})
+            hour = datetime.now().hour
+            is_weekend = time_context.get('is_weekend', False)
+            
+            if time_context.get('is_rush_hour'):
+                if is_weekend:
+                    # Weekends have less traffic, skip rush hour warning
+                    pass
+                elif 7 <= hour <= 9:
+                    enhancements.append("⏰ Morning rush hour (7-9 AM) - metro and buses will be crowded. Allow extra time.")
+                elif 17 <= hour <= 19:
+                    enhancements.append("⏰ Evening rush hour (5-7 PM) - public transport is very busy. Consider leaving earlier or later if possible.")
         
         # Route-specific tips
         if 'route' in context:
