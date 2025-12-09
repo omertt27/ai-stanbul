@@ -834,11 +834,11 @@ function Chatbot({ userLocation: propUserLocation }) {
     const aiMessages = messages.filter(m => m.sender === 'assistant');
     if (aiMessages.length > 0) {
       const lastAIMessage = aiMessages[aiMessages.length - 1];
-      const newSuggestions = getSmartSuggestions(lastAIMessage.text);
+      const newSuggestions = getSmartSuggestions(lastAIMessage.text, {}, i18n.language);
       setQuickReplySuggestions(newSuggestions);
       setShowQuickReplies(true);
     }
-  }, [messages, useSmartQuickReplies]);
+  }, [messages, useSmartQuickReplies, i18n.language]);
 
   // Enhanced message management
   const addMessage = (text, sender = 'assistant', metadata = {}) => {
@@ -965,6 +965,46 @@ function Chatbot({ userLocation: propUserLocation }) {
     }
   };
 
+  // Handle user feedback on AI responses (for model fine-tuning)
+  const handleFeedback = async (interactionId, feedbackType) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/feedback/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          interaction_id: interactionId,
+          feedback_type: feedbackType,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit feedback');
+      }
+
+      // Update message feedback state
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.interaction_id === interactionId 
+            ? { ...msg, feedback: feedbackType }
+            : msg
+        )
+      );
+
+      // Track feedback event in analytics
+      trackEvents('feedback_submitted', {
+        interaction_id: interactionId,
+        feedback_type: feedbackType,
+        session_id: currentSessionId,
+      });
+
+      console.log(`✅ Feedback submitted: ${feedbackType} for ${interactionId}`);
+    } catch (error) {
+      console.error('❌ Failed to submit feedback:', error);
+    }
+  };
+  
   // Enhanced scroll management
   const scrollToBottom = () => {
     const chatContainer = document.getElementById('chat-messages');
@@ -1463,7 +1503,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                 aria-label="Dismiss GPS banner"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6m-12 0l12 12" />
                 </svg>
               </button>
             </div>
@@ -1498,6 +1538,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                 darkMode ? 'text-black' : 'text-white'
               }`} fill="currentColor" viewBox="0 0 24 24">
                 <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+              </svg>
             </div>
             <h2 className={`text-2xl md:text-3xl font-bold mb-4 transition-colors duration-200 ${
               darkMode ? 'text-white' : 'text-gray-900'
@@ -1658,6 +1699,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                         }`}>
                           <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                          </svg>
                         </div>
                         
                         {/* Message content - NO BUBBLE, full width */}
@@ -1733,15 +1775,58 @@ function Chatbot({ userLocation: propUserLocation }) {
                               )}
                             </div>
                           )}
+                          
+                          {/* Feedback Buttons - For Model Fine-tuning Data Collection */}
+                          {msg.interaction_id && (
+                            <div className="mt-3 flex items-center gap-2">
+                              <button
+                                onClick={() => handleFeedback(msg.interaction_id, 'thumbs_up')}
+                                disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                  msg.feedback === 'thumbs_up'
+                                    ? darkMode
+                                      ? 'bg-green-600 text-white'
+                                      : 'bg-green-500 text-white'
+                                    : darkMode
+                                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                aria-label="Helpful response"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                </svg>
+                                {msg.feedback === 'thumbs_up' ? 'Helpful!' : 'Helpful'}
+                              </button>
+                              
+                              <button
+                                onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down')}
+                                disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                  msg.feedback === 'thumbs_down'
+                                    ? darkMode
+                                      ? 'bg-red-600 text-white'
+                                      : 'bg-red-500 text-white'
+                                    : darkMode
+                                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                aria-label="Not helpful"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                                </svg>
+                                {msg.feedback === 'thumbs_down' ? 'Not helpful' : 'Not helpful'}
+                              </button>
+                              
+                              {msg.feedback && (
+                                <span className={`text-xs ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  Thanks for your feedback!
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        
-                        <MessageActions 
-                          message={msg}
-                          onCopy={copyMessageToClipboard}
-                          onShare={shareMessage}
-                          onRetry={msg.canRetry ? () => handleSend(msg.originalInput) : null}
-                          darkMode={darkMode}
-                        />
                       </div>
                     </SwipeableMessage>
                   ) : (
@@ -1831,15 +1916,58 @@ function Chatbot({ userLocation: propUserLocation }) {
                             )}
                           </div>
                         )}
+                        
+                        {/* Feedback Buttons - For Model Fine-tuning Data Collection */}
+                        {msg.interaction_id && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              onClick={() => handleFeedback(msg.interaction_id, 'thumbs_up')}
+                              disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                msg.feedback === 'thumbs_up'
+                                  ? darkMode
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-green-500 text-white'
+                                  : darkMode
+                                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            aria-label="Helpful response"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                              </svg>
+                              {msg.feedback === 'thumbs_up' ? 'Helpful!' : 'Helpful'}
+                            </button>
+                            
+                            <button
+                              onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down')}
+                              disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                msg.feedback === 'thumbs_down'
+                                  ? darkMode
+                                    ? 'bg-red-600 text-white'
+                                    : 'bg-red-500 text-white'
+                                  : darkMode
+                                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            aria-label="Not helpful"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                              </svg>
+                              {msg.feedback === 'thumbs_down' ? 'Not helpful' : 'Not helpful'}
+                            </button>
+                            
+                            {msg.feedback && (
+                              <span className={`text-xs ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                Thanks for your feedback!
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      
-                      <MessageActions 
-                        message={msg}
-                        onCopy={copyMessageToClipboard}
-                        onShare={shareMessage}
-                        onRetry={msg.canRetry ? () => handleSend(msg.originalInput) : null}
-                        darkMode={darkMode}
-                      />
                     </div>
                   )}
                 </div>
@@ -1866,6 +1994,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                 }`}>
                   <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                  </svg>
                 </div>
                 
                 {/* Mobile: Show SkeletonMessage, Desktop: Show typing indicator */}

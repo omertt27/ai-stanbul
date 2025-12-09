@@ -16,6 +16,7 @@ import asyncio
 
 from database import get_db
 from core.startup import startup_manager
+from services.data_collection import log_chat_interaction
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,7 @@ class ChatResponse(BaseModel):
     map_data: Optional[Dict[str, Any]] = Field(None, description="Map visualization data for routes")
     navigation_active: Optional[bool] = Field(None, description="Whether GPS navigation is active")
     navigation_data: Optional[Dict[str, Any]] = Field(None, description="GPS navigation state and instructions")
+    interaction_id: Optional[str] = Field(None, description="Interaction ID for feedback tracking")
 
 
 class MLChatRequest(BaseModel):
@@ -533,6 +535,25 @@ async def pure_llm_chat(
         if final_suggestions and isinstance(final_suggestions[0], dict):
             final_suggestions = [s.get('text', str(s)) for s in final_suggestions]
         
+        # === DATA COLLECTION FOR MODEL FINE-TUNING ===
+        try:
+            interaction_id = log_chat_interaction(
+                user_query=original_query,
+                llm_response=enhanced_response,
+                language=request.language or 'en',
+                intent=result.get('intent'),
+                response_time=int((time.time() - start_time) * 1000) if 'start_time' in locals() else None,
+                cached=result.get('cached', False),
+                method='pure_llm',
+                has_map_data=result.get('map_data') is not None,
+                session_id=session_id,
+                confidence=result.get('confidence')
+            )
+            logger.debug(f"📝 Logged interaction {interaction_id} for training data")
+        except Exception as e:
+            logger.warning(f"Failed to log interaction for training: {e}")
+            interaction_id = None
+        
         return ChatResponse(
             response=enhanced_response,
             session_id=result.get('session_id', request.session_id or 'new'),
@@ -541,7 +562,8 @@ async def pure_llm_chat(
             suggestions=final_suggestions,
             map_data=result.get('map_data'),  # Include map data for visualization
             navigation_active=result.get('navigation_active', False),
-            navigation_data=result.get('navigation_data')
+            navigation_data=result.get('navigation_data'),
+            interaction_id=interaction_id  # Include for frontend feedback tracking
         )
         
     except Exception as e:

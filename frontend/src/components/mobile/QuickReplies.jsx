@@ -13,6 +13,7 @@
  */
 
 import React from 'react';
+import { getTranslatedSuggestions, detectCategory } from '../../utils/quickReplyTranslations';
 import './QuickReplies.css';
 
 const QuickReplies = ({ 
@@ -42,48 +43,16 @@ const QuickReplies = ({
 };
 
 // Helper function to generate smart suggestions based on context
-export const getSmartSuggestions = (lastMessage, context = {}) => {
+export const getSmartSuggestions = (lastMessage, context = {}, language = 'en') => {
   if (!lastMessage) {
-    return ['Show restaurants', 'Find attractions', 'Get directions'];
+    return getTranslatedSuggestions('default', language);
   }
 
   const lowerMessage = lastMessage.toLowerCase();
-
-  // Restaurant context
-  if (lowerMessage.includes('restaurant') || lowerMessage.includes('dining')) {
-    return ['Show on map', 'Get directions', 'More options', 'Find nearby'];
-  }
-
-  // Attraction/place context
-  if (lowerMessage.includes('museum') || lowerMessage.includes('attraction') || 
-      lowerMessage.includes('landmark') || lowerMessage.includes('tower')) {
-    return ['Show on map', 'Opening hours', 'How to get there', 'More like this'];
-  }
-
-  // Direction context
-  if (lowerMessage.includes('direction') || lowerMessage.includes('get there') ||
-      lowerMessage.includes('how do i go')) {
-    return ['Start navigation', 'Public transport', 'Walking route', 'Drive there'];
-  }
-
-  // Location context
-  if (lowerMessage.includes('taksim') || lowerMessage.includes('sultanahmet') ||
-      lowerMessage.includes('beyoğlu') || lowerMessage.includes('galata')) {
-    return ['Show restaurants', 'Find attractions', 'Get directions', 'Tell me more'];
-  }
-
-  // Question context
-  if (lowerMessage.endsWith('?')) {
-    return ['Yes', 'No', 'Tell me more', 'Show examples'];
-  }
-
-  // Weather context
-  if (lowerMessage.includes('weather') || lowerMessage.includes('temperature')) {
-    return ['5-day forecast', 'What to wear', 'Best time to visit', 'Indoor activities'];
-  }
-
-  // Default suggestions
-  return ['Show restaurants', 'Find attractions', 'Get directions', 'Tell me more'];
+  
+  // Use translation system for context-aware suggestions
+  const category = detectCategory(lastMessage);
+  return getTranslatedSuggestions(category, language);
 };
 
 export default QuickReplies;

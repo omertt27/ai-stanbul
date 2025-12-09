@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Collection Dashboard - AI Istanbul</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">📊 Model Fine-tuning Data Collection</h1>
+            <p class="text-gray-600">Real-time tracking of chat interactions for Llama 3.1 fine-tuning</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Total Interactions</p>
+                        <p class="text-3xl font-bold text-blue-600" id="total-interactions">-</p>
+                    </div>
+                    <div class="bg-blue-100 rounded-full p-3">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Target: 10,000+</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Positive Feedback</p>
+                        <p class="text-3xl font-bold text-green-600" id="positive-feedback">-</p>
+                    </div>
+                    <div class="bg-green-100 rounded-full p-3">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2" id="positive-rate">-% positive rate</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Negative Feedback</p>
+                        <p class="text-3xl font-bold text-red-600" id="negative-feedback">-</p>
+                    </div>
+                    <div class="bg-red-100 rounded-full p-3">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2" id="feedback-rate">-% feedback rate</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Quality Score</p>
+                        <p class="text-3xl font-bold text-purple-600" id="quality-score">-</p>
+                    </div>
+                    <div class="bg-purple-100 rounded-full p-3">
+                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Target: >70%</p>
+            </div>
+        </div>
+
+        <!-- Language Distribution -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">🌍 Language Distribution</h2>
+                <canvas id="language-chart"></canvas>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">🎯 Intent Distribution</h2>
+                <canvas id="intent-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Progress Bars -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">📈 Collection Progress</h2>
+            
+            <div class="mb-4">
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">Minimum Viable Dataset (5,000)</span>
+                    <span class="text-sm font-medium text-gray-700" id="mvp-percent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div class="bg-green-600 h-4 rounded-full transition-all duration-500" id="mvp-progress" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">Ideal Dataset (10,000)</span>
+                    <span class="text-sm font-medium text-gray-700" id="ideal-percent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div class="bg-blue-600 h-4 rounded-full transition-all duration-500" id="ideal-progress" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">Feedback Goal (1,500+)</span>
+                    <span class="text-sm font-medium text-gray-700" id="feedback-percent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div class="bg-purple-600 h-4 rounded-full transition-all duration-500" id="feedback-progress" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">⚙️ Actions</h2>
+            <div class="flex flex-wrap gap-4">
+                <button onclick="refreshStats()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors">
+                    🔄 Refresh Stats
+                </button>
+                <button onclick="exportDataset()" class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition-colors">
+                    💾 Export Dataset
+                </button>
+                <a href="http://localhost:8000/api/feedback/stats" target="_blank" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-3 rounded-lg transition-colors inline-block">
+                    📊 View Raw Stats (JSON)
+                </a>
+            </div>
+        </div>
+
+        <!-- Last Updated -->
+        <div class="text-center mt-6 text-gray-500 text-sm">
+            Last updated: <span id="last-updated">-</span>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        let languageChart, intentChart;
+
+        // Initialize charts
+        function initCharts() {
+            const languageCtx = document.getElementById('language-chart').getContext('2d');
+            languageChart = new Chart(languageCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            const intentCtx = document.getElementById('intent-chart').getContext('2d');
+            intentChart = new Chart(intentCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Interactions',
+                        data: [],
+                        backgroundColor: '#8B5CF6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Fetch and update stats
+        async function refreshStats() {
+            try {
+                const response = await fetch(`${API_URL}/api/feedback/stats`);
+                const data = await response.json();
+
+                // Update stats cards
+                document.getElementById('total-interactions').textContent = data.total_interactions.toLocaleString();
+                document.getElementById('positive-feedback').textContent = data.positive_feedback.toLocaleString();
+                document.getElementById('negative-feedback').textContent = data.negative_feedback.toLocaleString();
+                document.getElementById('feedback-rate').textContent = `${data.feedback_rate.toFixed(1)}% feedback rate`;
+                document.getElementById('positive-rate').textContent = `${data.positive_rate.toFixed(1)}% positive rate`;
+                document.getElementById('quality-score').textContent = `${data.positive_rate.toFixed(0)}%`;
+
+                // Update progress bars
+                const mvpProgress = Math.min((data.total_interactions / 5000) * 100, 100);
+                const idealProgress = Math.min((data.total_interactions / 10000) * 100, 100);
+                const feedbackProgress = Math.min((data.positive_feedback / 1500) * 100, 100);
+
+                document.getElementById('mvp-progress').style.width = `${mvpProgress}%`;
+                document.getElementById('mvp-percent').textContent = `${mvpProgress.toFixed(1)}%`;
+                
+                document.getElementById('ideal-progress').style.width = `${idealProgress}%`;
+                document.getElementById('ideal-percent').textContent = `${idealProgress.toFixed(1)}%`;
+                
+                document.getElementById('feedback-progress').style.width = `${feedbackProgress}%`;
+                document.getElementById('feedback-percent').textContent = `${feedbackProgress.toFixed(1)}%`;
+
+                // Update language chart
+                const languages = data.languages || {};
+                languageChart.data.labels = Object.keys(languages);
+                languageChart.data.datasets[0].data = Object.values(languages);
+                languageChart.update();
+
+                // Update intent chart
+                const intents = data.intents || {};
+                intentChart.data.labels = Object.keys(intents);
+                intentChart.data.datasets[0].data = Object.values(intents);
+                intentChart.update();
+
+                // Update last updated time
+                document.getElementById('last-updated').textContent = new Date().toLocaleString();
+
+            } catch (error) {
+                console.error('Failed to fetch stats:', error);
+                alert('Failed to fetch stats. Make sure the backend is running.');
+            }
+        }
+
+        // Export dataset
+        async function exportDataset() {
+            if (!confirm('Export training dataset? This will create a JSONL file with all high-quality interactions.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/feedback/export`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filter_positive_only: true,
+                        min_response_length: 50,
+                        max_response_length: 400
+                    })
+                });
+
+                const result = await response.json();
+                alert(`✅ Dataset exported successfully!\n\nExported ${result.count} training examples\nFile: ${result.output_file}`);
+            } catch (error) {
+                console.error('Failed to export dataset:', error);
+                alert('Failed to export dataset. Check console for details.');
+            }
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshStats, 30000);
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            refreshStats();
+        });
+    </script>
+</body>
+</html>
