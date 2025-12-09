@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { trackEvents } from '../../utils/analytics';
+import { trackEvent } from '../../utils/analytics';
 import './JumpToBottomFAB.css';
 
 const JumpToBottomFAB = ({ 
@@ -45,7 +45,7 @@ const JumpToBottomFAB = ({
 
     // Track jump to bottom usage (analytics)
     try {
-      trackEvents.jumpToBottom(unreadCount);
+      trackEvent('jump_to_bottom', 'chat_interaction', 'unread_messages', unreadCount);
     } catch (e) {
       console.warn('Analytics tracking failed:', e);
     }
