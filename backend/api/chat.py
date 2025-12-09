@@ -17,11 +17,16 @@ import asyncio
 from database import get_db
 from core.startup import startup_manager
 from services.data_collection import log_chat_interaction
+from utils.response_sanitizer import ResponseSanitizer
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
+# ==========================================
+# Response Sanitizer
+# ==========================================
+_response_sanitizer = ResponseSanitizer()
 
 # ==========================================
 # RAG Service Integration
@@ -109,6 +114,7 @@ class ChatRequest(BaseModel):
     user_location: Optional[Dict[str, float]] = Field(None, description="User GPS location")
     preferences: Optional[Dict[str, Any]] = Field(None, description="User preferences")
     user_id: Optional[str] = Field(None, description="User ID for personalization")
+    language: Optional[str] = Field("en", description="Response language (en/tr)")
 
 
 class ChatResponse(BaseModel):
@@ -494,7 +500,7 @@ async def pure_llm_chat(
             query=request.message,
             user_location=request.user_location,
             session_id=request.session_id,
-            language="en"
+            language=request.language or "en"
         )
         
         response_time = time.time() - start_time
@@ -519,6 +525,19 @@ async def pure_llm_chat(
             route_data=result.get('map_data'),  # May contain route info
             response_type=result.get('intent', 'general')
         )
+        
+        # === RESPONSE SANITIZATION: Clean up LLM artifacts ===
+        # Remove system prompt leakage, ensure language consistency
+        sanitized_response = _response_sanitizer.sanitize(
+            response=enhanced_response,
+            expected_language=request.language or 'en',  # Use requested language
+            strict_language_check=True
+        )
+        
+        if sanitized_response != enhanced_response:
+            logger.info(f"🧹 Response sanitized - removed {len(enhanced_response) - len(sanitized_response)} characters of artifacts")
+        
+        enhanced_response = sanitized_response
         
         # Extract locations from result for conversation tracking
         locations = []

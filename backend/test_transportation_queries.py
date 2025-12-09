@@ -57,7 +57,7 @@ EXPECTED_PATTERNS = [
 def test_single_query(query: str, session_id: str = "test_session") -> Dict:
     """Test a single transportation query"""
     
-    url = "http://localhost:8000/ai"
+    url = "http://localhost:8000/api/chat"
     payload = {
         "query": query,
         "session_id": session_id

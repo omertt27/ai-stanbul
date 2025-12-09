@@ -14,33 +14,33 @@
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  padding: 6px 10px;
-  border-radius: 20px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 8px 12px;
+  border-radius: 24px;
+  transition: all 0.2s ease;
+  box-shadow: none;
   position: relative;
 }
 
 .smart-chat-input-container.light .smart-chat-input-wrapper {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1.5px solid rgba(139, 92, 246, 0.2);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .smart-chat-input-container.dark .smart-chat-input-wrapper {
-  background: rgba(31, 41, 55, 0.95);
-  border: 1.5px solid rgba(139, 92, 246, 0.3);
+  background: #2f2f2f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .smart-chat-input-wrapper:focus-within {
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
+  box-shadow: none;
 }
 
 .smart-chat-input-container.light .smart-chat-input-wrapper:focus-within {
-  border-color: rgba(139, 92, 246, 0.5);
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 .smart-chat-input-container.dark .smart-chat-input-wrapper:focus-within {
-  border-color: rgba(139, 92, 246, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Voice button */
@@ -50,31 +50,34 @@
   min-width: 32px;
   min-height: 32px;
   border: none;
-  border-radius: 16px;
+  border-radius: 50%;
   font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   touch-action: manipulation;
   flex-shrink: 0;
   align-self: flex-end;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
+  background: transparent;
 }
 
 .smart-chat-input-container.light .voice-button {
-  background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
+  color: #6b7280;
 }
 
 .smart-chat-input-container.dark .voice-button {
-  background: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
+  color: #9ca3af;
 }
 
 .voice-button:hover:not(:disabled) {
-  transform: scale(1.05);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.smart-chat-input-container.dark .voice-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .voice-button:active:not(:disabled) {
@@ -85,8 +88,18 @@
   animation: pulse 1.5s infinite;
 }
 
+.smart-chat-input-container.light .voice-button.listening {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.smart-chat-input-container.dark .voice-button.listening {
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.1);
+}
+
 .voice-button:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
@@ -167,32 +180,43 @@
   min-width: 32px;
   min-height: 32px;
   border: none;
-  border-radius: 16px;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   touch-action: manipulation;
   flex-shrink: 0;
   align-self: flex-end;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .smart-send-button:not(:disabled) {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  background: #10a37f;
   color: white;
 }
 
+.smart-chat-input-container.dark .smart-send-button:not(:disabled) {
+  background: #19c37d;
+}
+
 .smart-send-button:disabled {
-  background: rgba(107, 114, 128, 0.2);
-  color: #9ca3af;
+  background: transparent;
+  color: #d1d5db;
   cursor: not-allowed;
 }
 
+.smart-chat-input-container.dark .smart-send-button:disabled {
+  color: #4b5563;
+}
+
 .smart-send-button:hover:not(:disabled) {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  background: #0d8f6f;
+}
+
+.smart-chat-input-container.dark .smart-send-button:hover:not(:disabled) {
+  background: #1aa76b;
 }
 
 .smart-send-button:active:not(:disabled) {

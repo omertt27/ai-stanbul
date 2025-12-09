@@ -16,7 +16,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { scrollIntoViewSafe } from '../../utils/keyboardDetection';
-import { trackEvents } from '../../utils/analytics';
+import { trackEvent } from '../../utils/analytics';
 import './SmartChatInput.css';
 
 const SmartChatInput = ({ 
@@ -58,7 +58,7 @@ const SmartChatInput = ({
       
       // Track successful voice input (analytics)
       try {
-        trackEvents.voiceInput(true, event.results[0][0].confidence);
+        trackEvent('voice_input_success', 'chat_input', 'Voice recognition completed', event.results[0][0].confidence);
       } catch (e) {
         console.warn('Analytics tracking failed:', e);
       }
@@ -70,7 +70,7 @@ const SmartChatInput = ({
       
       // Track failed voice input (analytics)
       try {
-        trackEvents.voiceInput(false, null, event.error);
+        trackEvent('voice_input_error', 'chat_input', event.error || 'Unknown error', 0);
       } catch (e) {
         console.warn('Analytics tracking failed:', e);
       }
