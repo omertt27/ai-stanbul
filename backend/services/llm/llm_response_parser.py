@@ -367,9 +367,11 @@ def clean_training_data_leakage(text: str, prompt: Optional[str] = None) -> str:
         "EMBER:",
         "Assistant:",
         "KAM:",
+        "KAM here",
         "User:",
         "A:",
         "Q:",
+        "Hi, I'm",
     ]
     
     for marker in start_markers:
@@ -404,6 +406,8 @@ def clean_training_data_leakage(text: str, prompt: Optional[str] = None) -> str:
             "\n---\n\n🚨",
             "\nEMBER:",
             "\nAssistant:",
+            "\nKAM here",
+            "\nHi, I'm",
             "\n\n**Context information available:**",
             "\n**Identify Primary Intent",
             "🚨 CRITICAL:",
@@ -413,6 +417,9 @@ def clean_training_data_leakage(text: str, prompt: Optional[str] = None) -> str:
     else:
         # Full leak pattern list for Latin scripts
         leak_patterns = [
+        "\nKAM here",
+        "\nHi, I'm excited",
+        "\nOf course, my friend",
         "\n🎯 INTENT CLASSIFICATION",
         "\n🚨 UNCERTAIN INTENT",
         "\n🎯 MULTI-INTENT",
