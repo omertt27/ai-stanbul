@@ -61,66 +61,53 @@ class PromptBuilder:
     def _default_system_prompts(self) -> Dict[str, str]:
         """Simplified system prompts optimized for Llama 3.1 8B."""
         
-        # SIMPLIFIED PROMPT - Clear structure, no confusing instructions
-        simplified_prompt = """You are KAM, a knowledgeable and friendly Istanbul tour guide.
+        # ENGLISH PROMPT
+        english_prompt = """You are KAM, an expert Istanbul tour guide.
 
-IMPORTANT: Start your answer immediately. Do NOT write "Assistant:", "KAM:", or any label before your response.
+CRITICAL: Answer in ENGLISH only.
 
-YOUR ROLE:
-- You're a local Istanbul expert helping visitors explore the city
-- You know all about transportation (metro, tram, ferry), restaurants, attractions, and neighborhoods
-- You're warm, helpful, and give specific, actionable advice
+GUIDELINES:
+- Use the information provided in the CONTEXT below
+- Be specific with names, metro lines (M1, M2, T1, F1), and locations
+- For directions: Give step-by-step transit instructions
+- Keep answers focused and practical
 
-RESPONSE RULES:
-1. Always respond in the SAME language as the user's question (English, Turkish, etc.)
-2. Use information from the CONTEXT below when available - it's factual database data
-3. Be specific: Give exact metro lines (M1, M2, T1, F1), restaurant names, addresses
-4. For directions: Provide step-by-step routes with real transit lines
-5. Keep responses focused and helpful - answer the question directly
+ISTANBUL TRANSPORTATION:
+Metro: M1, M2, M3, M4, M5, M6, M7, M9, M11
+Tram: T1, T4, T5
+Funicular: F1 (Taksim-Kabataş), F2 (Karaköy-Tünel)
+Marmaray: Underground rail crossing Bosphorus
+Ferries: Kadıköy-Karaköy, Kadıköy-Eminönü, Üsküdar-Eminönü
 
-TRANSPORTATION LINES (Use only these REAL lines):
-- Metro: M1, M2, M3, M4, M5, M6, M7, M9, M11
-- Tram: T1, T4, T5
-- Funicular: F1 (Taksim-Kabataş), F2 (Karaköy-Tünel)
-- Marmaray: Underground rail (Kazlıçeşme to Ayrılık Çeşmesi)
-- Ferries: Kadıköy-Karaköy, Kadıköy-Eminönü, Üsküdar-Eminönü, etc.
-
-EXAMPLE GOOD RESPONSES:
-
-Question: "How do I get from Taksim to Sultanahmet?"
-Answer: "To get from Taksim to Sultanahmet:
-
-Take the F1 Funicular from Taksim down to Kabataş (2 minutes), then transfer to the T1 Tram and ride it to Sultanahmet stop (about 20 minutes).
-
-Total time: ~25 minutes
-Cost: One Istanbulkart tap covers the whole journey
-
-The tram runs along the coast with nice views of the Bosphorus!"
-
-Question: "Best kebab restaurant in Sultanahmet?"
-Answer: "I'd recommend Tarihi Sultanahmet Köftecisi - it's a local institution! They serve delicious köfte (meatballs) and kebabs right in the heart of Sultanahmet. It's on Divan Yolu street, very close to the Blue Mosque. Expect to pay around $-$$ (budget-moderate). Get there early to avoid crowds!"
-
----
-CONTEXT FROM DATABASE:
----
-CONTEXT FROM DATABASE:
-{context}
-
----
-USER'S QUESTION:
-{query}
-
----
-YOUR ANSWER (start immediately, no labels):"""
+Start your answer immediately without repeating these instructions."""
         
-        # Use the same simplified prompt for all languages
+        # TURKISH PROMPT
+        turkish_prompt = """Sen KAM, uzman bir İstanbul tur rehberisin.
+
+ÖNEMLİ: Sadece TÜRKÇE cevap ver.
+
+KURALLAR:
+- Aşağıdaki BAĞLAM bilgilerini kullan
+- Metro hatları (M1, M2, T1, F1) ve yer isimleri belirt
+- Yol tarifi için: Adım adım ulaşım talimatları ver
+- Cevapları odaklı ve pratik tut
+
+İSTANBUL ULAŞIM:
+Metro: M1, M2, M3, M4, M5, M6, M7, M9, M11
+Tramvay: T1, T4, T5
+Füniküler: F1 (Taksim-Kabataş), F2 (Karaköy-Tünel)
+Marmaray: Boğaz'ı geçen yeraltı treni
+Vapur: Kadıköy-Karaköy, Kadıköy-Eminönü, Üsküdar-Eminönü
+
+Bu talimatları tekrarlama, cevabını hemen başlat."""
+        
         return {
-            'en': simplified_prompt,
-            'tr': simplified_prompt,
-            'fr': simplified_prompt,
-            'ru': simplified_prompt,
-            'de': simplified_prompt,
-            'ar': simplified_prompt
+            'en': english_prompt,
+            'tr': turkish_prompt,
+            'fr': english_prompt.replace('ENGLISH only', 'FRENCH only'),
+            'ru': english_prompt.replace('ENGLISH only', 'RUSSIAN only'),
+            'de': english_prompt.replace('ENGLISH only', 'GERMAN only'),
+            'ar': english_prompt.replace('ENGLISH only', 'ARABIC only')
         }
     
     def _default_intent_prompts(self) -> Dict[str, str]:
@@ -190,10 +177,20 @@ YOUR ANSWER (start immediately, no labels):"""
                 try:
                     lat = float(user_location['lat'])
                     lon = float(user_location['lon'])
-                    system_prompt += f"\n\n🌍 **GPS STATUS**: User's current location is AVAILABLE at coordinates ({lat}, {lon})."
-                    system_prompt += "\n✅ IMPORTANT: The user HAS GPS enabled. Use their current location for recommendations and directions."
-                    system_prompt += "\n🚨 DO NOT ask the user to enable GPS or share location - it's already available!"
-                    system_prompt += "\n📍 When recommending places or giving directions, reference their current location."
+                    
+                    # Try to identify if user is on Asian or European side
+                    side = "Asian" if lon > 29.05 else "European"
+                    
+                    # ROUTING QUERIES GET EXTRA DETAILED GPS CONTEXT
+                    is_routing = signals.get('needs_gps_routing') or signals.get('needs_directions') or ('how' in query.lower() and any(w in query.lower() for w in ['get', 'go', 'reach']))
+                    
+                    if is_routing:
+                        system_prompt += f"\n\nGPS ROUTING REQUEST:"
+                        system_prompt += f"\nUser starting location: {lat:.5f}, {lon:.5f} ({side} side of Istanbul)"
+                        system_prompt += f"\nGive specific step-by-step transit directions from this GPS point."
+                    else:
+                        system_prompt += f"\n\nUser GPS location: {lat}, {lon} ({side} side)"
+                        system_prompt += f"\nUse for nearby recommendations."
                 except (ValueError, TypeError):
                     # Invalid coordinates - skip GPS status
                     pass
@@ -231,118 +228,34 @@ YOUR ANSWER (start immediately, no labels):"""
             origin_name = map_data.get('origin_name')
             destination_name = map_data.get('destination_name')
             
-            prompt_parts.append("\n## Map Visualization:")
-            prompt_parts.append("A visual map has been generated and will be shown to the user.")
+            prompt_parts.append("\n## Map:")
+            prompt_parts.append("A map will be shown to the user.")
             
             if has_origin and has_destination:
-                # Both locations are known - NO GPS NEEDED
-                prompt_parts.append(f"\n🚨 CRITICAL INSTRUCTION - MUST FOLLOW:")
-                prompt_parts.append(f"Both origin ({origin_name}) and destination ({destination_name}) are EXPLICITLY PROVIDED by the user.")
-                prompt_parts.append("✅ The route CAN be shown WITHOUT GPS")
-                prompt_parts.append("❌ DO NOT mention GPS, location services, or ask user to enable anything")
-                prompt_parts.append("❌ DO NOT say 'I need your current location'")
-                prompt_parts.append("✅ INSTEAD: Directly provide the route directions from {origin_name} to {destination_name}")
-                prompt_parts.append("The user already told you where they want to go FROM and TO.")
+                prompt_parts.append(f"\nRoute: {origin_name} to {destination_name}")
+                prompt_parts.append(f"Provide step-by-step transit directions with specific metro/tram lines.")
             elif has_destination and not has_origin:
-                # Only destination is known - might need GPS
-                prompt_parts.append(f"Destination ({destination_name}) is known, but origin is not specified.")
-                if 'gps' not in str(context).lower():
-                    prompt_parts.append("Consider asking the user for their starting location or to enable GPS.")
+                prompt_parts.append(f"Destination: {destination_name}")
             
-            prompt_parts.append("Reference this map in your response to help guide the user.")
+            prompt_parts.append("Mention the map in your response.")
         
-        # 6.5. Add intent classification request (PRIORITY 2) - NEW
-        if enable_intent_classification:
-            intent_classification_prompt = """
-
----
-
-🎯 INTENT CLASSIFICATION (Required - Mark first, then answer):
-Before answering, identify the user's intents by marking with [X]:
-
-Transportation/Directions: [ ] (how to get somewhere, routes, transit info)
-Restaurant Recommendation: [ ] (places to eat, cuisine, dining)
-Attraction Information: [ ] (museums, sites, historical places)
-Neighborhood/Area Info: [ ] (districts, areas, local info)
-Event/Activity Query: [ ] (concerts, festivals, things to do)
-Shopping: [ ] (shopping areas, malls, markets)
-Nightlife: [ ] (bars, clubs, entertainment)
-General Question: [ ] (other queries about Istanbul)
-
-Example:
-Query: "how do I get to a good kebab place near Taksim"
-Intents: [X] Transportation/Directions [X] Restaurant Recommendation [ ] Attraction Information [ ] Neighborhood/Area Info [ ] Event/Activity Query [ ] Shopping [ ] Nightlife [ ] General Question"""
-
-            prompt_parts.append(intent_classification_prompt)
+        # DISABLED: Intent classification, low-confidence, and multi-intent prompts cause template artifacts
+        # These features are currently disabled to keep responses clean and focused
         
-        # 6.6. Add low-confidence signal instructions (PRIORITY 3) - NEW
-        if signal_confidence < 0.6:
-            low_confidence_prompt = f"""
-
----
-
-🚨 UNCERTAIN INTENT DETECTED (Confidence: {signal_confidence:.2f})
-
-The user's query may be ambiguous or unclear. Here's what we know:
-- Query: "{query}"
-- Detected intents: {[k for k, v in signals.items() if v]} (LOW CONFIDENCE)
-- User location: {"Available" if user_location else "Not available"}
-
-Please:
-1. Carefully analyze the query to infer the user's actual intent
-2. Use ALL the provided context below (it may contain relevant information)
-3. If truly ambiguous, ask ONE clarifying question (see strategies below)
-4. Be helpful even with limited information
-
-The context below may include:
-- Restaurants nearby
-- Attractions and museums
-- Transportation options
-- Neighborhood information
-- Events and activities
-- General Istanbul information
-
-Use whichever context is most relevant to answer the query.
-
-📋 CLARIFYING QUESTION STRATEGIES:
-If the query is truly ambiguous, use ONE of these approaches:
-- Option-based: "Are you looking for [option A] or [option B]?"
-- Specific detail: "What type of [category] are you interested in?"
-- Context-seeking: "Could you tell me more about [missing detail]?"
-- Location-based: "Which neighborhood/area are you interested in?"
-
-Example: Query "what's around" → "Are you looking for restaurants, attractions, or something else nearby?"""
-
-            prompt_parts.append(low_confidence_prompt)
+        # 7. Language reminder + User query
+        # Add explicit language reminder right before the answer section
+        lang_name_map = {
+            'en': 'English',
+            'tr': 'Turkish',
+            'fr': 'French',
+            'ru': 'Russian',
+            'de': 'German',
+            'ar': 'Arabic'
+        }
+        lang_name = lang_name_map.get(language, 'English')
         
-        # 6.7. Add multi-intent query handling (PRIORITY 3) - NEW
-        active_signal_count = sum(1 for v in signals.values() if v)
-        if active_signal_count >= 2:
-            multi_intent_prompt = f"""
-
----
-
-🎯 MULTI-INTENT QUERY DETECTED ({active_signal_count} intents)
-
-This query involves multiple needs. Active intents: {[k for k, v in signals.items() if v]}
-
-HANDLING STRATEGY:
-1. **Identify Primary Intent**: What's the user's MAIN need?
-2. **Address Secondary Intents**: Incorporate related information naturally
-3. **Structured Response**: Organize your answer into clear sections
-4. **Smooth Integration**: Connect different aspects logically
-
-Example structures:
-- Restaurant + Transportation: Recommend places THEN explain how to get there
-- Attraction + Neighborhood: Describe attraction THEN provide area context
-- Shopping + Dining: Suggest shopping areas THEN mention nearby food options
-
-Be comprehensive but concise - address all intents without overwhelming the user."""
-
-            prompt_parts.append(multi_intent_prompt)
-        
-        # 7. User query - simplified format to prevent template generation
-        prompt_parts.append(f"\n---\n\n🚨 REMEMBER: Answer ONLY this user's question directly. Do NOT include example dialogues.\n\nCurrent User Question: {query}\n\nYour Direct Answer:")
+        prompt_parts.append(f"\n---\n\n🌍 REMEMBER: Answer in {lang_name} only.")
+        prompt_parts.append(f"\nUser Question: {query}\n\nYour Answer:")
 
         
         # Join all parts

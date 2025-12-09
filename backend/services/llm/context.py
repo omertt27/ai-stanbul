@@ -468,10 +468,40 @@ class ContextBuilder:
             return ""
     
     async def _get_neighborhoods(self, query: str, language: str) -> str:
-        """Get neighborhood data from database."""
+        """Get neighborhood data with coordinates from Istanbul Knowledge."""
         try:
-            # TODO: Implement actual database query
-            return "Beyoglu: Historic district known for nightlife and culture..."
+            # Import Istanbul Knowledge
+            from .istanbul_knowledge import IstanbulKnowledge
+            istanbul_kb = IstanbulKnowledge()
+            
+            # Extract neighborhood names from query
+            query_lower = query.lower()
+            mentioned_neighborhoods = []
+            
+            for name, neighborhood in istanbul_kb.neighborhoods.items():
+                if name.lower() in query_lower or any(alias.lower() in query_lower for alias in [name]):
+                    mentioned_neighborhoods.append((name, neighborhood))
+            
+            # If no specific neighborhoods mentioned, return top popular ones
+            if not mentioned_neighborhoods:
+                popular = ['Beyoğlu', 'Sultanahmet', 'Kadıköy', 'Beşiktaş']
+                for name in popular:
+                    if name in istanbul_kb.neighborhoods:
+                        mentioned_neighborhoods.append((name, istanbul_kb.neighborhoods[name]))
+            
+            # Format results with coordinates
+            results = []
+            for name, neighborhood in mentioned_neighborhoods[:5]:  # Top 5
+                info = f"- {name}: {neighborhood.character}"
+                if neighborhood.center_location:
+                    lat, lon = neighborhood.center_location
+                    info += f" | Coordinates: ({lat}, {lon})"
+                if neighborhood.transport_hubs:
+                    info += f" | Transport: {', '.join(neighborhood.transport_hubs[:3])}"
+                results.append(info)
+            
+            return "\n".join(results) if results else ""
+            
         except Exception as e:
             logger.error(f"Failed to get neighborhoods: {e}")
             return ""

@@ -111,13 +111,18 @@ class RunPodLLMClient:
         """
         text_lower = text.lower()
         
-        # Turkish detection (ı, ş, ğ, ü, ö, ç characters)
-        turkish_chars = ['ı', 'ş', 'ğ', 'ü', 'ö', 'ç']
-        turkish_words = ['nerede', 'nasıl', 'ne', 'var', 'mı', 'mi', 'mu', 'mü', 
-                        'için', 'ile', 'gitmek', 'yemek', 'restoran', 'nereye',
-                        'İstanbul', 'Taksim', 'Beyoğlu', 'neresi', 'hangi']
-        if any(char in text_lower for char in turkish_chars) or \
-           any(word in text_lower for word in turkish_words):
+        # Turkish detection - require Turkish WORDS, not just characters
+        # (Istanbul place names contain Turkish characters but query may be English)
+        turkish_words = ['nerede', 'nasıl', 'ne zaman', 'ne kadar', 'var', 'yok',
+                        'için', 'ile', 'den', 'dan', 'gitmek', 'gidebilir', 'yemek', 
+                        'restoran', 'nereye', 'neresi', 'hangi', 'kaç', 'kim',
+                        'niye', 'niçin', 'şimdi', 'bugün', 'yarın', 'burası',
+                        'orası', 'bana', 'sana', 'orda', 'burada', 'şurada']
+        turkish_word_count = sum(1 for word in turkish_words if word in text_lower)
+        
+        # Only detect as Turkish if we have at least 2 Turkish words
+        # (This prevents "Beyoğlu" alone from triggering Turkish detection)
+        if turkish_word_count >= 2:
             return "Turkish (Türkçe)"
         
         # Arabic detection (Arabic script)

@@ -641,7 +641,7 @@ Fixed version (max 50 chars):"""
         # STEP 6: Prompt Engineering
         # Get overall confidence from signals
         overall_confidence = signals.get('overall_confidence', 1.0)
-        enable_intent_classification = self.config.get('enable_llm_intent_classification', True)
+        enable_intent_classification = self.config.get('enable_llm_intent_classification', False)  # Disabled - causes template artifacts
         
         prompt = self.prompt_builder.build_prompt(
             query=query,
@@ -1950,6 +1950,9 @@ Fixed version (max 50 chars):"""
         For "nearby" queries with GPS but no specific locations in database,
         generates map centered on user location.
         
+        For routing queries ("how to get to X"), looks up destination coordinates
+        from Istanbul Knowledge and creates a route map.
+        
         Args:
             context: Built context with database/service data
             signals: Detected signals
@@ -1966,7 +1969,85 @@ Fixed version (max 50 chars):"""
             markers = []
             locations = []
             
-            # Try to extract locations from database context string
+            # SPECIAL HANDLING FOR ROUTING QUERIES
+            # Check if this is a routing query (how to get to X, directions to X, etc.)
+            query_lower = query.lower()
+            is_routing_query = any([
+                'how' in query_lower and any(w in query_lower for w in ['get', 'go', 'reach']),
+                'direction' in query_lower,
+                'way to' in query_lower,
+                'route to' in query_lower,
+                signals.get('needs_gps_routing'),
+                signals.get('needs_directions'),
+            ])
+            
+            if is_routing_query and user_location and user_location.get('lat') and user_location.get('lon'):
+                # Try to extract destination from query using Istanbul Knowledge
+                try:
+                    from .istanbul_knowledge import IstanbulKnowledge
+                    istanbul_kb = IstanbulKnowledge()
+                    
+                    # Check neighborhoods
+                    destination_coord = None
+                    destination_name = None
+                    
+                    for name, neighborhood in istanbul_kb.neighborhoods.items():
+                        if name.lower() in query_lower:
+                            if neighborhood.center_location:
+                                destination_coord = neighborhood.center_location
+                                destination_name = name
+                                logger.info(f"🎯 Found destination in neighborhoods: {name} at {destination_coord}")
+                                break
+                    
+                    # Check landmarks if no neighborhood found
+                    if not destination_coord:
+                        for name, landmark in istanbul_kb.landmarks.items():
+                            if name.lower() in query_lower or any(syn.lower() in query_lower for syn in landmark.synonyms):
+                                destination_coord = landmark.location
+                                destination_name = name
+                                logger.info(f"🎯 Found destination in landmarks: {name} at {destination_coord}")
+                                break
+                    
+                    # If we found a destination, create a routing map
+                    if destination_coord:
+                        markers.append({
+                            "position": {"lat": user_location['lat'], "lng": user_location['lon']},
+                            "label": "Your Location",
+                            "type": "user"
+                        })
+                        
+                        markers.append({
+                            "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
+                            "label": destination_name,
+                            "type": "destination"
+                        })
+                        
+                        # Calculate center point between origin and destination
+                        center_lat = (user_location['lat'] + destination_coord[0]) / 2
+                        center_lon = (user_location['lon'] + destination_coord[1]) / 2
+                        
+                        map_data = {
+                            "type": "route",
+                            "markers": markers,
+                            "center": {"lat": center_lat, "lng": center_lon},
+                            "zoom": 12,
+                            "has_origin": True,
+                            "has_destination": True,
+                            "origin_name": "Your Location",
+                            "destination_name": destination_name,
+                            "route": {
+                                "origin": {"lat": user_location['lat'], "lng": user_location['lon']},
+                                "destination": {"lat": destination_coord[0], "lng": destination_coord[1]}
+                            }
+                        }
+                        
+                        logger.info(f"✅ Generated routing map from {user_location['lat']:.4f},{user_location['lon']:.4f} to {destination_name}")
+                        return map_data
+                
+                except Exception as e:
+                    logger.error(f"Failed to lookup destination in Istanbul Knowledge: {e}")
+            
+            # ORIGINAL LOGIC: Try to extract locations from database context string
             db_context = context.get('database', '')
             
             # Pattern to find coordinates in the database context

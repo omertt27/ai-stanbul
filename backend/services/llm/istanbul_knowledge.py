@@ -34,6 +34,7 @@ class Neighborhood:
     popular_for: List[str]
     transport_hubs: List[str]
     side: str  # 'european', 'asian', or 'both'
+    center_location: Optional[Tuple[float, float]] = None  # (lat, lon) center point
 
 
 class IstanbulKnowledge:
@@ -245,7 +246,8 @@ class IstanbulKnowledge:
                 signals=['needs_attraction', 'needs_neighborhood'],
                 popular_for=['Blue Mosque', 'Hagia Sophia', 'Topkapı Palace', 'museums', 'history'],
                 transport_hubs=['Sultanahmet Tram'],
-                side='european'
+                side='european',
+                center_location=(41.0058, 28.9770)  # Sultanahmet Square
             ),
             
             'Beyoğlu': Neighborhood(
@@ -254,7 +256,8 @@ class IstanbulKnowledge:
                 signals=['needs_neighborhood', 'needs_nightlife', 'needs_restaurant'],
                 popular_for=['Istiklal Street', 'bars', 'restaurants', 'nightlife', 'art'],
                 transport_hubs=['Taksim Metro', 'Şişhane Metro', 'Karaköy'],
-                side='european'
+                side='european',
+                center_location=(41.0344, 28.9784)  # Taksim Square area
             ),
             
             'Kadıköy': Neighborhood(
@@ -263,7 +266,8 @@ class IstanbulKnowledge:
                 signals=['needs_neighborhood', 'needs_restaurant', 'needs_nightlife'],
                 popular_for=['cafes', 'bars', 'street markets', 'moda', 'young crowd'],
                 transport_hubs=['Kadıköy Ferry', 'Kadıköy Metro'],
-                side='asian'
+                side='asian',
+                center_location=(40.9904, 29.0256)  # Kadıköy center
             ),
             
             'Beşiktaş': Neighborhood(
@@ -272,7 +276,8 @@ class IstanbulKnowledge:
                 signals=['needs_neighborhood', 'needs_restaurant'],
                 popular_for=['Dolmabahçe Palace', 'waterfront', 'fish restaurants', 'shopping'],
                 transport_hubs=['Beşiktaş Ferry', 'Kabataş Tram'],
-                side='european'
+                side='european',
+                center_location=(41.0422, 29.0089)  # Beşiktaş center
             ),
             
             'Ortaköy': Neighborhood(
@@ -281,7 +286,8 @@ class IstanbulKnowledge:
                 signals=['needs_neighborhood', 'needs_restaurant'],
                 popular_for=['Ortaköy Mosque', 'kumpir', 'waterfront cafes', 'weekend market'],
                 transport_hubs=['Bus to Beşiktaş'],
-                side='european'
+                side='european',
+                center_location=(41.0477, 29.0268)  # Ortaköy Square
             ),
             
             'Eminönü': Neighborhood(
@@ -290,7 +296,8 @@ class IstanbulKnowledge:
                 signals=['needs_neighborhood', 'needs_shopping', 'needs_transportation'],
                 popular_for=['Spice Bazaar', 'ferries', 'Galata Bridge', 'street food'],
                 transport_hubs=['Eminönü Ferry', 'Eminönü Tram'],
-                side='european'
+                side='european',
+                center_location=(41.0178, 28.9700)  # Eminönü Ferry Terminal
             ),
             
             'Üsküdar': Neighborhood(
@@ -299,7 +306,8 @@ class IstanbulKnowledge:
                 signals=['needs_neighborhood'],
                 popular_for=['Maiden\'s Tower', 'tea gardens', 'traditional atmosphere'],
                 transport_hubs=['Üsküdar Ferry', 'Marmaray'],
-                side='asian'
+                side='asian',
+                center_location=(41.0226, 29.0103)  # Üsküdar Square
             ),
             
             'Karaköy': Neighborhood(
@@ -308,7 +316,8 @@ class IstanbulKnowledge:
                 signals=['needs_neighborhood', 'needs_restaurant', 'needs_nightlife'],
                 popular_for=['cafes', 'galleries', 'restaurants', 'vintage shops'],
                 transport_hubs=['Karaköy Ferry', 'Karaköy Metro', 'Tünel'],
-                side='european'
+                side='european',
+                center_location=(41.0209, 28.9751)  # Karaköy Pier
             ),
             
             'Balat': Neighborhood(
@@ -317,7 +326,8 @@ class IstanbulKnowledge:
                 signals=['needs_neighborhood', 'needs_attraction'],
                 popular_for=['colorful houses', 'cafes', 'antique shops', 'churches'],
                 transport_hubs=['Bus from Eminönü'],
-                side='european'
+                side='european',
+                center_location=(41.0290, 28.9486)  # Balat center
             ),
             
             'Nişantaşı': Neighborhood(
@@ -326,7 +336,8 @@ class IstanbulKnowledge:
                 signals=['needs_neighborhood', 'needs_shopping', 'needs_restaurant'],
                 popular_for=['luxury shopping', 'cafes', 'fine dining', 'fashion'],
                 transport_hubs=['Osmanbey Metro', 'Şişli Metro'],
-                side='european'
+                side='european',
+                center_location=(41.0500, 28.9933)  # Nişantaşı center
             ),
         }
         
