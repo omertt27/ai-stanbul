@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { trackEvents } from '../../utils/analytics';
+import { trackEvent } from '../../utils/analytics';
 import './SwipeableMessage.css';
 
 const SwipeableMessage = ({ 
@@ -70,7 +70,7 @@ const SwipeableMessage = ({
       if (swipeDistance < 0 && onSwipeLeft) {
         // Track swipe gesture (analytics)
         try {
-          trackEvents.swipeGesture(leftAction || 'left', 'ai');
+          trackEvent('swipe_gesture', { action: leftAction || 'left', context: 'ai' });
         } catch (e) {
           console.warn('Analytics tracking failed:', e);
         }
@@ -78,7 +78,7 @@ const SwipeableMessage = ({
       } else if (swipeDistance > 0 && onSwipeRight) {
         // Track swipe gesture (analytics)
         try {
-          trackEvents.swipeGesture(rightAction || 'right', 'ai');
+          trackEvent('swipe_gesture', { action: rightAction || 'right', context: 'ai' });
         } catch (e) {
           console.warn('Analytics tracking failed:', e);
         }

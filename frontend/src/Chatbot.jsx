@@ -33,7 +33,7 @@ import RestaurantCard from './components/RestaurantCard';
 import MinimizedGPSBanner from './components/MinimizedGPSBanner';
 import { useKeyboardDetection, scrollIntoViewSafe } from './utils/keyboardDetection';
 import safeStorage from './utils/safeStorage';
-import { trackEvents } from './utils/analytics';
+import { trackEvent } from './utils/analytics';
 import { AB_TESTS, isTreatment, trackConversion } from './utils/abTesting';
 import './styles/mobile-ergonomics-phase1.css';
 
@@ -993,7 +993,7 @@ function Chatbot({ userLocation: propUserLocation }) {
       );
 
       // Track feedback event in analytics
-      trackEvents('feedback_submitted', {
+      trackEvent('feedback_submitted', {
         interaction_id: interactionId,
         feedback_type: feedbackType,
         session_id: currentSessionId,
@@ -1209,7 +1209,7 @@ function Chatbot({ userLocation: propUserLocation }) {
     // Track message sent (analytics)
     const messageStartTime = Date.now();
     try {
-      trackEvents.chatMessage('sent', originalUserInput.length);
+      trackEvent('chatMessage', { action: 'sent', length: originalUserInput.length });
     } catch (e) {
       console.warn('Analytics tracking failed:', e);
     }
@@ -1360,7 +1360,7 @@ function Chatbot({ userLocation: propUserLocation }) {
       try {
         const responseTime = Date.now() - messageStartTime;
         const responseLength = (chatResponse.response || chatResponse.message).length;
-        trackEvents.chatMessage('received', responseLength, responseTime);
+        trackEvent('chatMessage', { action: 'received', length: responseLength, responseTime });
       } catch (e) {
         console.warn('Analytics tracking failed:', e);
       }
@@ -1373,7 +1373,7 @@ function Chatbot({ userLocation: propUserLocation }) {
       
       // Track error (analytics)
       try {
-        trackEvents.error(classifyError(error), error.message, 'chatbot');
+        trackEvent('error', { type: classifyError(error), message: error.message, context: 'chatbot' });
       } catch (e) {
         console.warn('Analytics tracking failed:', e);
       }
@@ -2032,7 +2032,7 @@ function Chatbot({ userLocation: propUserLocation }) {
         onSelect={(suggestion, index) => {
           // Track quick reply click (analytics)
           try {
-            trackEvents.quickReply(suggestion, index || 0, useSmartQuickReplies ? 'smart' : 'static');
+            trackEvent('quickReply', { suggestion, index: index || 0, type: useSmartQuickReplies ? 'smart' : 'static' });
             // Track A/B test conversion
             trackConversion(AB_TESTS.SMART_QUICK_REPLIES, 'quick_reply_click', { suggestion });
             if (useMobileComponents) {
