@@ -165,7 +165,7 @@ YOUR ANSWER (start immediately, no labels):"""
         system_prompt = self.system_prompts.get(language, self.system_prompts['en'])
         
         # ADD GPS CONTEXT if available - for ANY location-based query
-        if user_location:
+        if user_location and isinstance(user_location, dict) and 'lat' in user_location and 'lon' in user_location:
             # Check if this is any location-based query (routing, nearby, recommendations, etc.)
             is_location_query = any([
                 signals.get('needs_gps_routing'),
@@ -187,10 +187,16 @@ YOUR ANSWER (start immediately, no labels):"""
             ])
             
             if is_location_query:
-                system_prompt += f"\n\n🌍 **GPS STATUS**: User's current location is AVAILABLE at coordinates ({user_location['lat']}, {user_location['lon']})."
-                system_prompt += "\n✅ IMPORTANT: The user HAS GPS enabled. Use their current location for recommendations and directions."
-                system_prompt += "\n🚨 DO NOT ask the user to enable GPS or share location - it's already available!"
-                system_prompt += "\n📍 When recommending places or giving directions, reference their current location."
+                try:
+                    lat = float(user_location['lat'])
+                    lon = float(user_location['lon'])
+                    system_prompt += f"\n\n🌍 **GPS STATUS**: User's current location is AVAILABLE at coordinates ({lat}, {lon})."
+                    system_prompt += "\n✅ IMPORTANT: The user HAS GPS enabled. Use their current location for recommendations and directions."
+                    system_prompt += "\n🚨 DO NOT ask the user to enable GPS or share location - it's already available!"
+                    system_prompt += "\n📍 When recommending places or giving directions, reference their current location."
+                except (ValueError, TypeError):
+                    # Invalid coordinates - skip GPS status
+                    pass
         
         prompt_parts.append(system_prompt)
         
