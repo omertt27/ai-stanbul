@@ -69,7 +69,7 @@ class RunPodLLMClient:
         # Increase max_tokens for better, more complete responses
         # Changed from 150 to 512 to allow detailed transportation directions and recommendations
         if self.max_tokens < 512:
-            self.max_tokens = 512  # Optimal balance: detailed enough, not too slow
+            self.max_tokens = 768  # Increased for complex queries (attractions, weather with recommendations)
         
         if self.enabled:
             logger.info("🚀 LLM Client initialized")
