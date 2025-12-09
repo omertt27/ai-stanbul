@@ -328,6 +328,8 @@ def clean_training_data_leakage(text: str, prompt: Optional[str] = None) -> str:
         # Check if response contains large chunks of the prompt
         prompt_fragments = [
             "🚨 CRITICAL INSTRUCTION",
+            "⚠️ CRITICAL:",
+            "CRITICAL LANGUAGE RULE",
             "DO NOT write \"EMBER",
             "Your response MUST start",
             "Follow the response guidelines",
@@ -340,6 +342,8 @@ def clean_training_data_leakage(text: str, prompt: Optional[str] = None) -> str:
             "Provide a clear, concise response",
             "🌍 REMEMBER: Answer in",
             "REMEMBER: Answer in",
+            "⚠️ CRITICAL: Your response MUST",
+            "❌ DO NOT use any other language",
         ]
         
         # If response contains multiple prompt fragments, it's likely an echo
@@ -493,6 +497,11 @@ def clean_training_data_leakage(text: str, prompt: Optional[str] = None) -> str:
         "\n💬 How can",
         "\n🌍 REMEMBER:",
         "\nREMEMBER: Answer in",
+        "\n⚠️ CRITICAL:",
+        "\n❌ DO NOT use any other",
+        "\nENGLISH Answer:",
+        "\nTURKISH Answer:",
+        "\nFRENCH Answer:",
         "\n\n Wait... How did I do",
         "\nWait... How did I do",
         "\n**Identify Primary Intent",

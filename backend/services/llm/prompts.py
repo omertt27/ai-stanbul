@@ -64,13 +64,14 @@ class PromptBuilder:
         # ENGLISH PROMPT
         english_prompt = """You are KAM, an expert Istanbul tour guide.
 
-CRITICAL: Answer in ENGLISH only.
+⚠️ CRITICAL LANGUAGE RULE: You MUST answer in ENGLISH ONLY. Never use French, Turkish, or any other language.
 
 GUIDELINES:
 - Use the information provided in the CONTEXT below
 - Be specific with names, metro lines (M1, M2, T1, F1), and locations
 - For directions: Give step-by-step transit instructions
 - Keep answers focused and practical
+- Write ONLY in English - this is mandatory
 
 ISTANBUL TRANSPORTATION:
 Metro: M1, M2, M3, M4, M5, M6, M7, M9, M11
@@ -79,7 +80,7 @@ Funicular: F1 (Taksim-Kabataş), F2 (Karaköy-Tünel)
 Marmaray: Underground rail crossing Bosphorus
 Ferries: Kadıköy-Karaköy, Kadıköy-Eminönü, Üsküdar-Eminönü
 
-Start your answer immediately without repeating these instructions."""
+Start your answer immediately in ENGLISH without repeating these instructions."""
         
         # TURKISH PROMPT
         turkish_prompt = """Sen KAM, uzman bir İstanbul tur rehberisin.
@@ -243,19 +244,21 @@ Bu talimatları tekrarlama, cevabını hemen başlat."""
         # These features are currently disabled to keep responses clean and focused
         
         # 7. Language reminder + User query
-        # Add explicit language reminder right before the answer section
+        # Add STRONG explicit language reminder right before the answer section
         lang_name_map = {
-            'en': 'English',
-            'tr': 'Turkish',
-            'fr': 'French',
-            'ru': 'Russian',
-            'de': 'German',
-            'ar': 'Arabic'
+            'en': 'ENGLISH',
+            'tr': 'TURKISH (Türkçe)',
+            'fr': 'FRENCH (Français)',
+            'ru': 'RUSSIAN (Русский)',
+            'de': 'GERMAN (Deutsch)',
+            'ar': 'ARABIC (العربية)'
         }
-        lang_name = lang_name_map.get(language, 'English')
+        lang_name = lang_name_map.get(language, 'ENGLISH')
         
-        prompt_parts.append(f"\n---\n\n🌍 REMEMBER: Answer in {lang_name} only.")
-        prompt_parts.append(f"\nUser Question: {query}\n\nYour Answer:")
+        # Add multiple language reminders for maximum enforcement
+        prompt_parts.append(f"\n---\n\n⚠️ CRITICAL: Your response MUST be written ONLY in {lang_name}.")
+        prompt_parts.append(f"❌ DO NOT use any other language. Write in {lang_name} only.")
+        prompt_parts.append(f"\nUser Question: {query}\n\n{lang_name} Answer:")
 
         
         # Join all parts
