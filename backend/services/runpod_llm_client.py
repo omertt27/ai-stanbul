@@ -97,69 +97,6 @@ class RunPodLLMClient:
         else:
             return "generic"
     
-    def _detect_language(self, text: str) -> str:
-        """
-        Detect the language of the input text
-        
-        Supports: English, Turkish, Arabic, Russian, French, German
-        
-        Args:
-            text: Input text to detect language
-            
-        Returns:
-            Language name in English
-        """
-        text_lower = text.lower()
-        
-        # Turkish detection - require Turkish WORDS, not just characters
-        # (Istanbul place names contain Turkish characters but query may be English)
-        turkish_words = ['nerede', 'nasıl', 'ne zaman', 'ne kadar', 'var', 'yok',
-                        'için', 'ile', 'den', 'dan', 'gitmek', 'gidebilir', 'yemek', 
-                        'restoran', 'nereye', 'neresi', 'hangi', 'kaç', 'kim',
-                        'niye', 'niçin', 'şimdi', 'bugün', 'yarın', 'burası',
-                        'orası', 'bana', 'sana', 'orda', 'burada', 'şurada']
-        turkish_word_count = sum(1 for word in turkish_words if word in text_lower)
-        
-        # Only detect as Turkish if we have at least 2 Turkish words
-        # (This prevents "Beyoğlu" alone from triggering Turkish detection)
-        if turkish_word_count >= 2:
-            return "Turkish (Türkçe)"
-        
-        # Arabic detection (Arabic script)
-        arabic_chars = ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 
-                       'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 
-                       'ل', 'م', 'ن', 'ه', 'و', 'ي']
-        if any(char in text for char in arabic_chars):
-            return "Arabic (العربية)"
-        
-        # Russian detection (Cyrillic script)
-        russian_chars = ['а', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з', 'и', 'й', 
-                        'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 
-                        'х', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я']
-        if any(char in text_lower for char in russian_chars):
-            return "Russian (Русский)"
-        
-        # French detection (common words and accents)
-        french_words = ['où', 'comment', 'quel', 'quelle', 'est', 'sont', 'pour',
-                       'avec', 'dans', 'sur', 'une', 'des', 'les', 'très',
-                       'restaurant', 'musée', 'près', 'château']
-        french_chars = ['é', 'è', 'ê', 'à', 'ù', 'û', 'ô', 'î', 'ï', 'ç', 'œ']
-        if any(word in text_lower for word in french_words) or \
-           any(char in text_lower for char in french_chars):
-            return "French (Français)"
-        
-        # German detection (common words and characters)
-        german_words = ['wo', 'wie', 'was', 'welche', 'welcher', 'ist', 'sind', 
-                       'für', 'mit', 'von', 'zu', 'nach', 'über', 'unter',
-                       'restaurant', 'essen', 'museum', 'schloss']
-        german_chars = ['ä', 'ö', 'ü', 'ß']
-        if any(word in text_lower.split() for word in german_words) or \
-           any(char in text_lower for char in german_chars):
-            return "German (Deutsch)"
-        
-        # Default to English
-        return "English"
-    
     async def health_check(self) -> Dict[str, Any]:
         """
         Check if RunPod LLM service is healthy
@@ -370,23 +307,21 @@ class RunPodLLMClient:
             if len(parts) > 1:
                 user_query = parts[1].replace("Your Direct Answer:", "").strip()
         
-        # Detect language from query
-        query_language = self._detect_language(user_query)
-        
         # Handle greetings specially
-        greeting_words = ['hi', 'hello', 'hey', 'selam', 'merhaba', 'bonjour', 'hallo', 'привет', 'hola', 'مرحبا']
+        greeting_words = ['hi', 'hello', 'hey', 'selam', 'merhaba', 'hallo', 'привет', 'hola', 'مرحبا']
         cleaned_query = user_query.lower().strip().rstrip('!?.,')
         is_greeting = cleaned_query in [g.lower() for g in greeting_words]
         
         if is_greeting:
             # For greetings, provide a context-aware welcoming prompt
             formatted_prompt = (
-                f"You MUST respond ONLY in {query_language}. You are KAM, an Istanbul tour guide.\n\n"
-                f"Say a friendly greeting in {query_language}. Mention you can help with restaurants, attractions, and directions. "
+                f"You are KAM, an Istanbul tour guide. The user said: {user_query}\n\n"
+                f"Say a friendly greeting in the SAME language as the user's greeting. "
+                f"Mention you can help with restaurants, attractions, and directions. "
                 f"Keep it under 2 sentences. DO NOT add any extra dialogue or questions.\n\n"
-                f"IMPORTANT: Your response MUST be in {query_language}, NOT in any other language like French or Turkish."
+                f"IMPORTANT: Match the user's language exactly. If they said 'hello', respond in English. If 'merhaba', respond in Turkish."
             )
-            logger.info(f"🎯 Detected greeting in {query_language}")
+            logger.info(f"🎯 Detected greeting: {user_query}")
             # Override max_tokens for greetings - we don't need much!
             max_tokens = 40  # Even shorter for greetings - just a quick hello!
         else:
@@ -418,35 +353,35 @@ class RunPodLLMClient:
             # Check if user provided GPS location
             has_gps = "GPS STATUS" in prompt and "AVAILABLE" in prompt
             
-            # Build a concise, focused prompt with STRONG language enforcement
+            # Build a concise, focused prompt - LLM will auto-detect and match user's language
             if context_data:
                 # Query with context data
                 formatted_prompt = (
-                    f"CRITICAL INSTRUCTION: You MUST respond ONLY in {query_language}. Never use French, Turkish, or any other language.\n"
-                    f"If the user asks in {query_language}, respond in {query_language}.\n"
-                    f"If the context is in another language, translate your answer to {query_language}.\n\n"
+                    f"CRITICAL INSTRUCTION: You MUST respond in the SAME language as the user's question.\n"
+                    f"If the user asks in English, respond in English. If Turkish, respond in Turkish, etc.\n"
+                    f"If the context is in another language, translate your answer to match the user's language.\n\n"
                     f"You are KAM, an Istanbul tour guide. Answer this question using the context below.\n\n"
                     f"CONTEXT:\n{context_data}\n\n"
                     f"QUESTION: {user_query}\n\n"
-                    f"Provide a direct, helpful answer in {query_language}. Be specific and use details from the context.\n"
-                    f"FINAL REMINDER: Your ENTIRE response must be in {query_language} only."
+                    f"Provide a direct, helpful answer in the SAME language as the question. Be specific and use details from the context.\n"
+                    f"FINAL REMINDER: Match the user's language exactly."
                 )
             else:
                 # Query without context - use general knowledge
                 formatted_prompt = (
-                    f"CRITICAL INSTRUCTION: You MUST respond ONLY in {query_language}. Never use French, Turkish, or any other language.\n"
-                    f"If the user asks in {query_language}, respond in {query_language}.\n\n"
+                    f"CRITICAL INSTRUCTION: You MUST respond in the SAME language as the user's question.\n"
+                    f"If the user asks in English, respond in English. If Turkish, respond in Turkish, etc.\n\n"
                     f"You are KAM, an Istanbul tour guide. Answer this question:\n\n"
                     f"{user_query}\n\n"
                     f"Provide a helpful, accurate answer based on your knowledge of Istanbul. Be specific and concise.\n"
-                    f"FINAL REMINDER: Your ENTIRE response must be in {query_language} only."
+                    f"FINAL REMINDER: Match the user's language exactly - respond in the SAME language as the question."
                 )
             
             # Add GPS note if available
             if has_gps:
                 formatted_prompt += "\n\nNote: User's GPS location is available for personalized recommendations."
             
-            logger.info(f"📝 Direct prompt built - Query language: {query_language}, Query length: {len(user_query)}, Context: {len(context_data)} chars")
+            logger.info(f"📝 Direct prompt built - Query length: {len(user_query)}, Context: {len(context_data)} chars")
         
         logger.debug(f"Prompt length: {len(formatted_prompt)} chars")
         
@@ -533,11 +468,8 @@ class RunPodLLMClient:
         Returns:
             Generated response text or None
         """
-        # Detect query language
-        detected_language = self._detect_language(query)
-        
-        # Build prompt using improved template
-        system_prompt = IMPROVED_BASE_PROMPT.format(detected_language=detected_language)
+        # Build prompt using improved template (no language detection - LLM auto-detects)
+        system_prompt = IMPROVED_BASE_PROMPT
         
         # Add intent-specific guidance if available
         if intent and intent in INTENT_PROMPTS:
@@ -551,13 +483,13 @@ CONTEXT DATA:
 
 USER QUESTION: {query}
 
-YOUR RESPONSE (in {detected_language}):"""
+YOUR RESPONSE (match the user's language):"""
         else:
             prompt = f"""{system_prompt}
 
 USER QUESTION: {query}
 
-YOUR RESPONSE (in {detected_language}):"""
+YOUR RESPONSE (match the user's language):"""
         
         result = await self.generate(prompt=prompt, max_tokens=100)  # Reduced from 150 for faster responses
         
@@ -603,11 +535,8 @@ YOUR RESPONSE (in {detected_language}):"""
         context_builder = get_context_builder()
         formatted_context = context_builder.format_context_for_llm(service_context)
         
-        # Detect query language
-        detected_language = self._detect_language(query)
-        
-        # Build enhanced prompt using improved templates
-        system_prompt = IMPROVED_BASE_PROMPT.format(detected_language=detected_language)
+        # Build enhanced prompt using improved templates (no language detection - LLM auto-detects)
+        system_prompt = IMPROVED_BASE_PROMPT
         
         # Add intent-specific guidance if available
         if intent and intent in INTENT_PROMPTS:
@@ -636,13 +565,13 @@ YOUR RESPONSE (in {detected_language}):"""
 
 USER QUESTION: {query}
 
-YOUR RESPONSE (in {detected_language}):"""
+YOUR RESPONSE (match the user's language):"""
         else:
             prompt = f"""{system_prompt}
 
 USER QUESTION: {query}
 
-YOUR RESPONSE (in {detected_language}):"""
+YOUR RESPONSE (match the user's language):"""
         
         logger.info(f"🤖 Generating service-enhanced response for intent: {intent}")
         logger.debug(f"Prompt length: {len(prompt)} chars")
@@ -660,7 +589,7 @@ YOUR RESPONSE (in {detected_language}):"""
             # Extract response after "YOUR RESPONSE"
             if "YOUR RESPONSE" in full_text:
                 response = full_text.split("YOUR RESPONSE", 1)[-1]
-                response = response.lstrip(":").lstrip("(in").split("):")[1] if "):" in response else response.lstrip(":")
+                response = response.lstrip(":").lstrip("(match").split("):")[1] if "):" in response else response.lstrip(":")
                 response = response.strip()
                 return response
             

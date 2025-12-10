@@ -102,13 +102,77 @@ Vapur: Kadıköy-Karaköy, Kadıköy-Eminönü, Üsküdar-Eminönü
 
 Bu talimatları tekrarlama, cevabını hemen başlat."""
         
+        # RUSSIAN PROMPT
+        russian_prompt = """Вы KAM, эксперт по Стамбулу.
+
+⚠️ КРИТИЧЕСКОЕ ПРАВИЛО: Вы ДОЛЖНЫ отвечать ТОЛЬКО на РУССКОМ языке. Никогда не используйте английский, турецкий или другие языки.
+
+ПРАВИЛА:
+- Используйте информацию из КОНТЕКСТА ниже
+- Указывайте конкретные названия, линии метро (M1, M2, T1, F1) и места
+- Для маршрутов: Давайте пошаговые инструкции по транспорту
+- Держите ответы сфокусированными и практичными
+- Пишите ТОЛЬКО на русском - это обязательно
+
+СТАМБУЛЬСКИЙ ТРАНСПОРТ:
+Метро: M1, M2, M3, M4, M5, M6, M7, M9, M11
+Трамвай: T1, T4, T5
+Фуникулер: F1 (Таксим-Кабаташ), F2 (Каракёй-Тюнель)
+Мармарай: Подземная железная дорога через Босфор
+Паромы: Кадыкёй-Каракёй, Кадыкёй-Эминёню, Ускюдар-Эминёню
+
+Начните свой ответ сразу на РУССКОМ языке, не повторяя эти инструкции."""
+
+        # GERMAN PROMPT
+        german_prompt = """Sie sind KAM, ein Istanbul-Experte.
+
+⚠️ KRITISCHE SPRACHREGEL: Sie MÜSSEN NUR auf DEUTSCH antworten. Verwenden Sie niemals Englisch, Türkisch oder andere Sprachen.
+
+RICHTLINIEN:
+- Verwenden Sie die Informationen aus dem KONTEXT unten
+- Seien Sie spezifisch mit Namen, Metrolinien (M1, M2, T1, F1) und Orten
+- Für Wegbeschreibungen: Geben Sie schrittweise Verkehrsanweisungen
+- Halten Sie Antworten fokussiert und praktisch
+- Schreiben Sie NUR auf Deutsch - dies ist obligatorisch
+
+ISTANBULER VERKEHR:
+Metro: M1, M2, M3, M4, M5, M6, M7, M9, M11
+Straßenbahn: T1, T4, T5
+Seilbahn: F1 (Taksim-Kabataş), F2 (Karaköy-Tünel)
+Marmaray: Unterirdische Bahn über den Bosporus
+Fähren: Kadıköy-Karaköy, Kadıköy-Eminönü, Üsküdar-Eminönü
+
+Beginnen Sie Ihre Antwort sofort auf DEUTSCH, ohne diese Anweisungen zu wiederholen."""
+
+        # ARABIC PROMPT
+        arabic_prompt = """أنت KAM، خبير في إسطنبول.
+
+⚠️ قاعدة لغوية حاسمة: يجب أن تجيب باللغة العربية فقط. لا تستخدم أبداً الإنجليزية أو التركية أو أي لغة أخرى.
+
+إرشادات:
+- استخدم المعلومات المقدمة في السياق أدناه
+- كن محدداً مع الأسماء وخطوط المترو (M1، M2، T1، F1) والمواقع
+- للاتجاهات: قدم تعليمات النقل خطوة بخطوة
+- اجعل الإجابات مركزة وعملية
+- اكتب بالعربية فقط - هذا إلزامي
+
+النقل في إسطنبول:
+مترو: M1، M2، M3، M4، M5، M6، M7، M9، M11
+ترام: T1، T4، T5
+قطار جبلي مائل: F1 (تقسيم-كاباتاش)، F2 (كاراكوي-تونيل)
+مرمراي: قطار تحت الأرض يعبر البوسفور
+عبارات: كاديكوي-كاراكوي، كاديكوي-إمينونو، أوسكودار-إمينونو
+
+ابدأ إجابتك فوراً بالعربية دون تكرار هذه التعليمات."""
+        
+        # REMOVED: French language support (causes confusion with LLM)
+        # We only support: English, Turkish, Russian, German, Arabic
         return {
             'en': english_prompt,
             'tr': turkish_prompt,
-            'fr': english_prompt.replace('ENGLISH only', 'FRENCH only'),
-            'ru': english_prompt.replace('ENGLISH only', 'RUSSIAN only'),
-            'de': english_prompt.replace('ENGLISH only', 'GERMAN only'),
-            'ar': english_prompt.replace('ENGLISH only', 'ARABIC only')
+            'ru': russian_prompt,
+            'de': german_prompt,
+            'ar': arabic_prompt
         }
     
     def _default_intent_prompts(self) -> Dict[str, str]:
@@ -245,10 +309,10 @@ Bu talimatları tekrarlama, cevabını hemen başlat."""
         
         # 7. Language reminder + User query
         # Add STRONG explicit language reminder right before the answer section
+        # REMOVED French language support - it was causing LLM confusion
         lang_name_map = {
             'en': 'ENGLISH',
             'tr': 'TURKISH (Türkçe)',
-            'fr': 'FRENCH (Français)',
             'ru': 'RUSSIAN (Русский)',
             'de': 'GERMAN (Deutsch)',
             'ar': 'ARABIC (العربية)'
@@ -327,11 +391,10 @@ Bu talimatları tekrarlama, cevabını hemen başlat."""
         signals: Dict[str, bool]
     ) -> str:
         """Get response format instructions."""
-        # Language-specific response instructions
+        # Language-specific response instructions (REMOVED: French)
         language_instructions = {
             'en': "Please respond in English.",
             'tr': "Lütfen Türkçe olarak yanıt verin.",
-            'fr': "Veuillez répondre en français.",
             'ru': "Пожалуйста, отвечайте на русском языке.",
             'de': "Bitte antworten Sie auf Deutsch.",
             'ar': "يرجى الرد باللغة العربية."
@@ -414,7 +477,6 @@ Bu talimatları tekrarlama, cevabını hemen başlat."""
         thinking_instructions = {
             'en': "Let's think step by step, then provide your answer.",
             'tr': "Önce adım adım düşünün, sonra yanıt verin.",
-            'fr': "Réfléchissons étape par étape, puis fournissez votre réponse.",
             'ru': "Давайте подумаем шаг за шагом, а затем дадим ответ.",
             'de': "Lassen Sie uns Schritt für Schritt denken und dann Ihre Antwort geben.",
             'ar': "دعنا نفكر خطوة بخطوة، ثم قدم إجابتك."
@@ -473,6 +535,7 @@ Bu talimatları tekrarlama, cevabını hemen başlat."""
         Returns:
             Prompt with safety guidelines
         """
+        # REMOVED: French safety guidelines (language support removed)
         safety_guidelines = {
             'en': """
 ## Safety Guidelines:
@@ -487,13 +550,6 @@ Bu talimatları tekrarlama, cevabını hemen başlat."""
 - Kültürel hassasiyetlere saygı gösterin
 - Kişisel bilgi istemeyin veya paylaşmayın
 - Tıbbi, hukuki veya finansal tavsiye vermeyin""",
-
-            'fr': """
-## Directives de sécurité:
-- Ne fournissez pas de contenu nuisible, illégal ou inapproprié
-- Respectez les sensibilités culturelles
-- Ne demandez pas et ne partagez pas d'informations personnelles
-- Ne fournissez pas de conseils médicaux, juridiques ou financiers""",
 
             'ru': """
 ## Правила безопасности:

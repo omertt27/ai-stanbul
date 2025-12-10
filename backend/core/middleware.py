@@ -92,8 +92,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         csp_directives = [
             "default-src 'self'",
             "frame-src 'self' https://vercel.live https://*.vercel.live https://vercel.com",
-            "connect-src 'self' https://ai-stanbul.onrender.com https://aistanbul.net https://images.unsplash.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://region1.google-analytics.com https://region1.analytics.google.com https://*.google-analytics.com https://*.analytics.google.com https://maps.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com https://vercel.live https://*.vercel.live https://vercel.com https://*.vercel.app wss://vercel.live wss://*.vercel.live",
-            "img-src 'self' https://images.unsplash.com https://*.unsplash.com data: blob:",
+            "connect-src 'self' https://ai-stanbul.onrender.com https://aistanbul.net https://images.unsplash.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://region1.google-analytics.com https://region1.analytics.google.com https://*.google-analytics.com https://*.analytics.google.com https://maps.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com https://vercel.live https://*.vercel.live https://vercel.com https://*.vercel.app wss://vercel.live wss://*.vercel.live https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://*.tile.openstreetmap.org",
+            "img-src 'self' https://images.unsplash.com https://*.unsplash.com https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://*.tile.openstreetmap.org data: blob:",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.live https://www.googletagmanager.com https://www.google-analytics.com https://*.vercel.app",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com data:",
