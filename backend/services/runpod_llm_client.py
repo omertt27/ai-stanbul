@@ -302,10 +302,24 @@ class RunPodLLMClient:
         
         # Extract user query from complex prompt
         user_query = prompt
+        
+        # Try multiple patterns to extract the actual user question
         if "Current User Question:" in prompt:
             parts = prompt.split("Current User Question:")
             if len(parts) > 1:
                 user_query = parts[1].replace("Your Direct Answer:", "").strip()
+        elif "User Question:" in prompt:
+            parts = prompt.split("User Question:")
+            if len(parts) > 1:
+                # Extract just the question part, stopping at "Answer:" or similar
+                question_part = parts[1].strip()
+                # Remove any answer labels that might follow
+                for stop_word in ["\nENGLISH Answer:", "\nAnswer:", "\nYour Answer:"]:
+                    if stop_word in question_part:
+                        question_part = question_part.split(stop_word)[0].strip()
+                user_query = question_part
+        
+        logger.debug(f"Extracted user query: '{user_query[:100]}...'")
         
         # Handle greetings specially
         greeting_words = ['hi', 'hello', 'hey', 'selam', 'merhaba', 'hallo', 'привет', 'hola', 'مرحبا']
@@ -314,16 +328,30 @@ class RunPodLLMClient:
         
         if is_greeting:
             # For greetings, provide a context-aware welcoming prompt
+            # Determine the language from the greeting word itself
+            if cleaned_query in ['hi', 'hello', 'hey']:
+                greeting_lang = "English"
+            elif cleaned_query in ['selam', 'merhaba']:
+                greeting_lang = "Turkish"
+            elif cleaned_query == 'hallo':
+                greeting_lang = "German"
+            elif cleaned_query == 'привет':
+                greeting_lang = "Russian"
+            elif cleaned_query == 'hola':
+                greeting_lang = "Spanish"
+            elif cleaned_query == 'مرحبا':
+                greeting_lang = "Arabic"
+            else:
+                greeting_lang = "English"  # Default
+            
             formatted_prompt = (
-                f"You are KAM, an Istanbul tour guide. The user said: {user_query}\n\n"
-                f"Say a friendly greeting in the SAME language as the user's greeting. "
-                f"Mention you can help with restaurants, attractions, and directions. "
-                f"Keep it under 2 sentences. DO NOT add any extra dialogue or questions.\n\n"
-                f"IMPORTANT: Match the user's language exactly. If they said 'hello', respond in English. If 'merhaba', respond in Turkish."
+                f"You are KAM, an Istanbul tour guide.\n\n"
+                f"Respond ONLY in {greeting_lang}. Say a brief friendly greeting and mention you can help with Istanbul restaurants, attractions, and directions.\n\n"
+                f"Keep your response under 30 words. Start your response immediately - no explanations."
             )
-            logger.info(f"🎯 Detected greeting: {user_query}")
+            logger.info(f"🎯 Greeting detected: '{user_query}' -> {greeting_lang}")
             # Override max_tokens for greetings - we don't need much!
-            max_tokens = 40  # Even shorter for greetings - just a quick hello!
+            max_tokens = 50
         else:
             # For real questions, extract context and build a direct prompt
             # Extract any context from the full prompt
@@ -357,24 +385,19 @@ class RunPodLLMClient:
             if context_data:
                 # Query with context data
                 formatted_prompt = (
-                    f"CRITICAL INSTRUCTION: You MUST respond in the SAME language as the user's question.\n"
-                    f"If the user asks in English, respond in English. If Turkish, respond in Turkish, etc.\n"
-                    f"If the context is in another language, translate your answer to match the user's language.\n\n"
-                    f"You are KAM, an Istanbul tour guide. Answer this question using the context below.\n\n"
+                    f"You are KAM, an Istanbul tour guide. Answer the user's question using the context provided.\n\n"
+                    f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
                     f"CONTEXT:\n{context_data}\n\n"
-                    f"QUESTION: {user_query}\n\n"
-                    f"Provide a direct, helpful answer in the SAME language as the question. Be specific and use details from the context.\n"
-                    f"FINAL REMINDER: Match the user's language exactly."
+                    f"USER'S QUESTION: {user_query}\n\n"
+                    f"YOUR ANSWER (in the same language as the question above):"
                 )
             else:
                 # Query without context - use general knowledge
                 formatted_prompt = (
-                    f"CRITICAL INSTRUCTION: You MUST respond in the SAME language as the user's question.\n"
-                    f"If the user asks in English, respond in English. If Turkish, respond in Turkish, etc.\n\n"
-                    f"You are KAM, an Istanbul tour guide. Answer this question:\n\n"
-                    f"{user_query}\n\n"
-                    f"Provide a helpful, accurate answer based on your knowledge of Istanbul. Be specific and concise.\n"
-                    f"FINAL REMINDER: Match the user's language exactly - respond in the SAME language as the question."
+                    f"You are KAM, an Istanbul tour guide. Answer the user's question.\n\n"
+                    f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
+                    f"USER'S QUESTION: {user_query}\n\n"
+                    f"YOUR ANSWER (in the same language as the question above):"
                 )
             
             # Add GPS note if available

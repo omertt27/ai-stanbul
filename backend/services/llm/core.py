@@ -857,8 +857,9 @@ Fixed version (max 50 chars):"""
         logger.info(f"  - needs_hidden_gems: {signals['signals'].get('needs_hidden_gems')}")
         logger.info(f"  - needs_neighborhood: {signals['signals'].get('needs_neighborhood')}")
         
-        # If no map_data but we have location-based signals, generate basic map data
+        # If no map_data but we have location-based or transportation signals, generate basic map data
         if not map_data and any([
+            signals['signals'].get('needs_transportation'),  # Added for routing queries
             signals['signals'].get('needs_restaurant'),
             signals['signals'].get('needs_attraction'),
             signals['signals'].get('needs_hidden_gems'),
@@ -871,7 +872,9 @@ Fixed version (max 50 chars):"""
         ]):
             logger.info(f"🗺️ Attempting to generate map from context...")
             # Try to extract locations from database context or generate GPS-centered map
-            map_data = self._generate_map_from_context(context, signals['signals'], user_location, query)
+            # Use original_query (before rewriting) to preserve routing query patterns
+            query_for_map = original_query if 'original_query' in locals() else query
+            map_data = self._generate_map_from_context(context, signals['signals'], user_location, query_for_map)
             if map_data:
                 logger.info(f"✅ Generated map_data from context for location-based query")
             else:
@@ -1977,72 +1980,149 @@ Fixed version (max 50 chars):"""
                 'direction' in query_lower,
                 'way to' in query_lower,
                 'route to' in query_lower,
+                'from' in query_lower and 'to' in query_lower,  # Location-to-location routing
                 signals.get('needs_gps_routing'),
                 signals.get('needs_directions'),
             ])
             
-            if is_routing_query and user_location and user_location.get('lat') and user_location.get('lon'):
-                # Try to extract destination from query using Istanbul Knowledge
+            # Try to extract destination (and origin if specified) from query using Istanbul Knowledge
+            if is_routing_query:
                 try:
                     from .istanbul_knowledge import IstanbulKnowledge
                     istanbul_kb = IstanbulKnowledge()
                     
-                    # Check neighborhoods
+                    # Check if this is a "from X to Y" query (location-to-location)
+                    origin_coord = None
+                    origin_name = None
                     destination_coord = None
                     destination_name = None
                     
-                    for name, neighborhood in istanbul_kb.neighborhoods.items():
-                        if name.lower() in query_lower:
-                            if neighborhood.center_location:
-                                destination_coord = neighborhood.center_location
-                                destination_name = name
-                                logger.info(f"🎯 Found destination in neighborhoods: {name} at {destination_coord}")
-                                break
-                    
-                    # Check landmarks if no neighborhood found
-                    if not destination_coord:
-                        for name, landmark in istanbul_kb.landmarks.items():
-                            if name.lower() in query_lower or any(syn.lower() in query_lower for syn in landmark.synonyms):
-                                destination_coord = landmark.location
-                                destination_name = name
-                                logger.info(f"🎯 Found destination in landmarks: {name} at {destination_coord}")
-                                break
-                    
-                    # If we found a destination, create a routing map
-                    if destination_coord:
-                        markers.append({
-                            "position": {"lat": user_location['lat'], "lng": user_location['lon']},
-                            "label": "Your Location",
-                            "type": "user"
-                        })
+                    # Pattern: "from X to Y"
+                    if 'from' in query_lower and 'to' in query_lower:
+                        # Extract origin and destination
+                        # Check neighborhoods for both origin and destination
+                        for name, neighborhood in istanbul_kb.neighborhoods.items():
+                            if name.lower() in query_lower:
+                                if neighborhood.center_location:
+                                    # Heuristic: if it appears before "to", it's origin; after "to", it's destination
+                                    name_pos = query_lower.find(name.lower())
+                                    to_pos = query_lower.find(' to ')
+                                    
+                                    if name_pos < to_pos and not origin_coord:
+                                        origin_coord = neighborhood.center_location
+                                        origin_name = name
+                                        logger.info(f"🎯 Found origin in neighborhoods: {name} at {origin_coord}")
+                                    elif name_pos > to_pos and not destination_coord:
+                                        destination_coord = neighborhood.center_location
+                                        destination_name = name
+                                        logger.info(f"🎯 Found destination in neighborhoods: {name} at {destination_coord}")
                         
-                        markers.append({
-                            "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
-                            "label": destination_name,
-                            "type": "destination"
-                        })
+                        # Check landmarks for origin/destination
+                        if not origin_coord or not destination_coord:
+                            for name, landmark in istanbul_kb.landmarks.items():
+                                if name.lower() in query_lower or any(syn.lower() in query_lower for syn in landmark.synonyms):
+                                    name_pos = query_lower.find(name.lower())
+                                    to_pos = query_lower.find(' to ')
+                                    
+                                    if name_pos < to_pos and not origin_coord:
+                                        origin_coord = landmark.location
+                                        origin_name = name
+                                        logger.info(f"🎯 Found origin in landmarks: {name} at {origin_coord}")
+                                    elif name_pos > to_pos and not destination_coord:
+                                        destination_coord = landmark.location
+                                        destination_name = name
+                                        logger.info(f"🎯 Found destination in landmarks: {name} at {destination_coord}")
                         
-                        # Calculate center point between origin and destination
-                        center_lat = (user_location['lat'] + destination_coord[0]) / 2
-                        center_lon = (user_location['lon'] + destination_coord[1]) / 2
-                        
-                        map_data = {
-                            "type": "route",
-                            "markers": markers,
-                            "center": {"lat": center_lat, "lng": center_lon},
-                            "zoom": 12,
-                            "has_origin": True,
-                            "has_destination": True,
-                            "origin_name": "Your Location",
-                            "destination_name": destination_name,
-                            "route": {
-                                "origin": {"lat": user_location['lat'], "lng": user_location['lon']},
-                                "destination": {"lat": destination_coord[0], "lng": destination_coord[1]}
+                        # If we found both origin and destination, create a route map
+                        if origin_coord and destination_coord:
+                            markers.append({
+                                "position": {"lat": origin_coord[0], "lng": origin_coord[1]},
+                                "label": origin_name,
+                                "type": "origin"
+                            })
+                            
+                            markers.append({
+                                "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
+                                "label": destination_name,
+                                "type": "destination"
+                            })
+                            
+                            # Calculate center point between origin and destination
+                            center_lat = (origin_coord[0] + destination_coord[0]) / 2
+                            center_lon = (origin_coord[1] + destination_coord[1]) / 2
+                            
+                            map_data = {
+                                "type": "marker",  # Not a full route since we don't have routing data
+                                "markers": markers,
+                                "center": {"lat": center_lat, "lng": center_lon},
+                                "zoom": 12,
+                                "has_origin": True,
+                                "has_destination": True,
+                                "origin_name": origin_name,
+                                "destination_name": destination_name
                             }
-                        }
+                            
+                            logger.info(f"✅ Generated location-to-location map: {origin_name} → {destination_name}")
+                            return map_data
+                    
+                    # Single destination query with GPS
+                    if user_location and user_location.get('lat') and user_location.get('lon'):
+                        # Check neighborhoods
+                        destination_coord = None
+                        destination_name = None
                         
-                        logger.info(f"✅ Generated routing map from {user_location['lat']:.4f},{user_location['lon']:.4f} to {destination_name}")
-                        return map_data
+                        for name, neighborhood in istanbul_kb.neighborhoods.items():
+                            if name.lower() in query_lower:
+                                if neighborhood.center_location:
+                                    destination_coord = neighborhood.center_location
+                                    destination_name = name
+                                    logger.info(f"🎯 Found destination in neighborhoods: {name} at {destination_coord}")
+                                    break
+                        
+                        # Check landmarks if no neighborhood found
+                        if not destination_coord:
+                            for name, landmark in istanbul_kb.landmarks.items():
+                                if name.lower() in query_lower or any(syn.lower() in query_lower for syn in landmark.synonyms):
+                                    destination_coord = landmark.location
+                                    destination_name = name
+                                    logger.info(f"🎯 Found destination in landmarks: {name} at {destination_coord}")
+                                    break
+                        
+                        # If we found a destination, create a routing map
+                        if destination_coord:
+                            markers.append({
+                                "position": {"lat": user_location['lat'], "lng": user_location['lon']},
+                                "label": "Your Location",
+                                "type": "user"
+                            })
+                            
+                            markers.append({
+                                "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
+                                "label": destination_name,
+                                "type": "destination"
+                            })
+                            
+                            # Calculate center point between origin and destination
+                            center_lat = (user_location['lat'] + destination_coord[0]) / 2
+                            center_lon = (user_location['lon'] + destination_coord[1]) / 2
+                            
+                            map_data = {
+                                "type": "route",
+                                "markers": markers,
+                                "center": {"lat": center_lat, "lng": center_lon},
+                                "zoom": 12,
+                                "has_origin": True,
+                                "has_destination": True,
+                                "origin_name": "Your Location",
+                                "destination_name": destination_name,
+                                "route": {
+                                    "origin": {"lat": user_location['lat'], "lng": user_location['lon']},
+                                    "destination": {"lat": destination_coord[0], "lng": destination_coord[1]}
+                                }
+                            }
+                            
+                            logger.info(f"✅ Generated routing map from {user_location['lat']:.4f},{user_location['lon']:.4f} to {destination_name}")
+                            return map_data
                 
                 except Exception as e:
                     logger.error(f"Failed to lookup destination in Istanbul Knowledge: {e}")
