@@ -1,10 +1,11 @@
 import os
 import sys
 import logging
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import QueuePool
+from sqlalchemy.pool import QueuePool, NullPool
+from sqlalchemy.engine import Engine
 from dotenv import load_dotenv
 
 # Configure logging
@@ -18,6 +19,20 @@ load_dotenv()
 config_path = os.path.join(os.path.dirname(__file__), 'config')
 if config_path not in sys.path:
     sys.path.insert(0, config_path)
+
+# PostgreSQL connection event listeners for better reliability
+@event.listens_for(Engine, "connect")
+def receive_connect(dbapi_conn, connection_record):
+    """Set PostgreSQL connection parameters on connect"""
+    try:
+        cursor = dbapi_conn.cursor()
+        # Set statement timeout (30 seconds)
+        cursor.execute("SET statement_timeout = 30000")
+        # Set timezone
+        cursor.execute("SET timezone = 'UTC'")
+        cursor.close()
+    except Exception as e:
+        logger.warning(f"Could not set connection parameters: {e}")
 
 # Import database configuration
 try:
@@ -70,21 +85,41 @@ else:
             connect_args={"check_same_thread": False},
             echo=False
         )
+        logger.info(f"🗃️ SQLite engine created (fallback)")
     else:
-        connect_args = {}
+        # AWS RDS or other PostgreSQL
+        connect_args = {
+            'connect_timeout': 10,
+            'keepalives': 1,
+            'keepalives_idle': 30,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
+        }
+        
+        # Add SSL for specific providers
         if 'render.com' in DATABASE_URL or 'dpg-' in DATABASE_URL:
             connect_args['sslmode'] = 'require'
+        elif 'rds.amazonaws.com' in DATABASE_URL or 'amazonaws.com' in DATABASE_URL:
+            # AWS RDS - SSL recommended but not required for public access
+            connect_args['sslmode'] = 'prefer'
+            logger.info("🔒 AWS RDS detected - SSL preferred")
+        
+        # Use QueuePool for PostgreSQL, NullPool for serverless environments
+        is_serverless = os.getenv('ENVIRONMENT') == 'serverless' or os.getenv('IS_CLOUD_RUN') == 'true'
         
         engine = create_engine(
             DATABASE_URL,
-            poolclass=QueuePool,
-            pool_size=10,
-            max_overflow=20,
+            poolclass=NullPool if is_serverless else QueuePool,
+            pool_size=5 if not is_serverless else None,
+            max_overflow=10 if not is_serverless else None,
             pool_pre_ping=True,
-            pool_recycle=3600,
+            pool_recycle=1800,  # Recycle connections every 30 minutes
             echo=False,
             connect_args=connect_args
         )
+        
+        pool_type = "NullPool (serverless)" if is_serverless else "QueuePool"
+        logger.info(f"🐘 PostgreSQL engine created with {pool_type}")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

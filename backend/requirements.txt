@@ -61,6 +61,11 @@ charset-normalizer>=3.3.0
 idna>=3.4
 certifi>=2023.0.0
 
+# AWS Services
+boto3==1.34.34
+aioboto3==12.3.0
+botocore==1.34.34
+
 # Rate limiting and security
 slowapi==0.1.9
 
