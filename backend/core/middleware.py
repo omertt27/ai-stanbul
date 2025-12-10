@@ -88,14 +88,62 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         
-        # Content Security Policy
+        # Content Security Policy - Complete configuration for maps, CDNs, and analytics
         csp_directives = [
             "default-src 'self'",
             "frame-src 'self' https://vercel.live https://*.vercel.live https://vercel.com",
-            "connect-src 'self' https://ai-stanbul.onrender.com https://aistanbul.net https://images.unsplash.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://region1.google-analytics.com https://region1.analytics.google.com https://*.google-analytics.com https://*.analytics.google.com https://maps.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com https://vercel.live https://*.vercel.live https://vercel.com https://*.vercel.app wss://vercel.live wss://*.vercel.live https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://*.tile.openstreetmap.org",
-            "img-src 'self' https://images.unsplash.com https://*.unsplash.com https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://*.tile.openstreetmap.org data: blob:",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.live https://www.googletagmanager.com https://www.google-analytics.com https://*.vercel.app",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            
+            # Connect-src: APIs, WebSockets, Map tiles, Analytics
+            "connect-src 'self' "
+            "https://ai-stanbul.onrender.com https://aistanbul.net "
+            "https://images.unsplash.com https://*.unsplash.com "
+            # OpenStreetMap tiles
+            "https://*.tile.openstreetmap.org https://tile.openstreetmap.org "
+            "https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org "
+            # CARTO/CartoDB map tiles
+            "https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com "
+            # CDN sources
+            "https://cdnjs.cloudflare.com https://*.cdnjs.cloudflare.com "
+            "https://unpkg.com https://*.unpkg.com "
+            # Analytics
+            "https://www.google-analytics.com https://ssl.google-analytics.com "
+            "https://www.googletagmanager.com https://analytics.google.com "
+            "https://region1.google-analytics.com https://region1.analytics.google.com "
+            "https://*.google-analytics.com https://*.analytics.google.com "
+            "https://cdn.amplitude.com "
+            # Other services
+            "https://maps.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com "
+            "https://vercel.live https://*.vercel.live https://vercel.com https://*.vercel.app "
+            "wss://vercel.live wss://*.vercel.live",
+            
+            # Img-src: Images, map tiles, and marker icons
+            "img-src 'self' "
+            "https://images.unsplash.com https://*.unsplash.com "
+            # OpenStreetMap tiles
+            "https://*.tile.openstreetmap.org https://tile.openstreetmap.org "
+            "https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org "
+            # CARTO/CartoDB tiles
+            "https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com "
+            # CDN for Leaflet marker icons
+            "https://cdnjs.cloudflare.com https://*.cdnjs.cloudflare.com "
+            "https://unpkg.com https://*.unpkg.com "
+            # GitHub raw content for custom markers
+            "https://raw.githubusercontent.com "
+            "data: blob:",
+            
+            # Script-src: Allow analytics, tracking, and CDN scripts
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+            "https://vercel.live https://*.vercel.live "
+            "https://www.googletagmanager.com https://www.google-analytics.com "
+            "https://cdn.amplitude.com "
+            "https://cdnjs.cloudflare.com https://unpkg.com "
+            "https://*.vercel.app",
+            
+            # Style-src: Allow inline styles and CDN stylesheets
+            "style-src 'self' 'unsafe-inline' "
+            "https://fonts.googleapis.com "
+            "https://cdnjs.cloudflare.com https://unpkg.com",
+            
             "font-src 'self' https://fonts.gstatic.com data:",
             "media-src 'self' blob:",
             "worker-src 'self' blob:",

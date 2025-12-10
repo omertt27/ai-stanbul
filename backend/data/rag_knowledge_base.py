@@ -101,15 +101,55 @@ Best for: European side travel, connecting to Asian side via Marmaray
             'content': """
 Marmaray - Undersea Rail Connecting Europe & Asia
 Route: Gebze (Asia) → Halkalı (Europe) through Bosphorus tunnel
-Key stations: Ayrılık Çeşmesi (Kadıköy side), Yenikapı (European side)
+Key stations: Ayrılık Çeşmesi (Kadıköy side), Yenikapı (European side), Sirkeci, Üsküdar
 Journey time: 5 minutes underwater crossing
 Connects to: M2 at Yenikapı, all Asian side metros
 Frequency: 5-10 minutes
 Best for: Fastest Europe↔Asia connection, avoiding traffic
 Weather-proof: Always good option in rain/snow
+
+IMPORTANT: Marmaray DOES serve Kadıköy area via Ayrılık Çeşmesi station (3 min walk from Kadıköy center).
+This is the FASTEST way to cross from Asian to European side.
 """,
             'category': 'transportation',
-            'metadata': {'line': 'Marmaray', 'type': 'train', 'side': 'both'}
+            'metadata': {'line': 'Marmaray', 'type': 'train', 'side': 'both', 'serves_kadikoy': True}
+        },
+        {
+            'id': 'route_kadikoy_taksim',
+            'title': 'Kadıköy to Taksim Route (FASTEST)',
+            'content': """
+KADIKOY TO TAKSIM - OPTIMAL ROUTE (35-40 minutes):
+
+✅ RECOMMENDED: Via Marmaray + M2 Metro
+1. Walk to Ayrılık Çeşmesi station (3 min from Kadıköy center)
+2. Take Marmaray towards European side → Get off at Yenikapı (15 min)
+3. Transfer to M2 Metro at Yenikapı → Direction: Hacıosman
+4. Get off at Taksim station (12 min)
+Total: ~35-40 minutes, completely weather-proof
+
+Alternative 1: Ferry + Funicular (scenic but slower)
+- Ferry: Kadıköy → Karaköy (20 min)
+- Walk to Tünel funicular (5 min)
+- Tünel → Beyoğlu, then walk to Taksim (15 min)
+Total: ~45-50 minutes, weather-dependent
+
+Alternative 2: Ferry + Tram + Funicular
+- Ferry: Kadıköy → Eminönü (20 min)
+- T1 Tram: Eminönü → Kabataş (25 min)
+- F1 Funicular: Kabataş → Taksim (3 min)
+Total: ~55 minutes
+
+CRITICAL FACT: Marmaray DOES serve Kadıköy via Ayrılık Çeşmesi station.
+Never say "Marmaray doesn't serve Kadıköy" - this is INCORRECT!
+""",
+            'category': 'transportation',
+            'metadata': {
+                'route_type': 'cross_continental',
+                'origin': 'kadikoy',
+                'destination': 'taksim',
+                'fastest_method': 'marmaray_m2',
+                'duration_minutes': 38
+            }
         },
         {
             'id': 'route_ferry',

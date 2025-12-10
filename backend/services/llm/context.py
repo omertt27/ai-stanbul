@@ -42,6 +42,20 @@ except ImportError:
     LOCATION_ENHANCER_AVAILABLE = False
     logger.warning("⚠️ Location-based context enhancer not available")
 
+# Import industry-level transportation RAG system
+try:
+    from backend.services.transportation_rag_system import get_transportation_rag
+    TRANSPORTATION_RAG_AVAILABLE = True
+    logger.info("✅ Industry-level Transportation RAG system available")
+except ImportError:
+    try:
+        from services.transportation_rag_system import get_transportation_rag
+        TRANSPORTATION_RAG_AVAILABLE = True
+        logger.info("✅ Industry-level Transportation RAG system available")
+    except ImportError:
+        TRANSPORTATION_RAG_AVAILABLE = False
+        logger.warning("⚠️ Transportation RAG system not available")
+
 
 class ContextBuilder:
     """
@@ -507,9 +521,28 @@ class ContextBuilder:
             return ""
     
     async def _get_transportation(self, query: str, language: str) -> str:
-        """Get REAL transportation data from TransportationDirectionsService."""
+        """
+        Get INDUSTRY-LEVEL transportation data using Google Maps-quality RAG system.
+        
+        This provides:
+        - Complete verified route information
+        - Step-by-step directions
+        - Real station names and connections
+        - Transfer points and times
+        """
         try:
-            # Try to use service_manager's transportation service first
+            # Use industry-level Transportation RAG system
+            if TRANSPORTATION_RAG_AVAILABLE:
+                logger.info("🗺️ Using Industry-Level Transportation RAG System")
+                transport_rag = get_transportation_rag()
+                
+                # Generate RAG context for this specific query
+                rag_context = transport_rag.get_rag_context_for_query(query, user_location=None)
+                
+                logger.info(f"✅ Generated {len(rag_context)} chars of verified transportation context")
+                return rag_context
+            
+            # Fallback: Try to use service_manager's transportation service
             transport_service = None
             
             if self.service_manager and hasattr(self.service_manager, 'transportation_service'):
@@ -529,7 +562,7 @@ class ContextBuilder:
 - M1 (Red): Yenikapı - Atatürk Airport/Kirazlı
 - M2 (Green): Yenikapı - Hacıosman (serves Taksim, Şişhane, Osmanbey, Levent)
 - M3 (Blue): Kirazlı - Başakşehir/Olimpiyat
-- M4 (Pink): Kadıköy - Tavşantepe (Asian side)
+- M4 (Pink): Kadıköy - Tavşantepe (Asian side) - **CONNECTS TO MARMARAY at Ayrılık Çeşmesi**
 - M5 (Purple): Üsküdar - Çekmeköy (Asian side)
 - M6, M7, M9, M11: Other metro lines
 
@@ -539,48 +572,48 @@ class ContextBuilder:
 - T5: Cibali - Alibeyköy
 
 🚂 MARMARAY (Underground Rail):
-- Connects Asian and European sides via underwater tunnel
-- Route: Kazlıçeşme ↔ Yenikapı ↔ Sirkeci ↔ Üsküdar ↔ Ayrılık Çeşmesi
-- Key stations: Yenikapı (connects to M1/M2), Üsküdar, Ayrılık Çeşmesi
+- **VERIFIED: Connects Asian and European sides via underwater tunnel**
+- **KEY: DOES serve Kadıköy via Ayrılık Çeşmesi station (M4 transfer point)**
+- Route: Gebze ↔ Pendik ↔ Kartal ↔ Bostancı ↔ **Ayrılık Çeşmesi (Kadıköy)** ↔ Üsküdar ↔ Sirkeci ↔ Yenikapı ↔ Halkalı
+- Major transfer hubs: 
+  * Yenikapı (M1/M2 transfers)
+  * Ayrılık Çeşmesi (M4 transfer - **KEY KADIKOY CONNECTION**)
+  * Üsküdar (M5 transfer)
+  * Sirkeci (T1 transfer)
 
 🚡 FUNICULARS:
-- F1: Kabataş ↔ Taksim (connects T1 tram to Taksim)
-- F2: Karaköy ↔ Tünel (connects to M2 at Şişhane)
+- F1: Kabataş ↔ Taksim (connects T1 tram to M2 metro)
+- F2: Karaköy ↔ Tünel/Şişhane (connects T1 to M2)
 
 ⛴️ FERRIES:
 - Kadıköy ↔ Karaköy (15-20 min)
 - Kadıköy ↔ Eminönü (20 min)
 - Üsküdar ↔ Eminönü (15 min)
 - Beşiktaş ↔ Kadıköy (25 min)
-- Many other routes between Asian and European sides
 
-🚌 OTHER:
-- Metrobus: Rapid bus service on dedicated lanes (connects continents)
-- City Buses: Extensive network throughout Istanbul
+**VERIFIED ROUTE: Kadıköy to Taksim:**
+1. Take M4 metro to Ayrılık Çeşmesi station
+2. Transfer to Marmaray (same station)
+3. Take Marmaray to Yenikapı
+4. Transfer to M2 metro
+5. Take M2 to Taksim
+Total time: ~35 minutes
 
-POPULAR ROUTES:
-1. Kadıköy to Taksim:
-   - Option A: Ferry to Karaköy + F2 Funicular + walk/M2 (~25 min, scenic)
-   - Option B: Marmaray to Yenikapı + M2 to Taksim (~35 min, underground)
-
-2. Sultanahmet to Taksim:
-   - T1 Tram to Kabataş + F1 Funicular to Taksim (~25-30 min)
-
-3. Kadıköy to Sultanahmet:
-   - Ferry to Eminönü + T1 Tram to Sultanahmet (~30 min)
-
-4. Asian ↔ European:
-   - Ferries (scenic, 15-20 min)
-   - Marmaray (underground, fast)
-   - Metrobus (via bridges)"""
+**Alternative: Kadıköy to Taksim via Ferry:**
+1. Take ferry from Kadıköy to Karaköy (~20 min)
+2. Take F2 funicular to Tünel/Şişhane
+3. Walk to Taksim or take M2 one stop
+Total time: ~30 minutes (more scenic!)"""
             
             logger.debug("Transportation context built successfully")
             return transit_info
             
         except Exception as e:
             logger.error(f"Failed to get transportation info: {e}")
-            # Fallback: basic transit info
-            return """Istanbul has metro (M1-M11), tram (T1, T4, T5), Marmaray rail, funiculars (F1, F2), ferries, and metrobus services."""
+            # Fallback: basic transit info with KEY CORRECTION
+            return """Istanbul has metro (M1-M11), tram (T1, T4, T5), Marmaray rail, funiculars (F1, F2), ferries, and metrobus services.
+
+**IMPORTANT: Marmaray DOES serve Kadıköy via Ayrılık Çeşmesi station (M4 connection point).**"""
     
     async def _get_rag_context(self, query: str, language: str) -> str:
         """Get RAG context from embeddings with circuit breaker protection."""
