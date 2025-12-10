@@ -256,7 +256,7 @@ class WeatherCache:
         self.current_weather: Optional[WeatherData] = None
         self.hourly_forecast: List[HourlyForecast] = []
         self.last_update: Optional[datetime] = None
-        self.update_interval = 3600  # 1 hour in seconds
+        self.update_interval = 3600  # 1 hour in seconds (weather refresh interval)
         
         # Load existing cache
         self._load_cache()
@@ -268,9 +268,9 @@ class WeatherCache:
                 with open(self.cache_file, 'r') as f:
                     data = json.load(f)
                     if data.get('timestamp'):
-                        # Check if cache is still valid (within 2 hours)
+                        # Check if cache is still valid (within 1 hour)
                         cache_time = datetime.fromisoformat(data['timestamp'])
-                        if datetime.now() - cache_time < timedelta(hours=2):
+                        if datetime.now() - cache_time < timedelta(hours=1):
                             self.current_weather = self._dict_to_weather_data(data)
                             self.last_update = cache_time
                             logger.info("✅ Loaded weather cache from disk")
