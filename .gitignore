@@ -14,6 +14,12 @@ backend/.env.*
 !backend/.env.template
 !backend/.env.example
 
+# Security Alerts and Incident Response
+GITGUARDIAN_ALERT_QUICK_ACTION.md
+*ALERT*.md
+*INCIDENT*.md
+EMERGENCY_SECRET_ROTATION.md
+
 # ===== SECURITY: NEVER COMMIT SECRETS =====
 # Any file with these patterns in name
 *secret*
@@ -291,6 +297,14 @@ training_data/
 *.p12
 *.pfx
 ssl/
+certs/
+
+# Financial and Business Data
+invoices/
+billing/
+contracts/
+financial_data/
+
 certs/
 
 # Financial and Business Data
