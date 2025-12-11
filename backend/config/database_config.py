@@ -87,9 +87,12 @@ class DatabaseConfig:
             'connect_args': {}
         }
         
-        # Add SSL for Render
+        # Add SSL for Render (not for Cloud SQL Unix sockets)
         if self.is_render:
             params['connect_args']['sslmode'] = 'require'
+        
+        # For Cloud SQL with Unix sockets, we don't need connect_args
+        # PostgreSQL driver will handle Unix sockets via the host parameter
         
         return params
     

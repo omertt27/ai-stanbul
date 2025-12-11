@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+ENV/
+
+# Logs
+*.log
+logs/
+*.db
+*.db-journal
+
+# Test files
+test_*.py
+*_test.py
+tests/
+test_data/
+test_models/
+
+# Documentation
+*.md
+TECHNICAL_SUMMARY.md
+READY_STATUS.md
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker
+.dockerignore
+# Note: Dockerfile is needed for Cloud Run builds
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Data files
+*.json
+*.csv
+*.db
+*.sqlite
+*.sqlite3
+
+# Backend artifacts
+backend.log
+server.log
+startup.log
+nohup.out
+blog_analytics.db
+monitoring.db
+query_analytics.db
+vectors.db
+automated_pipeline.db
+enhanced_pipeline.db
+ai_stanbul.db
+app.db
+app.db.backup
+curation_content.db
+daily_usage.db
+istanbul_ai_analytics.db
+lightweight_personalization.db
+
+# Large directories
+data/
+images/
+uploads/
+static/
