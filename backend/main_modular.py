@@ -15,6 +15,7 @@ Date: January 2025
 """
 
 import logging
+import asyncio
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -132,20 +133,35 @@ if LEGACY_ROUTES_AVAILABLE:
 
 @app.on_event("startup")
 async def startup_event():
-    """Application startup"""
-    await startup_manager.initialize()
+    """Application startup - NON-BLOCKING for Cloud Run"""
+    logger.info("🚀 Starting application (non-blocking startup)")
     
-    # Initialize admin experiments managers
+    # Start initialization in background - don't wait
+    asyncio.create_task(_background_initialization())
+    
+    logger.info("✅ Application ready to accept connections (background init in progress)")
+
+
+async def _background_initialization():
+    """Background initialization - runs after server starts"""
     try:
-        from api.admin.experiments import initialize_managers
-        initialize_managers()
-        logger.info("✅ Admin experiment managers initialized")
+        logger.info("🔄 Starting background initialization...")
+        
+        # Initialize startup manager components
+        await startup_manager.initialize()
+        
+        # Initialize admin experiments managers
+        try:
+            from api.admin.experiments import initialize_managers
+            initialize_managers()
+            logger.info("✅ Admin experiment managers initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not initialize admin managers: {e}")
+        
+        logger.info("✅ Background initialization complete!")
+        
     except Exception as e:
-        logger.warning(f"⚠️ Could not initialize admin managers: {e}")
-    
-    # Auto-seed blog posts if database is empty
-    # DISABLED FOR FASTER STARTUP - Can take 30+ seconds
-    logger.info("⚠️ Blog seeding disabled for faster Cloud Run startup")
+        logger.error(f"❌ Background initialization failed: {e}")
 
 
 @app.on_event("shutdown")
