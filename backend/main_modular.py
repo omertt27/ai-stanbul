@@ -38,7 +38,7 @@ from api.health import router as health_router
 from api.auth import router as auth_router
 from api.chat import router as chat_router
 from api.llm import router as llm_router
-from api.aws_test import router as aws_test_router
+from api.aws_diagnostics import router as aws_diagnostics_router
 from api.monitoring_routes import router as monitoring_router
 from api.admin import experiments as admin_experiments
 from api.admin import routes as admin_routes
@@ -99,7 +99,7 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(llm_router)
-app.include_router(aws_test_router)  # AWS S3 and Redis test endpoints
+app.include_router(aws_diagnostics_router)  # AWS S3 and Redis diagnostic endpoints
 app.include_router(admin_experiments.router)
 logger.info(f"📋 Admin routes router has {len(admin_routes.router.routes)} routes")
 app.include_router(admin_routes.router, prefix="/api/admin")
