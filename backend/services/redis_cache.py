@@ -22,8 +22,16 @@ class RedisCache:
         
         if redis_url:
             # Parse Redis URL (redis://user:pass@host:port/db)
-            self.client = redis.from_url(redis_url, decode_responses=True)
-            logger.info(f"✅ Redis cache connected via REDIS_URL")
+            # Add timeout and connection pool settings to prevent blocking
+            self.client = redis.from_url(
+                redis_url, 
+                decode_responses=True,
+                socket_connect_timeout=5,  # 5 second connection timeout
+                socket_timeout=5,           # 5 second socket timeout
+                socket_keepalive=True,
+                health_check_interval=30
+            )
+            logger.info(f"✅ Redis cache client created via REDIS_URL (with 5s timeout)")
         else:
             # Local development
             host = host or os.getenv('REDIS_HOST', 'localhost')
@@ -32,9 +40,11 @@ class RedisCache:
                 host=host,
                 port=port,
                 db=db,
-                decode_responses=True
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=5
             )
-            logger.info(f"✅ Redis cache connected: {host}:{port}")
+            logger.info(f"✅ Redis cache client created: {host}:{port}")
     
     def ping(self) -> bool:
         """Test Redis connection"""
@@ -285,11 +295,19 @@ class AsyncRedisCache:
     async def connect(self):
         """Initialize connection (sync cache auto-connects)"""
         try:
-            self.cache.ping()
+            # Use asyncio.wait_for to add a timeout
+            import asyncio
+            await asyncio.wait_for(
+                asyncio.to_thread(self.cache.ping),
+                timeout=3.0  # 3 second timeout for ping
+            )
             self.enabled = True
-            logger.info("✅ Redis cache connected")
+            logger.info("✅ Redis cache connected and verified")
+        except asyncio.TimeoutError:
+            logger.warning("⚠️ Redis ping timeout - using in-memory fallback")
+            self.enabled = False
         except Exception as e:
-            logger.warning(f"⚠️ Redis unavailable, using fallback: {e}")
+            logger.warning(f"⚠️ Redis unavailable - using in-memory fallback: {e}")
             self.enabled = False
     
     async def disconnect(self):
