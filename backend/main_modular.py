@@ -34,7 +34,7 @@ from core.middleware import setup_middleware
 from core.startup import startup_manager
 
 # Import API routers
-from api import health, auth, chat, llm, aws_test
+from api import health, auth, chat, llm
 from api.admin import experiments as admin_experiments
 from api.admin import routes as admin_routes
 from api import monitoring_routes
@@ -95,7 +95,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(llm.router)
-app.include_router(aws_test.router)  # AWS S3 and Redis test endpoints
+# app.include_router(aws_test.router)  # AWS S3 and Redis test endpoints - REMOVED (file doesn't exist)
 app.include_router(admin_experiments.router)
 logger.info(f"📋 Admin routes router has {len(admin_routes.router.routes)} routes")
 app.include_router(admin_routes.router, prefix="/api/admin")
