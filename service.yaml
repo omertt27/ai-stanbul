@@ -29,9 +29,9 @@ spec:
         - name: REDIS_DB
           value: "0"
         - name: REDIS_SOCKET_TIMEOUT
-          value: "5"
+          value: "1"
         - name: REDIS_SOCKET_CONNECT_TIMEOUT
-          value: "5"
+          value: "1"
         - name: ENVIRONMENT
           value: production
         - name: PORT

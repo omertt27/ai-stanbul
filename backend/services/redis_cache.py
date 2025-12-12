@@ -22,29 +22,38 @@ class RedisCache:
         
         if redis_url:
             # Parse Redis URL (redis://user:pass@host:port/db)
-            # Add timeout and connection pool settings to prevent blocking
+            # Add ULTRA-SHORT timeouts to prevent blocking on Cloud Run
+            connect_timeout = int(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '1'))
+            socket_timeout = int(os.getenv('REDIS_SOCKET_TIMEOUT', '1'))
+            
             self.client = redis.from_url(
                 redis_url, 
                 decode_responses=True,
-                socket_connect_timeout=5,  # 5 second connection timeout
-                socket_timeout=5,           # 5 second socket timeout
+                socket_connect_timeout=connect_timeout,  # Ultra-short connection timeout
+                socket_timeout=socket_timeout,           # Ultra-short socket timeout
                 socket_keepalive=True,
-                health_check_interval=30
+                health_check_interval=30,
+                retry_on_timeout=False,     # Don't retry on timeout - fail fast
+                max_connections=10
             )
-            logger.info(f"✅ Redis cache client created via REDIS_URL (with 5s timeout)")
+            logger.info(f"✅ Redis cache client created via REDIS_URL (timeout: {connect_timeout}s)")
         else:
             # Local development
             host = host or os.getenv('REDIS_HOST', 'localhost')
             port = port or int(os.getenv('REDIS_PORT', 6379))
+            connect_timeout = int(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '1'))
+            socket_timeout = int(os.getenv('REDIS_SOCKET_TIMEOUT', '1'))
+            
             self.client = redis.Redis(
                 host=host,
                 port=port,
                 db=db,
                 decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=5
+                socket_connect_timeout=connect_timeout,
+                socket_timeout=socket_timeout,
+                retry_on_timeout=False
             )
-            logger.info(f"✅ Redis cache client created: {host}:{port}")
+            logger.info(f"✅ Redis cache client created: {host}:{port} (timeout: {connect_timeout}s)")
     
     def ping(self) -> bool:
         """Test Redis connection"""
@@ -295,20 +304,33 @@ class AsyncRedisCache:
     async def connect(self):
         """Initialize connection (sync cache auto-connects)"""
         try:
-            # Use asyncio.wait_for to add a timeout
+            # Use asyncio.wait_for with a VERY short timeout to avoid blocking startup
             import asyncio
+            
+            # Test connection with 2 second timeout
             await asyncio.wait_for(
-                asyncio.to_thread(self.cache.ping),
-                timeout=3.0  # 3 second timeout for ping
+                asyncio.to_thread(self._test_connection),
+                timeout=2.0  # 2 second timeout total
             )
             self.enabled = True
             logger.info("✅ Redis cache connected and verified")
         except asyncio.TimeoutError:
-            logger.warning("⚠️ Redis ping timeout - using in-memory fallback")
+            logger.warning("⚠️ Redis ping timeout (2s) - continuing without cache")
             self.enabled = False
         except Exception as e:
-            logger.warning(f"⚠️ Redis unavailable - using in-memory fallback: {e}")
+            logger.warning(f"⚠️ Redis unavailable - continuing without cache: {e}")
             self.enabled = False
+    
+    def _test_connection(self):
+        """Test connection synchronously (called in thread)"""
+        try:
+            # Set a socket timeout directly before ping
+            self.cache.client.connection_pool.connection_kwargs['socket_timeout'] = 1.0
+            self.cache.client.connection_pool.connection_kwargs['socket_connect_timeout'] = 1.0
+            return self.cache.ping()
+        except Exception as e:
+            logger.warning(f"Redis ping failed: {e}")
+            return False
     
     async def disconnect(self):
         """Close connection"""

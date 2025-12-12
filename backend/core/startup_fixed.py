@@ -32,27 +32,27 @@ class FastStartupManager:
         self._services_initialized = False
     
     async def initialize(self):
-        """Fast initialization - only critical components"""
-        logger.info("🚀 Starting FAST initialization...")
+        """Fast initialization - minimal blocking"""
+        logger.info("🚀 Starting ULTRA-FAST initialization...")
         
         try:
-            # 1. Database (critical)
-            await self._initialize_database()
+            # 1. Database (critical) - but don't wait too long
+            asyncio.create_task(self._initialize_database())
             
-            # 2. Redis Cache (critical)
-            await self._initialize_redis()
+            # 2. Redis Cache (non-critical) - initialize in background
+            asyncio.create_task(self._initialize_redis())
             
-            # 3. Service Manager (critical)
-            await self._initialize_service_manager()
+            # 3. Service Manager (non-critical) - initialize in background
+            asyncio.create_task(self._initialize_service_manager())
             
-            logger.info("✅ Critical components initialized - ready to serve traffic!")
+            logger.info("✅ App ready to serve traffic - components initializing in background!")
             
             # 4. Schedule lazy initialization of heavy components
             asyncio.create_task(self._lazy_initialize_llm())
             
         except Exception as e:
-            logger.error(f"❌ Critical initialization failed: {e}")
-            raise
+            logger.error(f"❌ Initialization failed: {e}")
+            # Don't raise - allow app to start even if background tasks fail
     
     async def _initialize_database(self):
         """Initialize database connection"""
@@ -65,14 +65,20 @@ class FastStartupManager:
             self.db = None
     
     async def _initialize_redis(self):
-        """Initialize Redis cache"""
+        """Initialize Redis cache with ultra-short timeout (fail-fast for Cloud Run)"""
         try:
             from services.redis_cache import init_cache
-            await init_cache()
+            # Ultra-short timeout - if Redis doesn't connect in 1.5s, it's blocked
+            await asyncio.wait_for(init_cache(), timeout=1.5)
             self.redis_cache = True
-            logger.info("✅ Redis cache initialized")
+            logger.info("✅ Redis cache initialized successfully")
+        except asyncio.TimeoutError:
+            logger.warning("⚠️ Redis cache timeout (1.5s) - likely firewall/network blocked")
+            logger.warning("⚠️ Continuing WITHOUT Redis - sessions will not persist across restarts")
+            self.redis_cache = None
         except Exception as e:
-            logger.warning(f"⚠️ Redis cache initialization failed: {e}")
+            logger.warning(f"⚠️ Redis unavailable: {e}")
+            logger.warning("⚠️ Continuing WITHOUT Redis - sessions will not persist across restarts")
             self.redis_cache = None
     
     async def _initialize_service_manager(self):
