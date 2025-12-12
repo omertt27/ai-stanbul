@@ -31,7 +31,8 @@ from config.settings import settings
 
 # Import core components
 from core.middleware import setup_middleware
-from core.startup import startup_manager
+# Use fixed fast startup manager for Cloud Run
+from core.startup_fixed import fast_startup_manager as startup_manager
 
 # Import API routers directly to avoid circular imports
 from api.health import router as health_router

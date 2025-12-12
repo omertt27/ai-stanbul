@@ -1,0 +1,68 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Documentation
+*.md
+!README.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+tests/
+*_test.py
+test_*.py
+
+# Logs
+*.log
+logs/
+
+# Frontend (we only need backend for this Docker image)
+frontend/
+node_modules/
+
+# Data files
+*.db
+*.sqlite
+*.sqlite3
+
+# Large files
+*.pem
+*.pkg
+
+# OS
+.DS_Store
+
+# Backups
+*.backup
+*.bak
+*.save
+*.old
+
+# Environment files (will be set via Cloud Run)
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+dist/
+build/
