@@ -1,0 +1,77 @@
+# Cloud Build .gcloudignore
+# Only upload what's needed for the Docker build
+
+# IMPORTANT: Exclude ALL large directories first
+models/
+phase2_extended_v2/
+phase2_extended_v2_model.pth
+venv_gpu_ml/
+venv_ml/
+venv/
+.venv/
+Users/
+cache/
+data_collection/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+blog_analytics.db*
+
+# Package files
+*.pkg
+*.pem
+AWSCLIV2.pkg
+
+# Frontend (not needed)
+frontend/
+
+# Git
+.git/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+tests/
+*_test.py
+test_*.py
+
+# Logs
+*.log
+logs/
+
+# Documentation
+*.md
+!README.md
+
+# Environment files
+.env
+.env.*
+
+# OS
+.DS_Store
+
+# Backups
+*.backup
+*.bak
+*.save
+*.old
+
+# Build artifacts
+dist/
+build/
+
+# Node modules
+node_modules/

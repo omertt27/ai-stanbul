@@ -13,12 +13,15 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy entire backend directory first
-COPY backend/ ./
+# Copy requirements.txt first for layer caching
+COPY backend/requirements.txt ./requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application
+COPY backend/ ./
 
 # Set environment variables
 ENV PORT=8080

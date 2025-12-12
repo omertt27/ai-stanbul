@@ -1,0 +1,58 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ai-stanbul
+  labels:
+    cloud.googleapis.com/location: europe-west1
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/startup-cpu-boost: 'true'
+        run.googleapis.com/cpu-throttling: 'true'
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - image: gcr.io/cryptic-portal-475411-g3/ai-stanbul
+        ports:
+        - containerPort: 8080
+        env:
+        - name: REDIS_URL
+          value: redis://ai-istanbul-user:Istanbul2024%21@18.185.79.249:6379/0
+        - name: REDIS_HOST
+          value: "18.185.79.249"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_PASSWORD
+          value: "Istanbul2024!"
+        - name: REDIS_DB
+          value: "0"
+        - name: REDIS_SOCKET_TIMEOUT
+          value: "5"
+        - name: REDIS_SOCKET_CONNECT_TIMEOUT
+          value: "5"
+        - name: ENVIRONMENT
+          value: production
+        - name: PORT
+          value: "8080"
+        resources:
+          limits:
+            cpu: '2'
+            memory: 2Gi
+        startupProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 0
+          timeoutSeconds: 3
+          periodSeconds: 10
+          failureThreshold: 12  # 12 * 10 = 120 seconds total startup time
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8080
+          initialDelaySeconds: 0
+          timeoutSeconds: 3
+          periodSeconds: 30
+          failureThreshold: 3
