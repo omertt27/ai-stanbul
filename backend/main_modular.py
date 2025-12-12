@@ -34,10 +34,9 @@ from core.middleware import setup_middleware
 from core.startup import startup_manager
 
 # Import API routers
-from api import health, auth, chat, llm
+from api import health, auth, chat, llm, aws_test, monitoring_routes
 from api.admin import experiments as admin_experiments
 from api.admin import routes as admin_routes
-from api import monitoring_routes
 
 # Import blog API
 try:
@@ -95,7 +94,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(llm.router)
-# app.include_router(aws_test.router)  # AWS S3 and Redis test endpoints - REMOVED (file doesn't exist)
+app.include_router(aws_test.router)  # AWS S3 and Redis test endpoints
 app.include_router(admin_experiments.router)
 logger.info(f"📋 Admin routes router has {len(admin_routes.router.routes)} routes")
 app.include_router(admin_routes.router, prefix="/api/admin")
@@ -139,27 +138,8 @@ async def startup_event():
         logger.warning(f"⚠️ Could not initialize admin managers: {e}")
     
     # Auto-seed blog posts if database is empty
-    try:
-        from seed_blog_posts import seed_blog_posts
-        from database import SessionLocal
-        from models.blog_models import BlogPost
-        
-        db = SessionLocal()
-        try:
-            post_count = db.query(BlogPost).count()
-            
-            if post_count == 0:
-                logger.info("📝 Blog database empty, seeding sample posts...")
-                seed_blog_posts()
-                logger.info("✅ Blog posts seeded successfully")
-            else:
-                logger.info(f"✅ Blog database already has {post_count} posts")
-        except Exception as seed_error:
-            logger.warning(f"⚠️ Could not seed blog posts: {seed_error}")
-        finally:
-            db.close()
-    except ImportError as e:
-        logger.warning(f"⚠️ Blog seeding not available: {e}")
+    # DISABLED FOR FASTER STARTUP - Can take 30+ seconds
+    logger.info("⚠️ Blog seeding disabled for faster Cloud Run startup")
 
 
 @app.on_event("shutdown")
