@@ -27,7 +27,8 @@ async def get_startup_status():
         "db_exists": startup_manager.db is not None,
         "redis_cache_exists": startup_manager.redis_cache is not None,
         "is_llm_ready": startup_manager.is_llm_ready(),
-        "is_services_ready": startup_manager.is_services_ready()
+        "is_services_ready": startup_manager.is_services_ready(),
+        "initialization_errors": getattr(startup_manager, '_initialization_errors', [])
     }
     
     if pure_llm_core:

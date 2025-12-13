@@ -16,7 +16,7 @@ import csv
 from database import get_db, SessionLocal
 from models import (
     BlogPost as BlogPostModel,
-    IntentFeedback,
+    # IntentFeedback,  # Temporarily disabled - model doesn't exist
     FeedbackEvent,
     UserInteractionAggregate
 )
@@ -47,9 +47,10 @@ async def get_admin_stats(db: Session = Depends(get_db)):
         ).scalar() or 0
         
         # Get intent feedback stats
-        intent_feedback_count = db.query(func.count(IntentFeedback.id)).filter(
-            IntentFeedback.created_at >= since
-        ).scalar() or 0
+        # intent_feedback_count = db.query(func.count(IntentFeedback.id)).filter(
+        #     IntentFeedback.created_at >= since
+        # ).scalar() or 0
+        intent_feedback_count = 0  # Temporarily disabled - IntentFeedback model doesn't exist
         
         # Get unique users
         unique_users = db.query(
@@ -369,34 +370,40 @@ async def get_intent_stats(
     try:
         since = datetime.now() - timedelta(days=days)
         
+        # Temporarily disabled - IntentFeedback model doesn't exist
         # Get total intent feedback
-        total_feedback = db.query(func.count(IntentFeedback.id)).filter(
-            IntentFeedback.created_at >= since
-        ).scalar() or 0
+        # total_feedback = db.query(func.count(IntentFeedback.id)).filter(
+        #     IntentFeedback.created_at >= since
+        # ).scalar() or 0
+        total_feedback = 0
         
         # Get feedback by correctness
-        correct_count = db.query(func.count(IntentFeedback.id)).filter(
-            IntentFeedback.created_at >= since,
-            IntentFeedback.is_correct == True
-        ).scalar() or 0
+        # correct_count = db.query(func.count(IntentFeedback.id)).filter(
+        #     IntentFeedback.created_at >= since,
+        #     IntentFeedback.is_correct == True
+        # ).scalar() or 0
+        correct_count = 0
         
-        incorrect_count = db.query(func.count(IntentFeedback.id)).filter(
-            IntentFeedback.created_at >= since,
-            IntentFeedback.is_correct == False
-        ).scalar() or 0
+        # incorrect_count = db.query(func.count(IntentFeedback.id)).filter(
+        #     IntentFeedback.created_at >= since,
+        #     IntentFeedback.is_correct == False
+        # ).scalar() or 0
+        incorrect_count = 0
         
         # Get average confidence
-        avg_confidence = db.query(func.avg(IntentFeedback.predicted_confidence)).filter(
-            IntentFeedback.created_at >= since
-        ).scalar() or 0.0
+        # avg_confidence = db.query(func.avg(IntentFeedback.predicted_confidence)).filter(
+        #     IntentFeedback.created_at >= since
+        # ).scalar() or 0.0
+        avg_confidence = 0.0
         
         # Get intent distribution
-        intent_distribution = db.query(
-            IntentFeedback.predicted_intent,
-            func.count(IntentFeedback.id).label('count')
-        ).filter(
-            IntentFeedback.created_at >= since
-        ).group_by(IntentFeedback.predicted_intent).all()
+        # intent_distribution = db.query(
+        #     IntentFeedback.predicted_intent,
+        #     func.count(IntentFeedback.id).label('count')
+        # ).filter(
+        #     IntentFeedback.created_at >= since
+        # ).group_by(IntentFeedback.predicted_intent).all()
+        intent_distribution = []
         
         accuracy = (correct_count / total_feedback * 100) if total_feedback > 0 else 0
         

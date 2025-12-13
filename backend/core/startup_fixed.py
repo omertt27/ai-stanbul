@@ -30,6 +30,7 @@ class FastStartupManager:
         self.recommendation_engine = None
         self._llm_initialized = False
         self._services_initialized = False
+        self._initialization_errors = []
     
     async def initialize(self):
         """Fast initialization - minimal blocking"""
@@ -68,7 +69,9 @@ class FastStartupManager:
             self.db = next(get_db())
             logger.info("✅ Database connection established")
         except Exception as e:
-            logger.warning(f"⚠️ Database initialization failed: {e}")
+            error_msg = f"Database initialization failed: {str(e)}"
+            logger.warning(f"⚠️ {error_msg}")
+            self._initialization_errors.append(error_msg)
             self.db = None
     
     async def _initialize_redis(self):
@@ -92,12 +95,15 @@ class FastStartupManager:
         """Initialize local service manager"""
         try:
             from services.service_manager import service_manager
-            await service_manager.initialize(db=self.db)
+            # ServiceManager uses initialize_all(), not initialize()
+            service_manager.initialize_all()
             self.service_manager = service_manager
             self._services_initialized = True
             logger.info("✅ Service Manager initialized")
         except Exception as e:
-            logger.warning(f"⚠️ Service Manager initialization failed: {e}")
+            error_msg = f"Service Manager initialization failed: {str(e)}"
+            logger.warning(f"⚠️ {error_msg}")
+            self._initialization_errors.append(error_msg)
             self.service_manager = None
     
     async def _lazy_initialize_llm(self):
@@ -171,7 +177,9 @@ class FastStartupManager:
             logger.info("✅ Pure LLM Core initialized (background)")
             
         except Exception as e:
-            logger.error(f"❌ Failed to initialize Pure LLM: {e}")
+            error_msg = f"Failed to initialize Pure LLM: {str(e)}"
+            logger.error(f"❌ {error_msg}")
+            self._initialization_errors.append(error_msg)
             self.pure_llm_core = None
     
     async def shutdown(self):
