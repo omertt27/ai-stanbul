@@ -133,15 +133,12 @@ class FastStartupManager:
             
             from services.llm import PureLLMCore
             
-            # Get LLM client
-            try:
-                from services.runpod_llm_client import get_llm_client
-                llm_client = get_llm_client()
-            except Exception as e:
-                logger.warning(f"⚠️ Using default OpenAI client: {e}")
-                from openai import AsyncOpenAI
-                from config.settings import settings
-                llm_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+            # Get LLM client (RunPod/Llama)
+            from services.runpod_llm_client import get_llm_client
+            llm_client = get_llm_client()
+            
+            if not llm_client or not llm_client.enabled:
+                raise Exception("LLM client not enabled - check LLM_API_URL environment variable")
             
             # Create Pure LLM Core config
             config = {
