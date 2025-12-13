@@ -44,6 +44,7 @@ from api.aws_diagnostics import router as aws_diagnostics_router
 from api.monitoring_routes import router as monitoring_router
 from api.admin import experiments as admin_experiments
 from api.admin import routes as admin_routes
+from api.startup_status import router as startup_status_router
 
 # Import blog API
 try:
@@ -102,6 +103,7 @@ app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(llm_router)
 app.include_router(aws_diagnostics_router)  # AWS S3 and Redis diagnostic endpoints
+app.include_router(startup_status_router)  # Startup diagnostics
 app.include_router(admin_experiments.router)
 logger.info(f"📋 Admin routes router has {len(admin_routes.router.routes)} routes")
 app.include_router(admin_routes.router, prefix="/api/admin")

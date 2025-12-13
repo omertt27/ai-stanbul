@@ -55,9 +55,16 @@ class FastStartupManager:
             # Don't raise - allow app to start even if background tasks fail
     
     async def _initialize_database(self):
-        """Initialize database connection"""
+        """Initialize database connection and create tables"""
         try:
-            from database import get_db
+            from database import get_db, engine, Base
+            
+            # Create all tables if they don't exist
+            logger.info("🔄 Creating database tables if needed...")
+            Base.metadata.create_all(bind=engine)
+            logger.info("✅ Database tables ready")
+            
+            # Get database session
             self.db = next(get_db())
             logger.info("✅ Database connection established")
         except Exception as e:
@@ -97,6 +104,26 @@ class FastStartupManager:
         """Lazy initialization of Pure LLM Core (runs in background)"""
         try:
             logger.info("🔄 Starting background LLM initialization...")
+            
+            # Wait for database and service manager to be ready (up to 30 seconds)
+            max_wait = 30
+            waited = 0
+            while waited < max_wait:
+                if self.db is not None and self._services_initialized:
+                    logger.info(f"✅ Dependencies ready after {waited}s")
+                    break
+                await asyncio.sleep(2)
+                waited += 2
+                logger.info(f"⏳ Waiting for dependencies... ({waited}s)")
+            
+            if self.db is None:
+                logger.error("❌ Database not initialized - cannot start LLM")
+                return
+            
+            if not self._services_initialized:
+                logger.warning("⚠️ Service Manager not ready - LLM may have limited functionality")
+            
+            logger.info(f"🔍 DB initialized: {self.db is not None}, Services initialized: {self._services_initialized}")
             
             from services.llm import PureLLMCore
             
