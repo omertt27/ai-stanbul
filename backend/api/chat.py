@@ -15,7 +15,7 @@ import json
 import asyncio
 
 from database import get_db
-from core.startup import startup_manager
+from core.startup_fixed import fast_startup_manager as startup_manager
 from services.data_collection import log_chat_interaction
 from utils.response_sanitizer import ResponseSanitizer
 
