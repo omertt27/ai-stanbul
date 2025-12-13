@@ -34,6 +34,14 @@ spec:
           value: "1"
         - name: ENVIRONMENT
           value: production
+        - name: LLM_API_URL
+          value: "https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1"
+        - name: LLM_MODEL_NAME
+          value: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+        - name: LLM_TIMEOUT
+          value: "120"
+        - name: LLM_MAX_TOKENS
+          value: "768"
         resources:
           limits:
             cpu: '2'
