@@ -10,16 +10,17 @@ spec:
       annotations:
         run.googleapis.com/startup-cpu-boost: 'true'
         run.googleapis.com/cpu-throttling: 'true'
+        run.googleapis.com/deploy-timestamp: '2025-12-13-16-45'
     spec:
       containerConcurrency: 80
       timeoutSeconds: 300
       containers:
-      - image: europe-west1-docker.pkg.dev/cryptic-portal-475411-g3/cloud-run-source-deploy/ai-stanbul
+      - image: europe-west1-docker.pkg.dev/cryptic-portal-475411-g3/cloud-run-source-deploy/ai-stanbul@sha256:a55a7baa988131a5f0737e8af03e02a4f379e667922697458339108fc7e0abc2
         ports:
         - containerPort: 8080
         env:
         - name: REDIS_URL
-          value: redis://ai-istanbul-user:Istanbul2024%21@18.185.79.249:6379/0
+          value: redis://default:Istanbul2024%21@18.185.79.249:6379/0
         - name: REDIS_HOST
           value: "18.185.79.249"
         - name: REDIS_PORT
