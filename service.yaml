@@ -20,7 +20,7 @@ spec:
         - containerPort: 8080
         env:
         - name: REDIS_URL
-          value: rediss://ai-istanbul-cache:AiIstanbul2025!Redis#Secure$@clustercfg.ai-istanbul-cache.srpxfs.memorydb.eu-central-1.amazonaws.com:6379
+          value: rediss://ai-istanbul-cache:AiIstanbul2025%21Redis%23Secure%24@clustercfg.ai-istanbul-cache.srpxfs.memorydb.eu-central-1.amazonaws.com:6379
         - name: ENABLE_REDIS_CACHE
           value: "true"
         - name: REDIS_SOCKET_TIMEOUT
