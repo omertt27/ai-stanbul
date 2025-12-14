@@ -487,10 +487,10 @@ Fixed version (max 50 chars):"""
         self.analytics.track_query(user_id, language, query)
         
         # STEP 0.5: Turkish Typo Correction (before enhancement)
-        if language == 'tr' and self.service_manager:
+        if language == 'tr' and self.services:
             try:
-                if hasattr(self.service_manager, 'typo_corrector') and self.service_manager.typo_corrector:
-                    corrected_query = self.service_manager.typo_corrector.correct_silent(query)
+                if hasattr(self.services, 'typo_corrector') and self.services.typo_corrector:
+                    corrected_query = self.services.typo_corrector.correct_silent(query)
                     if corrected_query != query:
                         logger.info(f"🔤 Turkish typo corrected: '{query}' → '{corrected_query}'")
                         query = corrected_query
@@ -1588,11 +1588,11 @@ Fixed version (max 50 chars):"""
             
             # Calculate timeout health
             timeout_health = 'healthy'
-            if timeout_metrics['timeout_rate'] > 10:  # >10% timeout rate
-                timeout_health = 'degraded'
-                all_healthy = False
-            elif timeout_metrics['timeout_rate'] > 25:  # >25% timeout rate
+            if timeout_metrics['timeout_rate'] > 25:  # >25% timeout rate
                 timeout_health = 'unhealthy'
+                all_healthy = False
+            elif timeout_metrics['timeout_rate'] > 10:  # >10% timeout rate
+                timeout_health = 'degraded'
                 all_healthy = False
             
             # Get analytics summary

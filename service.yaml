@@ -10,7 +10,7 @@ spec:
       annotations:
         run.googleapis.com/startup-cpu-boost: 'true'
         run.googleapis.com/cpu-throttling: 'true'
-        run.googleapis.com/deploy-timestamp: '2025-12-13-16-45'
+        run.googleapis.com/deploy-timestamp: '2025-12-14-15-10'
     spec:
       containerConcurrency: 80
       timeoutSeconds: 300
@@ -20,19 +20,13 @@ spec:
         - containerPort: 8080
         env:
         - name: REDIS_URL
-          value: redis://default:Istanbul2024%21@18.185.79.249:6379/0
-        - name: REDIS_HOST
-          value: "18.185.79.249"
-        - name: REDIS_PORT
-          value: "6379"
-        - name: REDIS_PASSWORD
-          value: "Istanbul2024!"
-        - name: REDIS_DB
-          value: "0"
+          value: rediss://ai-istanbul-cache:AiIstanbul2025!Redis#Secure$@clustercfg.ai-istanbul-cache.srpxfs.memorydb.eu-central-1.amazonaws.com:6379
+        - name: ENABLE_REDIS_CACHE
+          value: "true"
         - name: REDIS_SOCKET_TIMEOUT
-          value: "1"
+          value: "5"
         - name: REDIS_SOCKET_CONNECT_TIMEOUT
-          value: "1"
+          value: "5"
         - name: ENVIRONMENT
           value: production
         - name: LLM_API_URL
