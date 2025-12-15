@@ -21,7 +21,8 @@ class Settings:
     
     # API Configuration
     API_HOST = os.getenv("API_HOST", "0.0.0.0")
-    API_PORT = int(os.getenv("API_PORT", "8000"))
+    # Cloud Run sets PORT, fallback to API_PORT, then 8000
+    API_PORT = int(os.getenv("PORT", os.getenv("API_PORT", "8000")))
     
     # Security
     SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
