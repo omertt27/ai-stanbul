@@ -7,19 +7,21 @@ export default defineConfig({
     port: 3000,
     host: '0.0.0.0',
     strictPort: false,
-    headers: {
-      'Permissions-Policy': 'geolocation=(self)',
-      'Content-Security-Policy': [
-        "default-src 'self'",
-        "connect-src 'self' http://localhost:5001 http://localhost:8001 https://ai-stanbul.onrender.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com https://cdnjs.cloudflare.com https://unpkg.com https://www.google-analytics.com https://www.googletagmanager.com https://cdn.amplitude.com https://region1.analytics.google.com",
-        "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com https://cdnjs.cloudflare.com https://unpkg.com https://images.unsplash.com https://*.unsplash.com",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.amplitude.com https://cdnjs.cloudflare.com https://unpkg.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com",
-        "font-src 'self' https://fonts.gstatic.com data:",
-        "worker-src 'self' blob:",
-        "frame-src 'self'"
-      ].join('; ')
-    }
+    // Temporarily disable CSP for local development to avoid connection issues
+    // Re-enable for production builds
+    // headers: {
+    //   'Permissions-Policy': 'geolocation=(self)',
+    //   'Content-Security-Policy': [
+    //     "default-src 'self'",
+    //     "connect-src 'self' http://localhost:8000 http://localhost:5001 http://localhost:8001 https://ai-stanbul.onrender.com https://ai-stanbul-509659445005.europe-west1.run.app https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com https://cdnjs.cloudflare.com https://unpkg.com https://www.google-analytics.com https://www.googletagmanager.com https://cdn.amplitude.com https://api2.amplitude.com https://region1.analytics.google.com",
+    //     "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com https://cdnjs.cloudflare.com https://unpkg.com https://images.unsplash.com https://*.unsplash.com",
+    //     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://cdn.amplitude.com https://cdnjs.cloudflare.com https://unpkg.com",
+    //     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com",
+    //     "font-src 'self' https://fonts.gstatic.com data:",
+    //     "worker-src 'self' blob:",
+    //     "frame-src 'self'"
+    //   ].join('; ')
+    // }
   },
   build: {
     outDir: 'dist',

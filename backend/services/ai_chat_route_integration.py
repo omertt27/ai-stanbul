@@ -193,33 +193,42 @@ class AIChatRouteHandler:
             Dict with route data and response message, or None if not a route request
         """
         # Check if this is a route request
-        if not self._is_route_request(message):
+        logger.info(f"🔍 [ROUTE HANDLER] Checking message: '{message}'")
+        is_route = self._is_route_request(message)
+        logger.info(f"🔍 [ROUTE HANDLER] Is route request: {is_route}")
+        
+        if not is_route:
+            logger.info(f"❌ [ROUTE HANDLER] Not a route request, returning None")
             return None
+        
+        logger.info(f"✅ [ROUTE HANDLER] Detected as route request!")
         
         # Check if it's a multi-stop request
         is_multi_stop = self._is_multi_stop_request(message)
+        logger.info(f"🔍 [ROUTE HANDLER] Is multi-stop: {is_multi_stop}")
         
         if is_multi_stop and MULTI_STOP_AVAILABLE and self.multi_stop_planner:
             # Handle multi-stop itinerary
             return self._handle_multi_stop_request(message, user_context)
         
         # Extract locations from message
-        logger.info(f"🔍 Extracting locations from: '{message}'")
+        logger.info(f"🔍 [ROUTE HANDLER] Extracting locations from: '{message}'")
         locations = self._extract_locations(message)
-        logger.info(f"📍 Extracted {len(locations)} location(s): {locations}")
+        logger.info(f"📍 [ROUTE HANDLER] Extracted {len(locations)} location(s): {locations}")
         
         # Check if user is asking "how to get to X" without specifying start
         # In this case, use their GPS location as start point
         if len(locations) == 1:
-            logger.info(f"⚠️ Only 1 location found, checking for GPS...")
+            logger.info(f"⚠️ [ROUTE HANDLER] Only 1 location found, checking for GPS...")
             user_location = self._get_user_gps_location(user_context)
-            logger.info(f"📍 GPS location from context: {user_location}")
+            logger.info(f"📍 [ROUTE HANDLER] GPS location from context: {user_location}")
             if user_location:
                 # User asked "how can I go to Taksim" - use GPS as start
                 locations.insert(0, user_location)
-                logger.info(f"🎯 Using user GPS location as start point: {user_location}")
+                logger.info(f"🎯 [ROUTE HANDLER] Using user GPS location as start point: {user_location}")
             else:
                 # Request GPS permission
+                logger.warning(f"⚠️ [ROUTE HANDLER] No GPS, requesting permission")
                 return {
                     'type': 'gps_permission_required',
                     'message': "To show you directions, I need your current location. Please enable GPS/location services.",
@@ -228,10 +237,13 @@ class AIChatRouteHandler:
                 }
         
         if not locations or len(locations) < 2:
+            logger.error(f"❌ [ROUTE HANDLER] Insufficient locations: {len(locations)}")
             return {
                 'type': 'error',
                 'message': "I couldn't identify the locations. Please specify at least a start and end point, like 'route from Sultanahmet to Galata Tower', or enable GPS and ask 'how do I get to Taksim?'"
             }
+        
+        logger.info(f"✅ [ROUTE HANDLER] Have {len(locations)} locations, proceeding with route planning")
         
         # 🆕 PHASE 4.1: Extract route preferences using LLM
         route_preferences = None
@@ -833,18 +845,6 @@ class AIChatRouteHandler:
             
             # Create readable message
             distance_km = route.visualization.total_distance / 1000
-            duration_min = route.visualization.total_duration / 60
-            
-            message = f"🗺️ **Route Planned Successfully!**\n\n"
-            message += f"📏 **Distance:** {distance_km:.2f} km\n"
-            message += f"⏱️ **Duration:** {duration_min:.0f} minutes\n"
-            message += f"🚶 **Mode:** {route.visualization.mode.title()}\n"
-            
-            if route.visualization.districts:
-                message += f"🏛️ **Districts:** {', '.join(route.visualization.districts)}\n"
-            
-            if route.recommendations:
-                message += f"\n💡 **Recommendations:**\n"
                 for rec in route.recommendations:
                     message += f"  • {rec}\n"
             

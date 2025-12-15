@@ -847,6 +847,139 @@ Fixed version (max 50 chars):"""
         # Enhanced map_data handling: Include locations from context for restaurant/POI queries
         map_data = context.get('map_data')
         
+        # === TRANSPORTATION ROUTE VISUALIZATION ===
+        # If this is a transportation query and we have no map_data yet,
+        # call the Transportation RAG system to generate route visualization
+        if not map_data and signals['signals'].get('needs_transportation'):
+            logger.info(f"🚇 Detected transportation query, generating route visualization...")
+            try:
+                from services.transportation_rag_system import get_transportation_rag
+                import re
+                
+                transport_rag = get_transportation_rag()
+                if transport_rag:
+                    # Extract origin and destination from query
+                    query_lower = query.lower()
+                    
+                    # Try pattern: "from X to Y" or "X to Y"
+                    from_to_match = re.search(
+                        r'(?:from|leaving|starting)\s+([a-zığüşöçıİĞÜŞÖÇ\s]+?)\s+(?:to|going|heading|reach)\s+([a-zığüşöçıİĞÜŞÖÇ\s]+?)(?:\?|$|\s+and|\s+or)',
+                        query_lower,
+                        re.IGNORECASE
+                    )
+                    
+                    # Try pattern: "how to get to Y from X" or "how can i go to Y from X"
+                    if not from_to_match:
+                        from_to_match = re.search(
+                            r'(?:how|way).*?(?:to|go|get|reach)\s+(?:to\s+)?([a-zığüşöçıİĞÜŞÖÇ\s]+?)\s+from\s+([a-zığüşöçıİĞÜŞÖÇ\s]+?)(?:\?|$)',
+                            query_lower,
+                            re.IGNORECASE
+                        )
+                        
+                        if from_to_match:
+                            # Swap groups (destination comes before origin in this pattern)
+                            destination_str = from_to_match.group(1).strip()
+                            origin_str = from_to_match.group(2).strip()
+                        else:
+                            origin_str = None
+                            destination_str = None
+                    else:
+                        origin_str = from_to_match.group(1).strip()
+                        destination_str = from_to_match.group(2).strip()
+                    
+                    if origin_str and destination_str:
+                        logger.info(f"📍 Extracted route: {origin_str} → {destination_str}")
+                        
+                        # Find route using Transportation RAG
+                        route = transport_rag.find_route(origin_str, destination_str)
+                        
+                        if route:
+                            logger.info(f"✅ Route found: {len(route.steps)} steps, {route.transfers} transfers")
+                            
+                            # Convert route to map_data format
+                            # Extract coordinates from stations along the route
+                            coordinates = []
+                            markers = []
+                            
+                            # Add origin marker
+                            if route.steps and len(route.steps) > 0:
+                                first_step = route.steps[0]
+                                origin_name = first_step.get('from', origin_str)
+                                
+                                # Find station coordinates
+                                for station_id, station in transport_rag.stations.items():
+                                    if station.name.lower() == origin_name.lower():
+                                        coordinates.append([station.lat, station.lon])
+                                        markers.append({
+                                            "lat": station.lat,
+                                            "lon": station.lon,
+                                            "label": origin_name,
+                                            "type": "origin"
+                                        })
+                                        break
+                            
+                            # Add waypoints for each step
+                            for step in route.steps:
+                                if step.get('type') == 'transit':
+                                    to_station = step.get('to')
+                                    # Find station coordinates
+                                    for station_id, station in transport_rag.stations.items():
+                                        if station.name.lower() == to_station.lower():
+                                            coordinates.append([station.lat, station.lon])
+                                            break
+                            
+                            # Add destination marker
+                            if route.steps and len(route.steps) > 0:
+                                last_step = route.steps[-1]
+                                dest_name = last_step.get('to', destination_str)
+                                
+                                # Find station coordinates
+                                for station_id, station in transport_rag.stations.items():
+                                    if station.name.lower() == dest_name.lower():
+                                        if [station.lat, station.lon] not in coordinates:
+                                            coordinates.append([station.lat, station.lon])
+                                        markers.append({
+                                            "lat": station.lat,
+                                            "lon": station.lon,
+                                            "label": dest_name,
+                                            "type": "destination"
+                                        })
+                                        break
+                            
+                            # Build map_data
+                            if coordinates:
+                                # Calculate center point
+                                center_lat = sum(c[0] for c in coordinates) / len(coordinates)
+                                center_lon = sum(c[1] for c in coordinates) / len(coordinates)
+                                
+                                map_data = {
+                                    "type": "route",
+                                    "coordinates": coordinates,
+                                    "markers": markers,
+                                    "center": {"lat": center_lat, "lon": center_lon},
+                                    "zoom": 12,
+                                    "route_data": {
+                                        "distance_km": route.total_distance,
+                                        "duration_min": route.total_time,
+                                        "transport_mode": ", ".join(route.lines_used),
+                                        "lines": route.lines_used,
+                                        "transfers": route.transfers
+                                    },
+                                    "has_origin": True,
+                                    "has_destination": True,
+                                    "origin_name": origin_str.title(),
+                                    "destination_name": destination_str.title()
+                                }
+                                
+                                logger.info(f"✅ Generated map_data with {len(coordinates)} waypoints and {len(markers)} markers")
+                        else:
+                            logger.warning(f"⚠️ No route found between {origin_str} and {destination_str}")
+                    else:
+                        logger.info(f"⚠️ Could not extract origin/destination from query")
+                        
+            except Exception as e:
+                logger.error(f"❌ Transportation route visualization error: {e}", exc_info=True)
+        
         # DEBUG LOGGING
         logger.info(f"🔍 MAP GENERATION DEBUG:")
         logger.info(f"  - Query: {query}")
@@ -2033,8 +2166,90 @@ Fixed version (max 50 chars):"""
                                         destination_name = name
                                         logger.info(f"🎯 Found destination in landmarks: {name} at {destination_coord}")
                         
-                        # If we found both origin and destination, create a route map
+                        # If we found both origin and destination, use Transportation RAG to find actual route
                         if origin_coord and destination_coord:
+                            logger.info(f"🗺️ Found both locations, calling Transportation RAG for route: {origin_name} → {destination_name}")
+                            
+                            # Try to get actual route from Transportation RAG system
+                            try:
+                                from services.transportation_rag_system import get_transportation_rag
+                                transport_rag = get_transportation_rag()
+                                
+                                # Find route using the comprehensive transportation database
+                                route_result = transport_rag.find_route(origin_name, destination_name)
+                                
+                                if route_result:
+                                    logger.info(f"✅ Transportation RAG found route with {len(route_result.steps)} steps")
+                                    
+                                    # Convert route steps to waypoints (coordinates for polyline)
+                                    coordinates = []
+                                    route_markers = []
+                                    
+                                    # Add origin marker
+                                    route_markers.append({
+                                        "position": {"lat": origin_coord[0], "lng": origin_coord[1]},
+                                        "label": origin_name,
+                                        "type": "origin"
+                                    })
+                                    coordinates.append([origin_coord[0], origin_coord[1]])
+                                    
+                                    # Add waypoints from route steps
+                                    for step in route_result.steps:
+                                        if hasattr(step, 'from_station') and step.from_station:
+                                            # Add station coordinate
+                                            if hasattr(step.from_station, 'lat') and hasattr(step.from_station, 'lng'):
+                                                coordinates.append([step.from_station.lat, step.from_station.lng])
+                                                
+                                                # Add transit line marker
+                                                if step.mode in ['metro', 'tram', 'ferry', 'marmaray', 'funicular']:
+                                                    route_markers.append({
+                                                        "position": {"lat": step.from_station.lat, "lng": step.from_station.lng},
+                                                        "label": f"{step.line} - {step.from_station.name}",
+                                                        "type": "transit"
+                                                    })
+                                        
+                                        if hasattr(step, 'to_station') and step.to_station:
+                                            if hasattr(step.to_station, 'lat') and hasattr(step.to_station, 'lng'):
+                                                coordinates.append([step.to_station.lat, step.to_station.lng])
+                                    
+                                    # Add destination marker
+                                    route_markers.append({
+                                        "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
+                                        "label": destination_name,
+                                        "type": "destination"
+                                    })
+                                    coordinates.append([destination_coord[0], destination_coord[1]])
+                                    
+                                    # Calculate center point
+                                    center_lat = (origin_coord[0] + destination_coord[0]) / 2
+                                    center_lon = (origin_coord[1] + destination_coord[1]) / 2
+                                    
+                                    map_data = {
+                                        "type": "route",  # Full route with waypoints
+                                        "coordinates": coordinates,  # For polyline
+                                        "markers": route_markers,
+                                        "center": {"lat": center_lat, "lng": center_lon},
+                                        "zoom": 12,
+                                        "has_origin": True,
+                                        "has_destination": True,
+                                        "origin_name": origin_name,
+                                        "destination_name": destination_name,
+                                        "route_data": {
+                                            "distance_km": route_result.total_distance_km,
+                                            "duration_min": route_result.total_time_minutes,
+                                            "transport_mode": "Public Transit",
+                                            "lines": [step.line for step in route_result.steps if hasattr(step, 'line')]
+                                        }
+                                    }
+                                    
+                                    logger.info(f"✅ Generated full route map with {len(coordinates)} waypoints")
+                                    return map_data
+                                else:
+                                    logger.warning(f"⚠️ Transportation RAG found no route, using marker-only map")
+                            except Exception as e:
+                                logger.warning(f"⚠️ Transportation RAG failed: {e}, using marker-only map")
+                            
+                            # Fallback: marker-only map if route finding fails
                             markers.append({
                                 "position": {"lat": origin_coord[0], "lng": origin_coord[1]},
                                 "label": origin_name,
@@ -2052,7 +2267,7 @@ Fixed version (max 50 chars):"""
                             center_lon = (origin_coord[1] + destination_coord[1]) / 2
                             
                             map_data = {
-                                "type": "marker",  # Not a full route since we don't have routing data
+                                "type": "marker",  # Marker-only fallback
                                 "markers": markers,
                                 "center": {"lat": center_lat, "lng": center_lon},
                                 "zoom": 12,
@@ -2062,10 +2277,10 @@ Fixed version (max 50 chars):"""
                                 "destination_name": destination_name
                             }
                             
-                            logger.info(f"✅ Generated location-to-location map: {origin_name} → {destination_name}")
+                            logger.info(f"✅ Generated location-to-location marker map: {origin_name} → {destination_name}")
                             return map_data
                     
-                    # Single destination query with GPS
+                    # Single destination query with GPS - USE TRANSPORTATION RAG FOR ROUTING
                     if user_location and user_location.get('lat') and user_location.get('lon'):
                         # Check neighborhoods
                         destination_coord = None
@@ -2088,8 +2303,103 @@ Fixed version (max 50 chars):"""
                                     logger.info(f"🎯 Found destination in landmarks: {name} at {destination_coord}")
                                     break
                         
-                        # If we found a destination, create a routing map
+                        # If we found a destination, try Transportation RAG for actual route
                         if destination_coord:
+                            logger.info(f"🗺️ GPS + destination found, attempting Transportation RAG routing to {destination_name}")
+                            
+                            # Find nearest known location to user's GPS for routing
+                            try:
+                                from services.transportation_rag_system import get_transportation_rag
+                                transport_rag = get_transportation_rag()
+                                
+                                # Find nearest neighborhood to user location
+                                def calc_distance(loc1, loc2):
+                                    import math
+                                    return math.sqrt((loc1[0] - loc2[0])**2 + (loc1[1] - loc2[1])**2)
+                                
+                                user_coords = (user_location['lat'], user_location['lon'])
+                                nearest_origin = None
+                                nearest_distance = float('inf')
+                                
+                                for name, neighborhood in istanbul_kb.neighborhoods.items():
+                                    if neighborhood.center_location:
+                                        dist = calc_distance(user_coords, neighborhood.center_location)
+                                        if dist < nearest_distance:
+                                            nearest_distance = dist
+                                            nearest_origin = name
+                                
+                                if nearest_origin:
+                                    logger.info(f"🎯 Nearest location to GPS: {nearest_origin}")
+                                    
+                                    # Find route from nearest location to destination
+                                    route_result = transport_rag.find_route(nearest_origin, destination_name)
+                                    
+                                    if route_result:
+                                        logger.info(f"✅ Transportation RAG found route from {nearest_origin} to {destination_name}")
+                                        
+                                        # Build coordinates and markers
+                                        coordinates = []
+                                        route_markers = []
+                                        
+                                        # Add user GPS marker
+                                        route_markers.append({
+                                            "position": {"lat": user_location['lat'], "lng": user_location['lon']},
+                                            "label": "Your Location",
+                                            "type": "user"
+                                        })
+                                        coordinates.append([user_location['lat'], user_location['lon']])
+                                        
+                                        # Add route waypoints
+                                        for step in route_result.steps:
+                                            if hasattr(step, 'from_station') and step.from_station:
+                                                if hasattr(step.from_station, 'lat') and hasattr(step.from_station, 'lng'):
+                                                    coordinates.append([step.from_station.lat, step.from_station.lng])
+                                                    
+                                                    if step.mode in ['metro', 'tram', 'ferry', 'marmaray', 'funicular']:
+                                                        route_markers.append({
+                                                            "position": {"lat": step.from_station.lat, "lng": step.from_station.lng},
+                                                            "label": f"{step.line} - {step.from_station.name}",
+                                                            "type": "transit"
+                                                        })
+                                            
+                                            if hasattr(step, 'to_station') and step.to_station:
+                                                if hasattr(step.to_station, 'lat') and hasattr(step.to_station, 'lng'):
+                                                    coordinates.append([step.to_station.lat, step.to_station.lng])
+                                        
+                                        # Add destination marker
+                                        route_markers.append({
+                                            "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
+                                            "label": destination_name,
+                                            "type": "destination"
+                                        })
+                                        coordinates.append([destination_coord[0], destination_coord[1]])
+                                        
+                                        map_data = {
+                                            "type": "route",
+                                            "coordinates": coordinates,
+                                            "markers": route_markers,
+                                            "center": {"lat": (user_location['lat'] + destination_coord[0]) / 2, "lng": (user_location['lon'] + destination_coord[1]) / 2},
+                                            "zoom": 12,
+                                            "has_origin": True,
+                                            "has_destination": True,
+                                            "origin_name": "Your Location",
+                                            "destination_name": destination_name,
+                                            "route_data": {
+                                                "distance_km": route_result.total_distance_km,
+                                                "duration_min": route_result.total_time_minutes,
+                                                "transport_mode": "Public Transit",
+                                                "lines": [step.line for step in route_result.steps if hasattr(step, 'line')]
+                                            }
+                                        }
+                                        
+                                        logger.info(f"✅ Generated GPS-based route map with {len(coordinates)} waypoints")
+                                        return map_data
+                                else:
+                                    logger.warning(f"⚠️ Could not find nearest origin for GPS routing")
+                            except Exception as e:
+                                logger.warning(f"⚠️ Transportation RAG GPS routing failed: {e}")
+                            
+                            # Fallback: create marker-only map if routing failed
                             markers.append({
                                 "position": {"lat": user_location['lat'], "lng": user_location['lon']},
                                 "label": "Your Location",
