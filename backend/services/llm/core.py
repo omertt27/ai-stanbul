@@ -604,7 +604,8 @@ Fixed version (max 50 chars):"""
             signals=signals['signals'],
             user_location=user_location,
             language=language,
-            signal_confidence=overall_confidence  # NEW: Pass confidence for adaptive context
+            signal_confidence=overall_confidence,  # NEW: Pass confidence for adaptive context
+            original_query=original_query  # Pass original query for location extraction
         )
         
         logger.info(
@@ -849,133 +850,119 @@ Fixed version (max 50 chars):"""
         
         # === TRANSPORTATION ROUTE VISUALIZATION ===
         # If this is a transportation query and we have no map_data yet,
-        # call the Transportation RAG system to generate route visualization
+        # use the robust pattern extraction from AIChatRouteHandler
         if not map_data and signals['signals'].get('needs_transportation'):
             logger.info(f"🚇 Detected transportation query, generating route visualization...")
             try:
+                from services.ai_chat_route_integration import AIChatRouteHandler
                 from services.transportation_rag_system import get_transportation_rag
-                import re
                 
-                transport_rag = get_transportation_rag()
-                if transport_rag:
-                    # Extract origin and destination from query
-                    query_lower = query.lower()
+                # Use the original query for accurate location extraction
+                query_for_extraction = original_query if 'original_query' in locals() else query
+                logger.info(f"🔍 [ROUTE EXTRACTION] Using query: '{query_for_extraction}'")
+                
+                # Initialize route handler for pattern extraction
+                route_handler = AIChatRouteHandler()
+                
+                # Extract locations using robust pattern matching
+                locations = route_handler._extract_locations(query_for_extraction)
+                logger.info(f"📍 [ROUTE EXTRACTION] Found {len(locations)} location(s): {locations}")
+                
+                if len(locations) >= 2:
+                    # Get origin and destination coordinates
+                    origin_coords = locations[0]  # (lat, lon)
+                    dest_coords = locations[1]    # (lat, lon)
                     
-                    # Try pattern: "from X to Y" or "X to Y"
-                    from_to_match = re.search(
-                        r'(?:from|leaving|starting)\s+([a-zığüşöçıİĞÜŞÖÇ\s]+?)\s+(?:to|going|heading|reach)\s+([a-zığüşöçıİĞÜŞÖÇ\s]+?)(?:\?|$|\s+and|\s+or)',
-                        query_lower,
-                        re.IGNORECASE
-                    )
+                    # Find location names by reverse lookup
+                    origin_str = None
+                    dest_str = None
                     
-                    # Try pattern: "how to get to Y from X" or "how can i go to Y from X"
-                    if not from_to_match:
-                        from_to_match = re.search(
-                            r'(?:how|way).*?(?:to|go|get|reach)\s+(?:to\s+)?([a-zığüşöçıİĞÜŞÖÇ\s]+?)\s+from\s+([a-zığüşöçıİĞÜŞÖÇ\s]+?)(?:\?|$)',
-                            query_lower,
-                            re.IGNORECASE
-                        )
-                        
-                        if from_to_match:
-                            # Swap groups (destination comes before origin in this pattern)
-                            destination_str = from_to_match.group(1).strip()
-                            origin_str = from_to_match.group(2).strip()
-                        else:
-                            origin_str = None
-                            destination_str = None
-                    else:
-                        origin_str = from_to_match.group(1).strip()
-                        destination_str = from_to_match.group(2).strip()
+                    for name, coords in route_handler.KNOWN_LOCATIONS.items():
+                        if abs(coords[0] - origin_coords[0]) < 0.001 and abs(coords[1] - origin_coords[1]) < 0.001:
+                            origin_str = name
+                        if abs(coords[0] - dest_coords[0]) < 0.001 and abs(coords[1] - dest_coords[1]) < 0.001:
+                            dest_str = name
                     
-                    if origin_str and destination_str:
-                        logger.info(f"📍 Extracted route: {origin_str} → {destination_str}")
-                        
-                        # Find route using Transportation RAG
-                        route = transport_rag.find_route(origin_str, destination_str)
+                    # Fallback to coordinate strings if names not found
+                    if not origin_str:
+                        origin_str = f"{origin_coords[0]:.4f}, {origin_coords[1]:.4f}"
+                    if not dest_str:
+                        dest_str = f"{dest_coords[0]:.4f}, {dest_coords[1]:.4f}"
+                    
+                    logger.info(f"📍 [ROUTE EXTRACTION] Resolved: {origin_str} → {dest_str}")
+                    
+                    # Now use Transportation RAG to find the actual route
+                    transport_rag = get_transportation_rag()
+                    if transport_rag:
+                        route = transport_rag.find_route(origin_str, dest_str)
                         
                         if route:
-                            logger.info(f"✅ Route found: {len(route.steps)} steps, {route.transfers} transfers")
+                            logger.info(f"✅ Transportation RAG found route: {len(route.steps)} steps, {route.transfers} transfers")
                             
-                            # Convert route to map_data format
-                            # Extract coordinates from stations along the route
+                            # Convert route to map_data format with coordinates
                             coordinates = []
                             markers = []
                             
                             # Add origin marker
-                            if route.steps and len(route.steps) > 0:
-                                first_step = route.steps[0]
-                                origin_name = first_step.get('from', origin_str)
-                                
-                                # Find station coordinates
-                                for station_id, station in transport_rag.stations.items():
-                                    if station.name.lower() == origin_name.lower():
-                                        coordinates.append([station.lat, station.lon])
-                                        markers.append({
-                                            "lat": station.lat,
-                                            "lon": station.lon,
-                                            "label": origin_name,
-                                            "type": "origin"
-                                        })
-                                        break
+                            coordinates.append([origin_coords[0], origin_coords[1]])
+                            markers.append({
+                                "lat": origin_coords[0],
+                                "lon": origin_coords[1],
+                                "label": origin_str.title(),
+                                "type": "origin"
+                            })
                             
-                            # Add waypoints for each step
+                            # Add waypoints from route steps (stations)
                             for step in route.steps:
-                                if step.get('type') == 'transit':
-                                    to_station = step.get('to')
-                                    # Find station coordinates
-                                    for station_id, station in transport_rag.stations.items():
-                                        if station.name.lower() == to_station.lower():
-                                            coordinates.append([station.lat, station.lon])
-                                            break
+                                if hasattr(step, 'from_station') and step.from_station:
+                                    if hasattr(step.from_station, 'lat') and hasattr(step.from_station, 'lng'):
+                                        coord = [step.from_station.lat, step.from_station.lng]
+                                        if coord not in coordinates:
+                                            coordinates.append(coord)
+                                
+                                if hasattr(step, 'to_station') and step.to_station:
+                                    if hasattr(step.to_station, 'lat') and hasattr(step.to_station, 'lng'):
+                                        coord = [step.to_station.lat, step.to_station.lng]
+                                        if coord not in coordinates:
+                                            coordinates.append(coord)
                             
                             # Add destination marker
-                            if route.steps and len(route.steps) > 0:
-                                last_step = route.steps[-1]
-                                dest_name = last_step.get('to', destination_str)
-                                
-                                # Find station coordinates
-                                for station_id, station in transport_rag.stations.items():
-                                    if station.name.lower() == dest_name.lower():
-                                        if [station.lat, station.lon] not in coordinates:
-                                            coordinates.append([station.lat, station.lon])
-                                        markers.append({
-                                            "lat": station.lat,
-                                            "lon": station.lon,
-                                            "label": dest_name,
-                                            "type": "destination"
-                                        })
-                                        break
+                            coordinates.append([dest_coords[0], dest_coords[1]])
+                            markers.append({
+                                "lat": dest_coords[0],
+                                "lon": dest_coords[1],
+                                "label": dest_str.title(),
+                                "type": "destination"
+                            })
                             
-                            # Build map_data
-                            if coordinates:
-                                # Calculate center point
-                                center_lat = sum(c[0] for c in coordinates) / len(coordinates)
-                                center_lon = sum(c[1] for c in coordinates) / len(coordinates)
-                                
-                                map_data = {
-                                    "type": "route",
-                                    "coordinates": coordinates,
-                                    "markers": markers,
-                                    "center": {"lat": center_lat, "lon": center_lon},
-                                    "zoom": 12,
-                                    "route_data": {
-                                        "distance_km": route.total_distance,
-                                        "duration_min": route.total_time,
-                                        "transport_mode": ", ".join(route.lines_used),
-                                        "lines": route.lines_used,
-                                        "transfers": route.transfers
-                                    },
-                                    "has_origin": True,
-                                    "has_destination": True,
-                                    "origin_name": origin_str.title(),
-                                    "destination_name": destination_str.title()
-                                }
-                                
-                                logger.info(f"✅ Generated map_data with {len(coordinates)} waypoints and {len(markers)} markers")
+                            # Calculate center point
+                            center_lat = sum(c[0] for c in coordinates) / len(coordinates)
+                            center_lon = sum(c[1] for c in coordinates) / len(coordinates)
+                            
+                            map_data = {
+                                "type": "route",
+                                "coordinates": coordinates,
+                                "markers": markers,
+                                "center": {"lat": center_lat, "lon": center_lon},
+                                "zoom": 12,
+                                "route_data": {
+                                    "distance_km": getattr(route, 'total_distance_km', 0),
+                                    "duration_min": getattr(route, 'total_time_minutes', 0),
+                                    "transport_mode": "Public Transit",
+                                    "lines": [step.line for step in route.steps if hasattr(step, 'line')],
+                                    "transfers": route.transfers
+                                },
+                                "has_origin": True,
+                                "has_destination": True,
+                                "origin_name": origin_str.title(),
+                                "destination_name": dest_str.title()
+                            }
+                            
+                            logger.info(f"✅ Generated route map_data with {len(coordinates)} waypoints and {len(markers)} markers")
                         else:
-                            logger.warning(f"⚠️ No route found between {origin_str} and {destination_str}")
-                    else:
-                        logger.info(f"⚠️ Could not extract origin/destination from query")
+                            logger.warning(f"⚠️ Transportation RAG found no route between {origin_str} and {dest_str}")
+                else:
+                    logger.info(f"⚠️ [ROUTE EXTRACTION] Insufficient locations extracted (need at least 2, got {len(locations)})")
                         
             except Exception as e:
                 logger.error(f"❌ Transportation route visualization error: {e}", exc_info=True)
@@ -2086,8 +2073,8 @@ Fixed version (max 50 chars):"""
         For "nearby" queries with GPS but no specific locations in database,
         generates map centered on user location.
         
-        For routing queries ("how to get to X"), looks up destination coordinates
-        from Istanbul Knowledge and creates a route map.
+        For routing queries, delegates to the robust pattern extraction
+        already implemented in the main routing visualization block.
         
         Args:
             context: Built context with database/service data
@@ -2105,21 +2092,27 @@ Fixed version (max 50 chars):"""
             markers = []
             locations = []
             
-            # SPECIAL HANDLING FOR ROUTING QUERIES
-            # Check if this is a routing query (how to get to X, directions to X, etc.)
+            # ROUTING QUERIES: Delegate to robust pattern extraction in process_query
+            # The main routing visualization block already handles this correctly
             query_lower = query.lower()
             is_routing_query = any([
                 'how' in query_lower and any(w in query_lower for w in ['get', 'go', 'reach']),
                 'direction' in query_lower,
                 'way to' in query_lower,
                 'route to' in query_lower,
-                'from' in query_lower and 'to' in query_lower,  # Location-to-location routing
+                'from' in query_lower and 'to' in query_lower,
                 signals.get('needs_gps_routing'),
                 signals.get('needs_directions'),
             ])
             
-            # Try to extract destination (and origin if specified) from query using Istanbul Knowledge
+            # If this is a routing query, return None to let the main block handle it
             if is_routing_query:
+                logger.info("🔄 Routing query detected - delegating to main routing visualization block")
+                return None
+            
+            # NON-ROUTING QUERIES: Extract locations from database context for POI markers
+            # Try to extract destination (and origin if specified) from query using Istanbul Knowledge
+            if False:  # Disabled - routing now handled by main block
                 try:
                     from .istanbul_knowledge import IstanbulKnowledge
                     istanbul_kb = IstanbulKnowledge()
@@ -2130,23 +2123,27 @@ Fixed version (max 50 chars):"""
                     destination_coord = None
                     destination_name = None
                     
-                    # Pattern: "from X to Y"
+                    # Pattern: "from X to Y" OR "to Y from X"
                     if 'from' in query_lower and 'to' in query_lower:
                         # Extract origin and destination
+                        # Determine which comes first: "to" or "from"
+                        to_pos = query_lower.find(' to ')
+                        from_pos = query_lower.find(' from ')
+                        
                         # Check neighborhoods for both origin and destination
                         for name, neighborhood in istanbul_kb.neighborhoods.items():
                             if name.lower() in query_lower:
                                 if neighborhood.center_location:
-                                    # Heuristic: if it appears before "to", it's origin; after "to", it's destination
                                     name_pos = query_lower.find(name.lower())
-                                    to_pos = query_lower.find(' to ')
                                     
-                                    if name_pos < to_pos and not origin_coord:
-                                        origin_coord = neighborhood.center_location
-                                        origin_name = name
-                                        logger.info(f"🎯 Found origin in neighborhoods: {name} at {origin_coord}")
-                                    elif name_pos > to_pos and not destination_coord:
-                                        destination_coord = neighborhood.center_location
+                                    # Pattern 1: "from X to Y" (from_pos < to_pos)
+                                    if from_pos < to_pos:
+                                        if from_pos < name_pos < to_pos and not origin_coord:
+                                            origin_coord = neighborhood.center_location
+                                            origin_name = name
+                                            logger.info(f"🎯 Found origin in neighborhoods: {name} at {origin_coord}")
+                                        elif name_pos > to_pos and not destination_coord:
+                                            destination_coord = neighborhood.center_location
                                         destination_name = name
                                         logger.info(f"🎯 Found destination in neighborhoods: {name} at {destination_coord}")
                         

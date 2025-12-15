@@ -114,7 +114,8 @@ class ContextBuilder:
         signals: Dict[str, bool],
         user_location: Optional[Dict[str, float]] = None,
         language: str = "en",
-        signal_confidence: float = 1.0
+        signal_confidence: float = 1.0,
+        original_query: str = None
     ) -> Dict[str, Any]:
         """
         Build smart context based on detected signals.
@@ -124,11 +125,12 @@ class ContextBuilder:
         High confidence → Provide focused context.
         
         Args:
-            query: User query
+            query: User query (may be rewritten)
             signals: Detected signals
             user_location: User GPS location
             language: Language code
             signal_confidence: Overall signal detection confidence (0.0-1.0)
+            original_query: Original unmodified query (for location extraction)
             
         Returns:
             Dict with:
@@ -165,7 +167,8 @@ class ContextBuilder:
                 signals=signals,
                 user_location=user_location,
                 language=language,
-                context_strategy=context_strategy  # Pass strategy
+                context_strategy=context_strategy,  # Pass strategy
+                original_query=original_query  # Pass original query for transportation
             )
         
         # Get RAG context with retry and circuit breaker (with confidence-based top_k)
@@ -311,7 +314,8 @@ class ContextBuilder:
         signals: Dict[str, bool],
         user_location: Optional[Dict[str, float]],
         language: str,
-        context_strategy: str = 'standard'
+        context_strategy: str = 'standard',
+        original_query: str = None
     ) -> str:
         """
         Build database context based on signals.
@@ -353,7 +357,7 @@ class ContextBuilder:
         
         # Get transportation context
         if signals.get('needs_transportation'):
-            transport = await self._get_transportation(query, language)
+            transport = await self._get_transportation(query, language, original_query=original_query)
             if transport:
                 context_parts.append("=== TRANSPORTATION ===")
                 context_parts.append(transport)
@@ -520,7 +524,7 @@ class ContextBuilder:
             logger.error(f"Failed to get neighborhoods: {e}")
             return ""
     
-    async def _get_transportation(self, query: str, language: str) -> str:
+    async def _get_transportation(self, query: str, language: str, original_query: str = None) -> str:
         """
         Get INDUSTRY-LEVEL transportation data using Google Maps-quality RAG system.
         
@@ -529,6 +533,11 @@ class ContextBuilder:
         - Step-by-step directions
         - Real station names and connections
         - Transfer points and times
+        
+        Args:
+            query: Current query (may be rewritten)
+            language: Response language
+            original_query: Original unmodified query (better for location extraction)
         """
         try:
             # Use industry-level Transportation RAG system
@@ -536,8 +545,13 @@ class ContextBuilder:
                 logger.info("🗺️ Using Industry-Level Transportation RAG System")
                 transport_rag = get_transportation_rag()
                 
+                # IMPORTANT: Use original query for location extraction if available
+                # Rewritten queries can confuse location extraction
+                query_for_rag = original_query if original_query else query
+                logger.info(f"🔍 Using query for RAG: '{query_for_rag}'")
+                
                 # Generate RAG context for this specific query
-                rag_context = transport_rag.get_rag_context_for_query(query, user_location=None)
+                rag_context = transport_rag.get_rag_context_for_query(query_for_rag, user_location=None)
                 
                 logger.info(f"✅ Generated {len(rag_context)} chars of verified transportation context")
                 return rag_context

@@ -36,6 +36,10 @@ try:
 except ImportError as e:
     OSRM_AVAILABLE = False
     logger.warning(f"⚠️ OSRM Routing Service not available: {e}")
+    # Define stub classes to prevent NameError
+    OSRMRoute = type('OSRMRoute', (), {})
+    RouteStep = type('RouteStep', (), {})
+    OSRMRoutingService = None
 
 # Import Map Visualization Engine
 try:
@@ -45,6 +49,7 @@ try:
 except ImportError as e:
     MAP_VIZ_AVAILABLE = False
     logger.warning(f"⚠️ Map Visualization Engine not available: {e}")
+    MapVisualizationEngine = None
 
 # Import Enhanced GPS Route Planner
 try:
@@ -59,6 +64,11 @@ try:
 except ImportError as e:
     GPS_PLANNER_AVAILABLE = False
     logger.warning(f"⚠️ Enhanced GPS Route Planner not available: {e}")
+    # Define stub classes
+    EnhancedGPSRoutePlanner = None
+    GPSLocation = type('GPSLocation', (), {})
+    TransportMode = type('TransportMode', (), {})
+    RoutePreference = type('RoutePreference', (), {})
 
 # Import ML-Enhanced Transportation System
 try:
@@ -72,6 +82,10 @@ try:
 except ImportError as e:
     ML_TRANSPORT_AVAILABLE = False
     logger.warning(f"⚠️ ML-Enhanced Transportation System not available: {e}")
+    # Define stub classes
+    MLEnhancedTransportationSystem = None
+    create_ml_enhanced_transportation_system = None
+    MLTransportMode = type('MLTransportMode', (), {})
 
 
 @dataclass

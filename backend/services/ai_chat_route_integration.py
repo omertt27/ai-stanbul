@@ -845,6 +845,14 @@ class AIChatRouteHandler:
             
             # Create readable message
             distance_km = route.visualization.total_distance / 1000
+            time_minutes = route.visualization.total_time_minutes
+            
+            message = f"🚶‍♂️ **Route Found!**\n\n"
+            message += f"📏 Distance: {distance_km:.1f} km\n"
+            message += f"⏱️ Time: {time_minutes} minutes\n\n"
+            
+            if hasattr(route, 'recommendations') and route.recommendations:
+                message += "**Recommendations:**\n"
                 for rec in route.recommendations:
                     message += f"  • {rec}\n"
             

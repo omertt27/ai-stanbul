@@ -75,15 +75,16 @@ class FastStartupManager:
             self.db = None
     
     async def _initialize_redis(self):
-        """Initialize Redis cache with ultra-short timeout (fail-fast for Cloud Run)"""
+        """Initialize Redis cache with reasonable timeout for AWS MemoryDB via EC2 proxy"""
         try:
             from services.redis_cache import init_cache
-            # Ultra-short timeout - if Redis doesn't connect in 1.5s, it's blocked
-            await asyncio.wait_for(init_cache(), timeout=1.5)
+            # 5 second timeout for AWS MemoryDB through EC2 proxy (local dev)
+            # 1.5s timeout was too short for cross-region AWS connections
+            await asyncio.wait_for(init_cache(), timeout=5.0)
             self.redis_cache = True
             logger.info("✅ Redis cache initialized successfully")
         except asyncio.TimeoutError:
-            logger.warning("⚠️ Redis cache timeout (1.5s) - likely firewall/network blocked")
+            logger.warning("⚠️ Redis cache timeout (5.0s) - likely firewall/network blocked")
             logger.warning("⚠️ Continuing WITHOUT Redis - sessions will not persist across restarts")
             self.redis_cache = None
         except Exception as e:

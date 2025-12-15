@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import json
 import re
+import unicodedata
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,140 @@ class IstanbulTransportationRAG:
         self.stations = self._build_station_graph()
         self.routes = self._build_route_patterns()
         self.neighborhoods = self._build_neighborhood_stations()
+        self.station_aliases = self._build_station_aliases()
         logger.info("✅ Transportation RAG initialized with complete Istanbul network")
+    
+    def _normalize_station_name(self, name: str) -> str:
+        """
+        Normalize station/location names for fuzzy matching.
+        
+        Handles:
+        - Case insensitivity
+        - Accent removal (ı→i, ö→o, ü→u, ş→s, ğ→g, ç→c)
+        - Common suffixes (square, station, metro, tram, etc.)
+        - Extra whitespace
+        
+        Examples:
+            "Taksim Square" → "taksim"
+            "Kadıköy" → "kadikoy"
+            "Beşiktaş Metro" → "besiktas"
+        """
+        # Convert to lowercase
+        name = name.lower().strip()
+        
+        # Remove Turkish accents/special characters
+        turkish_char_map = {
+            'ı': 'i', 'İ': 'i',
+            'ö': 'o', 'Ö': 'o',
+            'ü': 'u', 'Ü': 'u',
+            'ş': 's', 'Ş': 's',
+            'ğ': 'g', 'Ğ': 'g',
+            'ç': 'c', 'Ç': 'c'
+        }
+        
+        for turkish_char, latin_char in turkish_char_map.items():
+            name = name.replace(turkish_char, latin_char)
+        
+        # Remove common suffixes
+        suffixes_to_remove = [
+            ' square', ' meydani', ' meydanı',
+            ' station', ' istasyonu', ' istasyon',
+            ' metro', ' metrosu',
+            ' tram', ' tramvay',
+            ' terminal', ' terminali',
+            ' pier', ' iskele', ' iskelesi',
+            ' stop', ' durak', ' duragi', ' durağı'
+        ]
+        
+        for suffix in suffixes_to_remove:
+            if name.endswith(suffix):
+                name = name[:-len(suffix)]
+        
+        # Remove extra whitespace
+        name = ' '.join(name.split())
+        
+        return name
+    
+    def _build_station_aliases(self) -> Dict[str, List[str]]:
+        """
+        Build comprehensive alias mappings for popular locations.
+        
+        Maps common location names/spellings to official station IDs.
+        """
+        return {
+            # Taksim area
+            "taksim": ["M2-Taksim"],
+            "taksim square": ["M2-Taksim"],
+            "taksim meydani": ["M2-Taksim"],
+            
+            # Kadıköy area
+            "kadikoy": ["MARMARAY-Ayrılık Çeşmesi"],
+            "kadıköy": ["MARMARAY-Ayrılık Çeşmesi"],
+            "kadıkoy": ["MARMARAY-Ayrılık Çeşmesi"],
+            "kadıköy": ["MARMARAY-Ayrılık Çeşmesi"],
+            
+            # Beşiktaş area
+            "besiktas": ["MARMARAY-Beşiktaş"],
+            "beşiktas": ["MARMARAY-Beşiktaş"],
+            "beşiktaş": ["MARMARAY-Beşiktaş"],
+            
+            # Sultanahmet/Fatih area
+            "sultanahmet": ["T1-Sultanahmet"],
+            "sultanahmet square": ["T1-Sultanahmet"],
+            "blue mosque": ["T1-Sultanahmet"],
+            "hagia sophia": ["T1-Sultanahmet"],
+            "ayasofya": ["T1-Sultanahmet"],
+            
+            # Galata/Karaköy area
+            "galata": ["M2-Şişhane"],
+            "galata tower": ["M2-Şişhane"],
+            "karakoy": ["M2-Şişhane", "T1-Karaköy"],
+            "karaköy": ["M2-Şişhane", "T1-Karaköy"],
+            
+            # Üsküdar area
+            "uskudar": ["MARMARAY-Üsküdar", "M5-Üsküdar"],
+            "üsküdar": ["MARMARAY-Üsküdar", "M5-Üsküdar"],
+            "uskudar square": ["MARMARAY-Üsküdar", "M5-Üsküdar"],
+            
+            # Istiklal/Beyoğlu area
+            "istiklal": ["M2-Taksim"],
+            "istiklal street": ["M2-Taksim"],
+            "istiklal caddesi": ["M2-Taksim"],
+            "beyoglu": ["M2-Şişhane", "F1-Karaköy"],
+            "beyoğlu": ["M2-Şişhane", "F1-Karaköy"],
+            
+            # Airport
+            "airport": ["M11-İstanbul Airport"],
+            "istanbul airport": ["M11-İstanbul Airport"],
+            "new airport": ["M11-İstanbul Airport"],
+            "havalimani": ["M11-İstanbul Airport"],
+            
+            # Eminönü area
+            "eminonu": ["T1-Eminönü"],
+            "eminönü": ["T1-Eminönü"],
+            "spice bazaar": ["T1-Eminönü"],
+            "misir carsisi": ["T1-Eminönü"],
+            
+            # Sirkeci
+            "sirkeci": ["MARMARAY-Sirkeci", "T1-Sirkeci"],
+            
+            # Levent area
+            "levent": ["M2-Levent"],
+            "4.levent": ["M2-4.Levent"],
+            
+            # Şişli area
+            "sisli": ["M2-Şişli-Mecidiyeköy"],
+            "şişli": ["M2-Şişli-Mecidiyeköy"],
+            "mecidiyekoy": ["M2-Şişli-Mecidiyeköy"],
+            "mecidiyeköy": ["M2-Şişli-Mecidiyeköy"],
+            
+            # Bostancı area
+            "bostanci": ["MARMARAY-Bostancı"],
+            "bostancı": ["MARMARAY-Bostancı"],
+            
+            # Pendik
+            "pendik": ["MARMARAY-Pendik"],
+        }
     
     def _build_station_graph(self) -> Dict[str, TransitStation]:
         """
@@ -354,20 +488,70 @@ class IstanbulTransportationRAG:
         return best_route
     
     def _get_stations_for_location(self, location: str) -> List[str]:
-        """Get station IDs for a given location name"""
-        location = location.lower()
+        """
+        Get station IDs for a given location name with fuzzy matching.
         
-        # Check neighborhood mapping first
+        Strategy:
+        1. Check alias mappings (handles common names like "taksim square")
+        2. Check neighborhood mappings
+        3. Try normalized name matching
+        4. Fallback to partial string matching
+        """
+        original_location = location
+        location = location.lower().strip()
+        normalized_location = self._normalize_station_name(location)
+        
+        logger.debug(f"🔍 Looking up location: '{original_location}' → normalized: '{normalized_location}'")
+        
+        # Strategy 1: Check alias mappings first (most reliable)
+        if normalized_location in self.station_aliases:
+            stations = self.station_aliases[normalized_location]
+            logger.debug(f"✅ Found via alias: {normalized_location} → {stations}")
+            return stations
+        
+        # Strategy 2: Check original location in alias (before normalization)
+        if location in self.station_aliases:
+            stations = self.station_aliases[location]
+            logger.debug(f"✅ Found via alias (original): {location} → {stations}")
+            return stations
+        
+        # Strategy 3: Check neighborhood mapping
         if location in self.neighborhoods:
-            return self.neighborhoods[location]
+            stations = self.neighborhoods[location]
+            logger.debug(f"✅ Found via neighborhood: {location} → {stations}")
+            return stations
         
-        # Check direct station match
+        if normalized_location in self.neighborhoods:
+            stations = self.neighborhoods[normalized_location]
+            logger.debug(f"✅ Found via neighborhood (normalized): {normalized_location} → {stations}")
+            return stations
+        
+        # Strategy 4: Try normalized name matching against all stations
         matches = []
+        for station_id, station in self.stations.items():
+            station_normalized = self._normalize_station_name(station.name)
+            
+            # Exact match on normalized name
+            if normalized_location == station_normalized:
+                matches.append(station_id)
+                logger.debug(f"✅ Exact match: '{normalized_location}' == '{station_normalized}' ({station_id})")
+            # Partial match (one contains the other)
+            elif normalized_location in station_normalized or station_normalized in normalized_location:
+                matches.append(station_id)
+                logger.debug(f"✅ Partial match: '{normalized_location}' ↔ '{station_normalized}' ({station_id})")
+        
+        if matches:
+            return matches
+        
+        # Strategy 5: Fallback to original case-insensitive partial matching
         for station_id, station in self.stations.items():
             if location in station.name.lower():
                 matches.append(station_id)
         
-        return matches if matches else []
+        if not matches:
+            logger.warning(f"❌ No stations found for: '{original_location}' (normalized: '{normalized_location}')")
+        
+        return matches
     
     def _find_path(
         self,
@@ -805,7 +989,8 @@ class IstanbulTransportationRAG:
 3. **Üsküdar**: M5 + Marmaray
 4. **Taksim**: M2 + F1
 5. **Kabataş**: T1 + F1
-6. **Şişhane**: M2 + F2 (Tünel)"""
+6. **Şişhane**: M2 + F2 (Tünel)
+"""
 
 # Global instance
 _transportation_rag = None
