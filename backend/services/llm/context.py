@@ -357,7 +357,12 @@ class ContextBuilder:
         
         # Get transportation context
         if signals.get('needs_transportation'):
-            transport = await self._get_transportation(query, language, original_query=original_query)
+            transport = await self._get_transportation(
+                query,
+                language,
+                original_query=original_query,
+                user_location=user_location  # Pass GPS location
+            )
             if transport:
                 context_parts.append("=== TRANSPORTATION ===")
                 context_parts.append(transport)
@@ -524,7 +529,13 @@ class ContextBuilder:
             logger.error(f"Failed to get neighborhoods: {e}")
             return ""
     
-    async def _get_transportation(self, query: str, language: str, original_query: str = None) -> str:
+    async def _get_transportation(
+        self,
+        query: str,
+        language: str,
+        original_query: str = None,
+        user_location: Optional[Dict[str, float]] = None
+    ) -> str:
         """
         Get INDUSTRY-LEVEL transportation data using Google Maps-quality RAG system.
         
@@ -533,16 +544,23 @@ class ContextBuilder:
         - Step-by-step directions
         - Real station names and connections
         - Transfer points and times
+        - GPS-based routing when user location available
         
         Args:
             query: Current query (may be rewritten)
             language: Response language
             original_query: Original unmodified query (better for location extraction)
+            user_location: User GPS location {"lat": float, "lon": float}
         """
         try:
             # Use industry-level Transportation RAG system
             if TRANSPORTATION_RAG_AVAILABLE:
                 logger.info("🗺️ Using Industry-Level Transportation RAG System")
+                if user_location:
+                    logger.info(f"📍 GPS location available: {user_location}")
+                else:
+                    logger.info("❌ No GPS location provided")
+                
                 transport_rag = get_transportation_rag()
                 
                 # IMPORTANT: Use original query for location extraction if available
@@ -550,10 +568,11 @@ class ContextBuilder:
                 query_for_rag = original_query if original_query else query
                 logger.info(f"🔍 Using query for RAG: '{query_for_rag}'")
                 
-                # Generate RAG context for this specific query
-                rag_context = transport_rag.get_rag_context_for_query(query_for_rag, user_location=None)
+                # Generate RAG context for this specific query, passing user_location
+                rag_context = transport_rag.get_rag_context_for_query(query_for_rag, user_location=user_location)
                 
                 logger.info(f"✅ Generated {len(rag_context)} chars of verified transportation context")
+                logger.debug(f"📄 RAG context preview: {rag_context[:200]}...")
                 return rag_context
             
             # Fallback: Try to use service_manager's transportation service

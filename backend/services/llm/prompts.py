@@ -318,6 +318,18 @@ Beginnen Sie Ihre Antwort sofort auf DEUTSCH, ohne diese Anweisungen zu wiederho
             
             prompt_parts.append("Mention the map in your response.")
         
+        # 6.5 TRANSPORTATION ROUTE: Force exact RAG output if present
+        if signals.get('needs_transportation') and context.get('database'):
+            # Check if database context contains a verified route (TRANSPORTATION section)
+            db_context = context['database']
+            if '=== TRANSPORTATION ===' in db_context and 'VERIFIED ROUTE:' in db_context:
+                prompt_parts.append("\n\n🚨 CRITICAL INSTRUCTION FOR ROUTE QUERIES:")
+                prompt_parts.append("The TRANSPORTATION section above contains a VERIFIED, STEP-BY-STEP route.")
+                prompt_parts.append("You MUST use this exact route information in your answer.")
+                prompt_parts.append("DO NOT add extra explanations or alternative suggestions.")
+                prompt_parts.append("Simply present the verified route directions clearly and concisely.")
+                prompt_parts.append("Keep the emoji icons (🚇, 🔄, ⏱️) and step numbers from the verified route.")
+        
         # DISABLED: Intent classification, low-confidence, and multi-intent prompts cause template artifacts
         # These features are currently disabled to keep responses clean and focused
         

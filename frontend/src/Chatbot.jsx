@@ -1345,6 +1345,10 @@ function Chatbot({ userLocation: propUserLocation }) {
         usePureLLM: usePureLLM // Use Pure LLM backend if enabled
       });
       
+      // Debug: Log mapData
+      console.log('🔍 Chat Response:', chatResponse);
+      console.log('🗺️ Map Data:', chatResponse.map_data);
+      
       // Add the response message
       addMessage(chatResponse.response || chatResponse.message, 'assistant', {
         type: chatResponse.intent || 'general',
@@ -1736,7 +1740,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                           )}
                           
                           {/* Map Visualization */}
-                          {msg.mapData && (msg.mapData.markers || msg.mapData.routes) && (
+                          {msg.mapData && (msg.mapData.markers || msg.mapData.coordinates) && (
                             <div className="mt-4">
                               <div className={`text-sm font-medium mb-3 ${
                                 darkMode ? 'text-gray-300' : 'text-gray-700'
@@ -1751,7 +1755,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                               <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
                                 darkMode ? 'text-gray-500' : 'text-gray-600'
                               }`}>
-                                📍 {msg.mapData.markers?.length || 0} locations • 🗺️ {msg.mapData.routes?.length || 0} routes
+                                📍 {msg.mapData.markers?.length || 0} locations • {msg.mapData.coordinates ? `🗺️ Route with ${msg.mapData.coordinates.length} points` : ''}
                               </div>
                             </div>
                           )}
@@ -1877,7 +1881,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                         )}
                         
                         {/* Map Visualization - Display when message has map data */}
-                        {msg.mapData && (msg.mapData.markers || msg.mapData.routes) && (
+                        {msg.mapData && (msg.mapData.markers || msg.mapData.coordinates) && (
                           <div className="mt-4">
                             <div className={`text-sm font-medium mb-3 ${
                               darkMode ? 'text-gray-300' : 'text-gray-700'
@@ -1892,7 +1896,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                             <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
                               darkMode ? 'text-gray-500' : 'text-gray-600'
                             }`}>
-                              📍 {msg.mapData.markers?.length || 0} locations • 🗺️ {msg.mapData.routes?.length || 0} routes
+                              📍 {msg.mapData.markers?.length || 0} locations • {msg.mapData.coordinates ? `🗺️ Route with ${msg.mapData.coordinates.length} points` : ''}
                             </div>
                           </div>
                         )}

@@ -505,6 +505,19 @@ async def pure_llm_chat(
         
         response_time = time.time() - start_time
         
+        # === EXTRACT MAPDATA FROM TRANSPORTATION RAG ===
+        # If transportation RAG was used, extract mapData for route visualization
+        map_data_from_transport = None
+        try:
+            from services.transportation_rag_system import get_transportation_rag
+            transport_rag = get_transportation_rag()
+            if transport_rag:
+                map_data_from_transport = transport_rag.get_map_data_for_last_route()
+                if map_data_from_transport:
+                    logger.info(f"🗺️ Extracted mapData from transportation RAG: {len(map_data_from_transport.get('markers', []))} markers, {len(map_data_from_transport.get('routes', []))} routes")
+        except Exception as e:
+            logger.warning(f"Failed to extract mapData from transportation RAG: {e}")
+        
         # If RAG was used, post-process the response to ensure it's grounded in the retrieved data
         if rag_used and rag_context:
             logger.info(f"� RAG: Post-processing response to ensure factual grounding")
@@ -644,7 +657,7 @@ async def pure_llm_chat(
             intent=result.get('intent'),
             confidence=result.get('confidence'),
             suggestions=final_suggestions,
-            map_data=result.get('map_data'),  # Include map data for visualization
+            map_data=map_data_from_transport or result.get('map_data'),  # Use transportation RAG mapData if available
             navigation_active=result.get('navigation_active', False),
             navigation_data=result.get('navigation_data'),
             interaction_id=interaction_id  # Include for frontend feedback tracking

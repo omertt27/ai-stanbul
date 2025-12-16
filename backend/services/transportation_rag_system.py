@@ -65,6 +65,7 @@ class IstanbulTransportationRAG:
         self.routes = self._build_route_patterns()
         self.neighborhoods = self._build_neighborhood_stations()
         self.station_aliases = self._build_station_aliases()
+        self.last_route = None  # Store last computed route for mapData extraction
         logger.info("✅ Transportation RAG initialized with complete Istanbul network")
     
     def _normalize_station_name(self, name: str) -> str:
@@ -445,7 +446,9 @@ class IstanbulTransportationRAG:
         self,
         origin: str,
         destination: str,
-        max_transfers: int = 3
+        max_transfers: int = 3,
+        origin_gps: Optional[Dict[str, float]] = None,
+        destination_gps: Optional[Dict[str, float]] = None
     ) -> Optional[TransitRoute]:
         """
         Find the best route between two locations.
@@ -456,6 +459,8 @@ class IstanbulTransportationRAG:
             origin: Starting point (neighborhood or station name)
             destination: Ending point (neighborhood or station name)
             max_transfers: Maximum number of transfers allowed
+            origin_gps: Optional GPS coordinates for origin {"lat": float, "lon": float}
+            destination_gps: Optional GPS coordinates for destination {"lat": float, "lon": float}
             
         Returns:
             TransitRoute with step-by-step directions, or None if no route found
@@ -465,10 +470,32 @@ class IstanbulTransportationRAG:
         destination = destination.lower().strip()
         
         logger.info(f"🗺️ Finding route: {origin} → {destination}")
+        if origin_gps:
+            logger.info(f"📍 Origin GPS provided: {origin_gps}")
+        if destination_gps:
+            logger.info(f"📍 Destination GPS provided: {destination_gps}")
         
         # Get station IDs for origin and destination
-        origin_stations = self._get_stations_for_location(origin)
-        dest_stations = self._get_stations_for_location(destination)
+        # Use GPS to find nearest station if GPS coordinates provided
+        if origin_gps and isinstance(origin_gps, dict) and 'lat' in origin_gps and 'lon' in origin_gps:
+            nearest_origin = self.find_nearest_station(origin_gps['lat'], origin_gps['lon'])
+            if nearest_origin:
+                origin_stations = [nearest_origin]
+                logger.info(f"✅ Using nearest station for GPS origin: {self.stations[nearest_origin].name}")
+            else:
+                origin_stations = self._get_stations_for_location(origin)
+        else:
+            origin_stations = self._get_stations_for_location(origin)
+        
+        if destination_gps and isinstance(destination_gps, dict) and 'lat' in destination_gps and 'lon' in destination_gps:
+            nearest_dest = self.find_nearest_station(destination_gps['lat'], destination_gps['lon'])
+            if nearest_dest:
+                dest_stations = [nearest_dest]
+                logger.info(f"✅ Using nearest station for GPS destination: {self.stations[nearest_dest].name}")
+            else:
+                dest_stations = self._get_stations_for_location(destination)
+        else:
+            dest_stations = self._get_stations_for_location(destination)
         
         if not origin_stations or not dest_stations:
             logger.warning(f"Could not find stations for {origin} or {destination}")
@@ -645,17 +672,39 @@ class IstanbulTransportationRAG:
         return best_route
     
     def _get_same_line_neighbors(self, station_id: str) -> List[str]:
-        """Get all stations on the same line as this station"""
+        """
+        Get ADJACENT stations on the same line.
+        
+        CRITICAL FIX: Only return adjacent stations, not ALL stations on the line.
+        This prevents BFS from exploding exponentially.
+        """
         if station_id not in self.stations:
             return []
         
         current_line = self.stations[station_id].line
         neighbors = []
         
-        # Find all stations on the same line
-        for other_id, other_station in self.stations.items():
-            if other_id != station_id and other_station.line == current_line:
-                neighbors.append(other_id)
+        # Get all stations on this line in order
+        line_stations = sorted(
+            [(sid, st) for sid, st in self.stations.items() if st.line == current_line],
+            key=lambda x: x[0]  # Sort by station ID for consistent ordering
+        )
+        
+        # Find current station's index
+        current_idx = None
+        for i, (sid, _) in enumerate(line_stations):
+            if sid == station_id:
+                current_idx = i
+                break
+        
+        if current_idx is None:
+            return []
+        
+        # Add adjacent stations (prev and next on the line)
+        if current_idx > 0:
+            neighbors.append(line_stations[current_idx - 1][0])
+        if current_idx < len(line_stations) - 1:
+            neighbors.append(line_stations[current_idx + 1][0])
         
         return neighbors
     
@@ -896,17 +945,30 @@ class IstanbulTransportationRAG:
         query_lower = query.lower()
         
         # Extract origin and destination from query
-        origin, destination = self._extract_locations_from_query(query_lower)
+        origin, destination = self._extract_locations_from_query(query_lower, user_location)
         
         if not origin or not destination:
             # Generic transportation info
             return self._get_generic_transport_info()
         
+        # Prepare GPS data if origin or destination is GPS-based
+        origin_gps = None
+        destination_gps = None
+        
+        if origin == "Your Location" and user_location:
+            origin_gps = user_location
+        if destination == "Your Location" and user_location:
+            destination_gps = user_location
+        
         # Find route
-        route = self.find_route(origin, destination)
+        route = self.find_route(origin, destination, origin_gps=origin_gps, destination_gps=destination_gps)
         
         if not route:
+            self.last_route = None  # Clear last route
             return f"❌ No direct route found between {origin} and {destination}. Please verify station names."
+        
+        # Store route for mapData extraction
+        self.last_route = route
         
         # Generate detailed route context
         context_lines = [
@@ -927,23 +989,164 @@ class IstanbulTransportationRAG:
         
         return "\n".join(context_lines)
     
-    def _extract_locations_from_query(self, query: str) -> Tuple[Optional[str], Optional[str]]:
-        """Extract origin and destination from query text"""
-        # Common patterns
-        patterns = [
-            r"from\s+(\w+)\s+to\s+(\w+)",
-            r"(\w+)\s+to\s+(\w+)",
-            r"go\s+to\s+(\w+)\s+from\s+(\w+)",
-            r"get\s+to\s+(\w+)\s+from\s+(\w+)",
-            r"how.*?(\w+).*?to.*?(\w+)",
-        ]
+    def _extract_locations_from_query(
+        self, 
+        query: str,
+        user_location: Optional[Dict[str, float]] = None
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Extract origin and destination using pattern-free location recognition.
         
-        for pattern in patterns:
-            match = re.search(pattern, query, re.IGNORECASE)
+        Strategy:
+        1. Find ALL known locations in the query (stations, neighborhoods, aliases)
+        2. Use contextual clues (from/to keywords) to assign roles
+        3. If only 1 location found and user has GPS, use GPS as origin
+        4. Fallback: assume first location = origin, last = destination
+        
+        This handles ANY phrasing like:
+        - "how to go taksim from kadikoy"
+        - "kadikoy to taksim route"
+        - "I'm at kadikoy, need to reach taksim"
+        - "taksim kadikoy directions"
+        - "how can I go to taksim" (with GPS)
+        - "directions to galata tower" (with GPS)
+        """
+        query_lower = query.lower()
+        
+        logger.info(f"🔍 LOCATION EXTRACTION: Query='{query}'")
+        logger.info(f"📍 GPS available: {user_location is not None}")
+        if user_location:
+            logger.info(f"📍 GPS coords: lat={user_location.get('lat')}, lon={user_location.get('lon')}")
+        
+        # Build comprehensive location database
+        known_locations = {}  # location_name -> canonical_name
+        
+        # Add all stations
+        for station_id, station in self.stations.items():
+            name = station.name.lower()
+            known_locations[name] = name
+        
+        # Add all neighborhoods
+        for neighborhood in self.neighborhoods.keys():
+            known_locations[neighborhood.lower()] = neighborhood.lower()
+        
+        # Add all aliases
+        for alias in self.station_aliases.keys():
+            known_locations[alias.lower()] = alias.lower()
+        
+        logger.debug(f"📊 Known locations database: {len(known_locations)} entries")
+        
+        # Find all locations mentioned in query (sorted by length to match longer names first)
+        found_locations = []
+        for location_name in sorted(known_locations.keys(), key=len, reverse=True):
+            if location_name in query_lower and location_name not in found_locations:
+                # Find position in query
+                pos = query_lower.find(location_name)
+                found_locations.append({
+                    'name': known_locations[location_name],
+                    'position': pos,
+                    'length': len(location_name)
+                })
+        
+        logger.info(f"🔎 Found {len(found_locations)} potential locations in query")
+        
+        # Remove overlapping matches (keep longer ones)
+        filtered_locations = []
+        for loc in found_locations:
+            overlap = False
+            for other in found_locations:
+                if loc != other:
+                    # Check if loc is contained within other
+                    if (loc['position'] >= other['position'] and 
+                        loc['position'] < other['position'] + other['length']):
+                        if loc['length'] < other['length']:
+                            overlap = True
+                            break
+            if not overlap:
+                filtered_locations.append(loc)
+        
+        logger.info(f"✅ After filtering overlaps: {len(filtered_locations)} locations")
+        for loc in filtered_locations:
+            logger.info(f"   - '{loc['name']}' at position {loc['position']}")
+        
+        # Sort by position in query
+        filtered_locations.sort(key=lambda x: x['position'])
+        
+        # Handle single location with GPS
+        if len(filtered_locations) == 1 and user_location:
+            logger.info(f"✅ SINGLE LOCATION + GPS: Using GPS as origin")
+            destination = filtered_locations[0]['name']
+            origin = "Your Location"
+            logger.info(f"🎯 Result: origin='Your Location' (GPS), destination='{destination}'")
+            return origin, destination
+        
+        # Check for "from my location" patterns even if no locations found
+        if len(filtered_locations) == 0 and user_location:
+            logger.warning(f"❌ NO LOCATIONS FOUND but GPS available")
+            # Try to find at least a destination from common patterns
+            import re
+            # Look for "to X" patterns where X might not be in our database
+            to_pattern = r'(?:to|towards?)\s+([a-zA-Z\s]+?)(?:\s+\?|$|\s+please|\s+from)'
+            match = re.search(to_pattern, query_lower)
             if match:
-                return match.group(1), match.group(2)
+                potential_dest = match.group(1).strip()
+                logger.info(f"📍 Potential destination from pattern: '{potential_dest}'")
+                logger.info(f"🎯 Result: origin='Your Location' (GPS), destination='{potential_dest}'")
+                # Return it even if not in database - let find_route handle it
+                return "Your Location", potential_dest
+            logger.error(f"❌ Could not extract destination from query: '{query}'")
+            return None, None
         
-        return None, None
+        if len(filtered_locations) < 2:
+            logger.warning(f"❌ INSUFFICIENT LOCATIONS: Found {len(filtered_locations)}, need at least 1 with GPS or 2 without")
+            return None, None
+        
+        # Strategy: Use keyword context to determine roles
+        origin = None
+        destination = None
+        
+        # Look for "from X" pattern
+        from_keywords = ['from', 'starting from', 'leaving from', 'departing from', 'beginning from']
+        for keyword in from_keywords:
+            keyword_pos = query_lower.find(keyword)
+            if keyword_pos != -1:
+                # Find location closest AFTER this keyword
+                for loc in filtered_locations:
+                    if loc['position'] > keyword_pos:
+                        origin = loc['name']
+                        break
+                if origin:
+                    break
+        
+        # Look for "to Y" pattern
+        to_keywords = ['to', 'going to', 'heading to', 'arriving at', 'toward', 'towards']
+        for keyword in to_keywords:
+            keyword_pos = query_lower.find(keyword)
+            if keyword_pos != -1:
+                # Find location closest AFTER this keyword
+                for loc in filtered_locations:
+                    if loc['position'] > keyword_pos:
+                        destination = loc['name']
+                        break
+                if destination:
+                    break
+        
+        # Fallback: First location = origin, last = destination
+        if not origin:
+            origin = filtered_locations[0]['name']
+            logger.info(f"📍 Using first location as origin (fallback): '{origin}'")
+        if not destination:
+            destination = filtered_locations[-1]['name']
+            logger.info(f"📍 Using last location as destination (fallback): '{destination}'")
+        
+        # Make sure we have two different locations
+        if origin == destination and len(filtered_locations) >= 2:
+            origin = filtered_locations[0]['name']
+            destination = filtered_locations[1]['name']
+            logger.info(f"📍 Same origin/dest detected, using first and second: '{origin}' → '{destination}'")
+        
+        logger.info(f"🎯 FINAL RESULT: origin='{origin}', destination='{destination}'")
+        return origin, destination
     
     def _get_generic_transport_info(self) -> str:
         """Get generic transportation information"""
@@ -991,6 +1194,158 @@ class IstanbulTransportationRAG:
 5. **Kabataş**: T1 + F1
 6. **Şişhane**: M2 + F2 (Tünel)
 """
+
+    def get_map_data_for_last_route(self) -> Optional[Dict[str, Any]]:
+        """
+        Convert the last computed route to mapData format for frontend visualization.
+        
+        Returns:
+            Dict with 'markers' and 'routes' for map display, or None if no route
+        """
+        if not self.last_route:
+            return None
+        
+        route = self.last_route
+        
+        # Build markers for origin, destination, and transfer points
+        markers = []
+        route_coords = []
+        
+        # Find origin and destination stations by name
+        origin_station = None
+        destination_station = None
+        
+        for sid, station in self.stations.items():
+            if station.name.lower() == route.origin.lower():
+                origin_station = station
+            if station.name.lower() == route.destination.lower():
+                destination_station = station
+        
+        # Add origin marker
+        if origin_station:
+            markers.append({
+                'lat': origin_station.lat,
+                'lon': origin_station.lon,
+                'title': origin_station.name,
+                'description': f'Start: {route.origin}',
+                'type': 'origin',
+                'icon': 'start'
+            })
+            route_coords.append({'lat': origin_station.lat, 'lng': origin_station.lon})
+        
+        # Add transfer markers and build route coordinates
+        for step in route.steps:
+            if step.get('type') == 'transfer':
+                # Find station by name for transfer
+                transfer_name = step.get('from')
+                for sid, station in self.stations.items():
+                    if station.name.lower() == transfer_name.lower():
+                        markers.append({
+                            'lat': station.lat,
+                            'lon': station.lon,
+                            'title': station.name,
+                            'description': f"Transfer to {step.get('line')}",
+                            'type': 'transfer',
+                            'icon': 'transfer'
+                        })
+                        route_coords.append({'lat': station.lat, 'lng': station.lon})
+                        break
+            elif step.get('type') == 'transit':
+                # Add intermediate stations for transit segments
+                from_name = step.get('from')
+                to_name = step.get('to')
+                
+                # Add 'to' station coordinates
+                for sid, station in self.stations.items():
+                    if station.name.lower() == to_name.lower():
+                        route_coords.append({'lat': station.lat, 'lng': station.lon})
+                        break
+        
+        # Add destination marker
+        if destination_station:
+            markers.append({
+                'lat': destination_station.lat,
+                'lon': destination_station.lon,
+                'title': destination_station.name,
+                'description': f'Destination: {route.destination}',
+                'type': 'destination',
+                'icon': 'end'
+            })
+            # Make sure destination is in route_coords
+            if not route_coords or route_coords[-1]['lat'] != destination_station.lat:
+                route_coords.append({'lat': destination_station.lat, 'lng': destination_station.lon})
+        
+        # Build routes array
+        routes = []
+        if route_coords and len(route_coords) >= 2:
+            routes.append({
+                'coordinates': route_coords,
+                'color': '#4285F4',  # Google Maps blue
+                'weight': 4,
+                'opacity': 0.8,
+                'mode': 'transit',
+                'description': f'{route.origin} to {route.destination}'
+            })
+        
+        return {
+            'markers': markers,
+            'routes': routes,
+            'bounds': {
+                'autoFit': True
+            },
+            'metadata': {
+                'total_time': route.total_time,
+                'total_distance': route.total_distance,
+                'transfers': route.transfers,
+                'lines_used': route.lines_used
+            }
+        }
+    
+    def find_nearest_station(self, lat: float, lon: float, max_distance_km: float = 2.0) -> Optional[str]:
+        """
+        Find the nearest transit station to GPS coordinates.
+        
+        Args:
+            lat: Latitude
+            lon: Longitude
+            max_distance_km: Maximum search radius in kilometers
+            
+        Returns:
+            Station ID of nearest station, or None if no station within range
+        """
+        import math
+        
+        def haversine_distance(lat1, lon1, lat2, lon2):
+            """Calculate distance in km between two GPS coordinates"""
+            R = 6371  # Earth radius in km
+            
+            lat1_rad = math.radians(lat1)
+            lat2_rad = math.radians(lat2)
+            delta_lat = math.radians(lat2 - lat1)
+            delta_lon = math.radians(lon2 - lon1)
+            
+            a = math.sin(delta_lat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon/2)**2
+            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+            
+            return R * c
+        
+        nearest_station = None
+        min_distance = float('inf')
+        
+        for station_id, station in self.stations.items():
+            distance = haversine_distance(lat, lon, station.lat, station.lon)
+            if distance < min_distance and distance <= max_distance_km:
+                min_distance = distance
+                nearest_station = station_id
+        
+        if nearest_station:
+            station = self.stations[nearest_station]
+            logger.info(f"📍 Found nearest station: {station.name} ({station.line}) - {min_distance:.2f}km away")
+        else:
+            logger.warning(f"❌ No station found within {max_distance_km}km of GPS location")
+        
+        return nearest_station
+
 
 # Global instance
 _transportation_rag = None

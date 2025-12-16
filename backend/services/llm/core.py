@@ -443,6 +443,36 @@ Fixed version (max 50 chars):"""
         
         return llm_intents
     
+    def _is_route_query(self, query: str) -> bool:
+        """
+        Detect if query is asking for route/directions.
+        
+        This is a lightweight check used BEFORE signal detection
+        to decide whether to bypass cache for GPS-based queries.
+        
+        Returns:
+            True if query appears to be asking for directions/route
+        """
+        query_lower = query.lower()
+        
+        # Route/direction keywords
+        route_patterns = [
+            'how to go',
+            'how can i go',
+            'how do i get',
+            'how to get',
+            'directions',
+            'route',
+            'way to',
+            'get to',
+            'travel to',
+            'reach',
+            'from',
+            'to',
+        ]
+        
+        return any(pattern in query_lower for pattern in route_patterns)
+    
     async def process_query(
         self,
         query: str,
@@ -539,12 +569,24 @@ Fixed version (max 50 chars):"""
             except Exception as e:
                 logger.warning(f"LLM query rewriting failed: {e}")
         
-        # STEP 2: Cache Check
-        cached_response = await self.cache_manager.get_cached_response(
-            query=query,
-            language=language,
-            similarity_threshold=0.85
-        )
+        # STEP 2.5: Pre-signal detection for cache bypass (lightweight check)
+        # Detect route/transportation queries BEFORE cache lookup
+        # This prevents cached responses from being used when GPS location changes
+        is_route_query = self._is_route_query(query)
+        has_gps = user_location is not None
+        bypass_cache = is_route_query and has_gps
+        
+        if bypass_cache:
+            logger.info("🚫 Bypassing cache for GPS-based route query")
+        
+        # STEP 2: Cache Check (skip for GPS-based route queries)
+        cached_response = None
+        if not bypass_cache:
+            cached_response = await self.cache_manager.get_cached_response(
+                query=query,
+                language=language,
+                similarity_threshold=0.85
+            )
         
         if cached_response:
             logger.info("✅ Cache hit!")
@@ -556,7 +598,8 @@ Fixed version (max 50 chars):"""
             
             return cached_response
         
-        self.analytics.track_cache_miss()
+        if not bypass_cache:
+            self.analytics.track_cache_miss()
         
         # STEP 3: Signal Detection
         signals = await self.signal_detector.detect_signals(
@@ -861,6 +904,34 @@ Fixed version (max 50 chars):"""
                 query_for_extraction = original_query if 'original_query' in locals() else query
                 logger.info(f"🔍 [ROUTE EXTRACTION] Using query: '{query_for_extraction}'")
                 
+                # Check if query uses "from my location", "from here", or similar patterns
+                query_lower = query_for_extraction.lower()
+                use_gps_origin = False
+                use_gps_dest = False
+                
+                gps_origin_patterns = [
+                    'from my location', 'from here', 'from current location',
+                    'from where i am', 'from my position', 'starting from here',
+                    'from my current location'
+                ]
+                
+                gps_dest_patterns = [
+                    'to my location', 'to here', 'to current location',
+                    'to where i am', 'back here'
+                ]
+                
+                for pattern in gps_origin_patterns:
+                    if pattern in query_lower:
+                        use_gps_origin = True
+                        logger.info(f"📍 Detected GPS origin pattern: '{pattern}'")
+                        break
+                
+                for pattern in gps_dest_patterns:
+                    if pattern in query_lower:
+                        use_gps_dest = True
+                        logger.info(f"📍 Detected GPS destination pattern: '{pattern}'")
+                        break
+                
                 # Initialize route handler for pattern extraction
                 route_handler = AIChatRouteHandler()
                 
@@ -868,15 +939,89 @@ Fixed version (max 50 chars):"""
                 locations = route_handler._extract_locations(query_for_extraction)
                 logger.info(f"📍 [ROUTE EXTRACTION] Found {len(locations)} location(s): {locations}")
                 
-                if len(locations) >= 2:
-                    # Get origin and destination coordinates
-                    origin_coords = locations[0]  # (lat, lon)
-                    dest_coords = locations[1]    # (lat, lon)
+                # Determine origin and destination
+                origin_coords = None
+                dest_coords = None
+                origin_str = None
+                dest_str = None
+                origin_gps = None
+                dest_gps = None
+                
+                # Handle GPS-based queries
+                # Case 1: User explicitly says "from my location" OR only gives destination
+                if (use_gps_origin or len(locations) == 1) and user_location:
+                    # User wants route FROM their location TO a destination
+                    logger.info(f"📍 Using GPS as origin: {user_location}")
+                    origin_coords = (user_location['lat'], user_location['lon'])
+                    origin_str = "Your Location"
+                    origin_gps = user_location
+                    
+                    if len(locations) >= 1:
+                        dest_coords = locations[0]
+                        # Find destination name
+                        for name, coords in route_handler.KNOWN_LOCATIONS.items():
+                            if abs(coords[0] - dest_coords[0]) < 0.001 and abs(coords[1] - dest_coords[1]) < 0.001:
+                                dest_str = name
+                                break
+                        if not dest_str:
+                            dest_str = f"{dest_coords[0]:.4f}, {dest_coords[1]:.4f}"
+                
+                # Case 2: No locations found at all but user has GPS - try to extract from query text
+                elif len(locations) == 0 and user_location:
+                    logger.info(f"📍 No locations extracted, but GPS available. Trying text extraction...")
+                    # Try to find destination in query text
+                    query_lower = query_for_extraction.lower()
+                    
+                    # Look for "to X" or "go to X" patterns
+                    import re
+                    go_to_patterns = [
+                        r'(?:go|get|going|getting|travel|traveling|walk|walking|drive|driving)\s+to\s+([a-zA-Z\s]+?)(?:\s+from|\s+\?|$|\s+please)',
+                        r'(?:how|way|route|directions?)\s+(?:to|towards?)\s+([a-zA-Z\s]+?)(?:\s+from|\s+\?|$|\s+please)',
+                        r'to\s+([a-zA-Z\s]+?)(?:\s+from|\s+\?|$|\s+please)'
+                    ]
+                    
+                    destination_name = None
+                    for pattern in go_to_patterns:
+                        match = re.search(pattern, query_lower)
+                        if match:
+                            destination_name = match.group(1).strip()
+                            logger.info(f"📍 Extracted destination from text: '{destination_name}'")
+                            break
+                    
+                    # Try to find this location in KNOWN_LOCATIONS
+                    if destination_name:
+                        for name, coords in route_handler.KNOWN_LOCATIONS.items():
+                            if destination_name in name.lower() or name.lower() in destination_name:
+                                dest_coords = coords
+                                dest_str = name
+                                origin_coords = (user_location['lat'], user_location['lon'])
+                                origin_str = "Your Location"
+                                origin_gps = user_location
+                                logger.info(f"📍 Matched destination '{destination_name}' to {name} at {coords}")
+                                break
+                
+                elif use_gps_dest and user_location and len(locations) >= 1:
+                    # User wants route FROM a location TO their current position
+                    logger.info(f"📍 Using GPS as destination: {user_location}")
+                    origin_coords = locations[0]
+                    dest_coords = (user_location['lat'], user_location['lon'])
+                    dest_str = "Your Location"
+                    dest_gps = user_location
+                    
+                    # Find origin name
+                    for name, coords in route_handler.KNOWN_LOCATIONS.items():
+                        if abs(coords[0] - origin_coords[0]) < 0.001 and abs(coords[1] - originCoords[1]) < 0.001:
+                            origin_str = name
+                            break
+                    if not origin_str:
+                        origin_str = f"{origin_coords[0]:.4f}, {originCoords[1]:.4f}"
+                
+                elif len(locations) >= 2:
+                    # Standard two-location query
+                    origin_coords = locations[0]
+                    dest_coords = locations[1]
                     
                     # Find location names by reverse lookup
-                    origin_str = None
-                    dest_str = None
-                    
                     for name, coords in route_handler.KNOWN_LOCATIONS.items():
                         if abs(coords[0] - origin_coords[0]) < 0.001 and abs(coords[1] - origin_coords[1]) < 0.001:
                             origin_str = name
@@ -888,13 +1033,19 @@ Fixed version (max 50 chars):"""
                         origin_str = f"{origin_coords[0]:.4f}, {origin_coords[1]:.4f}"
                     if not dest_str:
                         dest_str = f"{dest_coords[0]:.4f}, {dest_coords[1]:.4f}"
-                    
+                
+                if origin_coords and dest_coords:
                     logger.info(f"📍 [ROUTE EXTRACTION] Resolved: {origin_str} → {dest_str}")
                     
                     # Now use Transportation RAG to find the actual route
                     transport_rag = get_transportation_rag()
                     if transport_rag:
-                        route = transport_rag.find_route(origin_str, dest_str)
+                        route = transport_rag.find_route(
+                            origin_str, 
+                            dest_str,
+                            origin_gps=origin_gps,
+                            destination_gps=dest_gps
+                        )
                         
                         if route:
                             logger.info(f"✅ Transportation RAG found route: {len(route.steps)} steps, {route.transfers} transfers")
@@ -1099,15 +1250,20 @@ Fixed version (max 50 chars):"""
             except Exception as e:
                 logger.warning(f"Failed to store conversation: {e}")
         
-        # STEP 10: Cache Response
-        try:
-            await self.cache_manager.cache_response(
-                query=query,
-                language=language,
-                response=result
-            )
-        except Exception as e:
-            logger.warning(f"Failed to cache response: {e}")
+        # STEP 10: Cache Response (skip for GPS-based route queries)
+        # Don't cache route queries that use GPS, as location changes
+        if not bypass_cache:
+            try:
+                await self.cache_manager.cache_response(
+                    query=query,
+                    language=language,
+                    response=result
+                )
+                logger.debug("✅ Response cached")
+            except Exception as e:
+                logger.warning(f"Failed to cache response: {e}")
+        else:
+            logger.info("🚫 Skipping cache storage for GPS-based route query")
         
         # STEP 11: Track Analytics
         self.analytics.track_response(
@@ -2266,7 +2422,7 @@ Fixed version (max 50 chars):"""
                             map_data = {
                                 "type": "marker",  # Marker-only fallback
                                 "markers": markers,
-                                "center": {"lat": center_lat, "lng": center_lon},
+                                "center": {"lat": center_lat, "lon": center_lon},
                                 "zoom": 12,
                                 "has_origin": True,
                                 "has_destination": True,

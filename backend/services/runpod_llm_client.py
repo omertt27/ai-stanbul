@@ -67,9 +67,9 @@ class RunPodLLMClient:
         self.api_type = self._detect_api_type()
         
         # Increase max_tokens for better, more complete responses
-        # Changed from 150 to 512 to allow detailed transportation directions and recommendations
-        if self.max_tokens < 512:
-            self.max_tokens = 768  # Increased for complex queries (attractions, weather with recommendations)
+        # Allow longer, more detailed responses for attractions, routes, and recommendations
+        if self.max_tokens < 1500:
+            self.max_tokens = 2048  # Increased for comprehensive responses
         
         if self.enabled:
             logger.info("🚀 LLM Client initialized")
