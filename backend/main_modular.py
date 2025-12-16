@@ -105,6 +105,15 @@ app.include_router(llm_router)
 app.include_router(aws_diagnostics_router)  # AWS S3 and Redis diagnostic endpoints
 app.include_router(startup_status_router)  # Startup diagnostics
 app.include_router(admin_experiments.router)
+
+# Register direct routing API (fast, deterministic transportation routing)
+try:
+    from api.direct_routing import router as direct_routing_router
+    app.include_router(direct_routing_router)
+    logger.info("✅ Direct Routing API registered at /api/routes")
+except Exception as e:
+    logger.warning(f"⚠️ Direct Routing API not available: {e}")
+
 logger.info(f"📋 Admin routes router has {len(admin_routes.router.routes)} routes")
 app.include_router(admin_routes.router, prefix="/api/admin")
 logger.info("✅ Admin routes registered at /api/admin")

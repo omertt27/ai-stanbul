@@ -125,6 +125,7 @@ class ChatResponse(BaseModel):
     confidence: Optional[float] = Field(None, description="Confidence score")
     suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
     map_data: Optional[Dict[str, Any]] = Field(None, description="Map visualization data for routes")
+    route_data: Optional[Dict[str, Any]] = Field(None, description="Transportation route data for visual display")
     navigation_active: Optional[bool] = Field(None, description="Whether GPS navigation is active")
     navigation_data: Optional[Dict[str, Any]] = Field(None, description="GPS navigation state and instructions")
     interaction_id: Optional[str] = Field(None, description="Interaction ID for feedback tracking")
@@ -435,6 +436,7 @@ async def pure_llm_chat(
                             confidence=route_result.get('confidence', 1.0),
                             suggestions=route_result.get('suggestions', []),
                             map_data=route_result.get('route_data'),  # Fixed: use route_data, not map_data
+                            route_data=route_result.get('route_data'),  # Also populate route_data for TransportationRouteCard
                             navigation_active=False
                         )
                 else:
@@ -530,12 +532,23 @@ async def pure_llm_chat(
         else:
             logger.info(f"Pure LLM response generated in {response_time:.2f}s (RAG: ✗)")
         
+        # Extract route_data from map_data if present
+        route_data = None
+        map_data = result.get('map_data')
+        if map_data and isinstance(map_data, dict):
+            # If map_data contains route_data, extract it
+            if 'route_data' in map_data:
+                route_data = map_data['route_data']
+            # If map_data itself looks like route data (has steps, origin, destination)
+            elif 'steps' in map_data and 'origin' in map_data and 'destination' in map_data:
+                route_data = map_data
+        
         # Phase 3: Enhance Pure LLM response with contextual intelligence
         enhanced_response = await enhance_chat_response(
             base_response=result.get('response', ''),
             original_query=request.message,
             user_context=user_context,
-            route_data=result.get('map_data'),  # May contain route info
+            route_data=route_data,  # Pass extracted route data
             response_type=result.get('intent', 'general')
         )
         
@@ -658,6 +671,7 @@ async def pure_llm_chat(
             confidence=result.get('confidence'),
             suggestions=final_suggestions,
             map_data=map_data_from_transport or result.get('map_data'),  # Use transportation RAG mapData if available
+            route_data=route_data,  # Extracted route data for TransportationRouteCard
             navigation_active=result.get('navigation_active', False),
             navigation_data=result.get('navigation_data'),
             interaction_id=interaction_id  # Include for frontend feedback tracking

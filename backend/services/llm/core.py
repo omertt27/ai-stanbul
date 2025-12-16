@@ -1058,81 +1058,81 @@ Fixed version (max 50 chars):"""
                             coordinates.append([origin_coords[0], origin_coords[1]])
                             markers.append({
                                 "lat": origin_coords[0],
-                                "lon": origin_coords[1],
-                                "label": origin_str.title(),
+                        r'to\s+([a-zA-Z\s]+?)(?:\s+from|\s+\?|$|\s+please)'
+                    ]igin_str.title(),
                                 "type": "origin"
-                            })
-                            
-                            # Add waypoints from route steps (stations)
-                            for step in route.steps:
-                                if hasattr(step, 'from_station') and step.from_station:
-                                    if hasattr(step.from_station, 'lat') and hasattr(step.from_station, 'lng'):
-                                        coord = [step.from_station.lat, step.from_station.lng]
-                                        if coord not in coordinates:
-                                            coordinates.append(coord)
-                                
-                                if hasattr(step, 'to_station') and step.to_station:
-                                    if hasattr(step.to_station, 'lat') and hasattr(step.to_station, 'lng'):
-                                        coord = [step.to_station.lat, step.to_station.lng]
-                                        if coord not in coordinates:
-                                            coordinates.append(coord)
-                            
-                            # Add destination marker
-                            coordinates.append([dest_coords[0], dest_coords[1]])
-                            markers.append({
-                                "lat": dest_coords[0],
-                                "lon": dest_coords[1],
-                                "label": dest_str.title(),
-                                "type": "destination"
-                            })
-                            
-                            # Calculate center point
-                            center_lat = sum(c[0] for c in coordinates) / len(coordinates)
-                            center_lon = sum(c[1] for c in coordinates) / len(coordinates)
-                            
-                            map_data = {
-                                "type": "route",
-                                "coordinates": coordinates,
-                                "markers": markers,
-                                "center": {"lat": center_lat, "lon": center_lon},
-                                "zoom": 12,
-                                "route_data": {
-                                    "distance_km": getattr(route, 'total_distance_km', 0),
-                                    "duration_min": getattr(route, 'total_time_minutes', 0),
-                                    "transport_mode": "Public Transit",
-                                    "lines": [step.line for step in route.steps if hasattr(step, 'line')],
-                                    "transfers": route.transfers
-                                },
-                                "has_origin": True,
-                                "has_destination": True,
-                                "origin_name": origin_str.title(),
-                                "destination_name": dest_str.title()
-                            }
-                            
-                            logger.info(f"✅ Generated route map_data with {len(coordinates)} waypoints and {len(markers)} markers")
-                        else:
-                            logger.warning(f"⚠️ Transportation RAG found no route between {origin_str} and {dest_str}")
-                else:
-                    logger.info(f"⚠️ [ROUTE EXTRACTION] Insufficient locations extracted (need at least 2, got {len(locations)})")
+                    destination_name = None
+                    for pattern in go_to_patterns:
+                        match = re.search(pattern, query_lower)
+                        if match: in route.steps:
+                            destination_name = match.group(1).strip()tation:
+                            logger.info(f"📍 Extracted destination from text: '{destination_name}'")                    if hasattr(step.from_station, 'lat') and hasattr(step.from_station, 'lng'):
+                            breakstep.from_station.lat, step.from_station.lng]
+                    
+                    # Try to find this location in KNOWN_LOCATIONS                        coordinates.append(coord)
+                    if destination_name:
+                        for name, coords in route_handler.KNOWN_LOCATIONS.items():') and step.to_station:
+                            if destination_name in name.lower() or name.lower() in destination_name:f hasattr(step.to_station, 'lat') and hasattr(step.to_station, 'lng'):
+                                dest_coords = coordsstation.lat, step.to_station.lng]
+                                dest_str = nameif coord not in coordinates:
+                                origin_coords = (user_location['lat'], user_location['lon'])       coordinates.append(coord)
+                                origin_str = "Your Location"
+                                origin_gps = user_location
+                                logger.info(f"📍 Matched destination '{destination_name}' to {name} at {coords}")   coordinates.append([dest_coords[0], dest_coords[1]])
+                                break    markers.append({
+                lat": dest_coords[0],
+                elif use_gps_dest and user_location and len(locations) >= 1:
+                    # User wants route FROM a location TO their current position    "label": dest_str.title(),
+                    logger.info(f"📍 Using GPS as destination: {user_location}")
+                    origin_coords = locations[0]
+                    dest_coords = (user_location['lat'], user_location['lon'])
+                    dest_str = "Your Location"# Calculate center point
+                    dest_gps = user_location0] for c in coordinates) / len(coordinates)
+                    nates)
+                    # Find origin name
+                    for name, coords in route_handler.KNOWN_LOCATIONS.items():
+                        if abs(coords[0] - origin_coords[0]) < 0.001 and abs(coords[1] - originCoords[1]) < 0.001:
+                            origin_str = name
+                            breakrs,
+                    if not origin_str:  "center": {"lat": center_lat, "lon": center_lon},
+                        origin_str = f"{origin_coords[0]:.4f}, {originCoords[1]:.4f}"    "zoom": 12,
+                
+                elif len(locations) >= 2:etattr(route, 'total_distance_km', 0),
+                    # Standard two-location query, 0),
+                    origin_coords = locations[0]
+                    dest_coords = locations[1]p, 'line')],
+                    
+                    # Find location names by reverse lookup
+                    for name, coords in route_handler.KNOWN_LOCATIONS.items():"has_origin": True,
+                        if abs(coords[0] - origin_coords[0]) < 0.001 and abs(coords[1] - origin_coords[1]) < 0.001:
+                            origin_str = name
+                        if abs(coords[0] - dest_coords[0]) < 0.001 and abs(coords[1] - dest_coords[1]) < 0.001:
+                            dest_str = name
+                    
+                    # Fallback to coordinate strings if names not foundlogger.info(f"✅ Generated route map_data with {len(coordinates)} waypoints and {len(markers)} markers")
+                    if not origin_str:
+                        origin_str = f"{origin_coords[0]:.4f}, {origin_coords[1]:.4f}"e between {origin_str} and {dest_str}")
+                    if not dest_str:
+                        dest_str = f"{dest_coords[0]:.4f}, {dest_coords[1]:.4f}"] Insufficient locations extracted (need at least 2, got {len(locations)})")
+                
+                if origin_coords and dest_coords:
+                    logger.info(f"📍 [ROUTE EXTRACTION] Resolved: {origin_str} → {dest_str}") visualization error: {e}", exc_info=True)
+                    
+                    # Now use Transportation RAG to find the actual route
+                    transport_rag = get_transportation_rag()
+                    if transport_rag:
+                        route = transport_rag.find_route(
+                            origin_str, itial map_data from context: {map_data}")
+                            dest_str,nt: {signals['signals'].get('needs_restaurant')}")
+                            origin_gps=origin_gps,nals['signals'].get('needs_attraction')}")
+                            destination_gps=dest_gpsals'].get('needs_hidden_gems')}")
+                        )als['signals'].get('needs_neighborhood')}")
                         
-            except Exception as e:
-                logger.error(f"❌ Transportation route visualization error: {e}", exc_info=True)
-        
-        # DEBUG LOGGING
-        logger.info(f"🔍 MAP GENERATION DEBUG:")
-        logger.info(f"  - Query: {query}")
-        logger.info(f"  - User location: {user_location}")
-        logger.info(f"  - Initial map_data from context: {map_data}")
-        logger.info(f"  - needs_restaurant: {signals['signals'].get('needs_restaurant')}")
-        logger.info(f"  - needs_attraction: {signals['signals'].get('needs_attraction')}")
-        logger.info(f"  - needs_hidden_gems: {signals['signals'].get('needs_hidden_gems')}")
-        logger.info(f"  - needs_neighborhood: {signals['signals'].get('needs_neighborhood')}")
-        
-        # If no map_data but we have location-based or transportation signals, generate basic map data
-        if not map_data and any([
-            signals['signals'].get('needs_transportation'),  # Added for routing queries
-            signals['signals'].get('needs_restaurant'),
-            signals['signals'].get('needs_attraction'),
+                        if route:on-based or transportation signals, generate basic map data
+                            logger.info(f"✅ Transportation RAG found route: {len(route.steps)} steps, {route.transfers} transfers")
+                            
+                            # Convert route to map_data format with coordinates
+                            coordinates = []
             signals['signals'].get('needs_hidden_gems'),
             signals['signals'].get('needs_neighborhood'),
             signals['signals'].get('needs_shopping'),

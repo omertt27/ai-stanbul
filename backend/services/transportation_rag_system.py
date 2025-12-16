@@ -6,11 +6,12 @@ Google Maps Quality Route Finding with Retrieval-Augmented Generation
 Features:
 - Complete Istanbul transit network graph
 - Multi-modal routing (metro, tram, ferry, bus, funicular, Marmaray)
+- WEIGHTED DIJKSTRA ROUTING with realistic travel times
 - Real-time route validation
 - Step-by-step directions
 - Alternative route suggestions
-- Transfer optimization
-- Time and distance calculations
+- Transfer optimization with penalties
+- Time and distance calculations with confidence indicators
 - Accessibility information
 
 Author: AI Istanbul Team
@@ -24,6 +25,7 @@ from datetime import datetime, timedelta
 import json
 import re
 import unicodedata
+import heapq  # For Dijkstra's priority queue
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,7 @@ class TransitRoute:
     transfers: int
     lines_used: List[str]
     alternatives: List['TransitRoute']  # Alternative routes
+    time_confidence: str = "medium"  # 'high', 'medium', 'low' - data quality indicator
     
 class IstanbulTransportationRAG:
     """
@@ -66,7 +69,13 @@ class IstanbulTransportationRAG:
         self.neighborhoods = self._build_neighborhood_stations()
         self.station_aliases = self._build_station_aliases()
         self.last_route = None  # Store last computed route for mapData extraction
+        
+        # Initialize travel time database for weighted routing
+        from services.transportation_travel_times import get_travel_time_database
+        self.travel_time_db = get_travel_time_database()
+        
         logger.info("✅ Transportation RAG initialized with complete Istanbul network")
+        logger.info("✅ Dijkstra routing enabled with realistic travel times")
     
     def _normalize_station_name(self, name: str) -> str:
         """
@@ -491,7 +500,7 @@ class IstanbulTransportationRAG:
             nearest_dest = self.find_nearest_station(destination_gps['lat'], destination_gps['lon'])
             if nearest_dest:
                 dest_stations = [nearest_dest]
-                logger.info(f"✅ Using nearest station for GPS destination: {self.stations[nearest_dest].name}")
+                logger.info(f"✅ Using nearest station for GPS destination: {self.stations[nearestDest].name}")
             else:
                 dest_stations = self._get_stations_for_location(destination)
         else:
@@ -587,10 +596,14 @@ class IstanbulTransportationRAG:
         max_transfers: int
     ) -> Optional[TransitRoute]:
         """
-        Find path between two stations using Breadth-First Search (BFS).
+        Find path between two stations using Dijkstra's Algorithm with weighted edges.
         
-        This is a GOOGLE MAPS-LEVEL algorithm that finds optimal routes
-        with proper transfer handling and multi-modal pathfinding.
+        This is a GOOGLE MAPS-LEVEL algorithm that finds optimal routes based on:
+        - ACTUAL travel times between stations (from travel time database)
+        - Transfer penalties (5 min for platform changes)
+        - Multi-modal pathfinding
+        
+        UPGRADE from BFS: Now considers real travel times, not just hop count!
         """
         if start_id not in self.stations or end_id not in self.stations:
             return None
@@ -606,68 +619,126 @@ class IstanbulTransportationRAG:
         if start_station.line == end_station.line:
             return self._create_direct_route(start_station, end_station)
         
-        # Use BFS to find optimal multi-transfer route
-        return self._find_path_bfs(start_id, end_id, max_transfers)
+        # Use Dijkstra to find optimal multi-transfer route by travel time
+        return self._find_path_dijkstra(start_id, end_id, max_transfers)
     
-    def _find_path_bfs(
+    def _find_path_dijkstra(
         self,
         start_id: str,
         end_id: str,
         max_transfers: int
     ) -> Optional[TransitRoute]:
         """
-        Breadth-First Search for optimal route with transfers.
+        Dijkstra's Algorithm for optimal route with weighted edges.
         
         This is INDUSTRY-STANDARD pathfinding used by Google Maps, Citymapper, etc.
-        Finds shortest route by number of transfers, then by estimated time.
+        Finds FASTEST route considering:
+        - Real travel times between stations (from official data)
+        - Transfer penalties (~5 minutes per transfer)
+        - Transfer count limits
+        
+        Uses priority queue to explore shortest-time paths first.
         """
-        from collections import deque
         
-        # BFS queue: (current_station_id, path, lines_used, transfers)
-        queue = deque([(start_id, [start_id], [self.stations[start_id].line], 0)])
-        visited = {start_id: 0}  # station_id -> min_transfers to reach it
+        # Priority queue: (cumulative_time, current_station_id, path, lines_used, transfers, confidence_scores)
+        # heap is sorted by cumulative_time (lowest first)
+        heap = [(0.0, start_id, [start_id], [self.stations[start_id].line], 0, [])]
         
+        # Track best time to reach each station
+        best_time_to_station = {start_id: 0.0}
+        
+        # Track best route found to destination
         best_route = None
-        best_transfers = max_transfers + 1
+        best_time_to_dest = float('inf')
         
-        while queue:
-            current_id, path, lines_used, transfers = queue.popleft()
+        while heap:
+            current_time, current_id, path, lines_used, transfers, confidences = heapq.heappop(heap)
             
             # Skip if too many transfers
             if transfers > max_transfers:
                 continue
             
-            # Skip if we've seen this station with fewer transfers
-            if current_id in visited and visited[current_id] < transfers:
+            # Skip if we've found a better route to this station
+            if current_id in best_time_to_station and best_time_to_station[current_id] < current_time:
                 continue
             
             current_station = self.stations[current_id]
+            current_line = current_station.line
             
             # Found destination?
             if current_id == end_id:
-                if transfers < best_transfers:
-                    best_route = self._build_route_from_path(path, lines_used, transfers)
-                    best_transfers = transfers
-                continue
+                # Build route from path
+                route = self._build_route_from_path_weighted(
+                    path, 
+                    lines_used, 
+                    transfers,
+                    current_time,
+                    confidences
+                )
+                
+                # Keep track of best route
+                if current_time < best_time_to_dest:
+                    best_route = route
+                    best_time_to_dest = current_time
+                
+                # Continue searching for potentially better routes
+                # (but we can break early since Dijkstra guarantees optimal)
+                break
             
             # Explore neighbors
-            # 1. Continue on same line
+            # 1. Continue on same line (no transfer penalty)
             same_line_neighbors = self._get_same_line_neighbors(current_id)
             for neighbor_id in same_line_neighbors:
                 if neighbor_id not in path:  # Avoid cycles
+                    # Get actual travel time from database
+                    travel_time, confidence = self.travel_time_db.get_travel_time(
+                        current_id, 
+                        neighbor_id
+                    )
+                    
+                    new_time = current_time + travel_time
                     new_path = path + [neighbor_id]
-                    queue.append((neighbor_id, new_path, lines_used, transfers))
-                    visited[neighbor_id] = min(visited.get(neighbor_id, 999), transfers)
+                    new_confidences = confidences + [confidence]
+                    
+                    # Only explore if this is a better route to neighbor
+                    if neighbor_id not in best_time_to_station or new_time < best_time_to_station[neighbor_id]:
+                        best_time_to_station[neighbor_id] = new_time
+                        heapq.heappush(heap, (
+                            new_time,
+                            neighbor_id,
+                            new_path,
+                            lines_used,
+                            transfers,
+                            new_confidences
+                        ))
             
-            # 2. Transfer to another line
+            # 2. Transfer to another line (add transfer penalty)
             if transfers < max_transfers:
                 transfer_neighbors = self._get_transfer_neighbors(current_id)
                 for neighbor_id, transfer_line in transfer_neighbors:
                     if neighbor_id not in path:
+                        # Add transfer penalty
+                        transfer_penalty = self.travel_time_db.get_transfer_penalty(
+                            current_line,
+                            transfer_line
+                        )
+                        
+                        new_time = current_time + transfer_penalty
                         new_lines = lines_used + [transfer_line]
                         new_path = path + [neighbor_id]
-                        queue.append((neighbor_id, new_path, new_lines, transfers + 1))
-                        visited[neighbor_id] = min(visited.get(neighbor_id, 999), transfers + 1)
+                        new_confidences = confidences + ["high"]  # Transfer time is reliable
+                        
+                        # Only explore if this is a better route to neighbor
+                        if neighbor_id not in best_time_to_station or new_time < best_time_to_station[neighbor_id]:
+                            best_time_to_station[neighbor_id] = new_time
+                            heapq.heappush(heap, (
+                                new_time,
+                                neighbor_id,
+                                new_path,
+                                new_lines,
+                                transfers + 1,
+                                new_confidences
+                            ))
         
         return best_route
     
@@ -731,6 +802,133 @@ class IstanbulTransportationRAG:
                     neighbors.append((other_id, transfer_line))
         
         return neighbors
+    
+    def _build_route_from_path_weighted(
+        self,
+        path: List[str],
+        lines_used: List[str],
+        transfers: int,
+        total_time: float,
+        confidences: List[str]
+    ) -> TransitRoute:
+        """
+        Build a TransitRoute from a Dijkstra path with REAL travel times.
+        
+        This creates Google Maps-style step-by-step directions with:
+        - Actual travel times from travel time database
+        - Transfer penalties included
+        - Confidence indicators for time estimates
+        
+        Args:
+            path: List of station IDs in order
+            lines_used: List of lines used (includes transfers)
+            transfers: Number of transfers
+            total_time: Total travel time in minutes (from Dijkstra)
+            confidences: List of confidence levels for each segment
+        """
+        if not path or len(path) < 2:
+            return None
+        
+        steps = []
+        current_line = self.stations[path[0]].line
+        segment_start = 0
+        segment_time = 0.0
+        overall_confidences = []
+        
+        # Build segments by detecting line changes
+        for i in range(1, len(path)):
+            station_id = path[i]
+            station = self.stations[station_id]
+            prev_station_id = path[i-1]
+            
+            # Get travel time for this hop
+            if i < len(confidences) + 1:
+                travel_time, confidence = self.travel_time_db.get_travel_time(
+                    prev_station_id,
+                    station_id
+                )
+                overall_confidences.append(confidence)
+            else:
+                travel_time = 2.5  # default
+                confidence = "low"
+            
+            # Line change = transfer
+            if station.line != current_line:
+                # Create transit step for previous segment
+                start_station = self.stations[path[segment_start]]
+                end_station = self.stations[path[i-1]]
+                
+                steps.append({
+                    "instruction": f"Take {current_line} from {start_station.name} to {end_station.name}",
+                    "line": current_line,
+                    "from": start_station.name,
+                    "to": end_station.name,
+                    "duration": round(segment_time, 1),
+                    "type": "transit",
+                    "stops": i - segment_start
+                })
+                
+                # Add transfer step with transfer penalty
+                transfer_penalty = self.travel_time_db.get_transfer_penalty(
+                    current_line,
+                    station.line
+                )
+                
+                steps.append({
+                    "instruction": f"Transfer to {station.line} at {end_station.name}",
+                    "line": station.line,
+                    "from": end_station.name,
+                    "to": end_station.name,
+                    "duration": round(transfer_penalty, 1),
+                    "type": "transfer"
+                })
+                
+                # Start new segment
+                current_line = station.line
+                segment_start = i - 1
+                segment_time = 0.0
+            else:
+                # Continue on same line
+                segment_time += travel_time
+        
+        # Final segment
+        start_station = self.stations[path[segment_start]]
+        end_station = self.stations[path[-1]]
+        
+        steps.append({
+            "instruction": f"Take {current_line} from {start_station.name} to {end_station.name}",
+            "line": current_line,
+            "from": start_station.name,
+            "to": end_station.name,
+            "duration": round(segment_time, 1),
+            "type": "transit",
+            "stops": len(path) - segment_start
+        })
+        
+        # Estimate distance based on actual travel time (1.5 km per 10 min avg)
+        total_distance = (total_time / 10.0) * 1.5
+        
+        # Determine overall confidence based on segment confidences
+        if not overall_confidences:
+            time_confidence = "medium"
+        elif all(c == "high" for c in overall_confidences):
+            time_confidence = "high"
+        elif any(c == "low" for c in overall_confidences):
+            time_confidence = "low"
+        else:
+            time_confidence = "medium"
+        
+        return TransitRoute(
+            origin=self.stations[path[0]].name,
+            destination=self.stations[path[-1]].name,
+            total_time=round(total_time),
+            total_distance=round(total_distance, 2),
+            steps=steps,
+            transfers=transfers,
+            lines_used=list(set(lines_used)),
+            alternatives=[],
+            time_confidence=time_confidence
+        )
     
     def _build_route_from_path(
         self,
@@ -893,10 +1091,18 @@ class IstanbulTransportationRAG:
             return self._format_directions_english(route)
     
     def _format_directions_english(self, route: TransitRoute) -> str:
-        """Format directions in English"""
+        """Format directions in English with time confidence indicator"""
+        # Add confidence indicator emoji
+        confidence_emoji = {
+            "high": "✅",
+            "medium": "⚠️",
+            "low": "❓"
+        }
+        conf_icon = confidence_emoji.get(route.time_confidence, "⚠️")
+        
         lines = [
             f"**Route: {route.origin} → {route.destination}**",
-            f"⏱️ Total time: ~{route.total_time} minutes",
+            f"⏱️ Total time: ~{route.total_time} minutes {conf_icon}",
             f"🔄 Transfers: {route.transfers}",
             "",
             "**Directions:**"
@@ -910,13 +1116,29 @@ class IstanbulTransportationRAG:
             elif step['type'] == 'walk':
                 lines.append(f"{i}. 🚶 **{step['instruction']}** ({step['duration']} min)")
         
+        # Add confidence note
+        if route.time_confidence == "high":
+            lines.append("\n✅ Time estimate based on official transit schedules")
+        elif route.time_confidence == "medium":
+            lines.append("\n⚠️ Time estimate based on measured averages")
+        else:
+            lines.append("\n❓ Time estimate is approximate")
+        
         return "\n".join(lines)
     
     def _format_directions_turkish(self, route: TransitRoute) -> str:
-        """Format directions in Turkish"""
+        """Format directions in Turkish with time confidence indicator"""
+        # Add confidence indicator emoji
+        confidence_emoji = {
+            "high": "✅",
+            "medium": "⚠️",
+            "low": "❓"
+        }
+        conf_icon = confidence_emoji.get(route.time_confidence, "⚠️")
+        
         lines = [
             f"**Güzergah: {route.origin} → {route.destination}**",
-            f"⏱️ Toplam süre: ~{route.total_time} dakika",
+            f"⏱️ Toplam süre: ~{route.total_time} dakika {conf_icon}",
             f"🔄 Aktarma: {route.transfers}",
             "",
             "**Yol Tarifi:**"
@@ -929,6 +1151,14 @@ class IstanbulTransportationRAG:
                 lines.append(f"{i}. 🔄 **{step['instruction']}** ({step['duration']} dk)")
             elif step['type'] == 'walk':
                 lines.append(f"{i}. 🚶 **{step['instruction']}** ({step['duration']} dk)")
+        
+        # Add confidence note
+        if route.time_confidence == "high":
+            lines.append("\n✅ Süre tahmini resmi ulaşım programlarına dayanmaktadır")
+        elif route.time_confidence == "medium":
+            lines.append("\n⚠️ Süre tahmini ölçülen ortalamalara dayanmaktadır")
+        else:
+            lines.append("\n❓ Süre tahmini yaklaşıktır")
         
         return "\n".join(lines)
     

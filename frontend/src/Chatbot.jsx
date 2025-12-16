@@ -30,6 +30,7 @@ import ChatSessionsPanel from './components/ChatSessionsPanel';
 import MapVisualization from './components/MapVisualization';
 import SimpleChatInput from './components/SimpleChatInput';
 import RestaurantCard from './components/RestaurantCard';
+import TransportationRouteCard from './components/TransportationRouteCard';
 import MinimizedGPSBanner from './components/MinimizedGPSBanner';
 import { useKeyboardDetection, scrollIntoViewSafe } from './utils/keyboardDetection';
 import safeStorage from './utils/safeStorage';
@@ -1737,6 +1738,14 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 ))}
                               </div>
                             </div>
+                          )}
+                          
+                          {/* Transportation Route Card - Show for routing queries */}
+                          {(msg.routeData || (msg.mapData && msg.mapData.route_data)) && (
+                            <TransportationRouteCard 
+                              routeData={msg.routeData || msg.mapData?.route_data}
+                              darkMode={darkMode}
+                            />
                           )}
                           
                           {/* Map Visualization */}

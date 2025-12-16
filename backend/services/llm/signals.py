@@ -69,6 +69,14 @@ except ImportError:
     ISTANBUL_KNOWLEDGE_AVAILABLE = False
     logging.warning("⚠️ Istanbul knowledge not available")
 
+# Import hybrid transportation intent classifier (Phase 4 - Priority 1)
+try:
+    from ..transportation_intent_classifier import get_transportation_intent_classifier, TransportationIntentClassifier
+    TRANSPORT_INTENT_CLASSIFIER_AVAILABLE = True
+except ImportError:
+    TRANSPORT_INTENT_CLASSIFIER_AVAILABLE = False
+    logging.warning("⚠️ Transportation intent classifier not available")
+
 logger = logging.getLogger(__name__)
 
 
@@ -150,6 +158,17 @@ class SignalDetector:
                 logger.info(f"ℹ️  Istanbul knowledge not available - using core features")
                 self.enable_istanbul_intelligence = False
         
+        # Initialize hybrid transportation intent classifier (Phase 4.1)
+        self.transport_intent_classifier = None
+        self.enable_transport_classifier = TRANSPORT_INTENT_CLASSIFIER_AVAILABLE
+        if self.enable_transport_classifier:
+            try:
+                self.transport_intent_classifier = get_transportation_intent_classifier()
+                logger.info("✅ Hybrid transportation intent classifier enabled")
+            except Exception as e:
+                logger.info(f"ℹ️  Transportation classifier not available - using basic patterns")
+                self.enable_transport_classifier = False
+        
         # Initialize signal patterns
         self._init_signal_patterns()
         
@@ -161,7 +180,8 @@ class SignalDetector:
             f"(fuzzy={self.enable_fuzzy_matching}, "
             f"context={self.enable_context_awareness}, "
             f"embeddings={self.enable_semantic_embeddings}, "
-            f"istanbul={self.enable_istanbul_intelligence})"
+            f"istanbul={self.enable_istanbul_intelligence}, "
+            f"transport_classifier={self.enable_transport_classifier})"
         )
     
     def _default_thresholds(self) -> Dict[str, Dict[str, float]]:
@@ -631,6 +651,37 @@ class SignalDetector:
         
         # Detect each signal in priority order
         for signal_name in signal_order:
+            # SPECIAL CASE: Use hybrid intent classifier for transportation
+            if signal_name == 'needs_transportation' and self.enable_transport_classifier:
+                try:
+                    transport_confidence, debug_info = self.transport_intent_classifier.classify_intent(
+                        query=query,
+                        user_location=user_location
+                    )
+                    
+                    # Threshold: 0.6+ is considered a transportation query
+                    if transport_confidence >= 0.6:
+                        signals[signal_name] = True
+                        confidence_scores[signal_name] = transport_confidence
+                        detection_method[signal_name] = 'hybrid_classifier'
+                        self.stats[f'{signal_name}_hybrid'] += 1
+                        logger.debug(
+                            f"🚇 Hybrid transportation classifier: {transport_confidence:.3f} "
+                            f"(signals: {debug_info.get('signals', [])})"
+                        )
+                        continue
+                    else:
+                        signals[signal_name] = False
+                        confidence_scores[signal_name] = transport_confidence
+                        detection_method[signal_name] = 'hybrid_classifier_negative'
+                        logger.debug(
+                            f"❌ Not transportation query: {transport_confidence:.3f}"
+                        )
+                        continue
+                except Exception as e:
+                    logger.warning(f"Hybrid classifier failed, falling back to basic patterns: {e}")
+                    # Fall through to standard keyword detection
+            
             # Get threshold (may be from A/B test)
             threshold = self._get_threshold(
                 signal_name=signal_name,
