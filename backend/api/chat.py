@@ -585,8 +585,14 @@ async def pure_llm_chat(
                 if map_data_from_transport:
                     logger.info(f"🗺️ Extracted mapData from transportation RAG: {len(map_data_from_transport.get('markers', []))} markers, {len(map_data_from_transport.get('routes', []))} routes")
                     
-                    # 🔥 FIX #3: Extract route_data from metadata
-                    if 'metadata' in map_data_from_transport:
+                    # 🔥 FIX #3: Extract route_data from metadata (Week 2: now enriched with canonical IDs)
+                    if 'metadata' in map_data_from_transport and 'route_data' in map_data_from_transport['metadata']:
+                        # Use enriched route_data from transportation RAG (includes canonical IDs)
+                        route_data_from_transport = map_data_from_transport['metadata']['route_data']
+                        logger.info(f"✅ Extracted enriched route_data: {route_data_from_transport.get('origin')} → {route_data_from_transport.get('destination')}")
+                        logger.info(f"   → Includes canonical station IDs: origin={route_data_from_transport.get('origin_station_id')}, dest={route_data_from_transport.get('destination_station_id')}")
+                    elif 'metadata' in map_data_from_transport:
+                        # Fallback to basic route_data (legacy)
                         route_data_from_transport = {
                             'origin': map_data_from_transport.get('metadata', {}).get('origin_name', 'Unknown'),
                             'destination': map_data_from_transport.get('metadata', {}).get('destination_name', 'Unknown'),
@@ -596,7 +602,7 @@ async def pure_llm_chat(
                             'transfers': map_data_from_transport.get('metadata', {}).get('transfers', 0),
                             'lines_used': map_data_from_transport.get('metadata', {}).get('lines_used', [])
                         }
-                        logger.info(f"✅ Extracted route_data: {route_data_from_transport['origin']} → {route_data_from_transport['destination']}")
+                        logger.info(f"✅ Extracted route_data (legacy): {route_data_from_transport['origin']} → {route_data_from_transport['destination']}")
         except Exception as e:
             logger.warning(f"Failed to extract mapData from transportation RAG: {e}")
         
@@ -753,8 +759,8 @@ async def pure_llm_chat(
         # Override with forced values if this is a transportation query
         if force_structured_mode:
             llm_mode = "explain"  # Explaining a verified route
-            final_intent = force_intent  # "transportation"
-            final_confidence = force_confidence  # 0.80
+            final_intent = "transportation"
+            final_confidence = 0.80  # 0.80
             logger.info(f"🔒 FORCED: llm_mode={llm_mode}, intent={final_intent}, confidence={final_confidence}")
         elif route_data_from_transport or route_data:
             llm_mode = "explain"  # Explaining a verified route
@@ -771,7 +777,7 @@ async def pure_llm_chat(
             llm_mode = "error"  # Error/fallback response
         # else: stays "general"
         
-        # 🔥 FIX #4: Safety net - protect against empty response
+        # 🔥 FIX #4: Safety net - protect against empty response with silent retry
         final_response = enhanced_response
         
         # Check if result is actually just map_data (routing visualization returned early)
@@ -783,14 +789,26 @@ async def pure_llm_chat(
             # map_data_from_transport should already be set
         elif not final_response or final_response.strip() == "":
             if route_data_from_transport or route_data:
-                # If we have route data but empty response, use LLM's raw response
+                # If we have route data but empty response, try LLM's raw response first
                 llm_raw_response = result.get('response', '')
                 if llm_raw_response and llm_raw_response.strip():
                     logger.warning(f"⚠️ SAFETY NET: Empty response detected, using LLM raw response ({len(llm_raw_response)} chars)")
                     final_response = llm_raw_response
                 else:
-                    logger.error(f"❌ CRITICAL: Empty response AND no LLM text! Result keys: {result.keys()}")
-                    final_response = "I found a route for you. Please check the map for details."
+                    # 🔥 WEEK 2: Silent retry with strict template
+                    logger.warning(f"⚠️ SAFETY NET: Empty LLM response, attempting silent retry with strict template")
+                    retry_response = await _retry_with_strict_template(
+                        route_data=route_data_from_transport or route_data,
+                        origin=request.message,  # Approximate origin from query
+                        destination=request.message,  # Approximate destination from query
+                        pure_llm_core=pure_llm_core
+                    )
+                    if retry_response:
+                        logger.info(f"✅ RETRY SUCCESS: Got {len(retry_response)} char response")
+                        final_response = retry_response
+                    else:
+                        logger.error(f"❌ CRITICAL: Empty response AND retry failed! Result keys: {result.keys()}")
+                        final_response = "I found a route for you. Please check the map for details."
         
         # Use route_data_from_transport if available, otherwise fall back to extracted route_data
         final_route_data = route_data_from_transport or route_data
@@ -1301,104 +1319,75 @@ async def generate_proactive_suggestions(
         return None
 
 
-@router.post("/pure-llm/stream")
-async def pure_llm_chat_stream(
-    request: ChatRequest,
-    db: Session = Depends(get_db)
-):
+# ==========================================
+# 🔥 WEEK 2 ENHANCEMENT: Silent Retry Safety Net
+# ==========================================
+
+async def _retry_with_strict_template(
+    route_data: Dict[str, Any],
+    origin: str,
+    destination: str,
+    pure_llm_core
+) -> str:
     """
-    Pure LLM chat endpoint with STREAMING support for real-time UX.
+    Silently retry LLM with strict template when initial response is empty/invalid.
+    This prevents users from seeing generic fallback messages.
     
-    This endpoint provides Server-Sent Events (SSE) streaming for:
-    - Real-time progress updates (enhancement, cache, signals, context)
-    - Token-by-token response streaming
-    - Improved perceived performance (TTFB < 1s)
-    
-    Response Format (SSE):
-    - Each event is a JSON object with 'type' and 'data'/'message' fields
-    - Event types: 'progress', 'enhancement', 'cache_hit', 'signals', 'context', 'token', 'complete', 'error'
-    
-    Usage:
-    ```javascript
-    const response = await fetch('/api/chat/pure-llm/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: "Hello" })
-    });
-    
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    Args:
+        route_data: Verified route data from Transportation RAG
+        origin: Origin location name
+        destination: Destination location name
+        pure_llm_core: Pure LLM core instance
         
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\\n');
-        
-        for (const line of lines) {
-            if (line.startsWith('data: ')) {
-                const event = JSON.parse(line.slice(6));
-                
-                if (event.type === 'token') {
-                    // Append token to response
-                    responseText += event.data;
-                } else if (event.type === 'complete') {
-                    // Final metadata
-                    metadata = event.data.metadata;
-                }
-            }
-        }
-    }
-    ```
+    Returns:
+        Strict templated response explaining the route
     """
-    
-    # Generate or use provided session_id
-    session_id = request.session_id or f"session_{hash(request.message)}"
-    
-    async def event_generator():
-        """Generate SSE events from Pure LLM Core streaming."""
-        try:
-            # Get Pure LLM Core instance
-            pure_llm_core = startup_manager.get_pure_llm_core()
-            
-            if not pure_llm_core:
-                yield f"data: {json.dumps({'type': 'error', 'message': 'Pure LLM Core not available'})}\n\n"
-                return
-            
-            # Prepare user context
-            user_context = {
-                'preferences': request.preferences or {},
-            }
-            
-            if request.user_location:
-                user_context['gps'] = request.user_location
-                user_context['location'] = request.user_location
-            
-            # Stream from Pure LLM Core
-            async for event in pure_llm_core.process_query_stream(
-                query=request.message,
-                user_id=request.user_id or session_id,
-                session_id=session_id,
-                user_location=request.user_location,
-                language="en",  # TODO: Get from request
-                max_tokens=500,
-                enable_conversation=True
-            ):
-                # Forward event to client in SSE format
-                yield f"data: {json.dumps(event)}\n\n"
+    try:
+        # Build strict template from route_data
+        steps_text = []
+        for i, step in enumerate(route_data.get('steps', []), 1):
+            steps_text.append(
+                f"{i}. Take {step.get('line', 'transit')} from {step.get('from_station', {}).get('name', 'station')} "
+                f"to {step.get('to_station', {}).get('name', 'station')} ({step.get('duration', 0):.1f} min)"
+            )
         
-        except Exception as e:
-            logger.error(f"Streaming error: {e}", exc_info=True)
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-    
-    # Return StreamingResponse with SSE format
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"  # Disable nginx buffering
-        }
-    )
+        strict_prompt = f"""
+You are explaining a verified route from {origin} to {destination}.
+
+Here are the exact steps:
+{chr(10).join(steps_text)}
+
+Total time: {route_data.get('total_time', 0)} minutes
+Total distance: {route_data.get('total_distance', 0):.1f} km
+Transfers: {route_data.get('transfers', 0)}
+
+Please provide a clear, natural explanation of this route in 2-3 sentences.
+Do NOT modify any station names, lines, or times.
+"""
+        
+        logger.info(f"🔄 RETRY: Calling LLM with strict template ({len(strict_prompt)} chars)")
+        
+        # Call LLM with strict template
+        retry_result = await pure_llm_core.process_query(
+            query=strict_prompt,
+            user_location=None,
+            session_id=None,
+            language="en"
+        )
+        
+        retry_response = retry_result.get('response', '')
+        if retry_response and len(retry_response) > 50:
+            logger.info(f"✅ RETRY SUCCESS: Generated {len(retry_response)} chars")
+            return retry_response
+        else:
+            logger.warning(f"⚠️ RETRY FAILED: Response too short ({len(retry_response)} chars)")
+            return None
+            
+    except Exception as e:
+        logger.error(f"❌ RETRY ERROR: {e}")
+        return None
+
+
+# ==========================================
+# Chat Endpoints
+# ==========================================

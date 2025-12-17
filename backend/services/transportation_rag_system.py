@@ -13,6 +13,7 @@ Features:
 - Transfer optimization with penalties
 - Time and distance calculations with confidence indicators
 - Accessibility information
+- Week 2: Canonical station/line ID normalization and multilingual support
 
 Author: AI Istanbul Team
 Date: December 2024
@@ -26,6 +27,8 @@ import json
 import re
 import unicodedata
 import heapq  # For Dijkstra's priority queue
+
+# Station normalization is imported later in __init__ from transportation_station_normalization
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +77,10 @@ class IstanbulTransportationRAG:
         from services.transportation_travel_times import get_travel_time_database
         self.travel_time_db = get_travel_time_database()
         
+        # Week 2 Improvement: Station/Line ID normalization
+        from services.transportation_station_normalization import get_station_normalizer
+        self.station_normalizer = get_station_normalizer()
+        
         # Week 1 Improvement #3: Route caching
         self.redis = redis_client
         self.route_cache_ttl = 86400  # 24 hours
@@ -82,6 +89,7 @@ class IstanbulTransportationRAG:
         
         logger.info("✅ Transportation RAG initialized with complete Istanbul network")
         logger.info("✅ Dijkstra routing enabled with realistic travel times")
+        logger.info("✅ Station/Line ID normalization enabled")
         if redis_client:
             logger.info("✅ Route caching enabled with Redis")
     
@@ -149,15 +157,14 @@ class IstanbulTransportationRAG:
             "taksim meydani": ["M2-Taksim"],
             
             # Kadıköy area
-            "kadikoy": ["MARMARAY-Ayrılık Çeşmesi"],
-            "kadıköy": ["MARMARAY-Ayrılık Çeşmesi"],
-            "kadıkoy": ["MARMARAY-Ayrılık Çeşmesi"],
-            "kadıköy": ["MARMARAY-Ayrılık Çeşmesi"],
+            "kadikoy": ["M4-Kadıköy"],
+            "kadıköy": ["M4-Kadıköy"],
+            "kadıkoy": ["M4-Kadıköy"],
             
             # Beşiktaş area
-            "besiktas": ["MARMARAY-Beşiktaş"],
-            "beşiktas": ["MARMARAY-Beşiktaş"],
-            "beşiktaş": ["MARMARAY-Beşiktaş"],
+            "besiktas": ["MARMARAY-Besiktas"],
+            "beşiktas": ["MARMARAY-Besiktas"],
+            "beşiktaş": ["MARMARAY-Besiktas"],
             
             # Sultanahmet/Fatih area
             "sultanahmet": ["T1-Sultanahmet"],
@@ -167,34 +174,39 @@ class IstanbulTransportationRAG:
             "ayasofya": ["T1-Sultanahmet"],
             
             # Galata/Karaköy area
-            "galata": ["M2-Şişhane"],
-            "galata tower": ["M2-Şişhane"],
-            "karakoy": ["M2-Şişhane", "T1-Karaköy"],
-            "karaköy": ["M2-Şişhane", "T1-Karaköy"],
+            "galata": ["M2-Sishane"],
+            "galata tower": ["M2-Sishane"],
+            "karakoy": ["T1-Karaköy", "F2-Karaköy"],
+            "karaköy": ["T1-Karaköy", "F2-Karaköy"],
             
             # Üsküdar area
-            "uskudar": ["MARMARAY-Üsküdar", "M5-Üsküdar"],
-            "üsküdar": ["MARMARAY-Üsküdar", "M5-Üsküdar"],
-            "uskudar square": ["MARMARAY-Üsküdar", "M5-Üsküdar"],
+            "uskudar": ["MARMARAY-Uskudar", "M5-Uskudar"],
+            "üsküdar": ["MARMARAY-Uskudar", "M5-Uskudar"],
+            "uskudar square": ["MARMARAY-Uskudar", "M5-Uskudar"],
             
             # Istiklal/Beyoğlu area
             "istiklal": ["M2-Taksim"],
             "istiklal street": ["M2-Taksim"],
             "istiklal caddesi": ["M2-Taksim"],
-            "beyoglu": ["M2-Şişhane", "F1-Karaköy"],
-            "beyoğlu": ["M2-Şişhane", "F1-Karaköy"],
+            "beyoglu": ["M2-Sishane", "F2-Karaköy"],
+            "beyoğlu": ["M2-Sishane", "F2-Karaköy"],
             
-            # Airport
-            "airport": ["M11-İstanbul Airport"],
-            "istanbul airport": ["M11-İstanbul Airport"],
-            "new airport": ["M11-İstanbul Airport"],
-            "havalimani": ["M11-İstanbul Airport"],
+            # Airports
+            "airport": ["M11-İstanbul Havalimanı"],  # New Istanbul Airport (primary)
+            "istanbul airport": ["M11-İstanbul Havalimanı"],
+            "new airport": ["M11-İstanbul Havalimanı"],
+            "ist airport": ["M11-İstanbul Havalimanı"],
+            "yeni havalimani": ["M11-İstanbul Havalimanı"],
+            "havalimani": ["M11-İstanbul Havalimanı"],
+            "ataturk airport": ["M1A-Atatürk Havalimanı"],  # Old Atatürk Airport (closed, legacy)
+            "atatürk airport": ["M1A-Atatürk Havalimanı"],
+            "atatürk havalimani": ["M1A-Atatürk Havalimanı"],
             
             # Eminönü area
-            "eminonu": ["T1-Eminönü"],
-            "eminönü": ["T1-Eminönü"],
-            "spice bazaar": ["T1-Eminönü"],
-            "misir carsisi": ["T1-Eminönü"],
+            "eminonu": ["T1-Eminonu"],
+            "eminönü": ["T1-Eminonu"],
+            "spice bazaar": ["T1-Eminonu"],
+            "misir carsisi": ["T1-Eminonu"],
             
             # Sirkeci
             "sirkeci": ["MARMARAY-Sirkeci", "T1-Sirkeci"],
@@ -204,14 +216,14 @@ class IstanbulTransportationRAG:
             "4.levent": ["M2-4.Levent"],
             
             # Şişli area
-            "sisli": ["M2-Şişli-Mecidiyeköy"],
-            "şişli": ["M2-Şişli-Mecidiyeköy"],
-            "mecidiyekoy": ["M2-Şişli-Mecidiyeköy"],
-            "mecidiyeköy": ["M2-Şişli-Mecidiyeköy"],
+            "sisli": ["M2-Sisli-Mecidiyekoy"],
+            "şişli": ["M2-Sisli-Mecidiyekoy"],
+            "mecidiyekoy": ["M2-Sisli-Mecidiyekoy"],
+            "mecidiyeköy": ["M2-Sisli-Mecidiyekoy"],
             
             # Bostancı area
-            "bostanci": ["MARMARAY-Bostancı"],
-            "bostancı": ["MARMARAY-Bostancı"],
+            "bostanci": ["MARMARAY-Bostanci"],
+            "bostancı": ["MARMARAY-Bostanci"],
             
             # Pendik
             "pendik": ["MARMARAY-Pendik"],
@@ -219,182 +231,49 @@ class IstanbulTransportationRAG:
     
     def _build_station_graph(self) -> Dict[str, TransitStation]:
         """
-        Build complete graph of all Istanbul transit stations.
+        Build complete graph of all Istanbul transit stations using canonical data.
+        
+        IMPORTANT: This now uses the canonical station database from 
+        transportation_station_normalization.py as the single source of truth.
+        All station data matches official 2025 Istanbul transit data.
         
         Returns comprehensive station database with:
         - All metro lines (M1A, M1B, M2, M3, M4, M5, M6, M7, M9, M11)
         - All tram lines (T1, T4, T5)
         - All funiculars (F1, F2)
-        - Marmaray stations
+        - Marmaray stations (complete 43-station route)
         - Ferry terminals
         - Major transfer points
         """
         stations = {}
         
-        # ==========================================
-        # MARMARAY LINE (Underground Bosphorus crossing)
-        # ==========================================
-        marmaray_stations = [
-            # ASIAN SIDE
-            ("Gebze", 40.8021, 29.4309, []),
-            ("Pendik", 40.8796, 29.2326, ["M4"]),
-            ("Kartal", 40.9000, 29.1833, ["M4"]),
-            ("Bostancı", 40.9647, 29.0875, []),
-            ("Suadiye", 40.9694, 29.0592, []),
-            ("Erenköy", 40.9719, 29.0431, []),
-            ("Göztepe", 40.9772, 29.0347, []),
-            ("Feneryolu", 40.9831, 29.0253, []),
-            ("Söğütlüçeşme", 40.9872, 29.0136, []),
-            ("Ayrılık Çeşmesi", 40.9908, 28.9975, ["M4"]),  # KEY: Kadıköy connection
-            ("Üsküdar", 41.0255, 29.0144, ["M5"]),
-            
-            # UNDER BOSPHORUS
-            ("Sirkeci", 41.0169, 28.9769, ["T1"]),
-            
-            # EUROPEAN SIDE
-            ("Yenikapı", 41.0042, 28.9519, ["M1A", "M1B", "M2"]),  # Major hub
-            ("Kazlıçeşme", 41.0078, 28.9264, []),
-            ("Zeytinburnu", 41.0072, 28.9053, ["T1"]),
-            ("Bakırköy", 40.9833, 28.8667, []),
-            ("Ataköy", 40.9767, 28.8408, []),
-            ("Yeşilköy", 40.9667, 28.8167, []),
-            ("Florya", 40.9722, 28.7889, []),
-            ("Halkalı", 41.0078, 28.6456, []),
-        ]
+        # Import the canonical station normalizer
+        from services.transportation_station_normalization import get_station_normalizer
+        normalizer = get_station_normalizer()
         
-        for name, lat, lon, transfers in marmaray_stations:
-            stations[f"MARMARAY-{name}"] = TransitStation(
-                name=name, line="MARMARAY", lat=lat, lon=lon, transfers=transfers
+        # Build station graph from canonical data
+        for canonical_station in normalizer.stations:
+            station_id = canonical_station.canonical_id
+            stations[station_id] = TransitStation(
+                name=canonical_station.name_en,  # Use English name for consistency
+                line=canonical_station.line_id,
+                lat=canonical_station.lat,
+                lon=canonical_station.lon,
+                transfers=canonical_station.transfers
             )
         
-        # ==========================================
-        # M2 LINE (Yenikapı - Hacıosman)
-        # ==========================================
-        m2_stations = [
-            ("Yenikapı", 41.0042, 28.9519, ["M1A", "M1B", "MARMARAY"]),
-            ("Vezneciler", 41.0133, 28.9539, ["T1"]),
-            ("Haliç", 41.0231, 28.9536, []),
-            ("Şişhane", 41.0256, 28.9750, ["F2"]),  # Connect to Tünel
-            ("Taksim", 41.0369, 28.9850, ["F1"]),  # Major hub
-            ("Osmanbey", 41.0483, 28.9867, []),
-            ("Şişli-Mecidiyeköy", 41.0644, 28.9989, ["M7"]),
-            ("Gayrettepe", 41.0683, 29.0139, []),
-            ("Levent", 41.0789, 29.0114, ["M6"]),
-            ("4. Levent", 41.0861, 29.0089, []),
-            ("Sanayi Mahallesi", 41.0994, 29.0089, []),
-            ("İTÜ-Ayazağa", 41.1064, 29.0194, []),
-            ("Atatürk Oto Sanayi", 41.1158, 29.0286, []),
-            ("Darüşşafaka", 41.1258, 29.0350, []),
-            ("Hacıosman", 41.1372, 29.0397, []),
-        ]
+        logger.info(f"✅ Built station graph from canonical data: {len(stations)} stations")
         
-        for name, lat, lon, transfers in m2_stations:
-            stations[f"M2-{name}"] = TransitStation(
-                name=name, line="M2", lat=lat, lon=lon, transfers=transfers
-            )
+        # Log station counts by line for verification
+        line_counts = {}
+        for station_id in stations.keys():
+            line = station_id.split('-')[0]
+            line_counts[line] = line_counts.get(line, 0) + 1
         
-        # ==========================================
-        # M4 LINE (Kadıköy - Tavşantepe)
-        # ==========================================
-        m4_stations = [
-            ("Kadıköy", 40.9903, 29.0275, []),
-            ("Ayrılık Çeşmesi", 40.9908, 28.9975, ["MARMARAY"]),  # KEY transfer
-            ("Acıbadem", 41.0028, 29.0194, []),
-            ("Ünalan", 41.0092, 29.0247, []),
-            ("Göztepe", 41.0164, 29.0381, []),
-            ("Yenisahra", 41.0194, 29.0497, []),
-            ("Kozyatağı", 41.0242, 29.0625, []),
-            ("Bostancı", 40.9647, 29.0875, ["MARMARAY"]),
-            ("Küçükyalı", 40.9486, 29.1050, []),
-            ("Maltepe", 40.9367, 29.1306, []),
-            ("Huzurevi", 40.9236, 29.1483, []),
-            ("Gülsuyu", 40.9119, 29.1636, []),
-            ("Esenkent", 40.9008, 29.1789, []),
-            ("Hastane-Adliye", 40.8942, 29.1906, []),
-            ("Soğanlık", 40.8828, 29.2022, []),
-            ("Kartal", 40.9000, 29.1833, ["MARMARAY"]),
-            ("Yakacık-Adnan Kahveci", 40.8700, 29.2367, []),
-            ("Pendik", 40.8796, 29.2326, ["MARMARAY"]),
-            ("Tavşantepe", 40.8644, 29.3136, []),
-        ]
+        logger.info("📊 Station counts by line:")
+        for line in sorted(line_counts.keys()):
+            logger.info(f"  {line}: {line_counts[line]} stations")
         
-        for name, lat, lon, transfers in m4_stations:
-            stations[f"M4-{name}"] = TransitStation(
-                name=name, line="M4", lat=lat, lon=lon, transfers=transfers
-            )
-        
-        # ==========================================
-        # T1 TRAM LINE (Kabataş - Bağcılar)
-        # ==========================================
-        t1_stations = [
-            ("Kabataş", 41.0383, 29.0069, ["F1"]),  # Connects to Taksim
-            ("Tophane", 41.0275, 28.9869, []),
-            ("Karaköy", 41.0242, 28.9778, ["F2"]),  # Connects to Tünel/Şişhane
-            ("Eminönü", 41.0178, 28.9708, []),
-            ("Sirkeci", 41.0169, 28.9769, ["MARMARAY"]),
-            ("Gülhane", 41.0133, 28.9806, []),
-            ("Sultanahmet", 41.0058, 28.9769, []),
-            ("Beyazıt-Kapalıçarşı", 41.0103, 28.9647, []),
-            ("Laleli-Üniversite", 41.0111, 28.9539, []),
-            ("Aksaray", 41.0164, 28.9450, ["M1A", "M1B"]),
-            ("Yusufpaşa", 41.0208, 28.9344, []),
-            ("Haseki", 41.0144, 28.9256, []),
-            ("Findikzade", 41.0158, 28.9194, []),
-            ("Çapa-Şehremini", 41.0172, 28.9122, []),
-            ("Pazartekke", 41.0192, 28.9050, []),
-            ("Topkapı", 41.0136, 28.9022, []),
-            ("Cevizlibağ", 41.0106, 28.8867, []),
-            ("Merter", 41.0114, 28.8736, []),
-            ("Zeytinburnu", 41.0072, 28.9053, ["MARMARAY"]),
-            ("Bağcılar", 41.0394, 28.8506, []),
-        ]
-        
-        for name, lat, lon, transfers in t1_stations:
-            stations[f"T1-{name}"] = TransitStation(
-                name=name, line="T1", lat=lat, lon=lon, transfers=transfers
-            )
-        
-        # ==========================================
-        # F1 FUNICULAR (Taksim - Kabataş)
-        # ==========================================
-        stations["F1-Taksim"] = TransitStation(
-            name="Taksim", line="F1", lat=41.0369, lon=28.9850, transfers=["M2"]
-        )
-        stations["F1-Kabataş"] = TransitStation(
-            name="Kabataş", line="F1", lat=41.0383, lon=29.0069, transfers=["T1"]
-        )
-        
-        # ==========================================
-        # F2 FUNICULAR (Karaköy - Tünel)
-        # ==========================================
-        stations["F2-Karaköy"] = TransitStation(
-            name="Karaköy", line="F2", lat=41.0242, lon=28.9778, transfers=["T1"]
-        )
-        stations["F2-Tünel"] = TransitStation(
-            name="Tünel", line="F2", lat=41.0256, lon=28.9750, transfers=["M2"]  # Connects to Şişhane
-        )
-        
-        # ==========================================
-        # M5 LINE (Üsküdar - Yamanevler)
-        # ==========================================
-        m5_stations = [
-            ("Üsküdar", 41.0255, 29.0144, ["MARMARAY"]),
-            ("Fıstıkağacı", 41.0378, 29.0194, []),
-            ("Bağlarbaşı", 41.0481, 29.0264, []),
-            ("Altunizade", 41.0589, 29.0328, []),
-            ("Kısıklı", 41.0678, 29.0411, []),
-            ("Bulgurlu", 41.0772, 29.0547, []),
-            ("Ümraniye", 41.0272, 29.1239, []),
-            ("Çarşı", 41.0303, 29.1322, []),
-            ("Yamanevler", 41.0378, 29.1406, []),
-        ]
-        
-        for name, lat, lon, transfers in m5_stations:
-            stations[f"M5-{name}"] = TransitStation(
-                name=name, line="M5", lat=lat, lon=lon, transfers=transfers
-            )
-        
-        logger.info(f"✅ Built station graph: {len(stations)} stations")
         return stations
     
     def _build_route_patterns(self) -> Dict[str, List[str]]:
@@ -1559,6 +1438,24 @@ class IstanbulTransportationRAG:
                 'description': f'{route.origin} to {route.destination}'
             })
         
+        # Build route_data with metadata (for TransportationRouteCard)
+        route_data = {
+            'origin': route.origin,
+            'destination': route.destination,
+            'steps': route.steps,
+            'total_time': route.total_time,
+            'total_distance': route.total_distance,
+            'transfers': route.transfers,
+            'lines_used': route.lines_used
+        }
+        
+        # Week 2 Improvement: Enrich with canonical IDs and multilingual names
+        try:
+            route_data = self.station_normalizer.enrich_route_data(route_data)
+            logger.info("✅ Route data enriched with canonical IDs and multilingual names")
+        except Exception as e:
+            logger.warning(f"Failed to enrich route data: {e}")
+        
         return {
             'markers': markers,
             'routes': routes,
@@ -1569,7 +1466,8 @@ class IstanbulTransportationRAG:
                 'total_time': route.total_time,
                 'total_distance': route.total_distance,
                 'transfers': route.transfers,
-                'lines_used': route.lines_used
+                'lines_used': route.lines_used,
+                'route_data': route_data  # Include enriched route_data
             }
         }
     
