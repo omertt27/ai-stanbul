@@ -574,35 +574,57 @@ async def pure_llm_chat(
         
         # === EXTRACT MAPDATA FROM TRANSPORTATION RAG ===
         # If transportation RAG was used, extract mapData for route visualization
-        # 🔥 FIX #3: Extract route_data EARLY, before enhancers can interfere
+        # 🔥 DIRECT FIX: Enrich route_data directly from last_route (bypasses metadata passing issue)
         map_data_from_transport = None
         route_data_from_transport = None
         try:
             from services.transportation_rag_system import get_transportation_rag
             transport_rag = get_transportation_rag()
+            
             if transport_rag:
+                # Get map data for visualization
                 map_data_from_transport = transport_rag.get_map_data_for_last_route()
-                if map_data_from_transport:
-                    logger.info(f"🗺️ Extracted mapData from transportation RAG: {len(map_data_from_transport.get('markers', []))} markers, {len(map_data_from_transport.get('routes', []))} routes")
+                
+                # 🔥 DIRECT FIX: Enrich route_data directly from last_route
+                if transport_rag.last_route:
+                    logger.info(f"✅ Found last_route: {transport_rag.last_route.origin} → {transport_rag.last_route.destination}")
                     
-                    # 🔥 FIX #3: Extract route_data from metadata (Week 2: now enriched with canonical IDs)
-                    if 'metadata' in map_data_from_transport and 'route_data' in map_data_from_transport['metadata']:
-                        # Use enriched route_data from transportation RAG (includes canonical IDs)
-                        route_data_from_transport = map_data_from_transport['metadata']['route_data']
-                        logger.info(f"✅ Extracted enriched route_data: {route_data_from_transport.get('origin')} → {route_data_from_transport.get('destination')}")
-                        logger.info(f"   → Includes canonical station IDs: origin={route_data_from_transport.get('origin_station_id')}, dest={route_data_from_transport.get('destination_station_id')}")
-                    elif 'metadata' in map_data_from_transport:
-                        # Fallback to basic route_data (legacy)
+                    # Build basic route_data from last_route
+                    basic_route_data = {
+                        'origin': transport_rag.last_route.origin,
+                        'destination': transport_rag.last_route.destination,
+                        'steps': transport_rag.last_route.steps,
+                        'total_time': transport_rag.last_route.total_time,
+                        'total_distance': transport_rag.last_route.total_distance,
+                        'transfers': transport_rag.last_route.transfers,
+                        'lines_used': transport_rag.last_route.lines_used
+                    }
+                    
+                    # Enrich it directly with canonical IDs
+                    route_data_from_transport = transport_rag.station_normalizer.enrich_route_data(basic_route_data)
+                    
+                    logger.info(f"✅ Directly enriched route_data:")
+                    logger.info(f"   Origin: {route_data_from_transport.get('origin')} (ID: {route_data_from_transport.get('origin_station_id')})")
+                    logger.info(f"   Dest: {route_data_from_transport.get('destination')} (ID: {route_data_from_transport.get('destination_station_id')})")
+                    logger.info(f"   Steps: {len(route_data_from_transport.get('steps', []))}")
+                    
+                    # Also update map_data metadata with enriched route_data
+                    if map_data_from_transport and 'metadata' in map_data_from_transport:
+                        map_data_from_transport['metadata']['route_data'] = route_data_from_transport
+                        logger.info(f"   ✅ Updated map_data.metadata with enriched route_data")
+                else:
+                    logger.warning("⚠️  No last_route available for enrichment")
+                    # Fallback to basic route_data if no last_route
+                    if map_data_from_transport and 'metadata' in map_data_from_transport:
                         route_data_from_transport = {
-                            'origin': map_data_from_transport.get('metadata', {}).get('origin_name', 'Unknown'),
-                            'destination': map_data_from_transport.get('metadata', {}).get('destination_name', 'Unknown'),
-                            'steps': [],  # Will be populated from markers/routes
+                            'origin': 'Unknown',
+                            'destination': 'Unknown',
+                            'steps': [],
                             'total_time': map_data_from_transport.get('metadata', {}).get('total_time', 0),
                             'total_distance': map_data_from_transport.get('metadata', {}).get('total_distance', 0),
                             'transfers': map_data_from_transport.get('metadata', {}).get('transfers', 0),
                             'lines_used': map_data_from_transport.get('metadata', {}).get('lines_used', [])
                         }
-                        logger.info(f"✅ Extracted route_data (legacy): {route_data_from_transport['origin']} → {route_data_from_transport['destination']}")
         except Exception as e:
             logger.warning(f"Failed to extract mapData from transportation RAG: {e}")
         
@@ -1386,8 +1408,3 @@ Do NOT modify any station names, lines, or times.
     except Exception as e:
         logger.error(f"❌ RETRY ERROR: {e}")
         return None
-
-
-# ==========================================
-# Chat Endpoints
-# ==========================================

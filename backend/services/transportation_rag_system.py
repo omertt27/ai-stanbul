@@ -1306,13 +1306,13 @@ class IstanbulTransportationRAG:
 **Metro Lines:**
 - M1A/M1B: Airport line (Atatürk Airport - Yenikapı/Kirazlı)
 - M2: Yenikapı - Hacıosman (serves Taksim, Şişli, Levent)
-- M3: Kirazlı - Olimpiyat
+- M3: Kirazlı - Olimpiyat (connects to M9 at Olimpiyat)
 - M4: Kadıköy - Tavşantepe (Asian side main line)
 - M5: Üsküdar - Yamanevler (Asian side)
 - M6: Levent - Hisarüstü
-- M7: Mecidiyeköy - Mahmutbey
-- M9: İkitelli - Olimpiyat Atatürk Airport
-- M11: Kağıthane - Gayrettepe
+- M7: Mecidiyeköy - Mahmutbey (serves the European side business district)
+- M9: Olimpiyat - İkitelli Sanayi (2 stations, serves İkitelli industrial zone, connects to M3 at Olimpiyat)
+- M11: Gayrettepe - Istanbul Airport (connects to M2 at Gayrettepe, serves new Istanbul Airport)
 
 **Tram Lines:**
 - T1: Kabataş - Bağcılar (serves Sultanahmet, Eminönü, Old City)
@@ -1344,6 +1344,14 @@ class IstanbulTransportationRAG:
 4. **Taksim**: M2 + F1
 5. **Kabataş**: T1 + F1
 6. **Şişhane**: M2 + F2 (Tünel)
+7. **Mecidiyeköy**: M2 + M7 (major European side transfer)
+8. **Gayrettepe**: M2 + M11 (transfer to Airport line)
+9. **Olimpiyat**: M3 + M9 (transfer to İkitelli industrial zone)
+
+**Important Routes:**
+- **Mecidiyeköy to Olimpiyat**: Take M2 from Mecidiyeköy (or M7 to M2), then transfer at Kirazlı to M3 towards Olimpiyat. From Olimpiyat, M9 serves İkitelli Sanayi.
+- **To Istanbul Airport**: Take M2 to Gayrettepe, then M11 to Istanbul Airport
+- **European to Asian side**: Use Marmaray at Yenikapı or take ferries from Kabataş/Karaköy/Eminönü
 """
 
     def get_map_data_for_last_route(self) -> Optional[Dict[str, Any]]:
@@ -1453,10 +1461,11 @@ class IstanbulTransportationRAG:
         try:
             route_data = self.station_normalizer.enrich_route_data(route_data)
             logger.info("✅ Route data enriched with canonical IDs and multilingual names")
+            logger.info(f"   Origin ID: {route_data.get('origin_station_id')}, Dest ID: {route_data.get('destination_station_id')}")
         except Exception as e:
             logger.warning(f"Failed to enrich route data: {e}")
         
-        return {
+        map_data_result = {
             'markers': markers,
             'routes': routes,
             'bounds': {
@@ -1470,6 +1479,14 @@ class IstanbulTransportationRAG:
                 'route_data': route_data  # Include enriched route_data
             }
         }
+        
+        # 🔍 DEBUG: Log what we're returning
+        logger.info(f"🗺️ get_map_data_for_last_route() returning map_data with metadata keys: {list(map_data_result['metadata'].keys())}")
+        logger.info(f"   metadata.route_data exists: {'route_data' in map_data_result['metadata']}")
+        if 'route_data' in map_data_result['metadata']:
+            logger.info(f"   metadata.route_data has {len(map_data_result['metadata']['route_data'])} keys")
+        
+        return map_data_result
     
     def find_nearest_station(self, lat: float, lon: float, max_distance_km: float = 2.0) -> Optional[str]:
         """
