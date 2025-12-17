@@ -756,7 +756,10 @@ export const fetchUnifiedChatV2 = async (query, options = {}) => {
       metadata: result.data.metadata,
       context_used: result.data.context_used || [],
       response_time: result.responseTime,
-      map_data: result.data.map_data // Include map data from backend
+      map_data: result.data.map_data, // Include map data from backend
+      route_data: result.data.route_data, // 🔥 WEEK 2: Include route_data for TransportationRouteCard
+      llm_mode: result.data.llm_mode, // 🔥 WEEK 2: Include llm_mode for conditional rendering
+      intent: result.data.intent // 🔥 WEEK 2: Include intent classification
     };
   } else {
     // Use original backend

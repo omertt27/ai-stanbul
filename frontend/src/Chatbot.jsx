@@ -1355,6 +1355,9 @@ function Chatbot({ userLocation: propUserLocation }) {
         type: chatResponse.intent || 'general',
         confidence: chatResponse.confidence,
         mapData: chatResponse.map_data, // Include map data if present
+        routeData: chatResponse.route_data, // 🔥 WEEK 2: Include route_data for TransportationRouteCard
+        llmMode: chatResponse.llm_mode, // 🔥 WEEK 2: Include llm_mode for conditional rendering
+        intent: chatResponse.intent, // 🔥 WEEK 2: Include intent classification
         method: chatResponse.method, // Include LLM method (cached/fresh)
         cached: chatResponse.cached,
         responseTime: chatResponse.response_time,
@@ -1709,9 +1712,33 @@ function Chatbot({ userLocation: propUserLocation }) {
                         
                         {/* Message content - NO BUBBLE, full width */}
                         <div className="flex-1 min-w-0">
-                          <div className={`text-xs font-semibold mb-2 transition-colors duration-200 ${
-                            darkMode ? 'text-gray-300' : 'text-gray-600'
-                          }`}>KAM Assistant</div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className={`text-xs font-semibold transition-colors duration-200 ${
+                              darkMode ? 'text-gray-300' : 'text-gray-600'
+                            }`}>KAM Assistant</div>
+                            
+                            {/* 🔥 WEEK 2: LLM Mode Indicator */}
+                            {msg.llmMode && msg.llmMode !== 'general' && (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                msg.llmMode === 'explain' 
+                                  ? darkMode ? 'bg-blue-900/50 text-blue-200' : 'bg-blue-100 text-blue-700'
+                                  : msg.llmMode === 'clarify'
+                                  ? darkMode ? 'bg-yellow-900/50 text-yellow-200' : 'bg-yellow-100 text-yellow-700'
+                                  : darkMode ? 'bg-red-900/50 text-red-200' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {msg.llmMode === 'explain' ? '🚇 Route' : msg.llmMode === 'clarify' ? '❓ Clarifying' : '⚠️ Error'}
+                              </span>
+                            )}
+                            
+                            {/* Cache indicator */}
+                            {msg.cached && (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                darkMode ? 'bg-green-900/50 text-green-200' : 'bg-green-100 text-green-700'
+                              }`}>
+                                ⚡ Cached
+                              </span>
+                            )}
+                          </div>
                           
                           {/* NO background, just text - ChatGPT style */}
                           <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 ${

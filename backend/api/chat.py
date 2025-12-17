@@ -231,16 +231,15 @@ async def pure_llm_chat(
                 # If clarification is needed, return early with question
                 if resolved_context.get('needs_clarification') and resolved_context.get('clarification_question'):
                     logger.info(f"   ⚠️ Clarification needed: {resolved_context['clarification_question']}")
-                    return ChatResponse(
-                        response=resolved_context['clarification_question'],
-                        intent="clarification",
-                        confidence=resolved_context.get('confidence', 0.8),
-                        method="context_clarification",
-                        suggestions=[],
-                        response_time=0.1,
-                        session_id=session_id
-                        llm_mode="general",  # Default mode
-                    )
+                    return ChatResponse(                    response=resolved_context['clarification_question'],
+                    intent="clarification",
+                    confidence=resolved_context.get('confidence', 0.8),
+                    method="context_clarification",
+                    suggestions=[],
+                    response_time=0.1,
+                    session_id=session_id,
+                    llm_mode="general",  # Default mode
+                )
         else:
             logger.warning("⚠️ Pure LLM Core not available, skipping context resolution")
             
@@ -504,8 +503,24 @@ async def pure_llm_chat(
             logger.warning(f"RAG retrieval failed: {e}")
             rag_context = None
         
+        # 🔥 FIX #1: GATE - Quick check if this is a transportation query
+        # Do NOT skip Pure LLM (it generates the response), but flag for structured mode
+        force_structured_mode = False
+        force_intent = None
+        force_confidence = None
+        
+        # Quick pattern check for transportation keywords
+        query_lower = request.message.lower()
+        transportation_keywords = ['how do i get', 'how can i get', 'how to get', 'route to', 'way to', 
+                                   'from', 'directions to', 'navigate to', 'take me to', 'go to']
+        if any(keyword in query_lower for keyword in transportation_keywords):
+            logger.info("🚦 GATE: Transportation query detected - forcing structured mode")
+            force_structured_mode = True
+            force_intent = "transportation"
+            force_confidence = 0.80  # High confidence from pattern match
+        
         # Process query through Pure LLM
-        logger.info("🚀 Processing query through Pure LLM")
+        logger.info("🚀 Processing query through Pure LLM" + (" [STRUCTURED MODE]" if force_structured_mode else ""))
         result = await pure_llm_core.process_query(
             query=request.message,
             user_location=request.user_location,
@@ -513,11 +528,55 @@ async def pure_llm_chat(
             language=request.language or "en"
         )
         
+        # 🔥 CRITICAL FIX: Handle early return of map_data from routing visualization
+        # The Pure LLM Core sometimes returns raw map_data instead of proper result dict
+        if isinstance(result, dict) and 'type' in result and result.get('type') in ['route', 'marker'] and 'response' not in result:
+            logger.warning(f"⚠️ EARLY ROUTING RETURN: Pure LLM returned map_data instead of result dict, wrapping it")
+            # Wrap map_data in a proper result structure
+            map_data_raw = result
+            
+            # Generate a simple explanation based on the route data
+            route_info = map_data_raw.get('route_data', {})
+            origin = map_data_raw.get('origin_name', 'your location')
+            dest = map_data_raw.get('destination_name', 'your destination')
+            duration = route_info.get('duration_min', 0)
+            distance = route_info.get('distance_km', 0)
+            transfers = route_info.get('transfers', 0)
+            lines = route_info.get('lines', [])
+            
+            # Create a simple response
+            simple_response = f"To get from {origin} to {dest}:\n\n"
+            if lines:
+                simple_response += f"Take the {', '.join(lines[:3])} line{'s' if len(lines) > 1 else ''}.\n"
+            simple_response += f"Approximate travel time: {duration} minutes\n"
+            simple_response += f"Distance: {distance:.1f} km\n"
+            if transfers > 0:
+                simple_response += f"{transfers} transfer{'s' if transfers > 1 else ''} required\n"
+            
+            result = {
+                "status": "success",
+                "response": simple_response,
+                "map_data": map_data_raw,
+                "signals": {"needs_transportation": True},
+                "intent": "transportation",
+                "confidence": 0.85,
+                "metadata": {
+                    "source": "routing_early_return",
+                    "processing_time": 0
+                }
+            }
+            # Force structured mode since this is clearly a transportation query
+            force_structured_mode = True
+            force_intent = "transportation"
+            force_confidence = 0.85
+        
         response_time = time.time() - start_time
         
         # === EXTRACT MAPDATA FROM TRANSPORTATION RAG ===
         # If transportation RAG was used, extract mapData for route visualization
+        # 🔥 FIX #3: Extract route_data EARLY, before enhancers can interfere
         map_data_from_transport = None
+        route_data_from_transport = None
         try:
             from services.transportation_rag_system import get_transportation_rag
             transport_rag = get_transportation_rag()
@@ -525,6 +584,19 @@ async def pure_llm_chat(
                 map_data_from_transport = transport_rag.get_map_data_for_last_route()
                 if map_data_from_transport:
                     logger.info(f"🗺️ Extracted mapData from transportation RAG: {len(map_data_from_transport.get('markers', []))} markers, {len(map_data_from_transport.get('routes', []))} routes")
+                    
+                    # 🔥 FIX #3: Extract route_data from metadata
+                    if 'metadata' in map_data_from_transport:
+                        route_data_from_transport = {
+                            'origin': map_data_from_transport.get('metadata', {}).get('origin_name', 'Unknown'),
+                            'destination': map_data_from_transport.get('metadata', {}).get('destination_name', 'Unknown'),
+                            'steps': [],  # Will be populated from markers/routes
+                            'total_time': map_data_from_transport.get('metadata', {}).get('total_time', 0),
+                            'total_distance': map_data_from_transport.get('metadata', {}).get('total_distance', 0),
+                            'transfers': map_data_from_transport.get('metadata', {}).get('transfers', 0),
+                            'lines_used': map_data_from_transport.get('metadata', {}).get('lines_used', [])
+                        }
+                        logger.info(f"✅ Extracted route_data: {route_data_from_transport['origin']} → {route_data_from_transport['destination']}")
         except Exception as e:
             logger.warning(f"Failed to extract mapData from transportation RAG: {e}")
         
@@ -673,25 +745,65 @@ async def pure_llm_chat(
             interaction_id = None
         
         # Determine LLM mode (Week 1 Improvement #2)
+        # 🔥 FIX #2: Force llm_mode explicitly for routes (BEFORE enhancers)
         llm_mode = "general"
+        final_intent = result.get('intent')
+        final_confidence = result.get('confidence')
         
-        if route_data and result.get('signals', {}).get('needs_transportation'):
+        # Override with forced values if this is a transportation query
+        if force_structured_mode:
             llm_mode = "explain"  # Explaining a verified route
+            final_intent = force_intent  # "transportation"
+            final_confidence = force_confidence  # 0.80
+            logger.info(f"🔒 FORCED: llm_mode={llm_mode}, intent={final_intent}, confidence={final_confidence}")
+        elif route_data_from_transport or route_data:
+            llm_mode = "explain"  # Explaining a verified route
+            final_intent = "transportation"
+            final_confidence = 0.85
+            logger.info(f"🔒 ROUTE DETECTED: llm_mode={llm_mode}, intent={final_intent}")
+        elif result.get('signals', {}).get('needs_transportation'):
+            llm_mode = "explain"  # Explaining a verified route
+            final_intent = "transportation"
+            final_confidence = 0.70
         elif result.get('requires_clarification'):
             llm_mode = "clarify"  # Asking for more info
         elif result.get('metadata', {}).get('error') or result.get('metadata', {}).get('degraded_mode'):
             llm_mode = "error"  # Error/fallback response
         # else: stays "general"
         
+        # 🔥 FIX #4: Safety net - protect against empty response
+        final_response = enhanced_response
+        
+        # Check if result is actually just map_data (routing visualization returned early)
+        if isinstance(result, dict) and 'type' in result and result.get('type') in ['route', 'marker']:
+            logger.warning(f"⚠️ ROUTING EARLY RETURN: Result is map_data, not full response object")
+            # Result IS the map_data, we need to construct a response
+            llm_raw_response = result.get('description', '') or "Here's the route for you."
+            final_response = llm_raw_response
+            # map_data_from_transport should already be set
+        elif not final_response or final_response.strip() == "":
+            if route_data_from_transport or route_data:
+                # If we have route data but empty response, use LLM's raw response
+                llm_raw_response = result.get('response', '')
+                if llm_raw_response and llm_raw_response.strip():
+                    logger.warning(f"⚠️ SAFETY NET: Empty response detected, using LLM raw response ({len(llm_raw_response)} chars)")
+                    final_response = llm_raw_response
+                else:
+                    logger.error(f"❌ CRITICAL: Empty response AND no LLM text! Result keys: {result.keys()}")
+                    final_response = "I found a route for you. Please check the map for details."
+        
+        # Use route_data_from_transport if available, otherwise fall back to extracted route_data
+        final_route_data = route_data_from_transport or route_data
+        
         return ChatResponse(
-            response=enhanced_response,
+            response=final_response,  # 🔥 FIX #4: Use safety-netted response
             session_id=result.get('session_id', request.session_id or 'new'),
-            llm_mode=llm_mode,  # Week 1 Improvement #2
-            intent=result.get('intent'),
-            confidence=result.get('confidence'),
+            llm_mode=llm_mode,  # 🔥 FIX #2: Forced mode
+            intent=final_intent,  # 🔥 FIX #2: Forced intent
+            confidence=final_confidence,  # 🔥 FIX #2: Forced confidence
             suggestions=final_suggestions,
             map_data=map_data_from_transport or result.get('map_data'),  # Use transportation RAG mapData if available
-            route_data=route_data,  # Extracted route data for TransportationRouteCard
+            route_data=final_route_data,  # 🔥 FIX #3: Early-extracted route data
             navigation_active=result.get('navigation_active', False),
             navigation_data=result.get('navigation_data'),
             interaction_id=interaction_id  # Include for frontend feedback tracking
