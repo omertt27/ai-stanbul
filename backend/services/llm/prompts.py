@@ -330,6 +330,47 @@ Beginnen Sie Ihre Antwort sofort auf DEUTSCH, ohne diese Anweisungen zu wiederho
                 prompt_parts.append("Simply present the verified route directions clearly and concisely.")
                 prompt_parts.append("Keep the emoji icons (🚇, 🔄, ⏱️) and step numbers from the verified route.")
         
+        # 6.6 IMMUTABLE ROUTE DATA: Explicit constraint when route_data exists (Week 1 Improvement #1)
+        if context.get('route_data'):
+            route_data = context['route_data']
+            prompt_parts.append("\n" + "="*70)
+            prompt_parts.append("⚠️  CRITICAL: VERIFIED ROUTE DATA (IMMUTABLE)")
+            prompt_parts.append("="*70)
+            prompt_parts.append("\nThe following route has been VERIFIED by our routing engine.")
+            prompt_parts.append("\n🚫 YOU MUST NOT:")
+            prompt_parts.append("  - Modify any steps or their order")
+            prompt_parts.append("  - Add or remove transit lines")
+            prompt_parts.append("  - Change transfer points")
+            prompt_parts.append("  - Alter travel times")
+            prompt_parts.append("  - Suggest 'better' alternatives")
+            prompt_parts.append("\n✅ YOU SHOULD:")
+            prompt_parts.append("  - Explain the route clearly")
+            prompt_parts.append("  - Add helpful context (exits, landmarks)")
+            prompt_parts.append("  - Mention accessibility info if relevant")
+            prompt_parts.append("  - Provide tips for first-time users")
+            prompt_parts.append("\nIf the user asks for alternatives, respond:")
+            prompt_parts.append('"Would you like me to find an alternative route? I can recalculate."')
+            prompt_parts.append("\nVERIFIED ROUTE DATA:")
+            prompt_parts.append(f"Origin: {route_data.get('origin', 'N/A')}")
+            prompt_parts.append(f"Destination: {route_data.get('destination', 'N/A')}")
+            prompt_parts.append(f"Total Time: {route_data.get('total_time', 0)} minutes")
+            prompt_parts.append(f"Transfers: {route_data.get('transfers', 0)}")
+            prompt_parts.append(f"Lines: {', '.join(route_data.get('lines_used', []))}")
+            
+            steps = route_data.get('steps', [])
+            if steps:
+                prompt_parts.append("\nSteps:")
+                for i, step in enumerate(steps, 1):
+                    step_type = step.get('type', 'unknown')
+                    if step_type == 'transit':
+                        prompt_parts.append(f"  {i}. Take {step.get('line', 'N/A')} from {step.get('from_station', 'N/A')} to {step.get('to_station', 'N/A')}")
+                    elif step_type == 'transfer':
+                        prompt_parts.append(f"  {i}. Transfer at {step.get('from_station', 'N/A')}")
+                    else:
+                        prompt_parts.append(f"  {i}. {step.get('instruction', 'Continue')}")
+            
+            prompt_parts.append("="*70)
+        
         # DISABLED: Intent classification, low-confidence, and multi-intent prompts cause template artifacts
         # These features are currently disabled to keep responses clean and focused
         

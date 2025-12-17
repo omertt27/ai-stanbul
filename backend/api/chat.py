@@ -121,6 +121,7 @@ class ChatResponse(BaseModel):
     """Response model for chat endpoints"""
     response: str = Field(..., description="AI response")
     session_id: str = Field(..., description="Session identifier")
+    llm_mode: str = Field(default="general", description="Mode: 'explain' | 'clarify' | 'general' | 'error'")
     intent: Optional[str] = Field(None, description="Detected intent")
     confidence: Optional[float] = Field(None, description="Confidence score")
     suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
@@ -238,6 +239,7 @@ async def pure_llm_chat(
                         suggestions=[],
                         response_time=0.1,
                         session_id=session_id
+                        llm_mode="general",  # Default mode
                     )
         else:
             logger.warning("⚠️ Pure LLM Core not available, skipping context resolution")
@@ -297,6 +299,7 @@ async def pure_llm_chat(
                 return ChatResponse(
                     response=gems_result.get('message', 'Sorry, something went wrong with hidden gems.'),
                     session_id=request.session_id or 'new',
+                    llm_mode="general",  # Default mode
                     intent='hidden_gems',
                     confidence=0.8,
                     suggestions=["Show me restaurants", "What are popular attractions?"]
@@ -316,6 +319,7 @@ async def pure_llm_chat(
                 return ChatResponse(
                     response=enhanced_msg,
                     session_id=request.session_id or 'new',
+                    llm_mode="general",  # Default mode
                     intent='hidden_gems_navigation',
                     confidence=1.0,
                     suggestions=["What's next?", "Stop navigation", "Show nearby hidden gems"],
@@ -339,6 +343,7 @@ async def pure_llm_chat(
             return ChatResponse(
                 response=enhanced_response,
                 session_id=request.session_id or 'new',
+                llm_mode="general",  # Default mode
                 intent='hidden_gems',
                 confidence=1.0,
                 suggestions=_get_hidden_gems_suggestions(gems),
@@ -375,6 +380,7 @@ async def pure_llm_chat(
                 return ChatResponse(
                     response=enhanced_msg,
                     session_id=request.session_id or 'new',
+                    llm_mode="general",  # Default mode
                     intent='gps_navigation',
                     confidence=1.0,
                     suggestions=_get_navigation_suggestions(nav_result),
@@ -408,6 +414,7 @@ async def pure_llm_chat(
                         return ChatResponse(
                             response=route_result.get('message', ''),
                             session_id=request.session_id or 'new',
+                            llm_mode="general",  # Default mode
                             intent='route_planning',
                             confidence=1.0,
                             suggestions=[
@@ -432,6 +439,7 @@ async def pure_llm_chat(
                         return ChatResponse(
                             response=enhanced_msg,
                             session_id=request.session_id or 'new',
+                            llm_mode="general",  # Default mode
                             intent='route_planning',
                             confidence=route_result.get('confidence', 1.0),
                             suggestions=route_result.get('suggestions', []),
@@ -664,9 +672,21 @@ async def pure_llm_chat(
             logger.warning(f"Failed to log interaction for training: {e}")
             interaction_id = None
         
+        # Determine LLM mode (Week 1 Improvement #2)
+        llm_mode = "general"
+        
+        if route_data and result.get('signals', {}).get('needs_transportation'):
+            llm_mode = "explain"  # Explaining a verified route
+        elif result.get('requires_clarification'):
+            llm_mode = "clarify"  # Asking for more info
+        elif result.get('metadata', {}).get('error') or result.get('metadata', {}).get('degraded_mode'):
+            llm_mode = "error"  # Error/fallback response
+        # else: stays "general"
+        
         return ChatResponse(
             response=enhanced_response,
             session_id=result.get('session_id', request.session_id or 'new'),
+            llm_mode=llm_mode,  # Week 1 Improvement #2
             intent=result.get('intent'),
             confidence=result.get('confidence'),
             suggestions=final_suggestions,
@@ -769,6 +789,7 @@ async def chat(
             return ChatResponse(
                 response=nav_result.get('message', ''),
                 session_id=request.session_id or 'new',
+                llm_mode="general",  # Default mode
                 intent='gps_navigation',
                 confidence=1.0,
                 suggestions=_get_navigation_suggestions(nav_result),
@@ -807,6 +828,7 @@ async def chat(
         return ChatResponse(
             response=response_text,
             session_id=request.session_id or "new",
+            llm_mode="general",  # Default mode
             intent="error_fallback",
             confidence=0.0,
             suggestions=[
