@@ -99,7 +99,7 @@ class IstanbulTransportationRAG:
         
         Handles:
         - Case insensitivity
-        - Accent removal (ı→i, ö→o, ü→u, ş→s, ğ→g, ç→c)
+        - Accent removal (ı→i, ö→o, ü→u, ş→s, ğ→g, ç→c, İ→i)
         - Common suffixes (square, station, metro, tram, etc.)
         - Extra whitespace
         
@@ -107,22 +107,31 @@ class IstanbulTransportationRAG:
             "Taksim Square" → "taksim"
             "Kadıköy" → "kadikoy"
             "Beşiktaş Metro" → "besiktas"
+            "İkitelli" → "ikitelli"
         """
-        # Convert to lowercase
-        name = name.lower().strip()
-        
-        # Remove Turkish accents/special characters
+        # First, handle Turkish character mapping BEFORE lowercasing
+        # This is critical because İ (capital i-dot) lowercase in Turkish is i̇ (dotted i), not i
         turkish_char_map = {
-            'ı': 'i', 'İ': 'i',
-            'ö': 'o', 'Ö': 'o',
-            'ü': 'u', 'Ü': 'u',
-            'ş': 's', 'Ş': 's',
-            'ğ': 'g', 'Ğ': 'g',
-            'ç': 'c', 'Ç': 'c'
+            'İ': 'i',  # Capital İ → i (MUST be done before lowercase!)
+            'I': 'i',  # Capital I → i
+            'ı': 'i',  # Lowercase ı → i
+            'Ö': 'o',
+            'ö': 'o',
+            'Ü': 'u',
+            'ü': 'u',
+            'Ş': 's',
+            'ş': 's',
+            'Ğ': 'g',
+            'ğ': 'g',
+            'Ç': 'c',
+            'ç': 'c'
         }
         
         for turkish_char, latin_char in turkish_char_map.items():
             name = name.replace(turkish_char, latin_char)
+        
+        # Now convert to lowercase (after Turkish char mapping)
+        name = name.lower().strip()
         
         # Remove common suffixes
         suffixes_to_remove = [
@@ -162,9 +171,9 @@ class IstanbulTransportationRAG:
             "kadıkoy": ["M4-Kadıköy"],
             
             # Beşiktaş area
-            "besiktas": ["MARMARAY-Besiktas"],
-            "beşiktas": ["MARMARAY-Besiktas"],
-            "beşiktaş": ["MARMARAY-Besiktas"],
+            "besiktas": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
+            "beşiktas": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
+            "beşiktaş": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
             
             # Sultanahmet/Fatih area
             "sultanahmet": ["T1-Sultanahmet"],
@@ -174,22 +183,22 @@ class IstanbulTransportationRAG:
             "ayasofya": ["T1-Sultanahmet"],
             
             # Galata/Karaköy area
-            "galata": ["M2-Sishane"],
-            "galata tower": ["M2-Sishane"],
-            "karakoy": ["T1-Karaköy", "F2-Karaköy"],
-            "karaköy": ["T1-Karaköy", "F2-Karaköy"],
+            "galata": ["T1-Karaköy"],  # Galata tower is near Karaköy
+            "galata tower": ["T1-Karaköy"],
+            "karakoy": ["T1-Karaköy", "T4-Karaköy", "FERRY-Karaköy"],
+            "karaköy": ["T1-Karaköy", "T4-Karaköy", "FERRY-Karaköy"],
             
             # Üsküdar area
-            "uskudar": ["MARMARAY-Uskudar", "M5-Uskudar"],
-            "üsküdar": ["MARMARAY-Uskudar", "M5-Uskudar"],
-            "uskudar square": ["MARMARAY-Uskudar", "M5-Uskudar"],
+            "uskudar": ["M5-Üsküdar", "MARMARAY-Üsküdar", "FERRY-Üsküdar"],
+            "üsküdar": ["M5-Üsküdar", "MARMARAY-Üsküdar", "FERRY-Üsküdar"],
+            "uskudar square": ["M5-Üsküdar", "MARMARAY-Üsküdar", "FERRY-Üsküdar"],
             
             # Istiklal/Beyoğlu area
             "istiklal": ["M2-Taksim"],
             "istiklal street": ["M2-Taksim"],
             "istiklal caddesi": ["M2-Taksim"],
-            "beyoglu": ["M2-Sishane", "F2-Karaköy"],
-            "beyoğlu": ["M2-Sishane", "F2-Karaköy"],
+            "beyoglu": ["M2-Taksim", "T1-Karaköy"],
+            "beyoğlu": ["M2-Taksim", "T1-Karaköy"],
             
             # Airports
             "airport": ["M11-İstanbul Havalimanı"],  # New Istanbul Airport (primary)
@@ -203,27 +212,36 @@ class IstanbulTransportationRAG:
             "atatürk havalimani": ["M1A-Atatürk Havalimanı"],
             
             # Eminönü area
-            "eminonu": ["T1-Eminonu"],
-            "eminönü": ["T1-Eminonu"],
-            "spice bazaar": ["T1-Eminonu"],
-            "misir carsisi": ["T1-Eminonu"],
+            "eminonu": ["T1-Eminönü", "T4-Eminönü", "FERRY-Eminönü"],
+            "eminönü": ["T1-Eminönü", "T4-Eminönü", "FERRY-Eminönü"],
+            "spice bazaar": ["T1-Eminönü"],
+            "misir carsisi": ["T1-Eminönü"],
             
             # Sirkeci
             "sirkeci": ["MARMARAY-Sirkeci", "T1-Sirkeci"],
             
             # Levent area
-            "levent": ["M2-Levent"],
-            "4.levent": ["M2-4.Levent"],
+            "levent": ["M2-Levent", "M6-Levent"],
+            "4.levent": ["M2-4. Levent"],
+            "4 levent": ["M2-4. Levent"],
             
-            # Şişli area
-            "sisli": ["M2-Sisli-Mecidiyekoy"],
-            "şişli": ["M2-Sisli-Mecidiyekoy"],
-            "mecidiyekoy": ["M2-Sisli-Mecidiyekoy"],
-            "mecidiyeköy": ["M2-Sisli-Mecidiyekoy"],
+            # Şişli/Mecidiyeköy area - Updated to match canonical IDs
+            "sisli": ["M2-Şişli-Mecidiyeköy"],
+            "şişli": ["M2-Şişli-Mecidiyeköy"],
+            "mecidiyekoy": ["M7-Mecidiyeköy", "M2-Şişli-Mecidiyeköy"],
+            "mecidiyeköy": ["M7-Mecidiyeköy", "M2-Şişli-Mecidiyeköy"],
+            
+            # Olimpiyat/İkitelli area (M3/M9 transfer point)
+            "olimpiyat": ["M3-Olimpiyat", "M9-Olimpiyat"],
+            "ikitelli": ["M3-İkitelli Sanayi", "M9-İkitelli Sanayi"],
+            "İkitelli": ["M3-İkitelli Sanayi", "M9-İkitelli Sanayi"],
+            "ikitelli sanayi": ["M3-İkitelli Sanayi", "M9-İkitelli Sanayi"],
+            "İkitelli sanayi": ["M3-İkitelli Sanayi", "M9-İkitelli Sanayi"],
+            "İkitelli Sanayi": ["M3-İkitelli Sanayi", "M9-İkitelli Sanayi"],
             
             # Bostancı area
-            "bostanci": ["MARMARAY-Bostanci"],
-            "bostancı": ["MARMARAY-Bostanci"],
+            "bostanci": ["M4-Bostancı", "MARMARAY-Bostancı"],
+            "bostancı": ["M4-Bostancı", "MARMARAY-Bostancı"],
             
             # Pendik
             "pendik": ["MARMARAY-Pendik"],
@@ -321,21 +339,23 @@ class IstanbulTransportationRAG:
             "ataşehir": ["M4-Ünalan", "M4-Kozyatağı"],
             
             # EUROPEAN SIDE
-            "taksim": ["M2-Taksim", "F1-Taksim"],
-            "beyoğlu": ["M2-Taksim", "M2-Şişhane", "F2-Tünel"],
+            "taksim": ["M2-Taksim"],
+            "beyoğlu": ["M2-Taksim", "T1-Karaköy"],
             "sultanahmet": ["T1-Sultanahmet"],
-            "eminönü": ["T1-Eminönü", "MARMARAY-Sirkeci"],
-            "karaköy": ["T1-Karaköy", "F2-Karaköy"],
-            "kabataş": ["T1-Kabataş", "F1-Kabataş"],
-            "beşiktaş": ["T1-Kabataş", "F1-Kabataş"],  # Near Kabataş
+            "eminönü": ["T1-Eminönü", "T4-Eminönü", "FERRY-Eminönü", "MARMARAY-Sirkeci"],
+            "karaköy": ["T1-Karaköy", "T4-Karaköy", "FERRY-Karaköy"],
+            "kabataş": ["T1-Kabataş", "T4-Kabataş", "FERRY-Kabataş"],
+            "beşiktaş": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
             "şişli": ["M2-Şişli-Mecidiyeköy"],
             "levent": ["M2-Levent", "M2-4. Levent", "M6-Levent"],
             "mecidiyeköy": ["M2-Şişli-Mecidiyeköy", "M7-Mecidiyeköy"],
             "zeytinburnu": ["T1-Zeytinburnu", "MARMARAY-Zeytinburnu"],
             "bakırköy": ["MARMARAY-Bakırköy"],
             "yeşilköy": ["MARMARAY-Yeşilköy"],
-            "atatürk airport": ["M1A-Atatürk Airport", "M1B-Atatürk Airport"],
-            "yenikapı": ["MARMARAY-Yenikapı", "M1A-Yenikapı", "M1B-Yenikapı", "M2-Yenikapı"],
+            "atatürk airport": ["M1A-Atatürk Havalimanı"],  # Closed airport, legacy support
+            "istanbul airport": ["M11-İstanbul Havalimanı"],
+            "new airport": ["M11-İstanbul Havalimanı"],
+            "yenikapı": ["MARMARAY-Yenikapı", "M1A-Yenikapı", "M2-Yenikapı"],
         }
     
     def find_route(

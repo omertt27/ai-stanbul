@@ -282,6 +282,9 @@ Beginnen Sie Ihre Antwort sofort auf DEUTSCH, ohne diese Anweisungen zu wiederho
             if conv_formatted:
                 prompt_parts.append("\n## Previous Conversation:")
                 prompt_parts.append(conv_formatted)
+                prompt_parts.append("\n🔗 IMPORTANT: Use the conversation history above to understand context and references.")
+                prompt_parts.append("If the current question refers to something mentioned earlier (like 'there', 'it', or an implied location),")
+                prompt_parts.append("make sure your answer is about that specific place/topic from the conversation.")
         
         # 3. Database context
         if context.get('database'):

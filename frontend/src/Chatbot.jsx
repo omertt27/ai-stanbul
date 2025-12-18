@@ -47,6 +47,9 @@ import SmartChatInput from './components/mobile/SmartChatInput';
 import SwipeableMessage from './components/mobile/SwipeableMessage';
 import MobileErrorNotification from './components/mobile/MobileErrorNotification';
 
+// Hooks
+import useIsMobile from './hooks/useIsMobile';
+
 console.log('🔄 Chatbot component loaded');
 
 // Input security and normalization functions - ENHANCED SECURITY
@@ -500,6 +503,9 @@ function Chatbot({ userLocation: propUserLocation }) {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Mobile detection hook - replaces window.innerWidth checks
+  const isMobile = useIsMobile();
   
   // Use standard backend (not Pure LLM mode)
   const usePureLLM = false;
@@ -1536,7 +1542,11 @@ function Chatbot({ userLocation: propUserLocation }) {
       )}
       
       {/* Chat Messages Container - With top padding for better UX */}
-      <div className="flex-1 overflow-y-auto chat-messages pb-24 md:pb-0 pt-4 md:pt-6" id="chat-messages">
+      <div 
+        className="flex-1 overflow-y-auto chat-messages pt-4 md:pt-6" 
+        id="chat-messages"
+        style={{ paddingBottom: isMobile ? '140px' : '80px' }}
+      >
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center px-4">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
@@ -2039,7 +2049,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                 
                 {/* Mobile: Show SkeletonMessage, Desktop: Show typing indicator */}
                 <div className="flex-1">
-                  {window.innerWidth <= 768 ? (
+                  {isMobile ? (
                     <SkeletonMessage darkMode={darkMode} count={1} />
                   ) : (
                     <MobileTypingIndicator darkMode={darkMode} />
@@ -2063,7 +2073,7 @@ function Chatbot({ userLocation: propUserLocation }) {
         containerRef={chatMessagesRef}
         unreadCount={unreadCount}
         darkMode={darkMode}
-        bottomOffset={100} // Above input area
+        bottomOffset={isMobile ? 85 : 100} // Aligned with compact input bar
       />
 
       {/* Quick Reply Suggestions - Mobile optimized with dynamic suggestions */}
@@ -2096,16 +2106,17 @@ function Chatbot({ userLocation: propUserLocation }) {
       }`} style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         <div className="max-w-5xl mx-auto">
           {/* Use SmartChatInput on mobile, SimpleChatInput on desktop */}
-          {window.innerWidth <= 768 ? (
+          {isMobile ? (
             <SmartChatInput
               value={input}
               onChange={setInput}
               onSend={() => handleSend(input)}
               loading={loading}
-              placeholder="Ask about Istanbul..."
+              placeholder="Ask anything about Istanbul..."
               darkMode={darkMode}
               enableVoice={true}
-              showCharCounter={true}
+              showCharCounter={false}
+              minimal={true}
             />
           ) : (
             <SimpleChatInput
@@ -2117,18 +2128,14 @@ function Chatbot({ userLocation: propUserLocation }) {
               darkMode={darkMode}
             />
           )}
-          <div className={`text-xs text-center mt-2.5 opacity-50 transition-colors duration-200 ${
-            darkMode ? 'text-gray-400' : 'text-gray-500'
-          }`}>
-            AI-powered Istanbul travel assistant
-          </div>
+          {/* Removed "AI-powered Istanbul travel assistant" text for cleaner mobile UI */}
         </div>
       </div>
 
       {/* Error Notification - Mobile optimized */}
       {currentError && typeof currentError === 'object' && (
         <>
-          {window.innerWidth <= 768 ? (
+          {isMobile ? (
             <MobileErrorNotification
               error={currentError}
               onRetry={handleRetry}
@@ -2153,7 +2160,7 @@ function Chatbot({ userLocation: propUserLocation }) {
       <NetworkStatusIndicator darkMode={darkMode} />
       
       {/* Mobile-optimized GPS Banner - only show on mobile */}
-      {window.innerWidth <= 768 && (
+      {isMobile && (
         <MinimizedGPSBanner 
           autoHide={true}
           autoHideDelay={5000}

@@ -28,7 +28,8 @@ const SmartChatInput = ({
   darkMode = false,
   maxLength = 1000,
   showCharCounter = false,
-  enableVoice = true
+  enableVoice = true,
+  minimal = false  // NEW: Minimal mode for ultra-clean mobile UI
 }) => {
   const textareaRef = useRef(null);
   const containerRef = useRef(null);
@@ -89,10 +90,13 @@ const SmartChatInput = ({
 
     const textarea = textareaRef.current;
     textarea.style.height = 'auto';
-    const newHeight = Math.min(textarea.scrollHeight, 120); // Max 120px (approx 5 lines)
+    // Reduced max height for mobile: 80px = ~3 lines (was 120px = ~5 lines)
+    // Keeps input compact and conversation visible, ChatGPT-style
+    const maxHeight = minimal ? 80 : 100;
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
     textarea.style.height = newHeight + 'px';
     setInputHeight(newHeight);
-  }, [value]);
+  }, [value, minimal]);
 
   const handleSend = () => {
     if (!value.trim() || loading) return;
@@ -156,15 +160,19 @@ const SmartChatInput = ({
 
   const charCount = value.length;
   const isNearLimit = charCount > maxLength * 0.8;
+  
+  // In minimal mode: hide voice when typing, only show char counter when near limit
+  const showVoice = enableVoice && recognition && (!minimal || !value);
+  const showCounter = showCharCounter && isNearLimit;
 
   return (
-    <div ref={containerRef} className={`smart-chat-input-container ${darkMode ? 'dark' : 'light'}`}>
+    <div ref={containerRef} className={`smart-chat-input-container ${darkMode ? 'dark' : 'light'} ${minimal ? 'minimal' : ''}`}>
       <div 
         className="smart-chat-input-wrapper"
         style={{ minHeight: `${inputHeight + 16}px` }}
       >
-        {/* Voice button (left side) */}
-        {enableVoice && recognition && (
+        {/* Voice button (left side) - hidden in minimal mode when typing */}
+        {showVoice && (
           <button
             onClick={handleVoiceToggle}
             className={`voice-button ${isListening ? 'listening' : ''}`}
@@ -194,8 +202,8 @@ const SmartChatInput = ({
           aria-label="Chat message input"
         />
 
-        {/* Character counter */}
-        {showCharCounter && isNearLimit && (
+        {/* Character counter - only when near limit in minimal mode */}
+        {showCounter && (
           <span className={`char-counter ${charCount >= maxLength ? 'limit' : ''}`}>
             {charCount}/{maxLength}
           </span>
@@ -232,12 +240,7 @@ const SmartChatInput = ({
         </button>
       </div>
 
-      {/* Keyboard hint */}
-      {!value && !isListening && (
-        <div className="input-hint">
-          Press Enter to send • Shift+Enter for new line
-        </div>
-      )}
+      {/* Keyboard hint - REMOVED for cleaner mobile UI like ChatGPT */}
     </div>
   );
 };

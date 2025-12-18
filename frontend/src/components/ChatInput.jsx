@@ -31,9 +31,7 @@ const ChatInput = ({ value, onChange, onSend, disabled, placeholder }) => {
           {disabled ? '⏳' : '📤'}
         </button>
       </div>
-      <div className="input-hint">
-        Press Enter to send, Shift+Enter for new line
-      </div>
+      {/* Removed "Press Enter to send" hint for cleaner UI like ChatGPT */}
     </div>
   );
 };

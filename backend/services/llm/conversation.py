@@ -170,13 +170,45 @@ class ConversationManager:
         }
     
     def _has_references(self, query: str) -> bool:
-        """Check if query contains references."""
+        """Check if query contains references or is context-dependent."""
         query_lower = query.lower()
         
-        # Check for reference patterns
+        # Check for explicit reference patterns
         for reference in self.reference_patterns.keys():
             if reference in query_lower:
                 return True
+        
+        # Check for implicit references (context-dependent queries without explicit location)
+        # These are short queries that assume previous context
+        implicit_patterns = [
+            'find attractions',
+            'show attractions',
+            'what attractions',
+            'any attractions',
+            'find restaurants',
+            'show restaurants',
+            'what restaurants',
+            'any restaurants',
+            'find places',
+            'show places',
+            'what to do',
+            'what to see',
+            'things to do',
+            'places to visit',
+            'how do i get',
+            'how can i get',
+            'opening hours',
+            'when open',
+            'how much',
+            'ticket price',
+        ]
+        
+        # If query is short and matches an implicit pattern, it likely needs context
+        if len(query_lower.split()) <= 4:
+            for pattern in implicit_patterns:
+                if pattern in query_lower:
+                    logger.debug(f"Query '{query}' matches implicit reference pattern: {pattern}")
+                    return True
         
         return False
     
@@ -197,22 +229,16 @@ class ConversationManager:
         """
         # Search backwards through history
         for turn in reversed(history):
-            if turn.get('role') != 'assistant':
-                continue
-            
-            content = turn.get('content', '').lower()
+            # Check both user and assistant messages
+            content = turn.get('content', '')  # Keep original case
             metadata = turn.get('metadata', {})
             
-            # Check metadata for entities
-            signals = metadata.get('signals', {})
-            
             # Try to extract entity name from content
-            for entity_type in entity_types:
-                if entity_type in ['restaurant', 'place', 'location']:
-                    # Simple heuristic: extract proper nouns
-                    entity = self._extract_entity_name(content)
-                    if entity:
-                        return entity
+            entity = self._extract_entity_name(content)
+            if entity:
+                # Filter by entity type if needed (for now accept any proper noun)
+                logger.debug(f"Found entity in conversation: {entity}")
+                return entity
         
         return None
     
@@ -222,12 +248,37 @@ class ConversationManager:
         
         # Look for capitalized words (likely place names)
         # This is a simple heuristic; production would use NER
-        pattern = r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b'
-        matches = re.findall(pattern, text)
         
-        if matches:
-            # Return first match
-            return matches[0]
+        # Pattern 1: Multiple capitalized words (e.g., "Blue Mosque", "Galata Tower")
+        pattern_multi = r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b'
+        matches_multi = re.findall(pattern_multi, text)
+        
+        if matches_multi:
+            # Filter out common words that aren't place names
+            common_words = {'The', 'A', 'An', 'In', 'On', 'At', 'To', 'From', 'Is', 'Are', 
+                          'Was', 'Were', 'Has', 'Have', 'Can', 'Will', 'Would', 'Should',
+                          'Sultan Ahmed Mosque'}  # Alternative name
+            
+            for match in matches_multi:
+                # Skip matches that start with common words
+                first_word = match.split()[0]
+                if first_word not in common_words:
+                    logger.debug(f"Extracted multi-word entity: {match}")
+                    return match
+        
+        # Pattern 2: Single capitalized word (e.g., "Taksim", "Beyoğlu")
+        pattern_single = r'\b([A-Z][a-zğüşıöçĞÜŞİÖÇ]+)\b'
+        matches_single = re.findall(pattern_single, text)
+        
+        if matches_single:
+            # Filter out common words
+            common_single = {'The', 'A', 'An', 'In', 'On', 'At', 'To', 'From', 'Is', 'Are',
+                           'Turkish', 'Istanbul', 'I', 'You', 'He', 'She', 'It', 'We', 'They'}
+            
+            for match in matches_single:
+                if match not in common_single:
+                    logger.debug(f"Extracted single-word entity: {match}")
+                    return match
         
         return None
     

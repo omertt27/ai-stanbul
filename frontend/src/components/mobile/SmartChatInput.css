@@ -45,10 +45,10 @@
 
 /* Voice button */
 .voice-button {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
+  width: 36px;          /* Increased from 32px for better touch target */
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   border: none;
   border-radius: 50%;
   font-size: 16px;
@@ -62,6 +62,7 @@
   align-self: flex-end;
   margin-bottom: 1px;
   background: transparent;
+  padding: 8px;      /* Extra padding for larger touch area */
 }
 
 .smart-chat-input-container.light .voice-button {
@@ -175,10 +176,10 @@
 
 /* Send button */
 .smart-send-button {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
+  width: 36px;          /* Increased from 32px for better touch target */
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -190,6 +191,7 @@
   flex-shrink: 0;
   align-self: flex-end;
   margin-bottom: 1px;
+  padding: 8px;      /* Extra padding for larger touch area */
 }
 
 .smart-send-button:not(:disabled) {
@@ -316,4 +318,20 @@
   .smart-chat-input-wrapper {
     border-width: 2px !important;
   }
+}
+
+/* Minimal mode - ChatGPT-style ultra-clean interface */
+.smart-chat-input-container.minimal .smart-chat-input-wrapper {
+  padding: 6px 10px;
+  gap: 4px;
+  border-radius: 20px;
+}
+
+.smart-chat-input-container.minimal .smart-chat-textarea {
+  padding: 6px 8px;
+}
+
+/* Hide voice button in minimal mode when user is typing */
+.smart-chat-input-container.minimal .voice-button {
+  transition: opacity 0.2s ease, width 0.2s ease;
 }
