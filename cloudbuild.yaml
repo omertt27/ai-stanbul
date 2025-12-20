@@ -39,7 +39,7 @@ steps:
       - 'DATABASE_URL=DATABASE_URL:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,GOOGLE_PLACES_API_KEY=GOOGLE_PLACES_API_KEY:latest,OPENWEATHER_API_KEY=OPENWEATHER_API_KEY:latest,SECRET_KEY=SECRET_KEY:latest'
       # Environment Variables
       - '--set-env-vars'
-      - 'PURE_LLM_MODE=true,LLM_API_URL=https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1,LLM_MODEL_NAME=/workspace/Meta-Llama-3.1-8B-Instruct-AWQ-INT4,ENVIRONMENT=production,DEBUG=false'
+      - 'PURE_LLM_MODE=true,LLM_API_URL=https://yst9iajrc1rc7w-8000.proxy.runpod.net,LLM_MODEL_NAME=/workspace/models/llama-3.1-8b-4bit,ENVIRONMENT=production,DEBUG=false'
       # Resource Configuration
       - '--timeout'
       - '300'

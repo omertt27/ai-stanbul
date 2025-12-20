@@ -30,7 +30,7 @@ spec:
         - name: ENVIRONMENT
           value: production
         - name: LLM_API_URL
-          value: "https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1"
+          value: "https://yst9iajrc1rc7w-8000.proxy.runpod.net"
         - name: LLM_MODEL_NAME
           value: "meta-llama/Meta-Llama-3.1-8B-Instruct"
         - name: LLM_TIMEOUT

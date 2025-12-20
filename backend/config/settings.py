@@ -41,6 +41,16 @@ class Settings:
     # Redis
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
     
+    # AWS S3 Configuration
+    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    AWS_REGION = os.getenv("AWS_REGION", "eu-central-1")
+    AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "ai-istanbul-media")
+    AWS_S3_BLOG_PATH = "blog/images/"
+    AWS_S3_FEATURED_PATH = "blog/featured-images/"
+    AWS_S3_CONTENT_PATH = "blog/content-images/"
+    AWS_S3_THUMBNAILS_PATH = "blog/thumbnails/"
+    
     # LLM Configuration
     LLM_API_URL = os.getenv("LLM_API_URL", "")
     LLM_API_KEY = os.getenv("LLM_API_KEY", "")
