@@ -274,6 +274,48 @@
         "vibe": "Business",
         "specialty": "Commerce & Shopping",
         "sideNote": "European Side • Business Hub"
+      },
+      "fatih": {
+        "name": "Fatih",
+        "description": "Heart of old Constantinople with bazaars & mosques",
+        "vibe": "Historic",
+        "specialty": "Traditional Markets",
+        "sideNote": "European Side • Old City"
+      },
+      "galata": {
+        "name": "Galata",
+        "description": "Medieval quarter with iconic tower & trendy cafes",
+        "vibe": "Trendy",
+        "specialty": "Coffee Culture",
+        "sideNote": "European Side • Historic Port"
+      },
+      "ortakoy": {
+        "name": "Ortaköy",
+        "description": "Charming Bosphorus village with waterfront dining",
+        "vibe": "Romantic",
+        "specialty": "Kumpir & Waffles",
+        "sideNote": "European Side • Bosphorus"
+      },
+      "balat": {
+        "name": "Balat",
+        "description": "Instagram-famous colorful historic neighborhood",
+        "vibe": "Bohemian",
+        "specialty": "Vintage Charm",
+        "sideNote": "European Side • Golden Horn"
+      },
+      "arnavutkoy": {
+        "name": "Arnavutköy",
+        "description": "Elegant waterfront village with Ottoman mansions",
+        "vibe": "Elegant",
+        "specialty": "Seafood",
+        "sideNote": "European Side • Bosphorus Coast"
+      },
+      "moda": {
+        "name": "Moda",
+        "description": "Hipster haven with indie shops & cozy cafes",
+        "vibe": "Hipster",
+        "specialty": "Coffee & Brunch",
+        "sideNote": "Asian Side • Kadıköy Quarter"
       }
     },
     "labels": {

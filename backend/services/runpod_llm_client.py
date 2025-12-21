@@ -184,7 +184,11 @@ class RunPodLLMClient:
         try:
             if self.api_type == "huggingface":
                 return await self._generate_huggingface(prompt, max_tokens, temperature)
+            elif self.api_type == "runpod":
+                # Use RunPod custom /generate endpoint format
+                return await self._generate_runpod_custom(prompt, max_tokens, temperature, top_p)
             else:
+                # Try OpenAI-compatible format for other types
                 return await self._generate_openai_compatible(prompt, max_tokens, temperature, top_p)
                 
         except httpx.TimeoutException:
@@ -192,6 +196,7 @@ class RunPodLLMClient:
             return None
         except httpx.HTTPStatusError as e:
             logger.error(f"❌ LLM HTTP error: {e.response.status_code}")
+            logger.error(f"   Response: {e.response.text if hasattr(e.response, 'text') else 'N/A'}")
             return None
         except Exception as e:
             import traceback
@@ -239,6 +244,194 @@ class RunPodLLMClient:
                 return {"generated_text": generated_text, "raw": result}
             else:
                 logger.error("❌ Invalid response format from Hugging Face")
+                return None
+    
+    async def _generate_runpod_custom(
+        self,
+        prompt: str,
+        max_tokens: Optional[int],
+        temperature: float,
+        top_p: float
+    ) -> Optional[Dict[str, Any]]:
+        """Generate using RunPod custom /generate endpoint format"""
+        
+        # Extract user query from complex prompt for cleaner generation
+        user_query = prompt
+        
+        # Try multiple patterns to extract the actual user question
+        if "Current User Question:" in prompt:
+            parts = prompt.split("Current User Question:")
+            if len(parts) > 1:
+                user_query = parts[1].replace("Your Direct Answer:", "").strip()
+        elif "User Question:" in prompt:
+            parts = prompt.split("User Question:")
+            if len(parts) > 1:
+                question_part = parts[1].strip()
+                for stop_word in ["\nENGLISH Answer:", "\nAnswer:", "\nYour Answer:"]:
+                    if stop_word in question_part:
+                        question_part = question_part.split(stop_word)[0].strip()
+                user_query = question_part
+        elif "USER'S QUESTION:" in prompt:
+            parts = prompt.split("USER'S QUESTION:")
+            if len(parts) > 1:
+                user_query = parts[1].split("YOUR ANSWER")[0].strip()
+        
+        logger.debug(f"Extracted user query: '{user_query[:100]}...'")
+        
+        # Handle greetings specially
+        greeting_words = ['hi', 'hello', 'hey', 'selam', 'merhaba', 'hallo', 'привет', 'hola', 'مرحبا']
+        cleaned_query = user_query.lower().strip().rstrip('!?.,')
+        is_greeting = cleaned_query in [g.lower() for g in greeting_words]
+        
+        if is_greeting:
+            # For greetings, provide a context-aware welcoming prompt
+            # Determine the language from the greeting word itself
+            if cleaned_query in ['hi', 'hello', 'hey']:
+                greeting_lang = "English"
+            elif cleaned_query in ['selam', 'merhaba']:
+                greeting_lang = "Turkish"
+            elif cleaned_query == 'hallo':
+                greeting_lang = "German"
+            elif cleaned_query == 'привет':
+                greeting_lang = "Russian"
+            elif cleaned_query == 'hola':
+                greeting_lang = "Spanish"
+            elif cleaned_query == 'مرحبا':
+                greeting_lang = "Arabic"
+            else:
+                greeting_lang = "English"  # Default
+            
+            formatted_prompt = (
+                f"You are KAM, an Istanbul tour guide.\n\n"
+                f"Respond ONLY in {greeting_lang}. Say a brief friendly greeting and mention you can help with Istanbul restaurants, attractions, and directions.\n\n"
+                f"Keep your response under 30 words. Start your response immediately - no explanations."
+            )
+            logger.info(f"🎯 Greeting detected: '{user_query}' -> {greeting_lang}")
+            # Override max_tokens for greetings - we don't need much!
+            max_tokens = 50
+        else:
+            # For real questions, extract context and build a direct prompt
+            context_data = ""
+            
+            # Look for database/context sections
+            if "Database Information:" in prompt or "CONTEXT:" in prompt:
+                if "Database Information:" in prompt:
+                    db_start = prompt.find("Database Information:")
+                    db_end = prompt.find("\n## ", db_start + 1)
+                    if db_end == -1:
+                        db_end = prompt.find("\n---", db_start + 1)
+                    if db_end > db_start:
+                        context_data = prompt[db_start:db_end].strip()
+                elif "CONTEXT:" in prompt:
+                    ctx_start = prompt.find("CONTEXT:")
+                    ctx_end = prompt.find("\nUSER'S QUESTION:", ctx_start)
+                    if ctx_end > ctx_start:
+                        context_data = prompt[ctx_start:ctx_end].strip()
+            
+            # Check if user provided GPS location - extract coordinates if available
+            has_gps = "GPS STATUS" in prompt and "AVAILABLE" in prompt
+            user_lat = None
+            user_lon = None
+            
+            if has_gps:
+                # Try to extract coordinates from prompt using multiple patterns
+                import re
+                # Pattern 1: "latitude: X, longitude: Y" or "lat: X, lon: Y"
+                coord_match = re.search(r'lat(?:itude)?[:\s]+([-\d.]+).*lon(?:gitude)?[:\s]+([-\d.]+)', prompt, re.IGNORECASE)
+                if coord_match:
+                    try:
+                        user_lat = float(coord_match.group(1))
+                        user_lon = float(coord_match.group(2))
+                        logger.info(f"📍 Extracted GPS coordinates: ({user_lat}, {user_lon})")
+                    except (ValueError, IndexError):
+                        pass
+            
+            # Build a concise, focused prompt - LLM will auto-detect and match user's language
+            if context_data:
+                formatted_prompt = (
+                    f"You are KAM, an Istanbul tour guide. Answer the user's question using the context provided.\n\n"
+                    f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
+                    f"{context_data}\n\n"
+                )
+                
+                # Add GPS location prominently if available
+                if has_gps and user_lat and user_lon:
+                    formatted_prompt += (
+                        f"🎯 USER'S CURRENT GPS LOCATION:\n"
+                        f"   Coordinates: ({user_lat}, {user_lon})\n"
+                        f"   **IMPORTANT**: When user asks about 'nearby', 'near me', 'close by', 'around here', they mean near THIS GPS location.\n"
+                        f"   Prioritize recommendations that are physically close to these coordinates.\n\n"
+                    )
+                
+                formatted_prompt += f"USER'S QUESTION: {user_query}\n\nYOUR ANSWER (in the same language as the question above):"
+            else:
+                formatted_prompt = (
+                    f"You are KAM, an Istanbul tour guide. Answer the user's question.\n\n"
+                    f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
+                )
+                
+                # Add GPS location prominently if available
+                if has_gps and user_lat and user_lon:
+                    formatted_prompt += (
+                        f"🎯 USER'S CURRENT GPS LOCATION:\n"
+                        f"   Coordinates: ({user_lat}, {user_lon})\n"
+                        f"   **IMPORTANT**: When user asks about 'nearby', 'near me', 'close by', 'around here', they mean near THIS GPS location.\n"
+                        f"   If you recognize these coordinates, mention the specific neighborhood or area in Istanbul.\n\n"
+                    )
+                
+                formatted_prompt += f"USER'S QUESTION: {user_query}\n\nYOUR ANSWER (in the same language as the question above):"
+            
+            logger.info(f"📝 Direct prompt built - Query length: {len(user_query)}, Context: {len(context_data)} chars")
+        
+        # Use RunPod custom /generate format
+        payload = {
+            "prompt": formatted_prompt,
+            "max_tokens": max_tokens or self.max_tokens,
+            "temperature": temperature,
+            "top_p": top_p
+        }
+        
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        
+        # Use /generate endpoint (RunPod custom)
+        url = self.api_url.rstrip('/')
+        if not url.endswith('/generate'):
+            url = url + '/generate'
+        
+        logger.info(f"🔄 Calling RunPod LLM at: {url}")
+        
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.post(
+                url,
+                json=payload,
+                headers=headers
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle RunPod custom response format
+            # Expected format: {"response": "...", "tokens_generated": 50, "generation_time": 0.74, "tokens_per_second": 67.12}
+            generated_text = None
+            
+            if 'response' in result:
+                generated_text = result['response']
+                logger.info(f"✅ RunPod generated {len(generated_text)} chars in {result.get('generation_time', 0):.2f}s")
+                logger.info(f"   Tokens: {result.get('tokens_generated', 0)}, Speed: {result.get('tokens_per_second', 0):.1f} t/s")
+            else:
+                logger.error(f"❌ Invalid response format from RunPod: {result.keys() if isinstance(result, dict) else type(result)}")
+                return None
+            
+            if generated_text:
+                # Hard limit: truncate responses that are too long
+                MAX_RESPONSE_LENGTH = 500
+                if len(generated_text) > MAX_RESPONSE_LENGTH:
+                    logger.warning(f"⚠️ Response too long ({len(generated_text)} chars), truncating to {MAX_RESPONSE_LENGTH}")
+                    generated_text = generated_text[:MAX_RESPONSE_LENGTH].rsplit('.', 1)[0] + '.'
+                
+                return {"generated_text": generated_text, "raw": result}
+            else:
                 return None
     
     def _format_llama_chat_prompt(self, prompt: str) -> str:
@@ -354,9 +547,9 @@ class RunPodLLMClient:
             max_tokens = 50
         else:
             # For real questions, extract context and build a direct prompt
-            # Extract any context from the full prompt
             context_data = ""
             
+            # Extract any context from the full prompt
             # Look for database/context sections
             if "Database Information:" in prompt:
                 db_start = prompt.find("Database Information:")
@@ -365,46 +558,67 @@ class RunPodLLMClient:
                     db_end = prompt.find("\n---", db_start + 1)
                 if db_end > db_start:
                     context_data = prompt[db_start:db_end].strip()
+            elif "CONTEXT:" in prompt:
+                ctx_start = prompt.find("CONTEXT:")
+                ctx_end = prompt.find("\nUSER'S QUESTION:", ctx_start)
+                if ctx_end > ctx_start:
+                    context_data = prompt[ctx_start:ctx_end].strip()
             
-            # Look for real-time information
-            if "Real-Time Information:" in prompt:
-                rt_start = prompt.find("Real-Time Information:")
-                rt_end = prompt.find("\n## ", rt_start + 1)
-                if rt_end == -1:
-                    rt_end = prompt.find("\n---", rt_start + 1)
-                if rt_end > rt_start:
-                    if context_data:
-                        context_data += "\n\n" + prompt[rt_start:rt_end].strip()
-                    else:
-                        context_data = prompt[rt_start:rt_end].strip()
-            
-            # Check if user provided GPS location
+            # Check if user provided GPS location - extract coordinates if available
             has_gps = "GPS STATUS" in prompt and "AVAILABLE" in prompt
+            user_lat = None
+            user_lon = None
+            
+            if has_gps:
+                # Try to extract coordinates from prompt using multiple patterns
+                import re
+                # Pattern 1: "latitude: X, longitude: Y" or "lat: X, lon: Y"
+                coord_match = re.search(r'lat(?:itude)?[:\s]+([-\d.]+).*lon(?:gitude)?[:\s]+([-\d.]+)', prompt, re.IGNORECASE)
+                if coord_match:
+                    try:
+                        user_lat = float(coord_match.group(1))
+                        user_lon = float(coord_match.group(2))
+                        logger.info(f"📍 Extracted GPS coordinates: ({user_lat}, {user_lon})")
+                    except (ValueError, IndexError):
+                        pass
             
             # Build a concise, focused prompt - LLM will auto-detect and match user's language
             if context_data:
-                # Query with context data
                 formatted_prompt = (
                     f"You are KAM, an Istanbul tour guide. Answer the user's question using the context provided.\n\n"
                     f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
                     f"CONTEXT:\n{context_data}\n\n"
-                    f"USER'S QUESTION: {user_query}\n\n"
-                    f"YOUR ANSWER (in the same language as the question above):"
                 )
+                
+                # Add GPS location prominently if available
+                if has_gps and user_lat and user_lon:
+                    formatted_prompt += (
+                        f"🎯 USER'S CURRENT GPS LOCATION:\n"
+                        f"   Coordinates: ({user_lat}, {user_lon})\n"
+                        f"   **IMPORTANT**: When user asks about 'nearby', 'near me', 'close by', 'around here', they mean near THIS GPS location.\n"
+                        f"   Prioritize recommendations that are physically close to these coordinates.\n\n"
+                    )
+                
+                formatted_prompt += f"USER'S QUESTION: {user_query}\n\nYOUR ANSWER (in the same language as the question above):"
             else:
                 # Query without context - use general knowledge
                 formatted_prompt = (
                     f"You are KAM, an Istanbul tour guide. Answer the user's question.\n\n"
                     f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
-                    f"USER'S QUESTION: {user_query}\n\n"
-                    f"YOUR ANSWER (in the same language as the question above):"
                 )
+                
+                # Add GPS location prominently if available
+                if has_gps and user_lat and user_lon:
+                    formatted_prompt += (
+                        f"🎯 USER'S CURRENT GPS LOCATION:\n"
+                        f"   Coordinates: ({user_lat}, {user_lon})\n"
+                        f"   **IMPORTANT**: When user asks about 'nearby', 'near me', 'close by', 'around here', they mean near THIS GPS location.\n"
+                        f"   If you recognize these coordinates, mention the specific neighborhood or area in Istanbul.\n\n"
+                    )
+                
+                formatted_prompt += f"USER'S QUESTION: {user_query}\n\nYOUR ANSWER (in the same language as the question above):"
             
-            # Add GPS note if available
-            if has_gps:
-                formatted_prompt += "\n\nNote: User's GPS location is available for personalized recommendations."
-            
-            logger.info(f"📝 Direct prompt built - Query length: {len(user_query)}, Context: {len(context_data)} chars")
+            logger.info(f"📝 Direct prompt built - Query length: {len(user_query)}, Context: {len(context_data)} chars, GPS: {has_gps}")
         
         logger.debug(f"Prompt length: {len(formatted_prompt)} chars")
         

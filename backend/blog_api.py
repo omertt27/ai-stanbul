@@ -34,6 +34,19 @@ class BlogPostCreate(BaseModel):
     author_name: str = Field(..., min_length=2, max_length=100, description="Author name")
     district: Optional[str] = Field(None, max_length=100, description="Istanbul district")
     tags: Optional[List[str]] = Field(None, description="Post tags")
+    featured_image: Optional[str] = Field(None, description="Featured image URL")
+    category: Optional[str] = Field(None, description="Post category")
+    status: Optional[str] = Field("published", pattern="^(draft|published)$", description="Post status")
+
+class BlogPostUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=10, max_length=200, description="Blog post title")
+    content: Optional[str] = Field(None, min_length=100, description="Blog post content")
+    author_name: Optional[str] = Field(None, min_length=2, max_length=100, description="Author name")
+    district: Optional[str] = Field(None, max_length=100, description="Istanbul district")
+    tags: Optional[List[str]] = Field(None, description="Post tags")
+    featured_image: Optional[str] = Field(None, description="Featured image URL")
+    category: Optional[str] = Field(None, description="Post category")
+    status: Optional[str] = Field(None, pattern="^(draft|published)$", description="Post status")
 
 class BlogPostResponse(BaseModel):
     id: int
@@ -41,6 +54,8 @@ class BlogPostResponse(BaseModel):
     content: str
     author_name: str
     district: Optional[str]
+    featured_image: Optional[str]
+    category: Optional[str]
     created_at: datetime
     likes_count: int
     comments_count: int
@@ -165,6 +180,8 @@ async def get_blog_posts(
                 content=post.content,
                 author_name=post.author or "Anonymous",
                 district=post.district,
+                featured_image=post.featured_image,
+                category=post.category,
                 created_at=post.created_at,
                 likes_count=post.likes_count or 0,
                 comments_count=comment_counts.get(post.id, 0)
@@ -211,6 +228,8 @@ async def get_blog_post(post_id: int, response: Response, db: Session = Depends(
             content=post.content,
             author_name=post.author or "Anonymous",
             district=post.district,
+            featured_image=post.featured_image,
+            category=post.category,
             created_at=post.created_at,
             likes_count=post.likes_count or 0,
             comments_count=comments_count
@@ -245,6 +264,10 @@ async def create_blog_post(post: BlogPostCreate, request: Request, db: Session =
             content=post.content,
             author=post.author_name,
             district=post.district,
+            featured_image=post.featured_image,
+            category=post.category,
+            status=post.status or 'published',
+            tags=post.tags,
             created_at=datetime.utcnow(),
             likes_count=0
         )
@@ -261,6 +284,8 @@ async def create_blog_post(post: BlogPostCreate, request: Request, db: Session =
             content=new_post.content,
             author_name=new_post.author or "Anonymous",
             district=new_post.district,
+            featured_image=new_post.featured_image,
+            category=new_post.category,
             created_at=new_post.created_at,
             likes_count=0,
             comments_count=0
@@ -272,9 +297,114 @@ async def create_blog_post(post: BlogPostCreate, request: Request, db: Session =
         raise HTTPException(status_code=500, detail="Failed to create blog post")
 
 
-# =============================
-# COMMENT ENDPOINTS
-# =============================
+@router.put("/posts/{post_id}", response_model=BlogPostResponse)
+async def update_blog_post(post_id: int, post_update: BlogPostUpdate, request: Request, db: Session = Depends(get_db)):
+    """
+    Update an existing blog post
+    ✅ Rate limited: 20 updates/hour per IP
+    """
+    try:
+        from models import BlogPost, BlogComment
+        
+        # Rate limiting (if available)
+        if RATE_LIMITER_AVAILABLE and limiter:
+            try:
+                limiter.hit("blog_post_update", request=request)
+            except Exception as e:
+                logger.warning(f"Rate limiter error: {e}")
+        
+        # Get existing post
+        existing_post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        if not existing_post:
+            raise HTTPException(status_code=404, detail="Blog post not found")
+        
+        # Update fields that were provided
+        update_data = post_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            if field == 'tags':
+                # Handle tags separately as JSONB
+                setattr(existing_post, field, value)
+            else:
+                setattr(existing_post, field, value)
+        
+        # Update timestamp
+        existing_post.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(existing_post)
+        
+        # Get comments count
+        comments_count = db.query(BlogComment).filter(BlogComment.blog_post_id == post_id).count()
+        
+        logger.info(f"✅ Updated blog post: {existing_post.id} - {existing_post.title}")
+        
+        return BlogPostResponse(
+            id=existing_post.id,
+            title=existing_post.title,
+            content=existing_post.content,
+            author_name=existing_post.author or "Anonymous",
+            district=existing_post.district,
+            featured_image=existing_post.featured_image,
+            category=existing_post.category,
+            created_at=existing_post.created_at,
+            likes_count=existing_post.likes_count or 0,
+            comments_count=comments_count
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating blog post: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to update blog post")
+
+
+@router.delete("/posts/{post_id}")
+async def delete_blog_post(post_id: int, request: Request, db: Session = Depends(get_db)):
+    """
+    Delete a blog post
+    ✅ Rate limited: 10 deletions/hour per IP
+    """
+    try:
+        from models import BlogPost, BlogComment, BlogLike
+        
+        # Rate limiting (if available)
+        if RATE_LIMITER_AVAILABLE and limiter:
+            try:
+                limiter.hit("blog_post_delete", request=request)
+            except Exception as e:
+                logger.warning(f"Rate limiter error: {e}")
+        
+        # Get existing post
+        existing_post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        if not existing_post:
+            raise HTTPException(status_code=404, detail="Blog post not found")
+        
+        post_title = existing_post.title
+        
+        # Delete associated comments and likes (cascade)
+        db.query(BlogComment).filter(BlogComment.blog_post_id == post_id).delete()
+        db.query(BlogLike).filter(BlogLike.blog_post_id == post_id).delete()
+        
+        # Delete the post
+        db.delete(existing_post)
+        db.commit()
+        
+        logger.info(f"✅ Deleted blog post: {post_id} - {post_title}")
+        
+        return {
+            "message": "Blog post deleted successfully",
+            "id": post_id,
+            "title": post_title
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting blog post: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to delete blog post")
+
 
 @router.get("/posts/{post_id}/comments")
 async def get_post_comments(post_id: int, db: Session = Depends(get_db)):

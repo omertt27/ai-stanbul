@@ -104,6 +104,32 @@ class BlogPost(Base):
         return self.status == 'published'
 
 
+class BlogComment(Base):
+    __tablename__ = "blog_comments"
+    __table_args__ = {'extend_existing': True}
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    blog_post_id = Column(Integer, ForeignKey('blog_posts.id', ondelete='CASCADE'), nullable=False)
+    author_name = Column(String(100), nullable=False)
+    author_email = Column(String(200), nullable=True)
+    content = Column(Text, nullable=False)
+    status = Column(String(20), default='approved')  # pending, approved, rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    @property
+    def is_approved(self):
+        return self.status == 'approved'
+
+
+class BlogLike(Base):
+    __tablename__ = "blog_likes"
+    __table_args__ = {'extend_existing': True}
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    blog_post_id = Column(Integer, ForeignKey('blog_posts.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(String(100), nullable=True)  # IP or user identifier
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 # Real-Time Feedback Models for Online Learning
 class FeedbackEvent(Base):
     """

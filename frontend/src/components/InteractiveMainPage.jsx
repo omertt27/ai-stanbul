@@ -109,6 +109,78 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       population: '270,000',
       sideNote: t('homepage.districts.sisli.sideNote'),
       backgroundImage: '/districts/Sisli.jpeg'
+    },
+    {
+      id: 'fatih',
+      name: t('homepage.districts.fatih.name'),
+      color: '#c0392b',
+      description: t('homepage.districts.fatih.description'),
+      highlights: ['Grand Bazaar', 'Süleymaniye Mosque', 'Eminönü'],
+      vibe: `🕌 ${t('homepage.districts.fatih.vibe')}`,
+      specialty: t('homepage.districts.fatih.specialty'),
+      population: '430,000',
+      sideNote: t('homepage.districts.fatih.sideNote'),
+      backgroundImage: 'https://images.unsplash.com/photo-1589395937172-99d0d6174d0f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+    },
+    {
+      id: 'galata',
+      name: t('homepage.districts.galata.name'),
+      color: '#8e44ad',
+      description: t('homepage.districts.galata.description'),
+      highlights: ['Galata Tower', 'Taksim Square', 'Karaköy Cafes'],
+      vibe: `🗼 ${t('homepage.districts.galata.vibe')}`,
+      specialty: t('homepage.districts.galata.specialty'),
+      population: '180,000',
+      sideNote: t('homepage.districts.galata.sideNote'),
+      backgroundImage: 'https://images.unsplash.com/photo-1605519170108-a66deb961e84?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+    },
+    {
+      id: 'ortakoy',
+      name: t('homepage.districts.ortakoy.name'),
+      color: '#16a085',
+      description: t('homepage.districts.ortakoy.description'),
+      highlights: ['Ortaköy Mosque', 'Bosphorus Bridge', 'Kumpir Stalls'],
+      vibe: `🌉 ${t('homepage.districts.ortakoy.vibe')}`,
+      specialty: t('homepage.districts.ortakoy.specialty'),
+      population: '45,000',
+      sideNote: t('homepage.districts.ortakoy.sideNote'),
+      backgroundImage: 'https://images.unsplash.com/photo-1609396726676-1890e6b48e89?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+    },
+    {
+      id: 'balat',
+      name: t('homepage.districts.balat.name'),
+      color: '#d35400',
+      description: t('homepage.districts.balat.description'),
+      highlights: ['Colorful Houses', 'Vintage Cafes', 'Greek Orthodox Church'],
+      vibe: `🎨 ${t('homepage.districts.balat.vibe')}`,
+      specialty: t('homepage.districts.balat.specialty'),
+      population: '25,000',
+      sideNote: t('homepage.districts.balat.sideNote'),
+      backgroundImage: 'https://images.unsplash.com/photo-1570939274717-7eda259b50ed?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+    },
+    {
+      id: 'arnavutkoy',
+      name: t('homepage.districts.arnavutkoy.name'),
+      color: '#2980b9',
+      description: t('homepage.districts.arnavutkoy.description'),
+      highlights: ['Ottoman Mansions', 'Seafood Restaurants', 'Bosphorus Promenade'],
+      vibe: `🏘️ ${t('homepage.districts.arnavutkoy.vibe')}`,
+      specialty: t('homepage.districts.arnavutkoy.specialty'),
+      population: '280,000',
+      sideNote: t('homepage.districts.arnavutkoy.sideNote'),
+      backgroundImage: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+    },
+    {
+      id: 'moda',
+      name: t('homepage.districts.moda.name'),
+      color: '#27ae60',
+      description: t('homepage.districts.moda.description'),
+      highlights: ['Moda Pier', 'Vintage Shops', 'Cozy Cafes'],
+      vibe: `☕ ${t('homepage.districts.moda.vibe')}`,
+      specialty: t('homepage.districts.moda.specialty'),
+      population: '35,000',
+      sideNote: t('homepage.districts.moda.sideNote'),
+      backgroundImage: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     }
   ];
 
