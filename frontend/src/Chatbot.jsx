@@ -6,6 +6,7 @@ import React from 'react';
 import { 
   fetchUnifiedChat,
   fetchUnifiedChatV2,
+  fetchStreamingChat,
   fetchRestaurantRecommendations, 
   fetchPlacesRecommendations, 
   extractLocationFromQuery,
@@ -32,6 +33,7 @@ import SimpleChatInput from './components/SimpleChatInput';
 import RestaurantCard from './components/RestaurantCard';
 import TransportationRouteCard from './components/TransportationRouteCard';
 import MinimizedGPSBanner from './components/MinimizedGPSBanner';
+import StreamingMessage from './components/StreamingMessage';
 import { useKeyboardDetection, scrollIntoViewSafe } from './utils/keyboardDetection';
 import safeStorage from './utils/safeStorage';
 import { trackEvent } from './utils/analytics';
@@ -821,6 +823,11 @@ function Chatbot({ userLocation: propUserLocation }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   
+  // 🌊 Streaming state - for real-time word-by-word responses
+  const [enableStreaming, setEnableStreaming] = useState(true); // Toggle streaming on/off
+  const [streamingText, setStreamingText] = useState(''); // Current streaming text
+  const [isStreamingResponse, setIsStreamingResponse] = useState(false); // Is currently streaming
+  
   // A/B Testing: Mobile components vs standard UI
   const useMobileComponents = isTreatment(AB_TESTS.MOBILE_COMPONENTS, 50);
   const useSmartQuickReplies = isTreatment(AB_TESTS.SMART_QUICK_REPLIES, 50);
@@ -1343,6 +1350,124 @@ function Chatbot({ userLocation: propUserLocation }) {
       console.log('🛡️ Sending SANITIZED input to chat API:', sanitizedInput);
       console.log('🌍 Current language:', i18n.language);
       console.log('🦙 Using Pure LLM:', usePureLLM);
+      console.log('🌊 Streaming enabled:', enableStreaming);
+      
+      // 🌊 STREAMING: If streaming is enabled, use streaming API
+      if (enableStreaming && !usePureLLM) {
+        console.log('🌊 Starting streaming response...');
+        setIsStreamingResponse(true);
+        setStreamingText('');
+        
+        try {
+          await fetchStreamingChat(sanitizedInput, {
+            sessionId: getSessionId(),
+            language: i18n.language,
+            gpsLocation: userLocation,
+            
+            onStart: (data) => {
+              console.log('🚀 Streaming started:', data);
+              setTypingMessage('');
+              setIsTyping(false);
+            },
+            
+            onToken: (token, fullText) => {
+              setStreamingText(fullText);
+            },
+            
+            onComplete: (finalText, metadata) => {
+              console.log('✅ Streaming complete:', finalText.substring(0, 100) + '...');
+              setIsStreamingResponse(false);
+              setStreamingText('');
+              
+              // Add the completed message to chat history
+              addMessage(finalText, 'assistant', {
+                type: metadata?.intent || 'general',
+                confidence: metadata?.confidence,
+                mapData: metadata?.map_data,
+                routeData: metadata?.route_data,
+                llmMode: metadata?.llm_mode,
+                intent: metadata?.intent,
+                method: 'streaming',
+                cached: false,
+                responseTime: metadata?.response_time,
+                backend: 'streaming'
+              });
+              
+              // Track message received (analytics)
+              try {
+                const responseTime = Date.now() - messageStartTime;
+                trackEvent('chatMessage', { action: 'received', length: finalText.length, responseTime, streaming: true });
+              } catch (e) {
+                console.warn('Analytics tracking failed:', e);
+              }
+              
+              // Clear failed message on success
+              setLastFailedMessage(null);
+            },
+            
+            onError: (error) => {
+              console.error('❌ Streaming error, falling back to regular API:', error);
+              setIsStreamingResponse(false);
+              setStreamingText('');
+              
+              // Fall back to regular chat API
+              fallbackToRegularChat();
+            }
+          });
+          
+          // Exit early - streaming handles its own message adding
+          return;
+          
+        } catch (streamError) {
+          console.error('❌ Streaming failed, falling back:', streamError);
+          setIsStreamingResponse(false);
+          setStreamingText('');
+          // Continue to regular chat API below
+        }
+      }
+      
+      // Regular (non-streaming) fallback function
+      const fallbackToRegularChat = async () => {
+        console.log('⚡ Using regular chat API (fallback)');
+        setIsTyping(true);
+        setTypingMessage('KAM is thinking...');
+        
+        try {
+          const chatResponse = await fetchUnifiedChatV2(sanitizedInput, {
+            sessionId: getSessionId(),
+            gpsLocation: userLocation,
+            language: i18n.language,
+            usePureLLM: usePureLLM
+          });
+          
+          addMessage(chatResponse.response || chatResponse.message, 'assistant', {
+            type: chatResponse.intent || 'general',
+            confidence: chatResponse.confidence,
+            mapData: chatResponse.map_data,
+            routeData: chatResponse.route_data,
+            llmMode: chatResponse.llm_mode,
+            intent: chatResponse.intent,
+            method: chatResponse.method,
+            cached: chatResponse.cached,
+            responseTime: chatResponse.response_time,
+            backend: usePureLLM ? 'pure-llm' : 'standard'
+          });
+          
+          setLastFailedMessage(null);
+          
+        } catch (fallbackError) {
+          handleError(fallbackError, 'fallback message sending', lastFailedMessage);
+          addMessage('Sorry, I encountered an error. Please try again.', 'assistant', {
+            type: 'error',
+            errorType: classifyError(fallbackError),
+            canRetry: true,
+            originalInput: originalUserInput
+          });
+        } finally {
+          setIsTyping(false);
+          setTypingMessage('');
+        }
+      };
       
       // Use unified chat API V2 which supports backend switching and language
       const chatResponse = await fetchUnifiedChatV2(sanitizedInput, {
@@ -2024,6 +2149,51 @@ function Chatbot({ userLocation: propUserLocation }) {
               )}
             </div>
           ))}
+          
+          {/* 🌊 STREAMING MESSAGE: Show real-time streaming response */}
+          {isStreamingResponse && streamingText && (
+            <div className="group py-6">
+              <div className="flex justify-start px-4 md:px-8">
+                <div className="flex items-start gap-3 w-full max-w-full">
+                  {/* Avatar */}
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                    darkMode 
+                      ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
+                      : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
+                  }`}>
+                    <svg className="w-4 h-4 md:w-5 md:h-5 text-white animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                    </svg>
+                  </div>
+                  
+                  {/* Streaming message content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`text-xs font-semibold transition-colors duration-200 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-600'
+                      }`}>KAM Assistant</div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium animate-pulse ${
+                        darkMode ? 'bg-blue-900/50 text-blue-200' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        🌊 Streaming...
+                      </span>
+                    </div>
+                    
+                    <StreamingMessage
+                      text={streamingText}
+                      isStreaming={true}
+                      isBot={true}
+                      showCursor={true}
+                      enableMarkdown={true}
+                      className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] ${
+                        darkMode ? 'text-gray-100' : 'text-gray-800'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Desktop typing indicator */}
           <TypingIndicator 

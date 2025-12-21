@@ -6,7 +6,7 @@ All chat-related endpoints including ML chat, Pure LLM chat, and legacy chat
 
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 import time
@@ -106,15 +106,40 @@ async def enhance_chat_response(
 # ==========================================
 
 
-# Request/Response Models
+# ===========================================
+# Import Validated Schemas
+# ===========================================
+try:
+    from schemas.chat import (
+        PureLLMChatRequest,
+        PureLLMChatResponse,
+        MLChatRequest as MLChatRequestSchema,
+        MLChatResponse as MLChatResponseSchema,
+    )
+    SCHEMAS_AVAILABLE = True
+except ImportError:
+    SCHEMAS_AVAILABLE = False
+    logger.warning("⚠️ Validated schemas not available, using legacy models")
+
+
+# ===========================================
+# Request/Response Models (Legacy + Enhanced)
+# ===========================================
 class ChatRequest(BaseModel):
-    """Request model for chat endpoints"""
-    message: str = Field(..., description="User message")
-    session_id: Optional[str] = Field(None, description="Session identifier")
+    """Request model for chat endpoints (enhanced with validation)"""
+    message: str = Field(..., min_length=1, max_length=2000, description="User message")
+    session_id: Optional[str] = Field(None, max_length=128, description="Session identifier")
     user_location: Optional[Dict[str, float]] = Field(None, description="User GPS location")
     preferences: Optional[Dict[str, Any]] = Field(None, description="User preferences")
-    user_id: Optional[str] = Field(None, description="User ID for personalization")
+    user_id: Optional[str] = Field(None, max_length=128, description="User ID for personalization")
     language: Optional[str] = Field("en", description="Response language (en/tr)")
+    
+    @field_validator('message')
+    @classmethod
+    def validate_message(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Message cannot be empty")
+        return v.strip()
 
 
 class ChatResponse(BaseModel):
@@ -133,12 +158,19 @@ class ChatResponse(BaseModel):
 
 
 class MLChatRequest(BaseModel):
-    """Request model for ML-powered chat"""
-    message: str = Field(..., min_length=1, max_length=1000, description="User message")
+    """Request model for ML-powered chat (enhanced with validation)"""
+    message: str = Field(..., min_length=1, max_length=2000, description="User message")
     user_location: Optional[Dict[str, float]] = Field(None, description="User location {lat, lon}")
     use_llm: Optional[bool] = Field(None, description="Override: Use LLM (None=use default)")
     language: str = Field(default="en", description="Response language (en/tr)")
-    user_id: Optional[str] = Field(None, description="User ID for personalization")
+    user_id: Optional[str] = Field(None, max_length=128, description="User ID for personalization")
+    
+    @field_validator('message')
+    @classmethod
+    def validate_message(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Message cannot be empty")
+        return v.strip()
 
 
 class MLChatResponse(BaseModel):

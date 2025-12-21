@@ -766,3 +766,155 @@ export const fetchUnifiedChatV2 = async (query, options = {}) => {
     return fetchUnifiedChat(query, options);
   }
 };
+
+// ============================================
+// Streaming Chat API (Real-time responses)
+// ============================================
+
+const STREAM_API_URL = `${cleanBaseUrl}/api/stream`;
+
+/**
+ * Stream chat response using Server-Sent Events (SSE)
+ * Provides real-time word-by-word response like ChatGPT
+ * 
+ * @param {string} message - User's message
+ * @param {Object} options - Options object
+ * @param {Function} options.onToken - Callback for each token received
+ * @param {Function} options.onComplete - Callback when streaming completes
+ * @param {Function} options.onError - Callback on error
+ * @param {string} options.sessionId - Session ID
+ * @param {string} options.language - Language code
+ * @param {Object} options.gpsLocation - GPS location
+ * @returns {Promise<void>}
+ */
+export const fetchStreamingChat = async (message, options = {}) => {
+  const {
+    onToken,
+    onComplete,
+    onError,
+    onStart,
+    sessionId = getSessionId(),
+    language = 'en',
+    gpsLocation = null
+  } = options;
+
+  try {
+    console.log('🌊 Starting streaming chat request');
+
+    const requestBody = {
+      message: message.trim(),
+      session_id: sessionId,
+      language: language,
+      include_context: true
+    };
+
+    if (gpsLocation) {
+      requestBody.user_location = {
+        lat: gpsLocation.lat || gpsLocation.latitude,
+        lon: gpsLocation.lon || gpsLocation.lng || gpsLocation.longitude
+      };
+    }
+
+    const response = await fetch(`${STREAM_API_URL}/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = '';
+    let metadata = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          const eventType = line.slice(7).trim();
+          continue;
+        }
+
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          
+          try {
+            const parsed = JSON.parse(data);
+
+            if (parsed.timestamp && !parsed.content && onStart) {
+              // Start event
+              onStart(parsed);
+            } else if (parsed.content !== undefined && !parsed.metadata) {
+              // Token event
+              fullResponse += parsed.content;
+              if (onToken) {
+                onToken(parsed.content, fullResponse);
+              }
+            } else if (parsed.metadata) {
+              // Complete event
+              metadata = parsed.metadata;
+              if (onComplete) {
+                onComplete(parsed.content || fullResponse, metadata);
+              }
+            } else if (parsed.error) {
+              // Error event
+              if (onError) {
+                onError(new Error(parsed.error));
+              }
+            }
+          } catch (e) {
+            // Non-JSON data, treat as raw token
+            if (data.trim()) {
+              fullResponse += data;
+              if (onToken) {
+                onToken(data, fullResponse);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // If no complete event was received, call onComplete with accumulated response
+    if (!metadata && onComplete) {
+      onComplete(fullResponse, { streaming: true });
+    }
+
+    return { response: fullResponse, metadata };
+
+  } catch (error) {
+    console.error('❌ Streaming error:', error);
+    if (onError) {
+      onError(error);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Check if streaming is available
+ * @returns {Promise<boolean>}
+ */
+export const checkStreamingAvailable = async () => {
+  try {
+    const response = await fetch(`${STREAM_API_URL}/analyze?text=test`, {
+      method: 'GET',
+      timeout: 5000
+    });
+    return response.ok;
+  } catch (error) {
+    console.warn('Streaming not available:', error.message);
+    return false;
+  }
+};

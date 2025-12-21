@@ -56,6 +56,20 @@ except ImportError:
         TRANSPORTATION_RAG_AVAILABLE = False
         logger.warning("⚠️ Transportation RAG system not available")
 
+# Import Istanbul Knowledge RAG system (neighborhoods, food, attractions, scams, etc.)
+try:
+    from backend.services.istanbul_knowledge_rag import get_knowledge_rag
+    KNOWLEDGE_RAG_AVAILABLE = True
+    logger.info("✅ Istanbul Knowledge RAG system available")
+except ImportError:
+    try:
+        from services.istanbul_knowledge_rag import get_knowledge_rag
+        KNOWLEDGE_RAG_AVAILABLE = True
+        logger.info("✅ Istanbul Knowledge RAG system available")
+    except ImportError:
+        KNOWLEDGE_RAG_AVAILABLE = False
+        logger.warning("⚠️ Istanbul Knowledge RAG system not available")
+
 
 class ContextBuilder:
     """
@@ -491,37 +505,72 @@ class ContextBuilder:
             return ""
     
     async def _get_neighborhoods(self, query: str, language: str) -> str:
-        """Get neighborhood data with coordinates from Istanbul Knowledge."""
+        """Get neighborhood data with coordinates from Istanbul Knowledge RAG."""
         try:
-            # Import Istanbul Knowledge
-            from .istanbul_knowledge import IstanbulKnowledge
-            istanbul_kb = IstanbulKnowledge()
-            
-            # Extract neighborhood names from query
-            query_lower = query.lower()
-            mentioned_neighborhoods = []
-            
-            for name, neighborhood in istanbul_kb.neighborhoods.items():
-                if name.lower() in query_lower or any(alias.lower() in query_lower for alias in [name]):
-                    mentioned_neighborhoods.append((name, neighborhood))
-            
-            # If no specific neighborhoods mentioned, return top popular ones
-            if not mentioned_neighborhoods:
-                popular = ['Beyoğlu', 'Sultanahmet', 'Kadıköy', 'Beşiktaş']
-                for name in popular:
-                    if name in istanbul_kb.neighborhoods:
-                        mentioned_neighborhoods.append((name, istanbul_kb.neighborhoods[name]))
-            
-            # Format results with coordinates
             results = []
-            for name, neighborhood in mentioned_neighborhoods[:5]:  # Top 5
-                info = f"- {name}: {neighborhood.character}"
-                if neighborhood.center_location:
-                    lat, lon = neighborhood.center_location
-                    info += f" | Coordinates: ({lat}, {lon})"
-                if neighborhood.transport_hubs:
-                    info += f" | Transport: {', '.join(neighborhood.transport_hubs[:3])}"
-                results.append(info)
+            
+            # PART 1: Use new Knowledge RAG for comprehensive neighborhood info
+            if KNOWLEDGE_RAG_AVAILABLE:
+                try:
+                    knowledge_rag = get_knowledge_rag()
+                    neighborhood_info = knowledge_rag.get_neighborhood_info(query)
+                    
+                    if neighborhood_info:
+                        name = neighborhood_info.get('name', 'Neighborhood')
+                        results.append(f"=== {name.upper()} ===")
+                        
+                        if neighborhood_info.get('vibe'):
+                            results.append(f"Vibe: {neighborhood_info['vibe']}")
+                        if neighborhood_info.get('best_for'):
+                            best_for = neighborhood_info['best_for']
+                            if isinstance(best_for, list):
+                                results.append(f"Best for: {', '.join(best_for)}")
+                            else:
+                                results.append(f"Best for: {best_for}")
+                        if neighborhood_info.get('highlights'):
+                            highlights = neighborhood_info['highlights']
+                            if isinstance(highlights, list):
+                                results.append(f"Highlights: {', '.join(highlights[:5])}")
+                        if neighborhood_info.get('where_to_eat'):
+                            results.append(f"Food: {neighborhood_info['where_to_eat'][:200]}...")
+                        if neighborhood_info.get('getting_there'):
+                            results.append(f"Access: {neighborhood_info['getting_there']}")
+                        
+                        logger.info(f"✅ Added neighborhood info from Knowledge RAG")
+                except Exception as e:
+                    logger.warning(f"Knowledge RAG neighborhood lookup failed: {e}")
+            
+            # PART 2: Fall back to Istanbul Knowledge for coordinates
+            try:
+                from .istanbul_knowledge import IstanbulKnowledge
+                istanbul_kb = IstanbulKnowledge()
+                
+                # Extract neighborhood names from query
+                query_lower = query.lower()
+                mentioned_neighborhoods = []
+                
+                for name, neighborhood in istanbul_kb.neighborhoods.items():
+                    if name.lower() in query_lower or any(alias.lower() in query_lower for alias in [name]):
+                        mentioned_neighborhoods.append((name, neighborhood))
+                
+                # If no specific neighborhoods mentioned, return top popular ones
+                if not mentioned_neighborhoods:
+                    popular = ['Beyoğlu', 'Sultanahmet', 'Kadıköy', 'Beşiktaş']
+                    for name in popular:
+                        if name in istanbul_kb.neighborhoods:
+                            mentioned_neighborhoods.append((name, istanbul_kb.neighborhoods[name]))
+                
+                # Format results with coordinates
+                for name, neighborhood in mentioned_neighborhoods[:5]:  # Top 5
+                    info = f"- {name}: {neighborhood.character}"
+                    if neighborhood.center_location:
+                        lat, lon = neighborhood.center_location
+                        info += f" | Coordinates: ({lat}, {lon})"
+                    if neighborhood.transport_hubs:
+                        info += f" | Transport: {', '.join(neighborhood.transport_hubs[:3])}"
+                    results.append(info)
+            except Exception as e:
+                logger.warning(f"Istanbul Knowledge neighborhood lookup failed: {e}")
             
             return "\n".join(results) if results else ""
             
@@ -650,35 +699,48 @@ Total time: ~30 minutes (more scenic!)"""
     
     async def _get_rag_context(self, query: str, language: str) -> str:
         """Get RAG context from embeddings with circuit breaker protection."""
-        if not self.rag_service:
-            return ""
+        context_parts = []
         
-        try:
-            # Use circuit breaker if available
-            if 'rag' in self.circuit_breakers:
-                async def _search():
-                    return await self.rag_service.search(query, language=language, top_k=3)
+        # PART 1: Database RAG (restaurants, museums, events, etc.)
+        if self.rag_service:
+            try:
+                # Use circuit breaker if available
+                if 'rag' in self.circuit_breakers:
+                    async def _search():
+                        return await self.rag_service.search(query, language=language, top_k=3)
+                    
+                    results = await self.circuit_breakers['rag'].call(_search)
+                else:
+                    results = await self.rag_service.search(query, language=language, top_k=3)
                 
-                results = await self.circuit_breakers['rag'].call(_search)
-            else:
-                results = await self.rag_service.search(query, language=language, top_k=3)
+                if results:
+                    # Format Database RAG results
+                    for result in results:
+                        context_parts.append(f"[Score: {result.get('score', 0):.2f}] {result.get('text', '')[:200]}...")
             
-            if not results:
-                return ""
-            
-            # Format RAG results
-            context_parts = []
-            for result in results:
-                context_parts.append(f"[Score: {result.get('score', 0):.2f}] {result.get('text', '')[:200]}...")
-            
-            return "\n\n".join(context_parts)
+            except Exception as e:
+                logger.error(f"Database RAG search failed: {e}")
         
-        except Exception as e:
-            logger.error(f"RAG search failed: {e}")
+        # PART 2: Istanbul Knowledge RAG (neighborhoods, food, attractions, scams, etc.)
+        if KNOWLEDGE_RAG_AVAILABLE:
+            try:
+                knowledge_rag = get_knowledge_rag()
+                knowledge_context = knowledge_rag.get_context_for_llm(query, max_length=1500)
+                
+                if knowledge_context:
+                    context_parts.append("\n=== ISTANBUL KNOWLEDGE BASE ===")
+                    context_parts.append(knowledge_context)
+                    logger.info(f"✅ Added Knowledge RAG context: {len(knowledge_context)} chars")
+            except Exception as e:
+                logger.warning(f"Knowledge RAG failed: {e}")
+        
+        if not context_parts:
             # Return graceful degradation message
             from .resilience import GracefulDegradation
             fallback = GracefulDegradation.get_fallback_context('rag')
             return fallback.get('message', '')
+        
+        return "\n\n".join(context_parts)
     
     async def _get_weather_context(self, query: str) -> str:
         """Get weather context with smart recommendations based on conditions."""

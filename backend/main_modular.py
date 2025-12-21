@@ -46,6 +46,15 @@ from api.admin import experiments as admin_experiments
 from api.admin import routes as admin_routes
 from api.startup_status import router as startup_status_router
 
+# Import streaming API for real-time responses
+try:
+    from api.streaming import router as streaming_router
+    STREAMING_API_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Streaming API not available: {e}")
+    STREAMING_API_AVAILABLE = False
+    streaming_router = None
+
 # Import blog API
 try:
     from blog_api import router as blog_api_router
@@ -105,6 +114,11 @@ app.include_router(llm_router)
 app.include_router(aws_diagnostics_router)  # AWS S3 and Redis diagnostic endpoints
 app.include_router(startup_status_router)  # Startup diagnostics
 app.include_router(admin_experiments.router)
+
+# Register streaming API for real-time chat responses
+if STREAMING_API_AVAILABLE and streaming_router:
+    app.include_router(streaming_router)
+    logger.info("✅ Streaming API registered at /api/stream")
 
 # Register direct routing API (fast, deterministic transportation routing)
 try:

@@ -163,9 +163,31 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 def setup_middleware(app: FastAPI):
-    """Setup all middleware"""
+    """Setup all middleware including security and error handlers"""
+    # CORS
     setup_cors(app)
+    
+    # Security headers
     app.add_middleware(SecurityHeadersMiddleware)
+    
+    # Request logging
     app.add_middleware(RequestLoggingMiddleware)
+    
+    # Error handling middleware (legacy - kept for backwards compatibility)
     app.add_middleware(ErrorHandlingMiddleware)
-    logger.info("✅ Middleware configured")
+    
+    # Security middleware (authentication extraction)
+    try:
+        from core.security import setup_security
+        setup_security(app)
+    except ImportError as e:
+        logger.warning(f"⚠️ Security middleware not available: {e}")
+    
+    # Standardized error handlers
+    try:
+        from core.errors import setup_error_handlers
+        setup_error_handlers(app)
+    except ImportError as e:
+        logger.warning(f"⚠️ Error handlers not available: {e}")
+    
+    logger.info("✅ All middleware configured")
