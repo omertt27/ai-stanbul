@@ -397,7 +397,10 @@ class IstanbulTransportationRAG:
                     logger.info(f"⚡ Route cache HIT ({self.cache_hits} total): {origin} → {destination}")
                     # Deserialize cached route
                     route_dict = json.loads(cached)
-                    return self._dict_to_route(route_dict)
+                    cached_route = self._dict_to_route(route_dict)
+                    # 🔥 CRITICAL FIX: Store cached route as last_route for map visualization
+                    self.last_route = cached_route
+                    return cached_route
             except Exception as e:
                 logger.warning(f"Cache read error: {e}")
         
@@ -461,6 +464,10 @@ class IstanbulTransportationRAG:
                 logger.debug(f"💾 Cached route: {cache_key}")
             except Exception as e:
                 logger.warning(f"Cache write error: {e}")
+        
+        # 🔥 CRITICAL FIX: Store last_route for map visualization
+        # This enables get_map_data_for_last_route() to work correctly
+        self.last_route = best_route
         
         return best_route
     

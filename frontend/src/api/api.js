@@ -795,7 +795,8 @@ export const fetchStreamingChat = async (message, options = {}) => {
     onStart,
     sessionId = getSessionId(),
     language = 'en',
-    gpsLocation = null
+    gpsLocation = null,
+    signal = null  // AbortController signal for cancellation
   } = options;
 
   try {
@@ -815,14 +816,21 @@ export const fetchStreamingChat = async (message, options = {}) => {
       };
     }
 
-    const response = await fetch(`${STREAM_API_URL}/chat`, {
+    const fetchOptions = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'text/event-stream'
       },
       body: JSON.stringify(requestBody)
-    });
+    };
+
+    // Add signal for cancellation if provided
+    if (signal) {
+      fetchOptions.signal = signal;
+    }
+
+    const response = await fetch(`${STREAM_API_URL}/chat`, fetchOptions);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -833,68 +841,86 @@ export const fetchStreamingChat = async (message, options = {}) => {
     let fullResponse = '';
     let metadata = null;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
 
-      for (const line of lines) {
-        if (line.startsWith('event: ')) {
-          const eventType = line.slice(7).trim();
-          continue;
-        }
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            const eventType = line.slice(7).trim();
+            continue;
+          }
 
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          
-          try {
-            const parsed = JSON.parse(data);
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            
+            try {
+              const parsed = JSON.parse(data);
 
-            if (parsed.timestamp && !parsed.content && onStart) {
-              // Start event
-              onStart(parsed);
-            } else if (parsed.content !== undefined && !parsed.metadata) {
-              // Token event
-              fullResponse += parsed.content;
-              if (onToken) {
-                onToken(parsed.content, fullResponse);
+              if (parsed.timestamp && !parsed.content && onStart) {
+                // Start event
+                onStart(parsed);
+              } else if (parsed.content !== undefined && !parsed.metadata) {
+                // Token event
+                fullResponse += parsed.content;
+                if (onToken) {
+                  onToken(parsed.content, fullResponse);
+                }
+              } else if (parsed.metadata) {
+                // Complete event
+                metadata = parsed.metadata;
+                if (onComplete) {
+                  onComplete(parsed.content || fullResponse, metadata);
+                }
+              } else if (parsed.error) {
+                // Error event
+                if (onError) {
+                  onError(new Error(parsed.error));
+                }
               }
-            } else if (parsed.metadata) {
-              // Complete event
-              metadata = parsed.metadata;
-              if (onComplete) {
-                onComplete(parsed.content || fullResponse, metadata);
-              }
-            } else if (parsed.error) {
-              // Error event
-              if (onError) {
-                onError(new Error(parsed.error));
-              }
-            }
-          } catch (e) {
-            // Non-JSON data, treat as raw token
-            if (data.trim()) {
-              fullResponse += data;
-              if (onToken) {
-                onToken(data, fullResponse);
+            } catch (e) {
+              // Non-JSON data, treat as raw token
+              if (data.trim()) {
+                fullResponse += data;
+                if (onToken) {
+                  onToken(data, fullResponse);
+                }
               }
             }
           }
         }
       }
-    }
 
-    // If no complete event was received, call onComplete with accumulated response
-    if (!metadata && onComplete) {
-      onComplete(fullResponse, { streaming: true });
-    }
+      // If no complete event was received, call onComplete with accumulated response
+      if (!metadata && onComplete) {
+        onComplete(fullResponse, { streaming: true });
+      }
 
-    return { response: fullResponse, metadata };
+      return { response: fullResponse, metadata };
+
+    } finally {
+      // Always cancel the reader to clean up resources
+      reader.cancel();
+    }
 
   } catch (error) {
     console.error('❌ Streaming error:', error);
+    
+    // Check if this was an abort error
+    if (error.name === 'AbortError') {
+      console.log('🛑 Streaming request was cancelled by user');
+      if (onError) {
+        const cancelError = new Error('Request cancelled by user');
+        cancelError.cancelled = true;
+        onError(cancelError);
+      }
+      return { response: '', metadata: { cancelled: true } };
+    }
+    
     if (onError) {
       onError(error);
     }

@@ -605,10 +605,6 @@ class ContextBuilder:
             # Use industry-level Transportation RAG system
             if TRANSPORTATION_RAG_AVAILABLE:
                 logger.info("🗺️ Using Industry-Level Transportation RAG System")
-                if user_location:
-                    logger.info(f"📍 GPS location available: {user_location}")
-                else:
-                    logger.info("❌ No GPS location provided")
                 
                 transport_rag = get_transportation_rag()
                 
@@ -617,7 +613,46 @@ class ContextBuilder:
                 query_for_rag = original_query if original_query else query
                 logger.info(f"🔍 Using query for RAG: '{query_for_rag}'")
                 
+                # === GPS PATTERN DETECTION ===
+                # Check if query uses "from my location", "from here", or similar patterns
+                query_lower = query_for_rag.lower()
+                gps_origin_patterns = [
+                    'from my location', 'from here', 'from current location',
+                    'from where i am', 'from my position', 'starting from here',
+                    'from my current location', 'from where i\'m at'
+                ]
+                
+                gps_dest_patterns = [
+                    'to my location', 'to here', 'to current location',
+                    'to where i am', 'back here', 'to where i\'m at'
+                ]
+                
+                uses_gps_origin = any(pattern in query_lower for pattern in gps_origin_patterns)
+                uses_gps_dest = any(pattern in query_lower for pattern in gps_dest_patterns)
+                
+                # Also check if only ONE location is mentioned (implying GPS as origin)
+                # Count location keywords
+                location_count = sum([
+                    1 for word in ['to ', 'from ', 'in '] 
+                    if word in query_lower
+                ])
+                
+                # If GPS detected, log it
+                if uses_gps_origin or uses_gps_dest or (location_count == 1 and user_location):
+                    if user_location:
+                        logger.info(f"📍 GPS DETECTED in query! Location: {user_location}")
+                        logger.info(f"🔍 GPS Origin: {uses_gps_origin}, GPS Dest: {uses_gps_dest}, Single location: {location_count == 1}")
+                    else:
+                        logger.warning(f"⚠️ GPS pattern detected but no GPS location available!")
+                        logger.warning(f"   User should enable location permissions in browser")
+                else:
+                    if user_location:
+                        logger.info(f"� GPS available but query doesn't use it: {user_location}")
+                    else:
+                        logger.info("❌ No GPS location provided")
+                
                 # Generate RAG context for this specific query, passing user_location
+                # The Transportation RAG will handle GPS-based routing internally
                 rag_context = transport_rag.get_rag_context_for_query(query_for_rag, user_location=user_location)
                 
                 logger.info(f"✅ Generated {len(rag_context)} chars of verified transportation context")

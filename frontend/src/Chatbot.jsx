@@ -827,6 +827,26 @@ function Chatbot({ userLocation: propUserLocation }) {
   const [enableStreaming, setEnableStreaming] = useState(true); // Toggle streaming on/off
   const [streamingText, setStreamingText] = useState(''); // Current streaming text
   const [isStreamingResponse, setIsStreamingResponse] = useState(false); // Is currently streaming
+  const abortControllerRef = useRef(null); // AbortController for cancelling streaming requests
+  
+  // Stop button handler - Cancel streaming response
+  const handleStopStreaming = () => {
+    if (abortControllerRef.current) {
+      console.log('🛑 User clicked Stop - Cancelling streaming request');
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsStreamingResponse(false);
+      setStreamingText('');
+      setIsTyping(false);
+      setTypingMessage('');
+      
+      // Add a message indicating the response was cancelled
+      addMessage('Response cancelled by user.', 'assistant', {
+        type: 'info',
+        cancelled: true
+      });
+    }
+  };
   
   // A/B Testing: Mobile components vs standard UI
   const useMobileComponents = isTreatment(AB_TESTS.MOBILE_COMPONENTS, 50);
@@ -1358,11 +1378,15 @@ function Chatbot({ userLocation: propUserLocation }) {
         setIsStreamingResponse(true);
         setStreamingText('');
         
+        // Create AbortController for cancellation
+        abortControllerRef.current = new AbortController();
+        
         try {
           await fetchStreamingChat(sanitizedInput, {
             sessionId: getSessionId(),
             language: i18n.language,
             gpsLocation: userLocation,
+            signal: abortControllerRef.current.signal,  // Pass abort signal
             
             onStart: (data) => {
               console.log('🚀 Streaming started:', data);
@@ -1376,6 +1400,7 @@ function Chatbot({ userLocation: propUserLocation }) {
             
             onComplete: (finalText, metadata) => {
               console.log('✅ Streaming complete:', finalText.substring(0, 100) + '...');
+              abortControllerRef.current = null; // Clear abort controller
               setIsStreamingResponse(false);
               setStreamingText('');
               
@@ -1406,9 +1431,16 @@ function Chatbot({ userLocation: propUserLocation }) {
             },
             
             onError: (error) => {
-              console.error('❌ Streaming error, falling back to regular API:', error);
+              console.error('❌ Streaming error:', error);
+              abortControllerRef.current = null; // Clear abort controller
               setIsStreamingResponse(false);
               setStreamingText('');
+              
+              // Don't show error if user cancelled
+              if (error.cancelled) {
+                console.log('🛑 Streaming cancelled by user');
+                return;
+              }
               
               // Fall back to regular chat API
               fallbackToRegularChat();
@@ -1420,8 +1452,16 @@ function Chatbot({ userLocation: propUserLocation }) {
           
         } catch (streamError) {
           console.error('❌ Streaming failed, falling back:', streamError);
+          abortControllerRef.current = null; // Clear abort controller
           setIsStreamingResponse(false);
           setStreamingText('');
+          
+          // Don't show error if user cancelled
+          if (streamError.name === 'AbortError' || streamError.cancelled) {
+            console.log('🛑 Streaming cancelled by user');
+            return; // Exit early
+          }
+          
           // Continue to regular chat API below
         }
       }
@@ -2168,15 +2208,35 @@ function Chatbot({ userLocation: propUserLocation }) {
                   
                   {/* Streaming message content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`text-xs font-semibold transition-colors duration-200 ${
-                        darkMode ? 'text-gray-300' : 'text-gray-600'
-                      }`}>KAM Assistant</div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium animate-pulse ${
-                        darkMode ? 'bg-blue-900/50 text-blue-200' : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        🌊 Streaming...
-                      </span>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`text-xs font-semibold transition-colors duration-200 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>KAM Assistant</div>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium animate-pulse ${
+                          darkMode ? 'bg-blue-900/50 text-blue-200' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          🌊 Streaming...
+                        </span>
+                      </div>
+                      
+                      {/* ChatGPT-style Stop button */}
+                      <button
+                        onClick={handleStopStreaming}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95 ${
+                          darkMode 
+                            ? 'bg-red-900/30 text-red-300 hover:bg-red-900/50 border border-red-700/50' 
+                            : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
+                        }`}
+                        title="Stop generating response"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <rect x="4" y="4" width="12" height="12" rx="1" />
+                          </svg>
+                          Stop
+                        </div>
+                      </button>
                     </div>
                     
                     <StreamingMessage

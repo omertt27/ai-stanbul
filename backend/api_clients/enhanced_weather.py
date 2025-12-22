@@ -3,6 +3,7 @@ import os
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +16,18 @@ class EnhancedWeatherClient:
         self.base_url = "https://api.openweathermap.org/data/2.5"
         self.use_real_apis = os.getenv("USE_REAL_APIS", "true").lower() == "true"
         
-        # Simple cache for weather data (weather changes frequently, shorter cache)
-        self._cache = {}
-        self.cache_duration = 10  # minutes
+        # In-memory cache as fallback
+        self._memory_cache = {}
+        self.cache_duration = 60  # minutes (1 hour)
+        
+        # Try to use Redis cache for persistence across restarts
+        self._redis_cache = None
+        try:
+            from services.redis_cache import get_redis_cache
+            self._redis_cache = get_redis_cache()
+            logger.info("✅ Weather API: Using Redis cache (persistent across restarts)")
+        except Exception as e:
+            logger.warning(f"⚠️ Weather API: Redis not available, using memory cache: {e}")
         
         if not self.has_api_key or not self.use_real_apis:
             logger.warning("Weather API: Using fallback mode with enhanced mock data.")
@@ -30,36 +40,66 @@ class EnhancedWeatherClient:
         return f"weather_{method}:{hash(str(sorted_params))}"
     
     def _get_cached_response(self, cache_key: str) -> Optional[Dict]:
-        """Get cached weather response if not expired."""
-        if cache_key not in self._cache:
+        """Get cached weather response if not expired (tries Redis first, then memory)."""
+        # Try Redis cache first (persistent)
+        if self._redis_cache:
+            try:
+                cached_data = self._redis_cache.get(cache_key)
+                if cached_data:
+                    # Parse JSON string back to dict
+                    if isinstance(cached_data, str):
+                        cached_data = json.loads(cached_data)
+                    logger.info(f"✅ Weather cache HIT (Redis): {cache_key[:50]}...")
+                    return cached_data
+            except Exception as e:
+                logger.warning(f"Redis cache read failed: {e}")
+        
+        # Fallback to memory cache
+        if cache_key not in self._memory_cache:
             return None
         
-        cached_data, timestamp = self._cache[cache_key]
+        cached_data, timestamp = self._memory_cache[cache_key]
         if datetime.now() - timestamp < timedelta(minutes=self.cache_duration):
+            logger.info(f"✅ Weather cache HIT (memory): {cache_key[:50]}...")
             return cached_data
         else:
-            del self._cache[cache_key]
+            del self._memory_cache[cache_key]
             return None
     
     def _cache_response(self, cache_key: str, data: Dict) -> None:
-        """Cache weather response."""
-        self._cache[cache_key] = (data, datetime.now())
+        """Cache weather response (in both Redis and memory)."""
+        # Cache in Redis with 1-hour TTL (persistent across restarts)
+        if self._redis_cache:
+            try:
+                self._redis_cache.set(
+                    cache_key,
+                    json.dumps(data),
+                    ttl=self.cache_duration * 60  # Convert minutes to seconds
+                )
+                logger.info(f"💾 Weather cached in Redis for {self.cache_duration} minutes")
+            except Exception as e:
+                logger.warning(f"Redis cache write failed: {e}")
+        
+        # Also cache in memory as fallback
+        self._memory_cache[cache_key] = (data, datetime.now())
     
     def get_current_weather(self, city: str = "Istanbul", country: str = "TR") -> Dict:
         """Get current weather conditions with real API data when available."""
         cache_key = self._get_cache_key("current", city=city, country=country)
         
-        # Try cache first
+        # Try cache first (1-hour cache to reduce API calls)
         cached_result = self._get_cached_response(cache_key)
         if cached_result:
+            logger.info(f"🔄 Using cached weather data for {city} (refreshes every hour)")
             return cached_result
         
         # Use real API if available
         if self.has_api_key and self.use_real_apis:
             try:
+                logger.info(f"🌐 Fetching fresh weather data from API for {city}...")
                 result = self._get_current_weather_real_api(city, country)
                 self._cache_response(cache_key, result)
-                logger.info(f"✅ REAL WEATHER: Current conditions for {city}")
+                logger.info(f"✅ REAL WEATHER: Current conditions for {city} (cached for 1 hour)")
                 return result
             except Exception as e:
                 logger.error(f"Real weather API failed, using mock data: {e}")
@@ -93,17 +133,19 @@ class EnhancedWeatherClient:
         """Get weather forecast with real API data when available."""
         cache_key = self._get_cache_key("forecast", city=city, country=country, days=days)
         
-        # Try cache first
+        # Try cache first (1-hour cache to reduce API calls)
         cached_result = self._get_cached_response(cache_key)
         if cached_result:
+            logger.info(f"🔄 Using cached forecast for {city} (refreshes every hour)")
             return cached_result
         
         # Use real API if available
         if self.has_api_key and self.use_real_apis:
             try:
+                logger.info(f"🌐 Fetching fresh forecast from API for {city}...")
                 result = self._get_forecast_real_api(city, country, days)
                 self._cache_response(cache_key, result)
-                logger.info(f"✅ REAL FORECAST: {days}-day forecast for {city}")
+                logger.info(f"✅ REAL FORECAST: {days}-day forecast for {city} (cached for 1 hour)")
                 return result
             except Exception as e:
                 logger.error(f"Real forecast API failed, using mock data: {e}")

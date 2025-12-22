@@ -705,6 +705,54 @@ Fixed version (max 50 chars):"""
             logger.warning(f"   ⚠️ Low signal confidence - added explicit instructions to prompt")
 
         
+        # === CRITICAL: TRANSPORTATION EARLY RETURN ===
+        # For transportation queries, SKIP LLM entirely and return template-based response
+        # This is the DETERMINISTIC FACT LAYER of the hybrid architecture
+        if signals['signals'].get('needs_transportation'):
+            logger.info(f"🚇 TRANSPORTATION QUERY DETECTED - Bypassing LLM, using template response")
+            
+            # Extract route data from context (verified facts from Transportation RAG)
+            route_data = None
+            if context.get('services'):
+                for service_item in context['services']:
+                    if isinstance(service_item, dict) and 'route' in service_item:
+                        route_data = service_item
+                        break
+            
+            if route_data:
+                # Generate template-based response using ONLY verified facts
+                response_text = await self._generate_template_transportation_response(
+                    route_data=route_data,
+                    query=query,
+                    language=language
+                )
+                
+                # Build result and return early - NO LLM GENERATION
+                total_latency = time.time() - start_time
+                map_data = context.get('map_data')
+                
+                result = {
+                    'response': response_text,
+                    'map_data': map_data,
+                    'signals': signals['signals'],
+                    'metadata': {
+                        'total_latency': total_latency,
+                        'llm_latency': 0,  # No LLM used
+                        'context_latency': context_latency,
+                        'cache_hit': cache_hit,
+                        'cache_key': cache_key,
+                        'experiment_variant': variant,
+                        'personalized': personalized_results is not None,
+                        'mode': 'template_transportation',  # Fact-locked template
+                        'hallucination_risk': 'zero'  # No LLM = no hallucination
+                    }
+                }
+                
+                logger.info(f"✅ Template transportation response generated in {total_latency:.2f}s (ZERO hallucination risk)")
+                return result
+            else:
+                logger.warning(f"⚠️ Transportation query detected but no route data available - falling back to LLM")
+        
         # STEP 7: LLM Generation with Resilience
         try:
             llm_start = time.time()
