@@ -833,6 +833,45 @@ Fixed version (max 50 chars):"""
                     context=context,
                     error_type="validation"
                 )
+            
+            # === TRANSPORTATION-SPECIFIC VALIDATION ===
+            # Apply hard guardrails for transportation facts to prevent hallucinations
+            if signals['signals'].get('needs_transportation'):
+                logger.info(f"🚇 Applying transportation validation for route query...")
+                
+                # Extract route data from context (verified facts from Transportation RAG)
+                route_data = None
+                if context.get('services'):
+                    for service_item in context['services']:
+                        if isinstance(service_item, dict) and 'route' in service_item:
+                            route_data = service_item
+                            break
+                
+                # Validate LLM response against verified route facts
+                is_transport_valid, transport_error, corrected_response = await self._validate_transportation_response(
+                    response=response_text,
+                    route_data=route_data,
+                    query=query
+                )
+                
+                if not is_transport_valid:
+                    logger.error(f"🚨 TRANSPORTATION HALLUCINATION DETECTED: {transport_error}")
+                    self.analytics.track_validation_failure(f"transport_hallucination: {transport_error}")
+                    
+                    if corrected_response:
+                        # Use auto-corrected response
+                        logger.info(f"✅ Using auto-corrected response (hallucinated facts replaced)")
+                        response_text = corrected_response
+                    else:
+                        # Fallback to template-based response using verified facts only
+                        logger.warning(f"⚠️ Auto-correction failed, generating template-based response")
+                        response_text = await self._generate_template_transportation_response(
+                            route_data=route_data,
+                            query=query,
+                            language=language
+                        )
+                else:
+                    logger.info(f"✅ Transportation response validated - no hallucinations detected")
         
         except CircuitBreakerError as e:
             logger.error(f"❌ LLM service unavailable (circuit breaker open): {e}")
@@ -1844,964 +1883,210 @@ Fixed version (max 50 chars):"""
             "You can also try specific queries like 'restaurants near me' or 'how to get to Hagia Sophia'."
         )
     
-    # ========================================================================
-    # HELPER METHODS - Analytics, Experimentation, etc.
-    # ========================================================================
-    
-    def get_analytics_summary(self) -> Dict[str, Any]:
-        """Get comprehensive analytics summary."""
-        return self.analytics.get_summary()
-    
-    def record_user_feedback(
+    async def _validate_transportation_response(
         self,
-        query: str,
-        detected_signals: Dict[str, bool],
-        confidence_scores: Dict[str, float],
-        feedback_type: str,
-        feedback_data: Dict[str, Any],
-        language: str = "en"
-    ):
-        """Record user feedback for threshold learning."""
-        if self.experimentation:
-            self.experimentation.record_feedback(
-                query=query,
-                detected_signals=detected_signals,
-                confidence_scores=confidence_scores,
-                feedback_type=feedback_type,
-                feedback_data=feedback_data,
-                language=language
-            )
-    
-    async def auto_tune_thresholds(
-        self,
-        language: str = "en",
-        force: bool = False
-    ) -> Dict[str, Any]:
-        """Automatically tune thresholds based on feedback."""
-        if self.experimentation:
-            return await self.experimentation.auto_tune_thresholds(
-                language=language,
-                force=force
-            )
-        return {'status': 'disabled'}
-    
-    def get_conversation_history(
-        self,
-        session_id: str,
-        max_turns: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
-        """Get conversation history for a session."""
-        if self.conversation_manager:
-            return self.conversation_manager.get_history(
-                session_id=session_id,
-                max_turns=max_turns
-            )
-        return []
-    
-    def clear_conversation(self, session_id: str):
-        """Clear conversation history for a session."""
-        if self.conversation_manager:
-            self.conversation_manager.clear_session(session_id)
-    
-    async def get_query_suggestions(
-        self,
-        partial_query: str,
-        language: str = "en",
-        max_suggestions: int = 5
-    ) -> List[str]:
-        """Get autocomplete suggestions."""
-        if self.query_enhancer:
-            return await self.query_enhancer.get_suggestions(
-                partial_query=partial_query,
-                language=language,
-                max_suggestions=max_suggestions
-            )
-        return []
-    
-    def get_health_status(self) -> Dict[str, Any]:
-        """
-        Get comprehensive health status of all subsystems.
-        
-        Returns health information including:
-        - Overall system health
-        - Circuit breaker states
-        - Timeout metrics
-        - Service availability
-        - Performance metrics
-        
-        Returns:
-            Dict with health status information
-        """
-        try:
-            # Collect circuit breaker states
-            circuit_breaker_status = {}
-            all_healthy = True
-            
-            for service_name, cb in self.circuit_breakers.items():
-                state = cb.get_state()
-                circuit_breaker_status[service_name] = state
-                
-                # Mark as unhealthy if circuit is open
-                if state['state'] == 'open':
-                    all_healthy = False
-            
-            # Collect timeout metrics
-            timeout_metrics = self.timeout_manager.get_metrics()
-            
-            # Calculate timeout health
-            timeout_health = 'healthy'
-            if timeout_metrics['timeout_rate'] > 25:  # >25% timeout rate
-                timeout_health = 'unhealthy'
-                all_healthy = False
-            elif timeout_metrics['timeout_rate'] > 10:  # >10% timeout rate
-                timeout_health = 'degraded'
-                all_healthy = False
-            
-            # Get analytics summary
-            analytics_summary = self.analytics.get_summary() if hasattr(self, 'analytics') else {}
-            
-            # Build comprehensive health report
-            health_status = {
-                'status': 'healthy' if all_healthy else 'degraded',
-                'timestamp': datetime.now().isoformat(),
-                'circuit_breakers': circuit_breaker_status,
-                'timeout_metrics': {
-                    'health': timeout_health,
-                    'total_operations': timeout_metrics['total_operations'],
-                    'timeout_rate': f"{timeout_metrics['timeout_rate']:.2f}%",
-                    'timeouts_by_stage': timeout_metrics['timeouts_by_stage']
-                },
-                'services': {
-                    'llm': {
-                        'available': circuit_breaker_status.get('llm', {}).get('state') != 'open',
-                        'circuit_state': circuit_breaker_status.get('llm', {}).get('state', 'unknown')
-                    },
-                    'database': {
-                        'available': circuit_breaker_status.get('database', {}).get('state') != 'open',
-                        'circuit_state': circuit_breaker_status.get('database', {}).get('state', 'unknown')
-                    },
-                    'rag': {
-                        'available': circuit_breaker_status.get('rag', {}).get('state') != 'open',
-                        'circuit_state': circuit_breaker_status.get('rag', {}).get('state', 'unknown')
-                    },
-                    'weather': {
-                        'available': circuit_breaker_status.get('weather', {}).get('state') != 'open',
-                        'circuit_state': circuit_breaker_status.get('weather', {}).get('state', 'unknown')
-                    },
-                    'events': {
-                        'available': circuit_breaker_status.get('events', {}).get('state') != 'open',
-                        'circuit_state': circuit_breaker_status.get('events', {}).get('state', 'unknown')
-                    }
-                },
-                'performance': {
-                    'total_queries': analytics_summary.get('total_queries', 0),
-                    'avg_latency': analytics_summary.get('avg_latency', 0),
-                    'cache_hit_rate': analytics_summary.get('cache_hit_rate', 0)
-                },
-                'subsystems': {
-                    'signal_detector': hasattr(self, 'signal_detector'),
-                    'context_builder': hasattr(self, 'context_builder'),
-                    'prompt_builder': hasattr(self, 'prompt_builder'),
-                    'analytics': hasattr(self, 'analytics'),
-                    'query_enhancer': hasattr(self, 'query_enhancer'),
-                    'conversation_manager': hasattr(self, 'conversation_manager'),
-                    'cache_manager': hasattr(self, 'cache_manager'),
-                    'experimentation': hasattr(self, 'experimentation')
-                }
-            }
-            
-            logger.info(f"Health check completed: {health_status['status']}")
-            return health_status
-            
-        except Exception as e:
-            logger.error(f"Health check failed: {e}")
-            return {
-                'status': 'error',
-                'timestamp': datetime.now().isoformat(),
-                'error': str(e)
-            }
-    
-    async def test_circuit_breakers(self) -> Dict[str, Any]:
-        """
-        Test all circuit breakers by making health check calls to services.
-        
-        This is useful for:
-        - Verifying circuit breaker configuration
-        - Testing service connectivity
-        - Monitoring service health
-        
-        Returns:
-            Dict with test results for each service
-        """
-        results = {}
-        
-        logger.info("🧪 Testing circuit breakers...")
-        
-        # Test LLM service
-        try:
-            test_prompt = "Say 'OK' if you receive this."
-            
-            async def _test_llm():
-                return await self.llm.generate(
-                    prompt=test_prompt,
-                    max_tokens=10,
-                    temperature=0
-                )
-            
-            await self.circuit_breakers['llm'].call(_test_llm)
-            results['llm'] = {'status': 'success', 'message': 'LLM service responsive'}
-            
-        except CircuitBreakerError:
-            results['llm'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
-        except Exception as e:
-            results['llm'] = {'status': 'error', 'message': str(e)}
-        
-        # Test Database
-        try:
-            async def _test_db():
-                # Simple query to test connection
-                return await self.db.execute("SELECT 1")
-            
-            await self.circuit_breakers['database'].call(_test_db)
-            results['database'] = {'status': 'success', 'message': 'Database responsive'}
-            
-        except CircuitBreakerError:
-            results['database'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
-        except Exception as e:
-            results['database'] = {'status': 'error', 'message': str(e)}
-        
-        # Test RAG service (if available)
-        if self.config.get('rag_service'):
-            try:
-                async def _test_rag():
-                    return await self.config['rag_service'].search("test", top_k=1)
-                
-                await self.circuit_breakers['rag'].call(_test_rag)
-                results['rag'] = {'status': 'success', 'message': 'RAG service responsive'}
-                
-            except CircuitBreakerError:
-                results['rag'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
-            except Exception as e:
-                results['rag'] = {'status': 'error', 'message': str(e)}
-        
-        # Test Weather API (if available)
-        if self.config.get('weather_service'):
-            try:
-                async def _test_weather():
-                    return await self.config['weather_service'].get_current_weather("Istanbul")
-                
-                await self.circuit_breakers['weather'].call(_test_weather)
-                results['weather'] = {'status': 'success', 'message': 'Weather API responsive'}
-                
-            except CircuitBreakerError:
-                results['weather'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
-            except Exception as e:
-                results['weather'] = {'status': 'error', 'message': str(e)}
-        
-        # Test Events API (if available)
-        if self.config.get('events_service'):
-            try:
-                async def _test_events():
-                    return await self.config['events_service'].get_upcoming_events(limit=1)
-                
-                await self.circuit_breakers['events'].call(_test_events)
-                results['events'] = {'status': 'success', 'message': 'Events API responsive'}
-                
-            except CircuitBreakerError:
-                results['events'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
-            except Exception as e:
-                results['events'] = {'status': 'error', 'message': str(e)}
-        
-        logger.info(f"Circuit breaker tests completed: {len(results)} services tested")
-        
-        return {
-            'timestamp': datetime.now().isoformat(),
-            'results': results,
-            'summary': {
-                'total_tests': len(results),
-                'successful': sum(1 for r in results.values() if r['status'] == 'success'),
-                'failed': sum(1 for r in results.values() if r['status'] in ['error', 'circuit_open'])
-            }
-        }
-
-
-    # ===================================================================
-    # PHASE 2: FEEDBACK & PERSONALIZATION METHODS
-    # ===================================================================
-    
-    async def process_user_feedback(
-        self,
-        user_id: str,
-        query: str,
         response: str,
-        feedback_type: str,
-        detected_signals: List[str],
-        signal_scores: Dict[str, float],
-        feedback_details: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        route_data: Optional[Dict[str, Any]],
+        query: str
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
         """
-        Process user feedback for continuous improvement (Phase 2).
+        Validate transportation route responses to prevent LLM hallucinations.
+        
+        This implements the HARD GUARDRAIL layer of the hybrid architecture:
+        - Checks if LLM modified verified route facts
+        - Detects invented transit lines or stations
+        - Ensures duration/transfer count matches verified data
         
         Args:
-            user_id: User identifier
-            query: Original query
-            response: System response
-            feedback_type: 'positive', 'negative', or 'correction'
-            detected_signals: Signals that were detected
-            signal_scores: Confidence scores for signals
-            feedback_details: Additional feedback (issues, corrections, etc.)
+            response: LLM-generated response text
+            route_data: Verified route data from Transportation RAG (ground truth)
+            query: Original user query
             
         Returns:
-            Feedback processing result
+            Tuple of (is_valid, error_message, corrected_response)
+            - is_valid: True if response matches verified facts
+            - error_message: Description of violation (if any)
+            - corrected_response: Auto-corrected response (if possible)
         """
-        logger.info(f"📝 Processing {feedback_type} feedback from user {user_id}")
+        if not route_data:
+            # No route data to validate against
+            return True, None, None
         
-        try:
-            # Store feedback in personalization engine
-            feedback_record = await self.personalization.process_feedback(
-                user_id=user_id,
-                query=query,
-                response=response,
-                feedback_type=feedback_type,
-                detected_signals=detected_signals,
-                signal_scores=signal_scores,
-                feedback_details=feedback_details
-            )
+        # Extract immutable facts from verified route
+        verified_lines = set(route_data.get('lines_used', []))
+        verified_duration = route_data.get('total_time', 0)
+        verified_transfers = route_data.get('transfers', 0)
+        verified_steps = route_data.get('steps', [])
+        
+        response_lower = response.lower()
+        
+        # === VALIDATION 1: Check for hallucinated transit lines ===
+        # Known Istanbul transit lines
+        valid_lines = {
+            'm1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm9', 'm11',
+            't1', 't2', 't3', 't4', 't5',
+            'f1', 'f2', 'f3', 'f4', 'f5',
+            'marmaray', 'metrobus', 'banliyö'
+        }
+        
+        # Extract mentioned lines from response (case-insensitive)
+        import re
+        mentioned_lines = set()
+        for match in re.finditer(r'\b(m\d+|t\d+|f\d+|marmaray|metrobus)\b', response_lower):
+            mentioned_lines.add(match.group(1))
+        
+        # Check for hallucinated lines (mentioned but not in verified route)
+        hallucinated_lines = mentioned_lines - verified_lines
+        if hallucinated_lines:
+            error_msg = f"LLM hallucinated transit lines: {hallucinated_lines}. Verified lines: {verified_lines}"
+            logger.error(f"🚨 HALLUCINATION DETECTED: {error_msg}")
             
-            # Update auto-tuner metrics
-            if feedback_details and 'correct_signals' in feedback_details:
-                correct_signals = set(feedback_details['correct_signals'])
-                all_possible_signals = set(detected_signals) | correct_signals
-                
-                for signal in all_possible_signals:
-                    was_detected = signal in detected_signals
-                    should_be_detected = signal in correct_signals
-                    
-                    await self.auto_tuner.update_metrics_from_feedback(
-                        signal=signal,
-                        was_detected=was_detected,
-                        should_be_detected=should_be_detected
-                    )
-            
-            # Track in analytics
-            self.analytics.track_feedback(user_id, feedback_type, query)
-            
-            logger.info(f"✅ Feedback processed successfully")
-            
-            return {
-                'status': 'success',
-                'feedback_recorded': True,
-                'user_profile_updated': True,
-                'metrics_updated': True
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to process feedback: {e}")
-            return {
-                'status': 'error',
-                'error': str(e)
-            }
+            # Attempt to correct by replacing hallucinated lines with verified ones
+            corrected_response = response
+            for fake_line in hallucinated_lines:
+                # Replace fake line with first verified line (simple heuristic)
+                corrected_response = re.sub(
+                    rf'\b{fake_line}\b',
+                    list(verified_lines)[0] if verified_lines else fake_line,
+                    corrected_response,
+                    flags=re.IGNORECASE
+                )
+            return False, error_msg, corrected_response
+        
+        # === VALIDATION 2: Check for duration hallucination ===
+        # Extract duration numbers from response
+        duration_matches = re.findall(r'(\d+)\s*(?:minute|min|dakika)', response_lower)
+        if duration_matches:
+            mentioned_durations = [int(d) for d in duration_matches]
+            # Allow ±2 minute variance for rounding/explanation
+            if any(abs(d - verified_duration) > 2 for d in mentioned_durations):
+                error_msg = f"LLM modified duration: mentioned {mentioned_durations}, verified {verified_duration}"
+                logger.warning(f"⚠️ DURATION MISMATCH: {error_msg}")
+                # This is a warning, not a hard error (allow small variations)
+        
+        # === VALIDATION 3: Check for transfer count hallucination ===
+        transfer_matches = re.findall(r'(\d+)\s*(?:transfer|aktarma)', response_lower)
+        if transfer_matches:
+            mentioned_transfers = [int(t) for t in transfer_matches]
+            if any(t != verified_transfers for t in mentioned_transfers):
+                error_msg = f"LLM modified transfer count: mentioned {mentioned_transfers}, verified {verified_transfers}"
+                logger.error(f"🚨 TRANSFER MISMATCH: {error_msg}")
+                return False, error_msg, None
+        
+        # === VALIDATION 4: Check for invented stations (advanced) ===
+        # Extract station names from verified route
+        verified_stations = set()
+        for step in verified_steps:
+            if step.get('from_station'):
+                verified_stations.add(step['from_station'].lower())
+            if step.get('to_station'):
+                verified_stations.add(step['to_station'].lower())
+        
+        # Check if response mentions stations not in verified route
+        # (This is heuristic-based and may have false positives)
+        common_stations = {
+            'taksim', 'sultanahmet', 'kadıköy', 'üsküdar', 'beşiktaş',
+            'eminönü', 'karaköy', 'şişli', 'mecidiyeköy', 'levent'
+        }
+        
+        # If response mentions a common station not in verified route, it might be hallucination
+        for station in common_stations:
+            if station in response_lower and station not in verified_stations:
+                # Soft warning only (stations might be mentioned as landmarks)
+                logger.info(f"ℹ️ Response mentions {station} (not in route, possibly as landmark)")
+        
+        # All validations passed
+        logger.info(f"✅ Transportation response passed all hallucination checks")
+        return True, None, None
     
-    async def record_user_interaction(
+    async def _generate_template_transportation_response(
         self,
-        user_id: str,
+        route_data: Dict[str, Any],
         query: str,
-        selected_items: List[Dict[str, Any]],
-        signals: List[str]
-    ) -> Dict[str, Any]:
+        language: str = "en"
+    ) -> str:
         """
-        Record user interaction with results for preference learning (Phase 2).
+        Generate a template-based transportation response using ONLY verified facts.
+        
+        This is the DETERMINISTIC FACT LAYER of the hybrid architecture:
+        - Uses only verified route data from Transportation RAG
+        - No LLM generation = zero hallucination risk
+        - Fact-locked template with structured route information
         
         Args:
-            user_id: User identifier
-            query: User's query
-            selected_items: Items user clicked/viewed (with type, cuisine, district, etc.)
-            signals: Detected signals
+            route_data: Verified route data from Transportation RAG (ground truth)
+            query: Original user query
+            language: Response language ('en' or 'tr')
             
         Returns:
-            Interaction recording result
-        """
-        logger.info(f"📊 Recording interaction for user {user_id}")
-        
-        try:
-            # Update user profile based on interaction
-            await self.personalization.update_profile_from_interaction(
-                user_id=user_id,
-                query=query,
-                selected_items=selected_items,
-                signals=signals
-            )
-            
-            logger.info(f"✅ User interaction recorded")
-            
-            return {
-                'status': 'success',
-                'profile_updated': True
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to record interaction: {e}")
-            return {
-                'status': 'error',
-                'error': str(e)
-            }
-    
-    async def get_user_profile(self, user_id: str) -> Dict[str, Any]:
-        """
-        Get user profile and preferences (Phase 2).
-        
-        Args:
-            user_id: User identifier
-            
-        Returns:
-            User profile data
+            Template-based response text with verified facts only
         """
         try:
-            profile = await self.personalization.get_user_profile(user_id)
-            return profile.to_dict()
-        except Exception as e:
-            logger.error(f"Failed to get user profile: {e}")
-            return {}
-    
-    async def run_auto_tuning(self, signals: Optional[List[str]] = None) -> Dict[str, Any]:
-        """
-        Run auto-tuning for signal thresholds (Phase 2).
-        
-        Args:
-            signals: Specific signals to tune (None = all)
+            # Extract verified facts from route data
+            origin = route_data.get('origin', 'Starting point')
+            destination = route_data.get('destination', 'Destination')
+            total_time = route_data.get('total_time', 0)
+            total_distance = route_data.get('total_distance_km', 0)
+            transfers = route_data.get('transfers', 0)
+            lines_used = route_data.get('lines_used', [])
+            steps = route_data.get('steps', [])
             
-        Returns:
-            Tuning report
-        """
-        logger.info("🎯 Running auto-tuning...")
-        
-        try:
-            result = await self.auto_tuner.run_auto_tuning(signals_to_tune=signals)
-            return result
-        except Exception as e:
-            logger.error(f"Auto-tuning failed: {e}")
-            return {
-                'status': 'error',
-                'error': str(e)
-            }
-    
-    async def get_tuning_report(self) -> Dict[str, Any]:
-        """
-        Get comprehensive tuning report (Phase 2).
-        
-        Returns:
-            Detailed tuning metrics and history
-        """
-        try:
-            return await self.auto_tuner.get_tuning_report()
-        except Exception as e:
-            logger.error(f"Failed to get tuning report: {e}")
-            return {}
-    
-    def _generate_map_from_context(
-        self,
-        context: Dict[str, Any],
-        signals: Dict[str, bool],
-        user_location: Optional[Dict[str, float]],
-        query: str = ""
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Generate basic map_data from database context for location-based queries.
-        
-        When the map service doesn't generate routing data, but we have locations
-        from database (restaurants, attractions, etc.), we create a simple map_data
-        structure with markers.
-        
-        For "nearby" queries with GPS but no specific locations in database,
-        generates map centered on user location.
-        
-        For routing queries, delegates to the robust pattern extraction
-        already implemented in the main routing visualization block.
-        
-        Args:
-            context: Built context with database/service data
-            signals: Detected signals
-            user_location: User GPS location
-            query: Original user query (to detect "nearby" keywords)
-            
-        Returns:
-            Map data dict with markers, or None if no locations found
-        """
-        try:
-            import re
-            import json
-            
-            markers = []
-            locations = []
-            
-            # ROUTING QUERIES: Delegate to robust pattern extraction in process_query
-            # The main routing visualization block already handles this correctly
-            query_lower = query.lower()
-            is_routing_query = any([
-                'how' in query_lower and any(w in query_lower for w in ['get', 'go', 'reach']),
-                'direction' in query_lower,
-                'way to' in query_lower,
-                'route to' in query_lower,
-                'from' in query_lower and 'to' in query_lower,
-                signals.get('needs_gps_routing'),
-                signals.get('needs_directions'),
-            ])
-            
-            # If this is a routing query, return None to let the main block handle it
-            if is_routing_query:
-                logger.info("🔄 Routing query detected - delegating to main routing visualization block")
-                return None
-            
-            # NON-ROUTING QUERIES: Extract locations from database context for POI markers
-            # Try to extract destination (and origin if specified) from query using Istanbul Knowledge
-            if False:  # Disabled - routing now handled by main block
-                try:
-                    from .istanbul_knowledge import IstanbulKnowledge
-                    istanbul_kb = IstanbulKnowledge()
-                    
-                    # Check if this is a "from X to Y" query (location-to-location)
-                    origin_coord = None
-                    origin_name = None
-                    destination_coord = None
-                    destination_name = None
-                    
-                    # Pattern: "from X to Y" OR "to Y from X"
-                    if 'from' in query_lower and 'to' in query_lower:
-                        # Extract origin and destination
-                        # Determine which comes first: "to" or "from"
-                        to_pos = query_lower.find(' to ')
-                        from_pos = query_lower.find(' from ')
+            # Build response based on language
+            if language == 'tr':
+                # Turkish template
+                response = f"🚇 **{origin} → {destination} Güzergahı**\n\n"
+                response += f"**Süre:** {total_time} dakika\n"
+                response += f"**Mesafe:** {total_distance:.1f} km\n"
+                response += f"**Aktarma:** {transfers} aktarma\n"
+                response += f"**Kullanılan Hatlar:** {', '.join(lines_used)}\n\n"
+                
+                if steps:
+                    response += "**Adım Adım Yol Tarifi:**\n\n"
+                    for i, step in enumerate(steps, 1):
+                        mode = step.get('mode', 'transit')
+                        line = step.get('line', '')
+                        from_station = step.get('from_station', '')
+                        to_station = step.get('to_station', '')
+                        duration = step.get('duration', 0)
                         
-                        # Check neighborhoods for both origin and destination
-                        for name, neighborhood in istanbul_kb.neighborhoods.items():
-                            if name.lower() in query_lower:
-                                if neighborhood.center_location:
-                                    name_pos = query_lower.find(name.lower())
-                                    
-                                    # Pattern 1: "from X to Y" (from_pos < to_pos)
-                                    if from_pos < to_pos:
-                                        if from_pos < name_pos < to_pos and not origin_coord:
-                                            origin_coord = neighborhood.center_location
-                                            origin_name = name
-                                            logger.info(f"🎯 Found origin in neighborhoods: {name} at {origin_coord}")
-                                        elif name_pos > to_pos and not destination_coord:
-                                            destination_coord = neighborhood.center_location
-                                        destination_name = name
-                                        logger.info(f"🎯 Found destination in neighborhoods: {name} at {destination_coord}")
+                        if mode == 'walk':
+                            response += f"{i}. 🚶 Yürüme: {from_station} → {to_station} ({duration} dk)\n"
+                        else:
+                            response += f"{i}. 🚇 {line}: {from_station} → {to_station} ({duration} dk)\n"
+                
+                response += f"\n✅ Bu güzergah İstanbul ulaşım veritabanından doğrulanmıştır."
+                
+            else:
+                # English template
+                response = f"🚇 **Route: {origin} → {destination}**\n\n"
+                response += f"**Duration:** {total_time} minutes\n"
+                response += f"**Distance:** {total_distance:.1f} km\n"
+                response += f"**Transfers:** {transfers} transfer{'s' if transfers != 1 else ''}\n"
+                response += f"**Lines Used:** {', '.join(lines_used)}\n\n"
+                
+                if steps:
+                    response += "**Step-by-Step Directions:**\n\n"
+                    for i, step in enumerate(steps, 1):
+                        mode = step.get('mode', 'transit')
+                        line = step.get('line', '')
+                        from_station = step.get('from_station', '')
+                        to_station = step.get('to_station', '')
+                        duration = step.get('duration', 0)
                         
-                        # Check landmarks for origin/destination
-                        if not origin_coord or not destination_coord:
-                            for name, landmark in istanbul_kb.landmarks.items():
-                                if name.lower() in query_lower or any(syn.lower() in query_lower for syn in landmark.synonyms):
-                                    name_pos = query_lower.find(name.lower())
-                                    to_pos = query_lower.find(' to ')
-                                    
-                                    if name_pos < to_pos and not origin_coord:
-                                        origin_coord = landmark.location
-                                        origin_name = name
-                                        logger.info(f"🎯 Found origin in landmarks: {name} at {origin_coord}")
-                                    elif name_pos > to_pos and not destination_coord:
-                                        destination_coord = landmark.location
-                                        destination_name = name
-                                        logger.info(f"🎯 Found destination in landmarks: {name} at {destination_coord}")
-                        
-                        # If we found both origin and destination, use Transportation RAG to find actual route
-                        if origin_coord and destination_coord:
-                            logger.info(f"🗺️ Found both locations, calling Transportation RAG for route: {origin_name} → {destination_name}")
-                            
-                            # Try to get actual route from Transportation RAG system
-                            try:
-                                from services.transportation_rag_system import get_transportation_rag
-                                transport_rag = get_transportation_rag()
-                                
-                                # Find route using the comprehensive transportation database
-                                route_result = transport_rag.find_route(origin_name, destination_name)
-                                
-                                if route_result:
-                                    logger.info(f"✅ Transportation RAG found route with {len(route_result.steps)} steps")
-                                    
-                                    # Convert route steps to waypoints (coordinates for polyline)
-                                    coordinates = []
-                                    route_markers = []
-                                    
-                                    # Add origin marker
-                                    route_markers.append({
-                                        "position": {"lat": origin_coord[0], "lng": origin_coord[1]},
-                                        "label": origin_name,
-                                        "type": "origin"
-                                    })
-                                    coordinates.append([origin_coord[0], origin_coord[1]])
-                                    
-                                    # Add waypoints from route steps
-                                    for step in route_result.steps:
-                                        if hasattr(step, 'from_station') and step.from_station:
-                                            # Add station coordinate
-                                            if hasattr(step.from_station, 'lat') and hasattr(step.from_station, 'lng'):
-                                                coordinates.append([step.from_station.lat, step.from_station.lng])
-                                                
-                                                # Add transit line marker
-                                                if step.mode in ['metro', 'tram', 'ferry', 'marmaray', 'funicular']:
-                                                    route_markers.append({
-                                                        "position": {"lat": step.from_station.lat, "lng": step.from_station.lng},
-                                                        "label": f"{step.line} - {step.from_station.name}",
-                                                        "type": "transit"
-                                                    })
-                                        
-                                        if hasattr(step, 'to_station') and step.to_station:
-                                            if hasattr(step.to_station, 'lat') and hasattr(step.to_station, 'lng'):
-                                                coordinates.append([step.to_station.lat, step.to_station.lng])
-                                    
-                                    # Add destination marker
-                                    route_markers.append({
-                                        "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
-                                        "label": destination_name,
-                                        "type": "destination"
-                                    })
-                                    coordinates.append([destination_coord[0], destination_coord[1]])
-                                    
-                                    # Calculate center point
-                                    center_lat = (origin_coord[0] + destination_coord[0]) / 2
-                                    center_lon = (origin_coord[1] + destination_coord[1]) / 2
-                                    
-                                    map_data = {
-                                        "type": "route",  # Full route with waypoints
-                                        "coordinates": coordinates,  # For polyline
-                                        "markers": route_markers,
-                                        "center": {"lat": center_lat, "lng": center_lon},
-                                        "zoom": 12,
-                                        "has_origin": True,
-                                        "has_destination": True,
-                                        "origin_name": origin_name,
-                                        "destination_name": destination_name,
-                                        "route_data": {
-                                            "distance_km": route_result.total_distance_km,
-                                            "duration_min": route_result.total_time_minutes,
-                                            "transport_mode": "Public Transit",
-                                            "lines": [step.line for step in route_result.steps if hasattr(step, 'line')]
-                                        }
-                                    }
-                                    
-                                    logger.info(f"✅ Generated full route map with {len(coordinates)} waypoints")
-                                    return map_data
-                                else:
-                                    logger.warning(f"⚠️ Transportation RAG found no route, using marker-only map")
-                            except Exception as e:
-                                logger.warning(f"⚠️ Transportation RAG failed: {e}, using marker-only map")
-                            
-                            # Fallback: marker-only map if route finding fails
-                            markers.append({
-                                "position": {"lat": origin_coord[0], "lng": origin_coord[1]},
-                                "label": origin_name,
-                                "type": "origin"
-                            })
-                            
-                            markers.append({
-                                "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
-                                "label": destination_name,
-                                "type": "destination"
-                            })
-                            
-                            # Calculate center point between origin and destination
-                            center_lat = (origin_coord[0] + destination_coord[0]) / 2
-                            center_lon = (origin_coord[1] + destination_coord[1]) / 2
-                            
-                            map_data = {
-                                "type": "marker",  # Marker-only fallback
-                                "markers": markers,
-                                "center": {"lat": center_lat, "lon": center_lon},
-                                "zoom": 12,
-                                "has_origin": True,
-                                "has_destination": True,
-                                "origin_name": origin_name,
-                                "destination_name": destination_name
-                            }
-                            
-                            logger.info(f"✅ Generated location-to-location marker map: {origin_name} → {destination_name}")
-                            return map_data
-                    
-                    # Single destination query with GPS - USE TRANSPORTATION RAG FOR ROUTING
-                    if user_location and user_location.get('lat') and user_location.get('lon'):
-                        # Check neighborhoods
-                        destination_coord = None
-                        destination_name = None
-                        
-                        for name, neighborhood in istanbul_kb.neighborhoods.items():
-                            if name.lower() in query_lower:
-                                if neighborhood.center_location:
-                                    destination_coord = neighborhood.center_location
-                                    destination_name = name
-                                    logger.info(f"🎯 Found destination in neighborhoods: {name} at {destination_coord}")
-                                    break
-                        
-                        # Check landmarks if no neighborhood found
-                        if not destination_coord:
-                            for name, landmark in istanbul_kb.landmarks.items():
-                                if name.lower() in query_lower or any(syn.lower() in query_lower for syn in landmark.synonyms):
-                                    destination_coord = landmark.location
-                                    destination_name = name
-                                    logger.info(f"🎯 Found destination in landmarks: {name} at {destination_coord}")
-                                    break
-                        
-                        # If we found a destination, try Transportation RAG for actual route
-                        if destination_coord:
-                            logger.info(f"🗺️ GPS + destination found, attempting Transportation RAG routing to {destination_name}")
-                            
-                            # Find nearest known location to user's GPS for routing
-                            try:
-                                from services.transportation_rag_system import get_transportation_rag
-                                transport_rag = get_transportation_rag()
-                                
-                                # Find nearest neighborhood to user location
-                                def calc_distance(loc1, loc2):
-                                    import math
-                                    return math.sqrt((loc1[0] - loc2[0])**2 + (loc1[1] - loc2[1])**2)
-                                
-                                user_coords = (user_location['lat'], user_location['lon'])
-                                nearest_origin = None
-                                nearest_distance = float('inf')
-                                
-                                for name, neighborhood in istanbul_kb.neighborhoods.items():
-                                    if neighborhood.center_location:
-                                        dist = calc_distance(user_coords, neighborhood.center_location)
-                                        if dist < nearest_distance:
-                                            nearest_distance = dist
-                                            nearest_origin = name
-                                
-                                if nearest_origin:
-                                    logger.info(f"🎯 Nearest location to GPS: {nearest_origin}")
-                                    
-                                    # Find route from nearest location to destination
-                                    route_result = transport_rag.find_route(nearest_origin, destination_name)
-                                    
-                                    if route_result:
-                                        logger.info(f"✅ Transportation RAG found route from {nearest_origin} to {destination_name}")
-                                        
-                                        # Build coordinates and markers
-                                        coordinates = []
-                                        route_markers = []
-                                        
-                                        # Add user GPS marker
-                                        route_markers.append({
-                                            "position": {"lat": user_location['lat'], "lng": user_location['lon']},
-                                            "label": "Your Location",
-                                            "type": "user"
-                                        })
-                                        coordinates.append([user_location['lat'], user_location['lon']])
-                                        
-                                        # Add route waypoints
-                                        for step in route_result.steps:
-                                            if hasattr(step, 'from_station') and step.from_station:
-                                                if hasattr(step.from_station, 'lat') and hasattr(step.from_station, 'lng'):
-                                                    coordinates.append([step.from_station.lat, step.from_station.lng])
-                                                    
-                                                    if step.mode in ['metro', 'tram', 'ferry', 'marmaray', 'funicular']:
-                                                        route_markers.append({
-                                                            "position": {"lat": step.from_station.lat, "lng": step.from_station.lng},
-                                                            "label": f"{step.line} - {step.from_station.name}",
-                                                            "type": "transit"
-                                                        })
-                                            
-                                            if hasattr(step, 'to_station') and step.to_station:
-                                                if hasattr(step.to_station, 'lat') and hasattr(step.to_station, 'lng'):
-                                                    coordinates.append([step.to_station.lat, step.to_station.lng])
-                                        
-                                        # Add destination marker
-                                        route_markers.append({
-                                            "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
-                                            "label": destination_name,
-                                            "type": "destination"
-                                        })
-                                        coordinates.append([destination_coord[0], destination_coord[1]])
-                                        
-                                        map_data = {
-                                            "type": "route",
-                                            "coordinates": coordinates,
-                                            "markers": route_markers,
-                                            "center": {"lat": (user_location['lat'] + destination_coord[0]) / 2, "lng": (user_location['lon'] + destination_coord[1]) / 2},
-                                            "zoom": 12,
-                                            "has_origin": True,
-                                            "has_destination": True,
-                                            "origin_name": "Your Location",
-                                            "destination_name": destination_name,
-                                            "route_data": {
-                                                "distance_km": route_result.total_distance_km,
-                                                "duration_min": route_result.total_time_minutes,
-                                                "transport_mode": "Public Transit",
-                                                "lines": [step.line for step in route_result.steps if hasattr(step, 'line')]
-                                            }
-                                        }
-                                        
-                                        logger.info(f"✅ Generated GPS-based route map with {len(coordinates)} waypoints")
-                                        return map_data
-                                else:
-                                    logger.warning(f"⚠️ Could not find nearest origin for GPS routing")
-                            except Exception as e:
-                                logger.warning(f"⚠️ Transportation RAG GPS routing failed: {e}")
-                            
-                            # Fallback: create marker-only map if routing failed
-                            markers.append({
-                                "position": {"lat": user_location['lat'], "lng": user_location['lon']},
-                                "label": "Your Location",
-                                "type": "user"
-                            })
-                            
-                            markers.append({
-                                "position": {"lat": destination_coord[0], "lng": destination_coord[1]},
-                                "label": destination_name,
-                                "type": "destination"
-                            })
-                            
-                            # Calculate center point between origin and destination
-                            center_lat = (user_location['lat'] + destination_coord[0]) / 2
-                            center_lon = (user_location['lon'] + destination_coord[1]) / 2
-                            
-                            map_data = {
-                                "type": "route",
-                                "markers": markers,
-                                "center": {"lat": center_lat, "lng": center_lon},
-                                "zoom": 12,
-                                "has_origin": True,
-                                "has_destination": True,
-                                "origin_name": "Your Location",
-                                "destination_name": destination_name,
-                                "route": {
-                                    "origin": {"lat": user_location['lat'], "lng": user_location['lon']},
-                                    "destination": {"lat": destination_coord[0], "lng": destination_coord[1]}
-                                }
-                            }
-                            
-                            logger.info(f"✅ Generated routing map from {user_location['lat']:.4f},{user_location['lon']:.4f} to {destination_name}")
-                            return map_data
+                        if mode == 'walk':
+                            response += f"{i}. 🚶 Walk: {from_station} → {to_station} ({duration} min)\n"
+                        else:
+                            response += f"{i}. 🚇 {line}: {from_station} → {to_station} ({duration} min)\n"
                 
-                except Exception as e:
-                    logger.error(f"Failed to lookup destination in Istanbul Knowledge: {e}")
+                response += f"\n✅ This route has been verified using Istanbul's transportation database."
             
-            # ORIGINAL LOGIC: Try to extract locations from database context string
-            db_context = context.get('database', '')
-            
-            # Pattern to find coordinates in the database context
-            # Looking for patterns like: "Coordinates: (41.012, 28.978)" or "lat: 41.012, lon: 28.978"
-            coord_patterns = [
-                r'Coordinates:\s*\(([0-9.]+),\s*([0-9.]+)\)',
-                r'lat(?:itude)?:\s*([0-9.]+)[,\s]+lon(?:gitude)?:\s*([0-9.]+)',
-                r'\(([0-9.]+),\s*([0-9.]+)\)',  # Simple tuple format
-            ]
-            
-            # Pattern to find location names (before coordinates)
-            name_pattern = r'([A-ZÇĞİÖŞÜ][A-Za-zçğıöşü\s&\'-]+?)(?:\s*[-:]\s*|\s+Coordinates:)'
-            
-            # Extract all coordinate pairs from database context if available
-            if db_context:
-                for pattern in coord_patterns:
-                    for match in re.finditer(pattern, db_context):
-                        try:
-                            lat = float(match.group(1))
-                            lon = float(match.group(2))
-                            
-                            # Find the name before this coordinate
-                            name = "Location"
-                            text_before = db_context[:match.start()]
-                            name_match = re.search(name_pattern, text_before[-200:])  # Look in last 200 chars
-                            if name_match:
-                                name = name_match.group(1).strip()
-                            
-                            locations.append({
-                                'name': name,
-                                'lat': lat,
-                                'lon': lon
-                            })
-                        except (ValueError, IndexError):
-                            continue
-            
-            # If we found locations, create markers
-            if locations:
-                for loc in locations:
-                    markers.append({
-                        "position": {"lat": loc['lat'], "lng": loc['lon']},
-                        "label": loc['name'],
-                        "type": "restaurant" if signals.get('needs_restaurant') else "attraction"
-                    })
-                
-                # Calculate center point
-                avg_lat = sum(loc['lat'] for loc in locations) / len(locations)
-                avg_lon = sum(loc['lon'] for loc in locations) / len(locations)
-                
-                # Add user location marker if available
-                if user_location and isinstance(user_location, dict) and 'lat' in user_location and 'lon' in user_location:
-                    markers.append({
-                        "position": {"lat": user_location['lat'], "lng": user_location['lon']},
-                        "label": "Your Location",
-                        "type": "user"
-                    })
-                    # Recalculate center to include user location
-                    avg_lat = (avg_lat * len(locations) + user_location['lat']) / (len(locations) + 1)
-                    avg_lon = (avg_lon * len(locations) + user_location['lon']) / (len(locations) + 1)
-                
-                map_data = {
-                    "type": "markers",
-                    "markers": markers,
-                    "center": {"lat": avg_lat, "lng": avg_lon},
-                    "zoom": 13,
-                    "has_origin": user_location is not None,
-                    "has_destination": False,
-                    "origin_name": "Your Location" if user_location else None,
-                    "destination_name": None,
-                    "locations_count": len(locations)
-                }
-                
-                logger.info(f"✅ Generated map_data with {len(markers)} markers from context")
-                return map_data
-            
-            # No database locations found, but for "nearby" queries with GPS,
-            # still generate map centered on user location
-            # Check query for "nearby", "near me", "close to me", etc.
-            query_lower = query.lower()
-            is_nearby_query = any([
-                'nearby' in query_lower,
-                'near me' in query_lower,
-                'close to me' in query_lower,
-                'around me' in query_lower,
-                'around here' in query_lower,
-                signals.get('needs_restaurant'),
-                signals.get('needs_attraction'),
-                signals.get('needs_hidden_gems')
-            ])
-            
-            # Check if user_location has valid coordinates
-            has_valid_location = (user_location and 
-                                isinstance(user_location, dict) and 
-                                'lat' in user_location and 
-                                'lon' in user_location and
-                                user_location['lat'] is not None and
-                                user_location['lon'] is not None)
-            
-            if has_valid_location and is_nearby_query:
-                # Create map centered on user location
-                markers.append({
-                    "position": {"lat": user_location['lat'], "lng": user_location['lon']},
-                    "label": "Your Location",
-                    "type": "user"
-                })
-                
-                map_data = {
-                    "type": "user_centered",
-                    "markers": markers,
-                    "center": {"lat": user_location['lat'], "lng": user_location['lon']},
-                    "zoom": 14,
-                    "has_origin": True,
-                    "has_destination": False,
-                    "origin_name": "Your Location",
-                    "destination_name": None,
-                    "locations_count": 0,
-                    "note": "Map centered on your location - results may be shown in text"
-                }
-                
-                logger.info(f"✅ Generated GPS-centered map_data for 'nearby' query (no DB locations)")
-                return map_data
-            
-            return None
+            logger.info(f"✅ Generated template-based transportation response (fact-locked, no LLM)")
+            return response
             
         except Exception as e:
-            logger.error(f"Failed to generate map from context: {e}")
-            return None
-
+            logger.error(f"❌ Failed to generate template response: {e}")
+            # Ultra-minimal fallback
+            if language == 'tr':
+                return f"Güzergah bilgisi mevcut ancak görüntülenemiyor. Lütfen tekrar deneyin."
+            else:
+                return f"Route information is available but could not be displayed. Please try again."

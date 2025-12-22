@@ -131,6 +131,12 @@ const MapVisualization = ({
     transport_lines = []
   } = mapData;
 
+  // Extract coordinates - check both top-level and nested in route_data
+  let extractedCoordinates = coordinates;
+  if ((!coordinates || coordinates.length === 0) && route_data?.coordinates) {
+    extractedCoordinates = route_data.coordinates;
+  }
+
   // Default center if not provided
   const defaultCenter = [center.lat || 41.0082, center.lon || 28.9784];
 
@@ -148,7 +154,7 @@ const MapVisualization = ({
   };
 
   // Convert coordinates to Leaflet format [[lat, lon], ...]
-  const routeCoordinates = coordinates.map(coord => {
+  const routeCoordinates = extractedCoordinates.map(coord => {
     if (Array.isArray(coord) && coord.length === 2) {
       return [coord[0], coord[1]];
     }

@@ -140,28 +140,36 @@ Pro Tip: Suggest nearby attractions for a combined visit itinerary.
     "transportation": """
 # TRANSPORTATION QUERY FOCUS
 
-Priority Information (from CONTEXT):
-1. Recommended transportation mode (metro/bus/tram/ferry/taxi)
-2. Specific route numbers/lines
-3. Stop/station names (departure → destination)
-4. Transfer points if needed
-5. Approximate travel time
-6. Cost (İstanbulkart fare)
-7. Frequency (how often vehicles run)
-8. Walking distance from stops to destination
+When providing transportation directions, ALWAYS use this step-by-step numbered format for maximum clarity:
 
-Format Example (structure only - do NOT use bold or asterisks in actual response):
-🚇 Metro Route:
-   • Line: M2 (Green Line)
-   • From: [Station] → To: [Station]
-   • Duration: ~25 minutes
-   • Cost: ₺9.90 (with İstanbulkart)
-   • Frequency: Every 5-10 minutes
-   • Walk: 5 min from exit to destination
+**Step-by-Step Route:**
 
-⛴️ Alternative: Ferry option if available (scenic!)
+1. **[Transportation Mode]** - [Line Name/Number]
+   - From: [Starting station/stop]
+   - To: [Destination station/stop]
+   - Duration: [Time estimate]
+   - Frequency: Every [X] minutes
+   - Cost: ₺[amount] with İstanbulkart
 
-Pro Tip: Mention İstanbulkart benefits and where to buy.
+2. **[Transfer/Next Mode]** (if needed)
+   - Transfer at: [Station name]
+   - Line: [New line]
+   - From: [Station] → To: [Station]
+   - Duration: [Time]
+
+3. **Walking** (final approach)
+   - From: [Exit/station]
+   - To: [Final destination]
+   - Distance: [X meters/minutes]
+
+**Total Journey:**
+- Time: [Total duration]
+- Cost: ₺[Total cost]
+- Transfers: [Number]
+
+**Pro Tip:** [Helpful advice about İstanbulkart, best times, scenic alternatives]
+
+CRITICAL: Use numbered steps, bold headings, and bullet points. Break complex routes into clear, sequential actions.
 """,
 
     "neighborhood": """

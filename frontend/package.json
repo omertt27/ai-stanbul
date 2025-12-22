@@ -36,6 +36,7 @@
     "react-helmet-async": "^2.0.5",
     "react-i18next": "^15.7.3",
     "react-leaflet": "^5.0.0",
+    "react-markdown": "^10.1.0",
     "react-refresh": "^0.17.0",
     "react-router-dom": "^6.30.1"
   },

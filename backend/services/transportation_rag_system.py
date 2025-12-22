@@ -1405,6 +1405,7 @@ class IstanbulTransportationRAG:
             markers.append({
                 'lat': origin_station.lat,
                 'lon': origin_station.lon,
+                'label': origin_station.name,  # 🔥 FIX: Use 'label' not 'title'
                 'title': origin_station.name,
                 'description': f'Start: {route.origin}',
                 'type': 'origin',
@@ -1422,6 +1423,7 @@ class IstanbulTransportationRAG:
                         markers.append({
                             'lat': station.lat,
                             'lon': station.lon,
+                            'label': station.name,  # 🔥 FIX: Use 'label' not 'title'
                             'title': station.name,
                             'description': f"Transfer to {step.get('line')}",
                             'type': 'transfer',
@@ -1445,6 +1447,7 @@ class IstanbulTransportationRAG:
             markers.append({
                 'lat': destination_station.lat,
                 'lon': destination_station.lon,
+                'label': destination_station.name,  # 🔥 FIX: Use 'label' not 'title'
                 'title': destination_station.name,
                 'description': f'Destination: {route.destination}',
                 'type': 'destination',
@@ -1485,18 +1488,50 @@ class IstanbulTransportationRAG:
         except Exception as e:
             logger.warning(f"Failed to enrich route data: {e}")
         
+        # 🔥 FIX: Calculate center and zoom from route coordinates
+        center = None
+        zoom = 13  # Default zoom for Istanbul
+        if route_coords and len(route_coords) >= 2:
+            lats = [c['lat'] for c in route_coords]
+            lngs = [c['lng'] for c in route_coords]
+            center = {
+                'lat': sum(lats) / len(lats),
+                'lon': sum(lngs) / len(lngs)
+            }
+            # Calculate zoom based on route bounds
+            lat_range = max(lats) - min(lats)
+            lng_range = max(lngs) - min(lngs)
+            max_range = max(lat_range, lng_range)
+            # Zoom levels: 0.001° ≈ 100m → zoom 15, 0.01° ≈ 1km → zoom 13, 0.1° ≈ 10km → zoom 10
+            if max_range < 0.005:
+                zoom = 15
+            elif max_range < 0.02:
+                zoom = 13
+            elif max_range < 0.05:
+                zoom = 12
+            else:
+                zoom = 11
+        
+        # 🔥 FIX: Convert route_coords to simple [lat, lon] array for coordinates field
+        coordinates_array = [[c['lat'], c['lng']] for c in route_coords] if route_coords else []
+        
         map_data_result = {
+            'type': 'route',  # 🔥 FIX: Add type field
             'markers': markers,
             'routes': routes,
+            'coordinates': coordinates_array,  # 🔥 FIX: Add top-level coordinates for MapVisualization.jsx
+            'center': center,  # 🔥 FIX: Add center
+            'zoom': zoom,  # 🔥 FIX: Add zoom
             'bounds': {
                 'autoFit': True
             },
+            'route_data': route_data,  # 🔥 FIX: Move route_data to top level for frontend access
             'metadata': {
                 'total_time': route.total_time,
                 'total_distance': route.total_distance,
                 'transfers': route.transfers,
                 'lines_used': route.lines_used,
-                'route_data': route_data  # Include enriched route_data
+                'route_data': route_data  # Also keep in metadata for backwards compat
             }
         }
         

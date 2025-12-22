@@ -424,8 +424,8 @@ class RunPodLLMClient:
                 return None
             
             if generated_text:
-                # Hard limit: truncate responses that are too long
-                MAX_RESPONSE_LENGTH = 500
+                # Hard limit: truncate responses that are too long (increased to 2048 for full responses)
+                MAX_RESPONSE_LENGTH = 2048
                 if len(generated_text) > MAX_RESPONSE_LENGTH:
                     logger.warning(f"⚠️ Response too long ({len(generated_text)} chars), truncating to {MAX_RESPONSE_LENGTH}")
                     generated_text = generated_text[:MAX_RESPONSE_LENGTH].rsplit('.', 1)[0] + '.'
@@ -675,8 +675,8 @@ class RunPodLLMClient:
                 generated_text = result['generated_text']
             
             if generated_text:
-                # Hard limit: truncate responses that are too long
-                MAX_RESPONSE_LENGTH = 500  # Maximum 500 characters
+                # Hard limit: truncate responses that are too long (increased to 2048 for full responses)
+                MAX_RESPONSE_LENGTH = 2048
                 if len(generated_text) > MAX_RESPONSE_LENGTH:
                     logger.warning(f"⚠️ Response too long ({len(generated_text)} chars), truncating to {MAX_RESPONSE_LENGTH}")
                     generated_text = generated_text[:MAX_RESPONSE_LENGTH].rsplit('.', 1)[0] + '.'  # Cut at last sentence

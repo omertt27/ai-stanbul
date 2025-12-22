@@ -1911,7 +1911,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                           )}
                           
                           {/* Map Visualization */}
-                          {msg.mapData && (msg.mapData.markers || msg.mapData.coordinates) && (
+                          {msg.mapData && (msg.mapData.markers || msg.mapData.coordinates || msg.mapData.route_data) && (
                             <div className="mt-4">
                               <div className={`text-sm font-medium mb-3 ${
                                 darkMode ? 'text-gray-300' : 'text-gray-700'
@@ -1926,7 +1926,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                               <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
                                 darkMode ? 'text-gray-500' : 'text-gray-600'
                               }`}>
-                                📍 {msg.mapData.markers?.length || 0} locations • {msg.mapData.coordinates ? `🗺️ Route with ${msg.mapData.coordinates.length} points` : ''}
+                                📍 {msg.mapData.markers?.length || 0} locations • {msg.mapData.coordinates || msg.mapData.route_data?.coordinates ? `🗺️ Route displayed` : ''}
                               </div>
                             </div>
                           )}
@@ -2052,7 +2052,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                         )}
                         
                         {/* Map Visualization - Display when message has map data */}
-                        {msg.mapData && (msg.mapData.markers || msg.mapData.coordinates) && (
+                        {msg.mapData && (msg.mapData.markers || msg.mapData.coordinates || msg.mapData.route_data) && (
                           <div className="mt-4">
                             <div className={`text-sm font-medium mb-3 ${
                               darkMode ? 'text-gray-300' : 'text-gray-700'
@@ -2067,7 +2067,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                             <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
                               darkMode ? 'text-gray-500' : 'text-gray-600'
                             }`}>
-                              📍 {msg.mapData.markers?.length || 0} locations • {msg.mapData.coordinates ? `🗺️ Route with ${msg.mapData.coordinates.length} points` : ''}
+                              📍 {msg.mapData.markers?.length || 0} locations • {msg.mapData.coordinates || msg.mapData.route_data?.coordinates ? `🗺️ Route displayed` : ''}
                             </div>
                           </div>
                         )}
