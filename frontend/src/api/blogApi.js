@@ -213,7 +213,7 @@ export const likeBlogPost = async (postId, userIdentifier = null) => {
       console.log('❤️ Toggling like for post:', postId, 'User:', userIdentifier.substr(0, 10) + '...');
       
       // Use the new database-backed endpoint
-      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/like`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like`, {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',
@@ -243,7 +243,7 @@ export const checkLikeStatus = async (postId, userIdentifier = 'default_user') =
       console.log(`🔍 Checking like status for post ${postId}`);
       
       // Use the new database-backed endpoint
-      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/like-status`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like-status`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'

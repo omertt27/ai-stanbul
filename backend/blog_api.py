@@ -538,7 +538,7 @@ async def toggle_like(
         # Check if user already liked
         existing_like = db.query(BlogLike).filter(
             BlogLike.blog_post_id == post_id,
-            BlogLike.user_identifier == user_identifier
+            BlogLike.user_id == user_identifier
         ).first()
         
         if existing_like:
@@ -551,7 +551,7 @@ async def toggle_like(
             # Like - add new like
             new_like = BlogLike(
                 blog_post_id=post_id,
-                user_identifier=user_identifier,
+                user_id=user_identifier,
                 created_at=datetime.utcnow()
             )
             db.add(new_like)
@@ -595,7 +595,7 @@ async def get_like_status(
         # Check if user has liked
         existing_like = db.query(BlogLike).filter(
             BlogLike.blog_post_id == post_id,
-            BlogLike.user_identifier == user_identifier
+            BlogLike.user_id == user_identifier
         ).first()
         
         return {
