@@ -478,10 +478,11 @@ class AIChatRouteHandler:
         
         # PATTERN 1: "to Y from X" - destination before origin
         # Examples: "to taksim from kadikoy", "go to galata from sultanahmet", "how can I go to X from Y"
+        # FIX: Use proper word boundary matching instead of [^from] which excludes individual chars
         to_from_patterns = [
-            r'(?:how\s+(?:can|do)\s+i\s+)?(?:go\s+)?to\s+([^from]+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
-            r'(?:get|travel|walk|drive)\s+to\s+([^from]+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
-            r'(?:route|directions)\s+to\s+([^from]+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:how\s+(?:can|do)\s+i\s+)?(?:go\s+)?to\s+(.+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:get|travel|walk|drive)\s+to\s+(.+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:route|directions)\s+to\s+(.+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
         ]
         
         for pattern in to_from_patterns:
@@ -505,9 +506,10 @@ class AIChatRouteHandler:
         
         # PATTERN 2: "from X to Y" - traditional direction pattern
         # Examples: "from sultanahmet to galata", "route from X to Y", "directions from A to B"
+        # FIX: Use proper word boundary matching
         from_to_patterns = [
-            r'(?:from|starting\s+from)\s+([^to]+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
-            r'(?:route|directions|path|way)\s+from\s+([^to]+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:from|starting\s+from)\s+(.+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
+            r'(?:route|directions|path|way)\s+from\s+(.+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
             r'(?:going|traveling|walking)\s+from\s+([^to]+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
         ]
         

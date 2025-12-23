@@ -1,16 +1,12 @@
 /**
  * MapVisualization Component
  * ==========================
- * Displays interactive maps with routes, markers, and transport lines
- * for transportation and route planning queries.
- * 
- * Features:
- * - Route visualization with polylines
- * - Multiple markers with labels
- * - Transport line indicators
+ * Google Maps-style interactive route display with:
+ * - Color-coded transit line segments
+ * - Origin/transfer/destination markers
  * - Auto-fit bounds
- * - Custom marker colors
- * - Route information display
+ * - Route info panel
+ * - Alternative routes display
  * 
  * Props:
  * - mapData: Object containing map visualization data from backend
@@ -32,48 +28,49 @@ L.Icon.Default.mergeOptions({
 });
 
 // Custom marker icons with colors
-const createMarkerIcon = (type = 'default', label = '') => {
+const createMarkerIcon = (type = 'default', color = null, emoji = '') => {
   const colors = {
     start: '#22c55e',      // Green
     end: '#ef4444',        // Red
     destination: '#ef4444', // Red
     origin: '#22c55e',     // Green
+    transfer: '#f59e0b',   // Orange/Amber
     stop: '#3b82f6',       // Blue
     attraction: '#8b5cf6', // Purple
     default: '#6b7280'     // Gray
   };
   
-  const color = colors[type] || colors.default;
+  const bgColor = color || colors[type] || colors.default;
+  const displayEmoji = emoji || (type === 'origin' ? '🚩' : type === 'destination' ? '🏁' : type === 'transfer' ? '🔄' : '📍');
+  
   const iconHtml = `
     <div style="
-      background-color: ${color};
-      width: 32px;
-      height: 32px;
+      background-color: ${bgColor};
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       border: 3px solid white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-      font-size: 16px;
-      color: white;
-      font-weight: bold;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+      font-size: 18px;
     ">
-      ${label || '📍'}
+      ${displayEmoji}
     </div>
   `;
   
   return L.divIcon({
     html: iconHtml,
     className: 'custom-marker-icon',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16]
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -18]
   });
 };
 
 // Auto-fit bounds component
-const AutoFitBounds = ({ coordinates, markers }) => {
+const AutoFitBounds = ({ coordinates, markers, routes }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -81,7 +78,20 @@ const AutoFitBounds = ({ coordinates, markers }) => {
 
     const bounds = [];
     
-    // Add route coordinates
+    // Add route coordinates from all segments
+    if (routes && routes.length > 0) {
+      routes.forEach(route => {
+        if (route.coordinates) {
+          route.coordinates.forEach(coord => {
+            if (Array.isArray(coord) && coord.length === 2) {
+              bounds.push([coord[0], coord[1]]);
+            }
+          });
+        }
+      });
+    }
+    
+    // Add flat coordinates
     if (coordinates && coordinates.length > 0) {
       coordinates.forEach(coord => {
         if (Array.isArray(coord) && coord.length === 2) {
@@ -104,7 +114,7 @@ const AutoFitBounds = ({ coordinates, markers }) => {
       const leafletBounds = L.latLngBounds(bounds);
       map.fitBounds(leafletBounds, { padding: [50, 50] });
     }
-  }, [map, coordinates, markers]);
+  }, [map, coordinates, markers, routes]);
 
   return null;
 };
@@ -125,110 +135,83 @@ const MapVisualization = ({
     type = 'route',
     coordinates = [],
     markers = [],
+    routes = [],
     center = { lat: 41.0082, lon: 28.9784 }, // Istanbul default
     zoom = 13,
     route_data = null,
-    transport_lines = []
+    transport_lines = [],
+    alternatives = []
   } = mapData;
-
-  // Extract coordinates - check both top-level and nested in route_data
-  let extractedCoordinates = coordinates;
-  if ((!coordinates || coordinates.length === 0) && route_data?.coordinates) {
-    extractedCoordinates = route_data.coordinates;
-  }
 
   // Default center if not provided
   const defaultCenter = [center.lat || 41.0082, center.lon || 28.9784];
 
-  // Route line color based on transport mode
-  const getRouteColor = () => {
-    if (route_data?.transport_mode) {
-      const mode = route_data.transport_mode.toLowerCase();
-      if (mode.includes('metro')) return '#e74c3c';
-      if (mode.includes('tram')) return '#3498db';
-      if (mode.includes('bus')) return '#2ecc71';
-      if (mode.includes('ferry')) return '#1abc9c';
-      if (mode.includes('walk')) return '#95a5a6';
-    }
-    return '#3b82f6'; // Default blue
-  };
-
-  // Convert coordinates to Leaflet format [[lat, lon], ...]
-  const routeCoordinates = extractedCoordinates.map(coord => {
-    if (Array.isArray(coord) && coord.length === 2) {
-      return [coord[0], coord[1]];
-    }
-    return null;
-  }).filter(Boolean);
-
   return (
     <div className={`map-visualization-container ${className}`}>
-      {/* Route Information */}
+      {/* Route Information Header */}
       {route_data && (
         <div className="route-info-panel" style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #1a73e8 0%, #4285f4 100%)',
           color: 'white',
-          padding: '12px 16px',
+          padding: '14px 18px',
           borderRadius: '8px 8px 0 0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '8px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '20px' }}>🗺️</span>
-            <span style={{ fontWeight: 'bold' }}>Route Details</span>
-          </div>
-          <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
-            {route_data.distance_km && (
-              <span>📏 {route_data.distance_km.toFixed(1)} km</span>
-            )}
-            {route_data.duration_min && (
-              <span>⏱️ {Math.round(route_data.duration_min)} min</span>
-            )}
-            {route_data.transport_mode && (
-              <span>🚇 {route_data.transport_mode}</span>
-            )}
-          </div>
-          {route_data.lines && route_data.lines.length > 0 && (
-            <div style={{ width: '100%', marginTop: '8px', fontSize: '13px' }}>
-              <strong>Lines:</strong> {route_data.lines.join(', ')}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '24px' }}>🗺️</span>
+              <div>
+                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>
+                  {route_data.origin} → {route_data.destination}
+                </div>
+                <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                  {route_data.transfers === 0 ? 'Direct' : `${route_data.transfers} transfer${route_data.transfers > 1 ? 's' : ''}`}
+                </div>
+              </div>
             </div>
-          )}
+            <div style={{ display: 'flex', gap: '20px', fontSize: '15px', fontWeight: '500' }}>
+              {route_data.duration_min && (
+                <span>⏱️ {Math.round(route_data.duration_min)} min</span>
+              )}
+              {route_data.distance_km && (
+                <span>� {route_data.distance_km.toFixed(1)} km</span>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Transport Lines Info */}
+      {/* Transport Lines Legend */}
       {transport_lines && transport_lines.length > 0 && (
         <div className="transport-lines-panel" style={{
           background: '#f8f9fa',
-          padding: '8px 12px',
+          padding: '10px 14px',
           display: 'flex',
-          gap: '12px',
+          gap: '10px',
           flexWrap: 'wrap',
-          fontSize: '12px',
+          fontSize: '13px',
           borderBottom: '1px solid #e0e0e0'
         }}>
           {transport_lines.map((line, idx) => (
             <div key={idx} style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              padding: '4px 8px',
-              borderRadius: '4px',
+              gap: '6px',
+              padding: '5px 10px',
+              borderRadius: '16px',
               background: line.color || '#3b82f6',
               color: 'white',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              fontSize: '12px'
             }}>
-              {line.line}: {line.name}
+              <span>{line.type === 'metro' ? '🚇' : line.type === 'tram' ? '🚊' : line.type === 'ferry' ? '⛴️' : '🚆'}</span>
+              <span>{line.line}</span>
             </div>
           ))}
         </div>
       )}
 
       {/* Leaflet Map */}
-      <div style={{ height, width: '100%', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
+      <div style={{ height, width: '100%', borderRadius: routes?.length > 0 || transport_lines?.length > 0 ? '0' : '8px 8px 0 0', overflow: 'hidden' }}>
         <MapContainer
           center={defaultCenter}
           zoom={zoom}
@@ -243,13 +226,29 @@ const MapVisualization = ({
           />
 
           {/* Auto-fit bounds */}
-          <AutoFitBounds coordinates={routeCoordinates} markers={markers} />
+          <AutoFitBounds coordinates={coordinates} markers={markers} routes={routes} />
 
-          {/* Draw route polyline */}
-          {routeCoordinates.length > 0 && (
+          {/* Draw color-coded route segments */}
+          {routes && routes.map((segment, idx) => {
+            if (!segment.coordinates || segment.coordinates.length < 2) return null;
+            
+            return (
+              <Polyline
+                key={`segment-${idx}`}
+                positions={segment.coordinates}
+                color={segment.color || '#4285F4'}
+                weight={segment.weight || 5}
+                opacity={segment.opacity || 0.85}
+                smoothFactor={1}
+              />
+            );
+          })}
+
+          {/* Fallback: Draw single polyline from flat coordinates */}
+          {(!routes || routes.length === 0) && coordinates.length > 0 && (
             <Polyline
-              positions={routeCoordinates}
-              color={getRouteColor()}
+              positions={coordinates}
+              color="#4285F4"
               weight={5}
               opacity={0.7}
               smoothFactor={1}
@@ -261,24 +260,34 @@ const MapVisualization = ({
             if (!marker.lat || !marker.lon) return null;
             
             const position = [marker.lat, marker.lon];
-            const markerType = marker.type || (idx === 0 ? 'start' : idx === markers.length - 1 ? 'end' : 'stop');
-            const icon = createMarkerIcon(markerType, idx === 0 ? '🚩' : idx === markers.length - 1 ? '🏁' : '');
+            const markerType = marker.type || 'default';
+            const icon = createMarkerIcon(markerType, marker.color);
 
             return (
-              <Marker key={idx} position={position} icon={icon}>
+              <Marker key={`marker-${idx}`} position={position} icon={icon}>
                 <Popup>
-                  <div style={{ minWidth: '150px' }}>
-                    <strong style={{ fontSize: '14px', display: 'block', marginBottom: '4px' }}>
-                      {marker.label || `Stop ${idx + 1}`}
+                  <div style={{ minWidth: '180px' }}>
+                    <strong style={{ fontSize: '15px', display: 'block', marginBottom: '6px' }}>
+                      {marker.title || marker.label || `Stop ${idx + 1}`}
                     </strong>
-                    {marker.type && (
-                      <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                        Type: {marker.type}
+                    {marker.description && (
+                      <div style={{ fontSize: '13px', color: '#555', marginTop: '4px' }}>
+                        {marker.description}
                       </div>
                     )}
-                    <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
-                      {position[0].toFixed(5)}, {position[1].toFixed(5)}
-                    </div>
+                    {marker.line && (
+                      <div style={{ 
+                        fontSize: '12px', 
+                        marginTop: '8px',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        background: marker.color || '#4285F4',
+                        color: 'white',
+                        display: 'inline-block'
+                      }}>
+                        {marker.line}
+                      </div>
+                    )}
                   </div>
                 </Popup>
               </Marker>
@@ -287,11 +296,40 @@ const MapVisualization = ({
         </MapContainer>
       </div>
 
+      {/* Alternative Routes */}
+      {alternatives && alternatives.length > 0 && (
+        <div style={{
+          background: '#fff',
+          padding: '12px 16px',
+          borderTop: '1px solid #e0e0e0',
+          borderRadius: '0 0 8px 8px'
+        }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#555' }}>
+            Alternative Routes:
+          </div>
+          {alternatives.map((alt, idx) => (
+            <div key={idx} style={{
+              fontSize: '12px',
+              padding: '6px 10px',
+              background: '#f5f5f5',
+              borderRadius: '6px',
+              marginBottom: '4px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>{alt.summary || `${alt.lines_used?.join(' → ')} (${alt.total_time} min)`}</span>
+              <span style={{ color: '#666' }}>+{alt.total_time - (route_data?.duration_min || 0)} min</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <style jsx>{`
         .map-visualization-container {
           margin: 16px 0;
           border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
           overflow: hidden;
         }
 
@@ -303,11 +341,6 @@ const MapVisualization = ({
         @media (max-width: 768px) {
           .route-info-panel {
             padding: 10px 12px;
-            font-size: 13px;
-          }
-
-          .route-info-panel > div {
-            font-size: 12px;
           }
 
           .transport-lines-panel {

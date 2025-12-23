@@ -165,10 +165,15 @@ class IstanbulTransportationRAG:
             "taksim square": ["M2-Taksim"],
             "taksim meydani": ["M2-Taksim"],
             
-            # Kadıköy area
-            "kadikoy": ["M4-Kadıköy"],
-            "kadıköy": ["M4-Kadıköy"],
-            "kadıkoy": ["M4-Kadıköy"],
+            # Kadıköy area - includes Ayrılık Çeşmesi for Marmaray transfer
+            "kadikoy": ["M4-Kadıköy", "M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
+            "kadıköy": ["M4-Kadıköy", "M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
+            "kadıkoy": ["M4-Kadıköy", "M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
+            "ayrilik cesmesi": ["M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
+            "ayrılık çeşmesi": ["M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
+            
+            # Taksim area - main station only (Yenikapı is for transfer, not destination)
+            "taksim": ["M2-Taksim"],
             
             # Beşiktaş area
             "besiktas": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
@@ -441,16 +446,48 @@ class IstanbulTransportationRAG:
             logger.warning(f"Could not find stations for {origin} or {destination}")
             return None
         
-        # Find best route
-        best_route = None
-        min_transfers = 999
+        # Find ALL viable routes, then pick best + alternatives (Google Maps style)
+        all_routes = []
         
         for orig_station in origin_stations:
             for dest_station in dest_stations:
                 route = self._find_path(orig_station, dest_station, max_transfers)
-                if route and route.transfers < min_transfers:
-                    best_route = route
-                    min_transfers = route.transfers
+                if route:
+                    all_routes.append(route)
+                    logger.debug(f"Found route: {orig_station} → {dest_station} in {route.total_time:.0f} min")
+        
+        # Also check for direct ferry routes (often faster for cross-Bosphorus!)
+        ferry_route = self._check_ferry_route(origin, destination, origin_stations, dest_stations)
+        if ferry_route:
+            all_routes.append(ferry_route)
+            logger.info(f"🚢 Found ferry route option: {ferry_route.total_time} min")
+        
+        if not all_routes:
+            logger.warning(f"No routes found between {origin} and {destination}")
+            return None
+        
+        # Sort by total time (fastest first)
+        all_routes.sort(key=lambda r: r.total_time)
+        
+        # Best route is the fastest
+        best_route = all_routes[0]
+        
+        # Add up to 2 alternative routes (different from best)
+        alternatives = []
+        for route in all_routes[1:]:
+            # Only add if meaningfully different (different lines or >5 min different)
+            if (set(route.lines_used) != set(best_route.lines_used) or 
+                abs(route.total_time - best_route.total_time) > 5):
+                alternatives.append(route)
+                if len(alternatives) >= 2:
+                    break
+        
+        best_route.alternatives = alternatives
+        
+        if alternatives:
+            logger.info(f"✅ Found {len(alternatives)} alternative route(s)")
+            for i, alt in enumerate(alternatives, 1):
+                logger.info(f"   Alt {i}: {alt.lines_used} - {alt.total_time} min")
         
         # Week 1 Improvement #3: Store in cache
         if use_cache and self.redis and best_route:
@@ -536,6 +573,103 @@ class IstanbulTransportationRAG:
             logger.warning(f"❌ No stations found for: '{original_location}' (normalized: '{normalized_location}')")
         
         return matches
+    
+    def _check_ferry_route(
+        self,
+        origin: str,
+        destination: str,
+        origin_stations: List[str],
+        dest_stations: List[str]
+    ) -> Optional[TransitRoute]:
+        """
+        Check if a direct ferry route is available and competitive.
+        
+        Ferries are often faster than rail for cross-Bosphorus journeys!
+        
+        Returns a TransitRoute if ferry is a good option, None otherwise.
+        """
+        # Map neighborhoods/areas to ferry terminals
+        ferry_mappings = {
+            # Asian Side
+            "kadıköy": "FERRY-Kadıköy",
+            "kadikoy": "FERRY-Kadıköy", 
+            "üsküdar": "FERRY-Üsküdar",
+            "uskudar": "FERRY-Üsküdar",
+            "beykoz": "FERRY-Beykoz",
+            
+            # European Side
+            "eminönü": "FERRY-Eminönü",
+            "eminonu": "FERRY-Eminönü",
+            "karaköy": "FERRY-Karaköy",
+            "karakoy": "FERRY-Karaköy",
+            "beşiktaş": "FERRY-Beşiktaş",
+            "besiktas": "FERRY-Beşiktaş",
+            "kabataş": "FERRY-Kabataş",
+            "kabatas": "FERRY-Kabataş",
+            
+            # Islands
+            "büyükada": "FERRY-Büyükada",
+            "buyukada": "FERRY-Büyükada",
+            "heybeliada": "FERRY-Heybeliada",
+            "princes islands": "FERRY-Büyükada",
+            "adalar": "FERRY-Büyükada",
+        }
+        
+        origin_lower = origin.lower()
+        dest_lower = destination.lower()
+        
+        # Check if origin/destination have ferry access
+        origin_ferry = ferry_mappings.get(origin_lower)
+        dest_ferry = ferry_mappings.get(dest_lower)
+        
+        if not origin_ferry or not dest_ferry:
+            return None
+        
+        # Check if both ferries exist in our stations
+        if origin_ferry not in self.stations or dest_ferry not in self.stations:
+            return None
+        
+        # Get ferry travel time
+        travel_time, confidence = self.travel_time_db.get_travel_time(origin_ferry, dest_ferry)
+        
+        # Only return ferry route if we have actual data (not default)
+        if confidence == "low":
+            return None
+        
+        origin_station = self.stations[origin_ferry]
+        dest_station = self.stations[dest_ferry]
+        
+        # Build ferry route
+        steps = [{
+            "instruction": f"Take ferry from {origin_station.name} to {dest_station.name}",
+            "line": "FERRY",
+            "from": origin_station.name,
+            "from_station": origin_station.name,
+            "to": dest_station.name,
+            "to_station": dest_station.name,
+            "duration": travel_time,
+            "type": "transit",
+            "mode": "ferry",
+            "from_lat": origin_station.lat,
+            "from_lon": origin_station.lon,
+            "to_lat": dest_station.lat,
+            "to_lon": dest_station.lon
+        }]
+        
+        # Estimate distance (ferries cross ~2-5 km of water)
+        distance = 3.0  # Average Bosphorus crossing
+        
+        return TransitRoute(
+            origin=origin_station.name,
+            destination=dest_station.name,
+            total_time=round(travel_time),
+            total_distance=distance,
+            steps=steps,
+            transfers=0,
+            lines_used=["FERRY"],
+            alternatives=[],
+            time_confidence=confidence
+        )
     
     def _find_path(
         self,
@@ -696,6 +830,9 @@ class IstanbulTransportationRAG:
         
         CRITICAL FIX: Only return adjacent stations, not ALL stations on the line.
         This prevents BFS from exploding exponentially.
+        
+        IMPORTANT: Stations must be ordered by their physical position on the line,
+        not alphabetically! The canonical station normalizer provides this ordering.
         """
         if station_id not in self.stations:
             return []
@@ -703,27 +840,28 @@ class IstanbulTransportationRAG:
         current_line = self.stations[station_id].line
         neighbors = []
         
-        # Get all stations on this line in order
-        line_stations = sorted(
-            [(sid, st) for sid, st in self.stations.items() if st.line == current_line],
-            key=lambda x: x[0]  # Sort by station ID for consistent ordering
-        )
+        # Get stations in physical order from the station normalizer
+        # The normalizer stores stations in the correct physical sequence
+        line_station_ids = self.station_normalizer.get_stations_on_line_in_order(current_line)
+        
+        if not line_station_ids:
+            # Fallback: try using geographical proximity (longitude for east-west lines)
+            line_stations = [(sid, st) for sid, st in self.stations.items() if st.line == current_line]
+            # Sort by longitude (west to east) - this is a reasonable approximation
+            line_stations.sort(key=lambda x: x[1].lon)
+            line_station_ids = [sid for sid, _ in line_stations]
         
         # Find current station's index
-        current_idx = None
-        for i, (sid, _) in enumerate(line_stations):
-            if sid == station_id:
-                current_idx = i
-                break
-        
-        if current_idx is None:
+        try:
+            current_idx = line_station_ids.index(station_id)
+        except ValueError:
             return []
         
         # Add adjacent stations (prev and next on the line)
         if current_idx > 0:
-            neighbors.append(line_stations[current_idx - 1][0])
-        if current_idx < len(line_stations) - 1:
-            neighbors.append(line_stations[current_idx + 1][0])
+            neighbors.append(line_station_ids[current_idx - 1])
+        if current_idx < len(line_station_ids) - 1:
+            neighbors.append(line_station_ids[current_idx + 1])
         
         return neighbors
     
@@ -1385,98 +1523,128 @@ class IstanbulTransportationRAG:
         """
         Convert the last computed route to mapData format for frontend visualization.
         
+        Google Maps-style output with:
+        - Color-coded polylines per transit line
+        - Origin/transfer/destination markers
+        - Step-by-step route data
+        - Alternative routes
+        
         Returns:
-            Dict with 'markers' and 'routes' for map display, or None if no route
+            Dict with 'markers', 'routes', 'coordinates' for map display
         """
         if not self.last_route:
             return None
         
         route = self.last_route
         
-        # Build markers for origin, destination, and transfer points
+        # Line colors (official Istanbul metro colors)
+        line_colors = {
+            'M1A': '#E31C23', 'M1B': '#B4277E', 'M2': '#00A650', 'M3': '#EF4136',
+            'M4': '#FF6E1E', 'M5': '#8E3994', 'M6': '#D3A029', 'M7': '#E91E8C',
+            'M9': '#8E3994', 'M11': '#00A651',
+            'T1': '#ED1C24', 'T4': '#F7941D', 'T5': '#00AEEF',
+            'F1': '#EE2E24', 'F2': '#00A651',
+            'MARMARAY': '#E4032E',
+            'FERRY': '#009FE3'
+        }
+        
+        # Build markers and route segments
         markers = []
-        route_coords = []
+        route_segments = []  # Multiple segments with different colors
+        all_coords = []
         
-        # Find origin and destination stations by name
-        origin_station = None
-        destination_station = None
-        
-        for sid, station in self.stations.items():
-            if station.name.lower() == route.origin.lower():
-                origin_station = station
-            if station.name.lower() == route.destination.lower():
-                destination_station = station
-        
-        # Add origin marker
-        if origin_station:
-            markers.append({
-                'lat': origin_station.lat,
-                'lon': origin_station.lon,
-                'label': origin_station.name,  # 🔥 FIX: Use 'label' not 'title'
-                'title': origin_station.name,
-                'description': f'Start: {route.origin}',
-                'type': 'origin',
-                'icon': 'start'
-            })
-            route_coords.append({'lat': origin_station.lat, 'lng': origin_station.lon})
-        
-        # Add transfer markers and build route coordinates
-        for step in route.steps:
-            if step.get('type') == 'transfer':
-                # Find station by name for transfer
-                transfer_name = step.get('from')
+        # Process each step to build markers and segments
+        for i, step in enumerate(route.steps):
+            step_line = step.get('line', 'TRANSIT')
+            step_color = line_colors.get(step_line, '#4285F4')
+            
+            if step.get('type') == 'transit':
+                from_name = step.get('from', '')
+                to_name = step.get('to', '')
+                
+                # Find from station coordinates
+                from_station = None
+                to_station = None
+                
                 for sid, station in self.stations.items():
-                    if station.name.lower() == transfer_name.lower():
+                    if station.name.lower() == from_name.lower():
+                        from_station = station
+                    if station.name.lower() == to_name.lower():
+                        to_station = station
+                
+                # Add segment coordinates
+                segment_coords = []
+                if from_station:
+                    segment_coords.append([from_station.lat, from_station.lon])
+                    all_coords.append({'lat': from_station.lat, 'lng': from_station.lon})
+                    
+                    # Add origin marker for first step
+                    if i == 0:
+                        markers.append({
+                            'lat': from_station.lat,
+                            'lon': from_station.lon,
+                            'label': from_station.name,
+                            'title': f'🚩 Start: {from_station.name}',
+                            'description': f'Board {step_line}',
+                            'type': 'origin',
+                            'icon': 'start',
+                            'line': step_line,
+                            'color': step_color
+                        })
+                
+                if to_station:
+                    segment_coords.append([to_station.lat, to_station.lon])
+                    all_coords.append({'lat': to_station.lat, 'lng': to_station.lon})
+                    
+                    # Add destination marker for last transit step
+                    is_last_transit = i == len(route.steps) - 1 or \
+                        (i < len(route.steps) - 1 and route.steps[i+1].get('type') != 'transit')
+                    
+                    if is_last_transit and i == len(route.steps) - 1:
+                        markers.append({
+                            'lat': to_station.lat,
+                            'lon': to_station.lon,
+                            'label': to_station.name,
+                            'title': f'🏁 Destination: {to_station.name}',
+                            'description': f'Arrive via {step_line}',
+                            'type': 'destination',
+                            'icon': 'end',
+                            'line': step_line,
+                            'color': step_color
+                        })
+                
+                # Add route segment
+                if len(segment_coords) >= 2:
+                    route_segments.append({
+                        'coordinates': segment_coords,
+                        'color': step_color,
+                        'weight': 5,
+                        'opacity': 0.85,
+                        'mode': step.get('mode', 'transit'),
+                        'line': step_line,
+                        'description': f'{step_line}: {from_name} → {to_name}'
+                    })
+            
+            elif step.get('type') == 'transfer':
+                transfer_station = step.get('from', '')
+                transfer_line = step.get('line', '')
+                
+                for sid, station in self.stations.items():
+                    if station.name.lower() == transfer_station.lower():
                         markers.append({
                             'lat': station.lat,
                             'lon': station.lon,
-                            'label': station.name,  # 🔥 FIX: Use 'label' not 'title'
-                            'title': station.name,
-                            'description': f"Transfer to {step.get('line')}",
+                            'label': station.name,
+                            'title': f'🔄 Transfer at {station.name}',
+                            'description': f'Transfer to {transfer_line}',
                             'type': 'transfer',
-                            'icon': 'transfer'
+                            'icon': 'transfer',
+                            'line': transfer_line,
+                            'color': line_colors.get(transfer_line, '#FFA500')
                         })
-                        route_coords.append({'lat': station.lat, 'lng': station.lon})
-                        break
-            elif step.get('type') == 'transit':
-                # Add intermediate stations for transit segments
-                from_name = step.get('from')
-                to_name = step.get('to')
-                
-                # Add 'to' station coordinates
-                for sid, station in self.stations.items():
-                    if station.name.lower() == to_name.lower():
-                        route_coords.append({'lat': station.lat, 'lng': station.lon})
                         break
         
-        # Add destination marker
-        if destination_station:
-            markers.append({
-                'lat': destination_station.lat,
-                'lon': destination_station.lon,
-                'label': destination_station.name,  # 🔥 FIX: Use 'label' not 'title'
-                'title': destination_station.name,
-                'description': f'Destination: {route.destination}',
-                'type': 'destination',
-                'icon': 'end'
-            })
-            # Make sure destination is in route_coords
-            if not route_coords or route_coords[-1]['lat'] != destination_station.lat:
-                route_coords.append({'lat': destination_station.lat, 'lng': destination_station.lon})
-        
-        # Build routes array
-        routes = []
-        if route_coords and len(route_coords) >= 2:
-            routes.append({
-                'coordinates': route_coords,
-                'color': '#4285F4',  # Google Maps blue
-                'weight': 4,
-                'opacity': 0.8,
-                'mode': 'transit',
-                'description': f'{route.origin} to {route.destination}'
-            })
-        
-        # Build route_data with metadata (for TransportationRouteCard)
+        # Build route_data with step details
         route_data = {
             'origin': route.origin,
             'destination': route.destination,
@@ -1484,32 +1652,30 @@ class IstanbulTransportationRAG:
             'total_time': route.total_time,
             'total_distance': route.total_distance,
             'transfers': route.transfers,
-            'lines_used': route.lines_used
+            'lines_used': route.lines_used,
+            'time_confidence': route.time_confidence,
+            'distance_km': route.total_distance,
+            'duration_min': route.total_time,
+            'transport_mode': 'Public Transit',
+            'lines': route.lines_used
         }
         
-        # Week 2 Improvement: Enrich with canonical IDs and multilingual names
+        # Enrich with canonical IDs
         try:
             route_data = self.station_normalizer.enrich_route_data(route_data)
-            logger.info("✅ Route data enriched with canonical IDs and multilingual names")
-            logger.info(f"   Origin ID: {route_data.get('origin_station_id')}, Dest ID: {route_data.get('destination_station_id')}")
         except Exception as e:
             logger.warning(f"Failed to enrich route data: {e}")
         
-        # 🔥 FIX: Calculate center and zoom from route coordinates
-        center = None
-        zoom = 13  # Default zoom for Istanbul
-        if route_coords and len(route_coords) >= 2:
-            lats = [c['lat'] for c in route_coords]
-            lngs = [c['lng'] for c in route_coords]
-            center = {
-                'lat': sum(lats) / len(lats),
-                'lon': sum(lngs) / len(lngs)
-            }
-            # Calculate zoom based on route bounds
+        # Calculate bounds
+        if all_coords:
+            lats = [c['lat'] for c in all_coords]
+            lngs = [c['lng'] for c in all_coords]
+            center = {'lat': sum(lats) / len(lats), 'lon': sum(lngs) / len(lngs)}
+            
             lat_range = max(lats) - min(lats)
             lng_range = max(lngs) - min(lngs)
             max_range = max(lat_range, lng_range)
-            # Zoom levels: 0.001° ≈ 100m → zoom 15, 0.01° ≈ 1km → zoom 13, 0.1° ≈ 10km → zoom 10
+            
             if max_range < 0.005:
                 zoom = 15
             elif max_range < 0.02:
@@ -1518,35 +1684,68 @@ class IstanbulTransportationRAG:
                 zoom = 12
             else:
                 zoom = 11
+        else:
+            center = {'lat': 41.0082, 'lon': 28.9784}
+            zoom = 12
         
-        # 🔥 FIX: Convert route_coords to simple [lat, lon] array for coordinates field
-        coordinates_array = [[c['lat'], c['lng']] for c in route_coords] if route_coords else []
+        # Flatten coordinates for frontend
+        coordinates_array = [[c['lat'], c['lng']] for c in all_coords]
+        
+        # Build alternative routes data
+        alternatives_data = []
+        if route.alternatives:
+            for alt in route.alternatives:
+                alternatives_data.append({
+                    'origin': alt.origin,
+                    'destination': alt.destination,
+                    'total_time': alt.total_time,
+                    'transfers': alt.transfers,
+                    'lines_used': alt.lines_used,
+                    'summary': f"{' → '.join(alt.lines_used)} ({alt.total_time} min)"
+                })
+        
+        # Build transport lines info for frontend
+        transport_lines = []
+        for line in route.lines_used:
+            line_meta = self.station_normalizer.get_line_metadata(line)
+            if line_meta:
+                transport_lines.append({
+                    'line': line,
+                    'name': line_meta.name_en,
+                    'color': line_colors.get(line, '#4285F4'),
+                    'type': line_meta.line_type
+                })
+            else:
+                transport_lines.append({
+                    'line': line,
+                    'name': line,
+                    'color': line_colors.get(line, '#4285F4'),
+                    'type': 'transit'
+                })
         
         map_data_result = {
-            'type': 'route',  # 🔥 FIX: Add type field
+            'type': 'route',
             'markers': markers,
-            'routes': routes,
-            'coordinates': coordinates_array,  # 🔥 FIX: Add top-level coordinates for MapVisualization.jsx
-            'center': center,  # 🔥 FIX: Add center
-            'zoom': zoom,  # 🔥 FIX: Add zoom
-            'bounds': {
-                'autoFit': True
-            },
-            'route_data': route_data,  # 🔥 FIX: Move route_data to top level for frontend access
+            'routes': route_segments,  # Multiple color-coded segments
+            'coordinates': coordinates_array,
+            'center': center,
+            'zoom': zoom,
+            'bounds': {'autoFit': True},
+            'route_data': route_data,
+            'transport_lines': transport_lines,
+            'alternatives': alternatives_data,
             'metadata': {
                 'total_time': route.total_time,
                 'total_distance': route.total_distance,
                 'transfers': route.transfers,
                 'lines_used': route.lines_used,
-                'route_data': route_data  # Also keep in metadata for backwards compat
+                'time_confidence': route.time_confidence,
+                'has_alternatives': len(alternatives_data) > 0,
+                'route_data': route_data
             }
         }
         
-        # 🔍 DEBUG: Log what we're returning
-        logger.info(f"🗺️ get_map_data_for_last_route() returning map_data with metadata keys: {list(map_data_result['metadata'].keys())}")
-        logger.info(f"   metadata.route_data exists: {'route_data' in map_data_result['metadata']}")
-        if 'route_data' in map_data_result['metadata']:
-            logger.info(f"   metadata.route_data has {len(map_data_result['metadata']['route_data'])} keys")
+        logger.info(f"🗺️ Generated Google Maps-style map_data: {len(markers)} markers, {len(route_segments)} segments")
         
         return map_data_result
     

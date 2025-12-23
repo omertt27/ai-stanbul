@@ -298,15 +298,15 @@ const App = () => {
                     )}
                     
                     {/* Map Visualization */}
-                    {msg.sender === "assistant" && msg.map_data && (msg.map_data.markers || msg.map_data.routes) && (
+                    {msg.sender === "assistant" && (msg.mapData || msg.map_data) && ((msg.mapData || msg.map_data).markers || (msg.mapData || msg.map_data).routes) && (
                       <div className="mt-3">
                         <MapVisualization 
-                          mapData={msg.map_data} 
+                          mapData={msg.mapData || msg.map_data} 
                           height="400px" 
                           className="rounded-lg shadow-md"
                         />
                         <div className="text-xs text-gray-600 mt-2 text-center">
-                          🗺️ {msg.map_data.markers?.length || 0} locations • {msg.map_data.routes?.length || 0} routes
+                          🗺️ {(msg.mapData || msg.map_data).markers?.length || 0} locations • {(msg.mapData || msg.map_data).routes?.length || 0} routes
                         </div>
                       </div>
                     )}

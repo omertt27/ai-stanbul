@@ -841,38 +841,66 @@ Fixed version (max 50 chars):"""
                 logger.info(f"🚇 Applying transportation validation for route query...")
                 
                 # Extract route data from context (verified facts from Transportation RAG)
-                route_data = None
-                if context.get('services'):
-                    for service_item in context['services']:
-                        if isinstance(service_item, dict) and 'route' in service_item:
-                            route_data = service_item
-                            break
+                # FIXED: Look in context['route_data'] first (where context.py puts it)
+                route_data = context.get('route_data')
                 
-                # Validate LLM response against verified route facts
-                is_transport_valid, transport_error, corrected_response = await self._validate_transportation_response(
-                    response=response_text,
-                    route_data=route_data,
-                    query=query
-                )
-                
-                if not is_transport_valid:
-                    logger.error(f"🚨 TRANSPORTATION HALLUCINATION DETECTED: {transport_error}")
-                    self.analytics.track_validation_failure(f"transport_hallucination: {transport_error}")
-                    
-                    if corrected_response:
-                        # Use auto-corrected response
-                        logger.info(f"✅ Using auto-corrected response (hallucinated facts replaced)")
-                        response_text = corrected_response
+                # Fallback: check context['services'] for legacy compatibility
+                if not route_data and context.get('services'):
+                    if isinstance(context['services'], dict):
+                        route_data = context['services'].get('transportation', {}).get('route')
                     else:
-                        # Fallback to template-based response using verified facts only
-                        logger.warning(f"⚠️ Auto-correction failed, generating template-based response")
-                        response_text = await self._generate_template_transportation_response(
-                            route_data=route_data,
-                            query=query,
-                            language=language
-                        )
+                        for service_item in context['services']:
+                            if isinstance(service_item, dict) and 'route' in service_item:
+                                route_data = service_item.get('route')
+                                break
+                
+                logger.info(f"🚇 Route data found: {bool(route_data)}, has steps: {bool(route_data and route_data.get('steps'))}")
+                
+                # If we have valid route data from RAG, ALWAYS use template response
+                # This ensures accurate step-by-step directions from verified data
+                if route_data and route_data.get('steps'):
+                    logger.info(f"✅ Using template-based transportation response (RAG verified data)")
+                    response_text = await self._generate_template_transportation_response(
+                        route_data=route_data,
+                        query=query,
+                        language=language
+                    )
                 else:
-                    logger.info(f"✅ Transportation response validated - no hallucinations detected")
+                    # Validate LLM response against verified route facts
+                    is_transport_valid, transport_error, corrected_response = await self._validate_transportation_response(
+                        response=response_text,
+                        route_data=route_data,
+                        query=query
+                    )
+                    
+                    if not is_transport_valid:
+                        logger.error(f"🚨 TRANSPORTATION HALLUCINATION DETECTED: {transport_error}")
+                        self.analytics.track_validation_failure(f"transport_hallucination: {transport_error}")
+                        
+                        if corrected_response:
+                            # Use auto-corrected response
+                            logger.info(f"✅ Using auto-corrected response (hallucinated facts replaced)")
+                            response_text = corrected_response
+                        else:
+                            # Fallback to template-based response using verified facts only
+                            logger.warning(f"⚠️ Auto-correction failed, generating template-based response")
+                            response_text = await self._generate_template_transportation_response(
+                                route_data=route_data,
+                                query=query,
+                                language=language
+                            )
+                    else:
+                        logger.info(f"✅ Transportation response validated - no hallucinations detected")
+            
+            # === WEATHER-SPECIFIC POST-PROCESSING ===
+            # Ensure real weather data is included in weather query responses
+            if signals['signals'].get('needs_weather'):
+                logger.info(f"🌤️ Applying weather post-processing for weather query...")
+                response_text = self._post_process_weather_response(
+                    response=response_text,
+                    context=context,
+                    language=language
+                )
         
         except CircuitBreakerError as e:
             logger.error(f"❌ LLM service unavailable (circuit breaker open): {e}")
@@ -933,323 +961,25 @@ Fixed version (max 50 chars):"""
         
         # === TRANSPORTATION ROUTE VISUALIZATION ===
         # If this is a transportation query and we have no map_data yet,
-        # use the robust pattern extraction from AIChatRouteHandler
+        # use the Transportation RAG system which already computed the route
         if not map_data and signals['signals'].get('needs_transportation'):
-            logger.info(f"🚇 Detected transportation query, generating route visualization...")
+            logger.info(f"🚇 Detected transportation query, getting map_data from RAG...")
             try:
-                from services.ai_chat_route_integration import AIChatRouteHandler
                 from services.transportation_rag_system import get_transportation_rag
                 
-                # Use the original query for accurate location extraction
-                query_for_extraction = original_query if 'original_query' in locals() else query
-                logger.info(f"🔍 [ROUTE EXTRACTION] Using query: '{query_for_extraction}'")
-                
-                # Check if query uses "from my location", "from here", or similar patterns
-                query_lower = query_for_extraction.lower()
-                use_gps_origin = False
-                use_gps_dest = False
-                
-                gps_origin_patterns = [
-                    'from my location', 'from here', 'from current location',
-                    'from where i am', 'from my position', 'starting from here',
-                    'from my current location'
-                ]
-                
-                gps_dest_patterns = [
-                    'to my location', 'to here', 'to current location',
-                    'to where i am', 'back here'
-                ]
-                
-                for pattern in gps_origin_patterns:
-                    if pattern in query_lower:
-                        use_gps_origin = True
-                        logger.info(f"📍 Detected GPS origin pattern: '{pattern}'")
-                        break
-                
-                for pattern in gps_dest_patterns:
-                    if pattern in query_lower:
-                        use_gps_dest = True
-                        logger.info(f"📍 Detected GPS destination pattern: '{pattern}'")
-                        break
-                
-                # Initialize route handler for pattern extraction
-                route_handler = AIChatRouteHandler()
-                
-                # Extract locations using robust pattern matching
-                locations = route_handler._extract_locations(query_for_extraction)
-                logger.info(f"📍 [ROUTE EXTRACTION] Found {len(locations)} location(s): {locations}")
-                
-                # Determine origin and destination
-                origin_coords = None
-                dest_coords = None
-                origin_str = None
-                dest_str = None
-                origin_gps = None
-                dest_gps = None
-                
-                # Handle GPS-based queries
-                # Case 1: User explicitly says "from my location" OR only gives destination
-                if (use_gps_origin or len(locations) == 1) and user_location:
-                    # User wants route FROM their location TO a destination
-                    logger.info(f"📍 Using GPS as origin: {user_location}")
-                    origin_coords = (user_location['lat'], user_location['lon'])
-                    origin_str = "Your Location"
-                    origin_gps = user_location
-                    
-                    if len(locations) >= 1:
-                        dest_coords = locations[0]
-                        # Find destination name
-                        for name, coords in route_handler.KNOWN_LOCATIONS.items():
-                            if abs(coords[0] - dest_coords[0]) < 0.001 and abs(coords[1] - dest_coords[1]) < 0.001:
-                                dest_str = name
-                                break
-                        if not dest_str:
-                            dest_str = f"{dest_coords[0]:.4f}, {dest_coords[1]:.4f}"
-                
-                # Case 2: No locations found at all but user has GPS - try to extract from query text
-                elif len(locations) == 0 and user_location:
-                    logger.info(f"📍 No locations extracted, but GPS available. Trying text extraction...")
-                    # Try to find destination in query text
-                    query_lower = query_for_extraction.lower()
-                    
-                    # Look for "to X" or "go to X" patterns
-                    import re
-                    go_to_patterns = [
-                        r'(?:go|get|going|getting|travel|traveling|walk|walking|drive|driving)\s+to\s+([a-zA-Z\s]+?)(?:\s+from|\s+\?|$|\s+please)',
-                        r'(?:how|way|route|directions?)\s+(?:to|towards?)\s+([a-zA-Z\s]+?)(?:\s+from|\s+\?|$|\s+please)',
-                        r'to\s+([a-zA-Z\s]+?)(?:\s+from|\s+\?|$|\s+please)'
-                    ]
-                    
-                    destination_name = None
-                    for pattern in go_to_patterns:
-                        match = re.search(pattern, query_lower)
-                        if match:
-                            destination_name = match.group(1).strip()
-                            logger.info(f"📍 Extracted destination from text: '{destination_name}'")
-                            break
-                    
-                    # Try to find this location in KNOWN_LOCATIONS
-                    if destination_name:
-                        for name, coords in route_handler.KNOWN_LOCATIONS.items():
-                            if destination_name in name.lower() or name.lower() in destination_name:
-                                dest_coords = coords
-                                dest_str = name
-                                origin_coords = (user_location['lat'], user_location['lon'])
-                                origin_str = "Your Location"
-                                origin_gps = user_location
-                                logger.info(f"📍 Matched destination '{destination_name}' to {name} at {coords}")
-                                break
-                
-                elif use_gps_dest and user_location and len(locations) >= 1:
-                    # User wants route FROM a location TO their current position
-                    logger.info(f"📍 Using GPS as destination: {user_location}")
-                    origin_coords = locations[0]
-                    dest_coords = (user_location['lat'], user_location['lon'])
-                    dest_str = "Your Location"
-                    dest_gps = user_location
-                    
-                    # Find origin name
-                    for name, coords in route_handler.KNOWN_LOCATIONS.items():
-                        if abs(coords[0] - origin_coords[0]) < 0.001 and abs(coords[1] - originCoords[1]) < 0.001:
-                            origin_str = name
-                            break
-                    if not origin_str:
-                        origin_str = f"{origin_coords[0]:.4f}, {originCoords[1]:.4f}"
-                
-                elif len(locations) >= 2:
-                    # Standard two-location query
-                    origin_coords = locations[0]
-                    dest_coords = locations[1]
-                    
-                    # Find location names by reverse lookup
-                    for name, coords in route_handler.KNOWN_LOCATIONS.items():
-                        if abs(coords[0] - origin_coords[0]) < 0.001 and abs(coords[1] - origin_coords[1]) < 0.001:
-                            origin_str = name
-                        if abs(coords[0] - dest_coords[0]) < 0.001 and abs(coords[1] - dest_coords[1]) < 0.001:
-                            dest_str = name
-                    
-                    # Fallback to coordinate strings if names not found
-                    if not origin_str:
-                        origin_str = f"{origin_coords[0]:.4f}, {origin_coords[1]:.4f}"
-                    if not dest_str:
-                        dest_str = f"{dest_coords[0]:.4f}, {dest_coords[1]:.4f}"
-                
-                if origin_coords and dest_coords:
-                    logger.info(f"📍 [ROUTE EXTRACTION] Resolved: {origin_str} → {dest_str}")
-                    
-                    # Now use Transportation RAG to find the actual route
-                    transport_rag = get_transportation_rag()
-                    if transport_rag:
-                        route = transport_rag.find_route(
-                            origin_str, 
-                            dest_str,
-                            origin_gps=origin_gps,
-                            destination_gps=dest_gps
-                        )
-                        
-                        if route:
-                            logger.info(f"✅ Transportation RAG found route: {len(route.steps)} steps, {route.transfers} transfers")
-                            
-                            # Convert route to map_data format with coordinates
-                            coordinates = []
-                            markers = []
-                            
-                            # Add origin marker
-                            coordinates.append([origin_coords[0], origin_coords[1]])
-                            markers.append({
-                                "position": {"lat": origin_coords[0], "lng": origin_coords[1]},
-                                "label": origin_str.title(),
-                                "type": "origin"
-                            })
-                            
-                            # Add waypoints from route steps
-                            for step in route.steps:
-                                if hasattr(step, 'from_station') and step.from_station:
-                                    if hasattr(step.from_station, 'lat') and hasattr(step.from_station, 'lng'):
-                                        coord = [step.from_station.lat, step.from_station.lng]
-                                        if coord not in coordinates:
-                                            coordinates.append(coord)
-                                
-                                if hasattr(step, 'to_station') and step.to_station:
-                                    if hasattr(step.to_station, 'lat') and hasattr(step.to_station, 'lng'):
-                                        coord = [step.to_station.lat, step.to_station.lng]
-                                        if coord not in coordinates:
-                                            coordinates.append(coord)
-                            
-                            # Add destination marker
-                            coordinates.append([dest_coords[0], dest_coords[1]])
-                            markers.append({
-                                "position": {"lat": dest_coords[0], "lng": dest_coords[1]},
-                                "label": dest_str.title(),
-                                "type": "destination"
-                            })
-                            
-                            # Calculate center point
-                            center_lat = sum(c[0] for c in coordinates) / len(coordinates)
-                            center_lon = sum(c[1] for c in coordinates) / len(coordinates)
-                            
-                            map_data = {
-                                "type": "route",
-                                "coordinates": coordinates,
-                                "markers": markers,
-                                "center": {"lat": center_lat, "lon": center_lon},
-                                "zoom": 12,
-                                "has_origin": True,
-                                "has_destination": True,
-                                "origin_name": origin_str,
-                                "destination_name": dest_str,
-                                "route_data": {
-                                    "distance_km": getattr(route, 'total_distance_km', 0),
-                                    "duration_min": getattr(route, 'total_time_minutes', 0),
-                                    "transport_mode": "Public Transit",
-                                    "lines": [step.line for step in route.steps if hasattr(step, 'line')]
-                                }
-                            }
-                            
-                            logger.info(f"✅ Generated route map_data with {len(coordinates)} waypoints and {len(markers)} markers")
-                            return map_data
-                        else:
-                            logger.warning(f"⚠️ No route found between {origin_str} and {dest_str}")
-                
-                elif len(locations) >= 2:
-                    # Standard two-location query
-                    origin_coords = locations[0]
-                    dest_coords = locations[1]
-                    
-                    # Find location names by reverse lookup
-                    for name, coords in route_handler.KNOWN_LOCATIONS.items():
-                        if abs(coords[0] - origin_coords[0]) < 0.001 and abs(coords[1] - origin_coords[1]) < 0.001:
-                            origin_str = name
-                        if abs(coords[0] - dest_coords[0]) < 0.001 and abs(coords[1] - dest_coords[1]) < 0.001:
-                            dest_str = name
-                    
-                    # Fallback to coordinate strings if names not found
-                    if not origin_str:
-                        origin_str = f"{origin_coords[0]:.4f}, {origin_coords[1]:.4f}"
-                    if not dest_str:
-                        dest_str = f"{dest_coords[0]:.4f}, {dest_coords[1]:.4f}"
+                transport_rag = get_transportation_rag()
+                if transport_rag and transport_rag.last_route:
+                    # Use the route already computed by the RAG system during context building
+                    map_data = transport_rag.get_map_data_for_last_route()
+                    if map_data:
+                        logger.info(f"✅ Got map_data from Transportation RAG: {map_data.get('route_data', {}).get('origin')} → {map_data.get('route_data', {}).get('destination')}")
+                    else:
+                        logger.warning("⚠️ Transportation RAG has last_route but get_map_data_for_last_route() returned None")
                 else:
-                    logger.warning(f"⚠️ Insufficient locations extracted (need at least 2, got {len(locations)})")
-                
-                if origin_coords and dest_coords:
-                    logger.info(f"📍 [ROUTE EXTRACTION] Resolved: {origin_str} → {dest_str}")
+                    logger.warning("⚠️ No last_route available from Transportation RAG")
                     
-                    # Now use Transportation RAG to find the actual route
-                    transport_rag = get_transportation_rag()
-                    if transport_rag:
-                        route = transport_rag.find_route(
-                            origin_str,
-                            dest_str,
-                            origin_gps=origin_gps,
-                            destination_gps=dest_gps
-                        )
-                        
-                        if route:
-                            logger.info(f"✅ Transportation RAG found route: {len(route.steps)} steps, {route.transfers} transfers")
-                            
-                            # Convert route to map_data format with coordinates
-                            coordinates = []
-                            markers = []
-                            
-                            # Add origin marker
-                            coordinates.append([origin_coords[0], origin_coords[1]])
-                            markers.append({
-                                "position": {"lat": origin_coords[0], "lng": origin_coords[1]},
-                                "label": origin_str.title(),
-                                "type": "origin"
-                            })
-                            
-                            # Add waypoints from route steps
-                            for step in route.steps:
-                                if hasattr(step, 'from_station') and step.from_station:
-                                    if hasattr(step.from_station, 'lat') and hasattr(step.from_station, 'lng'):
-                                        coord = [step.from_station.lat, step.from_station.lng]
-                                        if coord not in coordinates:
-                                            coordinates.append(coord)
-                                
-                                if hasattr(step, 'to_station') and step.to_station:
-                                    if hasattr(step.to_station, 'lat') and hasattr(step.to_station, 'lng'):
-                                        coord = [step.to_station.lat, step.to_station.lng]
-                                        if coord not in coordinates:
-                                            coordinates.append(coord)
-                            
-                            # Add destination marker
-                            coordinates.append([dest_coords[0], dest_coords[1]])
-                            markers.append({
-                                "position": {"lat": dest_coords[0], "lng": dest_coords[1]},
-                                "label": dest_str.title(),
-                                "type": "destination"
-                            })
-                            
-                            # Calculate center point
-                            center_lat = sum(c[0] for c in coordinates) / len(coordinates)
-                            center_lon = sum(c[1] for c in coordinates) / len(coordinates)
-                            
-                            map_data = {
-                                "type": "route",
-                                "coordinates": coordinates,
-                                "markers": markers,
-                                "center": {"lat": center_lat, "lon": center_lon},
-                                "zoom": 12,
-                                "has_origin": True,
-                                "has_destination": True,
-                                "origin_name": origin_str,
-                                "destination_name": dest_str,
-                                "route_data": {
-                                    "distance_km": getattr(route, 'total_distance_km', 0),
-                                    "duration_min": getattr(route, 'total_time_minutes', 0),
-                                    "transport_mode": "Public Transit",
-                                    "lines": [step.line for step in route.steps if hasattr(step, 'line')]
-                                }
-                            }
-                            
-                            logger.info(f"✅ Generated route map_data with {len(coordinates)} waypoints and {len(markers)} markers")
-                            return map_data
-                        else:
-                            logger.warning(f"⚠️ No route found between {origin_str} and {dest_str}")
-            
             except Exception as e:
-                logger.error(f"❌ Route visualization error: {e}", exc_info=True)
+                logger.error(f"❌ Error getting map_data from Transportation RAG: {e}", exc_info=True)
         
         # ==================================================================
         # 3️⃣ LOCATION-BASED QUERIES (Restaurants, Attractions, etc.)
@@ -1771,6 +1501,107 @@ Fixed version (max 50 chars):"""
         )
         
         logger.info(f"✅ Streaming query completed in {total_latency:.2f}s")
+    
+    def _post_process_weather_response(
+        self,
+        response: str,
+        context: Dict[str, Any],
+        language: str = "en"
+    ) -> str:
+        """
+        Post-process weather query responses to ensure real weather data is included.
+        
+        The LLM sometimes ignores weather context and hallucinates values.
+        This method extracts the real weather data from context and ensures
+        it's prominently included in the response.
+        
+        Args:
+            response: LLM-generated response
+            context: Built context containing weather data
+            language: Response language (en/tr)
+            
+        Returns:
+            Post-processed response with verified weather data
+        """
+        try:
+            # Extract weather data from context
+            weather_context = context.get('services', {}).get('weather', '')
+            
+            if not weather_context:
+                logger.warning("⚠️ No weather context found for post-processing")
+                return response
+            
+            logger.info(f"🌤️ Weather post-processing - context: {weather_context[:200]}...")
+            
+            # Parse the weather context to extract real values
+            # Format: "Current weather in Istanbul: <condition>, <temp>°C. <description>"
+            import re
+            
+            # Extract temperature
+            temp_match = re.search(r'(\d+(?:\.\d+)?)\s*°C', weather_context)
+            real_temp = temp_match.group(1) if temp_match else None
+            
+            # Extract condition - try multiple patterns
+            real_condition = None
+            
+            # Pattern 1: "Current weather in Istanbul: Clouds, 9°C"
+            condition_match = re.search(r'weather in Istanbul:\s*([^,]+)', weather_context, re.IGNORECASE)
+            if condition_match:
+                real_condition = condition_match.group(1).strip()
+            
+            # Pattern 2: "Currently: Clouds"
+            if not real_condition:
+                condition_match = re.search(r'Currently:\s*([^\n,]+)', weather_context, re.IGNORECASE)
+                real_condition = condition_match.group(1).strip() if condition_match else None
+            
+            # Pattern 3: Look for common weather conditions
+            if not real_condition or real_condition == 'Unknown':
+                common_conditions = ['Clear', 'Clouds', 'Cloudy', 'Rain', 'Drizzle', 'Snow', 'Sunny', 
+                                     'Partly cloudy', 'Overcast', 'Thunderstorm', 'Mist', 'Fog']
+                for cond in common_conditions:
+                    if cond.lower() in weather_context.lower():
+                        real_condition = cond
+                        break
+            
+            logger.info(f"🌡️ Extracted weather: temp={real_temp}°C, condition={real_condition}")
+            
+            if not real_temp:
+                logger.warning("⚠️ Could not extract temperature from weather context")
+                return response
+            
+            # Check if the response already contains the correct temperature
+            if real_temp and real_temp in response:
+                logger.info(f"✅ Response already contains correct temperature ({real_temp}°C)")
+                return response
+            
+            # The LLM hallucinated the temperature - we need to fix this
+            logger.warning(f"🚨 LLM response does not contain correct weather data, prepending real data")
+            
+            # Create a weather summary header
+            if language == 'tr':
+                weather_header = f"""🌤️ **Güncel İstanbul Havası** (Gerçek Zamanlı)
+📍 Şu anda: {real_condition or 'Açık'}, {real_temp}°C
+
+---
+
+"""
+            else:
+                weather_header = f"""🌤️ **Current Istanbul Weather** (Real-Time Data)
+📍 Right now: {real_condition or 'Clear'}, {real_temp}°C
+
+---
+
+"""
+            
+            # Prepend the verified weather header to the response
+            corrected_response = weather_header + response
+            
+            logger.info(f"✅ Weather post-processing complete - prepended verified data")
+            return corrected_response
+            
+        except Exception as e:
+            logger.error(f"❌ Weather post-processing failed: {e}")
+            return response
     
     async def _validate_response(
         self,

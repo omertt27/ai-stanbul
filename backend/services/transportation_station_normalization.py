@@ -64,6 +64,9 @@ class StationNormalizer:
         self.lines = self._build_line_metadata()
         self.stations = self._build_station_database()
         
+        # Build stations by line (preserving physical order)
+        self.stations_by_line = self._build_stations_by_line()
+        
         # Build reverse lookups
         self.station_by_canonical_id = {s.canonical_id: s for s in self.stations}
         self.station_by_name_tr = {}
@@ -79,6 +82,41 @@ class StationNormalizer:
                 self.station_by_name_tr[variant.lower()] = station
         
         logger.info(f"✅ Station normalizer initialized: {len(self.stations)} stations, {len(self.lines)} lines")
+    
+    def _build_stations_by_line(self) -> Dict[str, List[str]]:
+        """
+        Build a mapping of line ID to ordered list of station IDs.
+        
+        This preserves the physical order of stations on each line,
+        which is crucial for finding adjacent stations correctly.
+        
+        Returns:
+            Dict mapping line_id to list of canonical station IDs in physical order
+        """
+        stations_by_line = {}
+        
+        for station in self.stations:
+            line_id = station.line_id
+            if line_id not in stations_by_line:
+                stations_by_line[line_id] = []
+            stations_by_line[line_id].append(station.canonical_id)
+        
+        return stations_by_line
+    
+    def get_stations_on_line_in_order(self, line_id: str) -> List[str]:
+        """
+        Get station IDs on a line in their physical order.
+        
+        This is critical for pathfinding - stations must be in physical order
+        (not alphabetical) to find correct adjacent stations.
+        
+        Args:
+            line_id: Line identifier (e.g., "M4", "MARMARAY")
+            
+        Returns:
+            List of canonical station IDs in physical order along the line
+        """
+        return self.stations_by_line.get(line_id, [])
     
     def _build_line_metadata(self) -> Dict[str, CanonicalLine]:
         """Build canonical line metadata database"""

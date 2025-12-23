@@ -66,9 +66,10 @@ class PromptBuilder:
 
 YOU MUST FOLLOW THESE RULES OR YOUR RESPONSE WILL BE REJECTED:
 
-1. WEATHER: You do NOT have weather information unless it's explicitly in CONTEXT below
-   ❌ FORBIDDEN: "The weather is 22 degrees", "It's sunny today", "partly cloudy"
-   ✅ REQUIRED: "I don't have current weather information"
+1. WEATHER: You MUST use EXACT weather data from "Real-Time Information" section below
+   ❌ FORBIDDEN: Making up temperatures, guessing conditions, or approximating
+   ✅ REQUIRED: Use the EXACT temperature and conditions from the context
+   ⚠️  If no weather in context: say "I don't have current weather information"
 
 2. GPS/LOCATION: You do NOT know where the user is unless GPS coordinates are in CONTEXT
    ❌ FORBIDDEN: "I see you're in Sultanahmet", "You're in the historic area"
@@ -330,8 +331,12 @@ Beginnen Sie Ihre Antwort sofort auf DEUTSCH, ohne diese Anweisungen zu wiederho
         # 5. Service context (weather, events, hidden gems)
         service_context = self._format_service_context(context.get('services', {}))
         if service_context:
-            prompt_parts.append("\n## Real-Time Information:")
+            prompt_parts.append("\n" + "="*80)
+            prompt_parts.append("🌍 REAL-TIME INFORMATION - USE THIS EXACT DATA, DO NOT APPROXIMATE!")
+            prompt_parts.append("="*80)
             prompt_parts.append(service_context)
+            prompt_parts.append("="*80)
+            logger.info(f"📝 Service context section added to prompt ({len(service_context)} chars)")
         
         # 6. Map reference (if available)
         if context.get('map_data'):
@@ -444,6 +449,12 @@ Beginnen Sie Ihre Antwort sofort auf DEUTSCH, ohne diese Anweisungen zu wiederho
         # Add multiple language reminders for maximum enforcement
         prompt_parts.append(f"\n---\n\n⚠️ CRITICAL: Your response MUST be written ONLY in {lang_name}.")
         prompt_parts.append(f"❌ DO NOT use any other language. Write in {lang_name} only.")
+        
+        # Add explicit weather instruction if weather data is present
+        if service_context and 'CURRENT WEATHER' in service_context:
+            prompt_parts.append(f"\n🌡️ IMPORTANT: When answering about weather/temperature, use the EXACT values from the REAL-TIME INFORMATION section above.")
+            prompt_parts.append(f"📍 The current temperature is explicitly stated above - quote it exactly, do not round or approximate!")
+        
         prompt_parts.append(f"\nUser Question: {query}\n\n{lang_name} Answer:")
 
         
@@ -451,6 +462,13 @@ Beginnen Sie Ihre Antwort sofort auf DEUTSCH, ohne diese Anweisungen zu wiederho
         full_prompt = "\n".join(prompt_parts)
         
         logger.debug(f"Built prompt: {len(full_prompt)} chars")
+        
+        # Log weather section if present for debugging
+        if '🌤️ CURRENT WEATHER' in full_prompt:
+            start_idx = full_prompt.find('🌤️ CURRENT WEATHER')
+            end_idx = full_prompt.find('\n======', start_idx + 100) if '\n======' in full_prompt[start_idx + 100:] else start_idx + 500
+            weather_section = full_prompt[start_idx:end_idx]
+            logger.info(f"🌍 Weather section in final prompt:\n{weather_section}")
         
         return full_prompt
     
@@ -493,17 +511,19 @@ Beginnen Sie Ihre Antwort sofort auf DEUTSCH, ohne diese Anweisungen zu wiederho
         
         formatted = []
         
-        # Weather
+        # Weather - Make it crystal clear
         if 'weather' in services:
-            formatted.append(f"Weather: {services['weather']}")
+            weather_text = f"🌤️ CURRENT WEATHER (USE THESE EXACT VALUES):\n{services['weather']}"
+            formatted.append(weather_text)
+            logger.info(f"🌤️ Weather context formatted for prompt: {weather_text[:150]}...")
         
         # Events
         if 'events' in services:
-            formatted.append(f"Events:\n{services['events']}")
+            formatted.append(f"📅 Events:\n{services['events']}")
         
         # Hidden Gems
         if 'hidden_gems' in services:
-            formatted.append(f"Hidden Gems:\n{services['hidden_gems']}")
+            formatted.append(f"💎 Hidden Gems:\n{services['hidden_gems']}")
         
         return "\n\n".join(formatted) if formatted else ""
     

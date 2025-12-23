@@ -234,6 +234,7 @@ class ContextBuilder:
                     )
                 else:
                     context['services']['weather'] = await self._get_weather_context_with_retry(query)
+                logger.info(f"✅ Weather context added: {context['services']['weather'][:200]}...")
             except CircuitBreakerError:
                 logger.warning("Weather circuit breaker is open, using fallback")
                 context['services']['weather'] = GracefulDegradation.get_fallback_context('weather')
@@ -808,25 +809,33 @@ Total time: ~30 minutes (more scenic!)"""
             # Get current weather
             weather = self.weather_service.get_current_weather("Istanbul")
             
+            # Extract condition from weather data (handle different formats)
+            condition = weather.get('condition')
+            if not condition and 'weather' in weather and isinstance(weather['weather'], list) and len(weather['weather']) > 0:
+                condition = weather['weather'][0].get('main', 'Unknown')
+            condition = condition or 'Unknown'
+            
+            temperature = weather.get('temperature', 20)
+            description = weather.get('description', '')
+            
+            logger.info(f"🌤️ Weather data extracted: condition={condition}, temp={temperature}°C, desc={description}")
+            
             # Try to get weather-based activity recommendations
             try:
                 from services.weather_recommendations import WeatherRecommendationsService
                 weather_rec = WeatherRecommendationsService()
                 
-                temperature = weather.get('temperature', 20)
-                condition = weather.get('condition', 'clear').lower()
-                
                 # Get formatted recommendations
                 recommendations = weather_rec.format_weather_activities_response(
                     temperature=temperature,
-                    weather_condition=condition,
+                    weather_condition=condition.lower(),
                     limit=5
                 )
                 
                 # Combine weather info with recommendations
                 weather_info = (
-                    f"Current weather in Istanbul: {weather.get('condition', 'Unknown')}, "
-                    f"{temperature}°C. {weather.get('description', '')}\n\n"
+                    f"Current weather in Istanbul: {condition}, "
+                    f"{temperature}°C. {description}\n\n"
                     f"{recommendations}"
                 )
                 
@@ -836,8 +845,8 @@ Total time: ~30 minutes (more scenic!)"""
                 logger.warning(f"Weather recommendations failed: {rec_error}")
                 # Fallback to basic weather info
                 return (
-                    f"Current weather in Istanbul: {weather.get('condition', 'Unknown')}, "
-                    f"{weather.get('temperature', '?')}°C. {weather.get('description', '')}"
+                    f"Current weather in Istanbul: {condition}, "
+                    f"{temperature}°C. {description}"
                 )
         
         except Exception as e:
