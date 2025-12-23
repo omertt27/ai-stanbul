@@ -184,6 +184,28 @@ class ContextBuilder:
                 context_strategy=context_strategy,  # Pass strategy
                 original_query=original_query  # Pass original query for transportation
             )
+            
+            # CRITICAL: For transportation queries, also extract the route_data object
+            # This enables the HYBRID ARCHITECTURE (template facts + LLM reasoning)
+            if signals.get('needs_transportation') and TRANSPORTATION_RAG_AVAILABLE:
+                try:
+                    from services.transportation_rag_system import get_transportation_rag
+                    transport_rag = get_transportation_rag()
+                    if transport_rag.last_route:
+                        # TransitRoute is an object - convert to dict for prompt builder
+                        route_obj = transport_rag.last_route
+                        context['route_data'] = {
+                            'origin': getattr(route_obj, 'origin', None),
+                            'destination': getattr(route_obj, 'destination', None),
+                            'steps': getattr(route_obj, 'steps', []),
+                            'total_time': getattr(route_obj, 'total_time', None),
+                            'total_distance': getattr(route_obj, 'total_distance', None),
+                            'transfers': getattr(route_obj, 'transfers', None),
+                            'lines_used': getattr(route_obj, 'lines_used', [])
+                        }
+                        logger.info(f"✅ Route data extracted: {context['route_data']['origin']} → {context['route_data']['destination']}")
+                except Exception as e:
+                    logger.warning(f"Could not extract route_data: {e}")
         
         # Get RAG context with retry and circuit breaker (with confidence-based top_k)
         if self.rag_service:

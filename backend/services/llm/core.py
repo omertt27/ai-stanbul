@@ -705,53 +705,6 @@ Fixed version (max 50 chars):"""
             logger.warning(f"   ⚠️ Low signal confidence - added explicit instructions to prompt")
 
         
-        # === CRITICAL: TRANSPORTATION EARLY RETURN ===
-        # For transportation queries, SKIP LLM entirely and return template-based response
-        # This is the DETERMINISTIC FACT LAYER of the hybrid architecture
-        if signals['signals'].get('needs_transportation'):
-            logger.info(f"🚇 TRANSPORTATION QUERY DETECTED - Bypassing LLM, using template response")
-            
-            # Extract route data from context (verified facts from Transportation RAG)
-            route_data = None
-            if context.get('services'):
-                for service_item in context['services']:
-                    if isinstance(service_item, dict) and 'route' in service_item:
-                        route_data = service_item
-                        break
-            
-            if route_data:
-                # Generate template-based response using ONLY verified facts
-                response_text = await self._generate_template_transportation_response(
-                    route_data=route_data,
-                    query=query,
-                    language=language
-                )
-                
-                # Build result and return early - NO LLM GENERATION
-                total_latency = time.time() - start_time
-                map_data = context.get('map_data')
-                
-                result = {
-                    'response': response_text,
-                    'map_data': map_data,
-                    'signals': signals['signals'],
-                    'metadata': {
-                        'total_latency': total_latency,
-                        'llm_latency': 0,  # No LLM used
-                        'context_latency': context_latency,
-                        'cache_hit': cache_hit,
-                        'cache_key': cache_key,
-                        'experiment_variant': variant,
-                        'personalized': personalized_results is not None,
-                        'mode': 'template_transportation',  # Fact-locked template
-                        'hallucination_risk': 'zero'  # No LLM = no hallucination
-                    }
-                }
-                
-                logger.info(f"✅ Template transportation response generated in {total_latency:.2f}s (ZERO hallucination risk)")
-                return result
-            else:
-                logger.warning(f"⚠️ Transportation query detected but no route data available - falling back to LLM")
         
         # STEP 7: LLM Generation with Resilience
         try:
@@ -1301,12 +1254,12 @@ Fixed version (max 50 chars):"""
         # ==================================================================
         # 3️⃣ LOCATION-BASED QUERIES (Restaurants, Attractions, etc.)
         # ==================================================================
-        # If no initial map_data from context: {map_data}")
+        # Map data for location-based queries is already included via context.get('map_data')
+        # The context builder extracts map_data from database/RAG results
         if not map_data and any([
             signals['signals'].get('needs_restaurant'),
             signals['signals'].get('needs_attraction'),
             signals['signals'].get('needs_hidden_gems'),
-            signals['signals'].get('needs_neighborhood'),
             signals['signals'].get('needs_neighborhood'),
             signals['signals'].get('needs_shopping'),
             signals['signals'].get('needs_nightlife'),
@@ -1314,64 +1267,56 @@ Fixed version (max 50 chars):"""
             signals['signals'].get('needs_daily_life'),
             signals['signals'].get('needs_family_friendly')
         ]):
-            logger.info(f"🗺️ Attempting to generate map from context...")
-            # Try to extract locations from database context or generate GPS-centered map
-            # Use original_query (before rewriting) to preserve routing query patterns
-            query_for_map = original_query if 'original_query' in locals() else query
-            map_data = self._generate_map_from_context(context, signals['signals'], user_location, query_for_map)
-            if map_data:
-                logger.info(f"✅ Generated map_data from context for location-based query")
-            else:
-                logger.warning(f"⚠️ _generate_map_from_context returned None")
-                
-                # FORCE GPS-centered map for "nearby" queries with GPS
-                # This ensures users ALWAYS get a map when they have GPS enabled
-                query_lower = query.lower()
-                is_nearby_query = any([
-                    'nearby' in query_lower,
-                    'near me' in query_lower,
-                    'near by' in query_lower,
-                    'close to me' in query_lower,
-                    'close by' in query_lower,
-                    'around me' in query_lower,
-                    'around here' in query_lower,
-                    'in the area' in query_lower,
-                    # Turkish
-                    'yakın' in query_lower,
-                    'yakında' in query_lower,
-                    'yakınımda' in query_lower,
-                    'burada' in query_lower,
-                    'çevrede' in query_lower,
-                    'civarda' in query_lower
-                ])
-                
-                # Check if user_location has valid coordinates
-                has_valid_location = (user_location and 
-                                    isinstance(user_location, dict) and 
-                                    'lat' in user_location and 
-                                    'lon' in user_location and
-                                    user_location['lat'] is not None and
-                                    user_location['lon'] is not None)
-                
-                if has_valid_location and is_nearby_query:
-                    logger.info(f"🚀 FORCING GPS-centered map for nearby query with GPS")
-                    map_data = {
-                        "type": "user_centered",
-                        "markers": [{
-                            "position": {"lat": user_location['lat'], "lng": user_location['lon']},
-                            "label": "Your Location",
-                            "type": "user"
-                        }],
-                        "center": {"lat": user_location['lat'], "lng": user_location['lon']},
-                        "zoom": 14,
-                        "has_origin": True,
-                        "has_destination": False,
-                        "origin_name": "Your Location",
-                        "destination_name": None,
-                        "locations_count": 0,
-                        "note": "Map centered on your current location. Recommendations shown in text above."
-                    }
-                    logger.info(f"✅ Force-generated GPS-centered map for nearby query")
+            logger.info(f"🗺️ Checking if map_data available from context...")
+            
+            # FORCE GPS-centered map for "nearby" queries with GPS
+            # This ensures users ALWAYS get a map when they have GPS enabled
+            query_lower = query.lower()
+            is_nearby_query = any([
+                'nearby' in query_lower,
+                'near me' in query_lower,
+                'near by' in query_lower,
+                'close to me' in query_lower,
+                'close by' in query_lower,
+                'around me' in query_lower,
+                'around here' in query_lower,
+                'in the area' in query_lower,
+                # Turkish
+                'yakın' in query_lower,
+                'yakında' in query_lower,
+                'yakınımda' in query_lower,
+                'burada' in query_lower,
+                'çevrede' in query_lower,
+                'civarda' in query_lower
+            ])
+            
+            # Check if user_location has valid coordinates
+            has_valid_location = (user_location and 
+                                isinstance(user_location, dict) and 
+                                'lat' in user_location and 
+                                'lon' in user_location and
+                                user_location['lat'] is not None and
+                                user_location['lon'] is not None)
+            
+            if has_valid_location and is_nearby_query:
+                logger.info(f"🚀 FORCING GPS-centered map for nearby query with GPS")
+                map_data = {
+                    "type": "user_centered",
+                    "markers": [{
+                        "position": {"lat": user_location['lat'], "lng": user_location['lon']},
+                        "label": "Your Location",
+                        "type": "user"
+                    }],
+                    "center": {"lat": user_location['lat'], "lng": user_location['lon']},
+                    "zoom": 14,
+                    "has_origin": True,
+                    "has_destination": False,
+                    "origin_name": "Your Location",
+                    "destination_name": None,
+                    "locations_count": 0,
+                    "note": "Map centered on your current location. Recommendations shown in text above."
+                }
+                logger.info(f"✅ Force-generated GPS-centered map for nearby query")
         else:
             logger.info(f"❌ Skipping map generation - conditions not met")
             logger.info(f"   - map_data exists: {bool(map_data)}")
@@ -2074,7 +2019,7 @@ Fixed version (max 50 chars):"""
             origin = route_data.get('origin', 'Starting point')
             destination = route_data.get('destination', 'Destination')
             total_time = route_data.get('total_time', 0)
-            total_distance = route_data.get('total_distance_km', 0)
+            total_distance = route_data.get('total_distance', 0)  # Use 'total_distance' not 'total_distance_km'
             transfers = route_data.get('transfers', 0)
             lines_used = route_data.get('lines_used', [])
             steps = route_data.get('steps', [])
@@ -2082,51 +2027,61 @@ Fixed version (max 50 chars):"""
             # Build response based on language
             if language == 'tr':
                 # Turkish template
-                response = f"🚇 **{origin} → {destination} Güzergahı**\n\n"
-                response += f"**Süre:** {total_time} dakika\n"
-                response += f"**Mesafe:** {total_distance:.1f} km\n"
-                response += f"**Aktarma:** {transfers} aktarma\n"
-                response += f"**Kullanılan Hatlar:** {', '.join(lines_used)}\n\n"
+                response = f"**{origin} → {destination} Güzergahı**\n\n"
+                response += f"⏱️ **Süre:** {total_time} dakika\n"
+                response += f"📏 **Mesafe:** {total_distance:.1f} km\n"
+                response += f"🔄 **Aktarma:** {transfers} aktarma\n"
+                response += f"🚇 **Hatlar:** {', '.join(lines_used)}\n\n"
                 
                 if steps:
-                    response += "**Adım Adım Yol Tarifi:**\n\n"
-                    for i, step in enumerate(steps, 1):
-                        mode = step.get('mode', 'transit')
+                    response += "**📍 Adım Adım:**\n\n"
+                    step_num = 1
+                    for step in steps:
+                        step_type = step.get('type', 'transit')  # Use 'type' not 'mode'
                         line = step.get('line', '')
-                        from_station = step.get('from_station', '')
-                        to_station = step.get('to_station', '')
+                        from_loc = step.get('from', '')  # Use 'from' not 'from_station'
+                        to_loc = step.get('to', '')  # Use 'to' not 'to_station'
                         duration = step.get('duration', 0)
+                        instruction = step.get('instruction', '')  # Use the pre-formatted instruction
                         
-                        if mode == 'walk':
-                            response += f"{i}. 🚶 Yürüme: {from_station} → {to_station} ({duration} dk)\n"
+                        if step_type == 'transfer':
+                            response += f"{step_num}. � **{instruction}** ({duration:.0f} dk)\n"
+                        elif step_type == 'walk':
+                            response += f"{step_num}. � **{instruction}** ({duration:.0f} dk)\n"
                         else:
-                            response += f"{i}. 🚇 {line}: {from_station} → {to_station} ({duration} dk)\n"
+                            response += f"{step_num}. 🚇 **{instruction}** ({duration:.0f} dk)\n"
+                        step_num += 1
                 
                 response += f"\n✅ Bu güzergah İstanbul ulaşım veritabanından doğrulanmıştır."
                 
             else:
                 # English template
-                response = f"🚇 **Route: {origin} → {destination}**\n\n"
-                response += f"**Duration:** {total_time} minutes\n"
-                response += f"**Distance:** {total_distance:.1f} km\n"
-                response += f"**Transfers:** {transfers} transfer{'s' if transfers != 1 else ''}\n"
-                response += f"**Lines Used:** {', '.join(lines_used)}\n\n"
+                response = f"**Route: {origin} → {destination}**\n\n"
+                response += f"⏱️ **Duration:** {total_time} minutes\n"
+                response += f"📏 **Distance:** {total_distance:.1f} km\n"
+                response += f"🔄 **Transfers:** {transfers}\n"
+                response += f"🚇 **Lines:** {', '.join(lines_used)}\n\n"
                 
                 if steps:
-                    response += "**Step-by-Step Directions:**\n\n"
-                    for i, step in enumerate(steps, 1):
-                        mode = step.get('mode', 'transit')
+                    response += "**📍 Step-by-Step:**\n\n"
+                    step_num = 1
+                    for step in steps:
+                        step_type = step.get('type', 'transit')  # Use 'type' not 'mode'
                         line = step.get('line', '')
-                        from_station = step.get('from_station', '')
-                        to_station = step.get('to_station', '')
+                        from_loc = step.get('from', '')  # Use 'from' not 'from_station'
+                        to_loc = step.get('to', '')  # Use 'to' not 'to_station'
                         duration = step.get('duration', 0)
+                        instruction = step.get('instruction', '')  # Use the pre-formatted instruction
                         
-                        if mode == 'walk':
-                            response += f"{i}. 🚶 Walk: {from_station} → {to_station} ({duration} min)\n"
+                        if step_type == 'transfer':
+                            response += f"{step_num}. � **{instruction}** ({duration:.0f} min)\n"
+                        elif step_type == 'walk':
+                            response += f"{step_num}. � **{instruction}** ({duration:.0f} min)\n"
                         else:
-                            response += f"{i}. 🚇 {line}: {from_station} → {to_station} ({duration} min)\n"
+                            response += f"{step_num}. 🚇 **{instruction}** ({duration:.0f} min)\n"
+                        step_num += 1
                 
-                response += f"\n✅ This route has been verified using Istanbul's transportation database."
+                response += f"\n✅ This route has been verified in Istanbul's transportation database."
             
             logger.info(f"✅ Generated template-based transportation response (fact-locked, no LLM)")
             return response
