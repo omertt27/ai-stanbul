@@ -7,7 +7,7 @@ Validates queries before main processing to:
 3. Generate clarifications for ambiguous queries
 4. Reduce wasted LLM calls
 
-Updated: December 2024 - Using improved standardized prompt templates
+Updated: December 2024 - Using unified PromptBuilder from prompts.py
 
 Author: AI Istanbul Team
 Date: November 14, 2025
@@ -19,12 +19,6 @@ import logging
 import re
 from typing import Dict, List, Optional, Any
 from datetime import datetime
-
-# Import improved prompt templates
-from IMPROVED_PROMPT_TEMPLATES import (
-    IMPROVED_VALIDATION_PROMPT,
-    IMPROVED_CLARIFICATION_PROMPT
-)
 
 logger = logging.getLogger(__name__)
 
@@ -264,11 +258,24 @@ class QueryValidator:
         }
         lang_name = language_names.get(language, "English")
         
-        # Use the improved validation prompt template
-        prompt = IMPROVED_VALIDATION_PROMPT.format(
-            query=query,
-            language=lang_name
-        )
+        # Build validation prompt (inline, no legacy imports)
+        prompt = f"""Validate this Istanbul travel query and respond in JSON format.
+
+Query: "{query}"
+Response Language: {lang_name}
+
+Analyze and return JSON with these fields:
+{{
+    "is_valid": true/false (can this query be answered about Istanbul?),
+    "confidence": 0.0-1.0 (how confident are you?),
+    "complexity": "simple"/"medium"/"complex",
+    "issues": ["list any problems with the query"],
+    "suggestions": ["suggestions to improve the query"],
+    "requires_clarification": true/false,
+    "reason": "brief explanation"
+}}
+
+Return ONLY valid JSON, no other text."""
         
         return prompt
     
@@ -409,13 +416,19 @@ class QueryValidator:
         }
         lang_name = language_names.get(language, "English")
         
-        # Use the improved clarification prompt template
-        prompt = IMPROVED_CLARIFICATION_PROMPT.format(
-            query=query,
-            intent=intent,
-            confidence=confidence,
-            language=lang_name
-        )
+        # Build clarification prompt (inline, no legacy imports)
+        prompt = f"""The user's query about Istanbul needs clarification.
+
+Query: "{query}"
+Detected Intent: {intent} (confidence: {confidence:.0%})
+Response Language: {lang_name}
+
+Generate a helpful clarification question to ask the user. Be specific about what information you need.
+Keep it friendly and conversational. Respond in {lang_name}.
+
+Example: "I'd love to help you find restaurants! Could you tell me which neighborhood you're interested in, and do you have a cuisine preference?"
+
+Your clarification question:"""
         
         return prompt
     

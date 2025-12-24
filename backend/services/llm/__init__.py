@@ -11,6 +11,9 @@ This module provides a clean, modular architecture for the Pure LLM Handler:
 - conversation.py: Conversation management
 - caching.py: Semantic and exact-match caching
 - experimentation.py: A/B testing and threshold learning
+- context_assembly.py: Context Assembly Layer (NEW) - Intelligent context selection
+- response_validator.py: Response Validation Layer (NEW) - Hallucination detection
+- semantic_cache.py: Semantic Cache (NEW) - Embedding-based similarity caching
 
 Author: AI Istanbul Team
 Date: November 2025
@@ -28,6 +31,56 @@ from .caching import CacheManager
 from .query_enhancement import QueryEnhancer
 from .conversation import ConversationManager
 from .experimentation import ExperimentationManager
+
+# NEW: Context Assembly Layer - Intelligent context selection and grounding
+try:
+    from .context_assembly import (
+        ContextAssemblyLayer,
+        get_context_assembler,
+        ContextType,
+        GroundedContext,
+        AssembledContext
+    )
+    CONTEXT_ASSEMBLY_AVAILABLE = True
+except ImportError:
+    CONTEXT_ASSEMBLY_AVAILABLE = False
+    ContextAssemblyLayer = None
+    get_context_assembler = None
+    ContextType = None
+    GroundedContext = None
+    AssembledContext = None
+
+# NEW: Response Validation Layer - Post-generation hallucination detection
+try:
+    from .response_validator import (
+        ResponseValidator,
+        get_response_validator,
+        ValidationResult,
+        ValidationIssue,
+        ValidationSeverity
+    )
+    RESPONSE_VALIDATOR_AVAILABLE = True
+except ImportError:
+    RESPONSE_VALIDATOR_AVAILABLE = False
+    ResponseValidator = None
+    get_response_validator = None
+    ValidationResult = None
+    ValidationIssue = None
+    ValidationSeverity = None
+
+# NEW: Semantic Cache - Embedding-based similarity caching
+try:
+    from .semantic_cache import (
+        SemanticCache,
+        get_semantic_cache,
+        CacheEntry
+    )
+    SEMANTIC_CACHE_AVAILABLE = True
+except ImportError:
+    SEMANTIC_CACHE_AVAILABLE = False
+    SemanticCache = None
+    get_semantic_cache = None
+    CacheEntry = None
 
 # Phase 1 & 2: LLM Enhancement imports
 from .models import (
@@ -181,6 +234,25 @@ __all__ = [
     'QueryEnhancer',
     'ConversationManager',
     'ExperimentationManager',
+    # NEW: Context Assembly Layer
+    'ContextAssemblyLayer',
+    'get_context_assembler',
+    'ContextType',
+    'GroundedContext',
+    'AssembledContext',
+    'CONTEXT_ASSEMBLY_AVAILABLE',
+    # NEW: Response Validation Layer
+    'ResponseValidator',
+    'get_response_validator',
+    'ValidationResult',
+    'ValidationIssue',
+    'ValidationSeverity',
+    'RESPONSE_VALIDATOR_AVAILABLE',
+    # NEW: Semantic Cache
+    'SemanticCache',
+    'get_semantic_cache',
+    'CacheEntry',
+    'SEMANTIC_CACHE_AVAILABLE',
     # Phase 1: LLM Enhancement modules
     'IntentClassification',
     'ResolvedLocation',
@@ -249,4 +321,4 @@ __all__ = [
     'MapResponseData',
 ]
 
-__version__ = '2.0.0'
+__version__ = '2.1.0'  # Updated for Context Assembly, Response Validator, Semantic Cache

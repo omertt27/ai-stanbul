@@ -20,7 +20,7 @@ const MobileErrorNotification = ({
   onRetry,
   onDismiss,
   darkMode = false,
-  autoRetry = true,
+  autoRetry = false, // Disabled by default to prevent infinite retry loops on persistent errors
   maxRetries = 3
 }) => {
   const [retryCount, setRetryCount] = useState(0);
@@ -90,9 +90,20 @@ const MobileErrorNotification = ({
       setIsRetrying(true);
       setRetryCount(prev => prev + 1);
       
-      onRetry?.().finally(() => {
+      try {
+        const result = onRetry?.();
+        // Safely check if result is a Promise-like object with .finally
+        if (result && typeof result === 'object' && typeof result.finally === 'function') {
+          result.finally(() => {
+            setIsRetrying(false);
+          });
+        } else {
+          setIsRetrying(false);
+        }
+      } catch (err) {
+        console.error('Retry failed:', err);
         setIsRetrying(false);
-      });
+      }
     }, delay);
 
     return () => {
@@ -112,9 +123,20 @@ const MobileErrorNotification = ({
     setIsRetrying(true);
     setRetryCount(prev => prev + 1);
     
-    onRetry?.().finally(() => {
+    try {
+      const result = onRetry?.();
+      // Safely check if result is a Promise-like object with .finally
+      if (result && typeof result === 'object' && typeof result.finally === 'function') {
+        result.finally(() => {
+          setIsRetrying(false);
+        });
+      } else {
+        setIsRetrying(false);
+      }
+    } catch (err) {
+      console.error('Manual retry failed:', err);
       setIsRetrying(false);
-    });
+    }
   };
 
   const handleDismiss = () => {

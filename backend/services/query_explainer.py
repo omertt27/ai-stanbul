@@ -10,7 +10,7 @@ Features:
 - Redis caching for repeated explanations
 - Debugging and transparency
 
-Updated: December 2024 - Using improved standardized prompt templates
+Updated: December 2024 - Using unified PromptBuilder from prompts.py
 
 Author: AI Istanbul Team
 Date: November 14, 2025
@@ -22,9 +22,6 @@ import hashlib
 import time
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta
-
-# Import improved prompt templates
-from IMPROVED_PROMPT_TEMPLATES import IMPROVED_EXPLANATION_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -154,13 +151,15 @@ class QueryExplainer:
         
         signals_summary = ", ".join(signal_details) if signal_details else "no specific signals"
         
-        # Use improved explanation prompt template
-        prompt = IMPROVED_EXPLANATION_PROMPT.format(
-            query=query,
-            primary_intent=primary_intent,
-            confidence=primary_confidence,
-            signals_summary=signals_summary
-        )
+        # Build explanation prompt using inline template (no legacy imports)
+        prompt = f"""Explain how you understood this query about Istanbul.
+
+Query: "{query}"
+Detected Intent: {primary_intent} (confidence: {primary_confidence:.0%})
+Signals Found: {signals_summary}
+
+Provide a brief 2-3 sentence explanation of what the user is asking for and how you will help them.
+Be conversational and helpful. Start with "I understand you're looking for..." or similar."""
         
         return prompt
     

@@ -20,7 +20,7 @@ const AdminDashboard = () => {
     try {
       const API_BASE_URL = process.env.NODE_ENV === 'production' 
         ? 'https://ai-istanbul-backend.render.com'
-        : 'http://localhost:8001';  // Backend runs on port 8001
+        : 'http://localhost:8000';  // Backend runs on port 8000
 
       const response = await fetch(`${API_BASE_URL}/api/auth/admin-login`, {
         method: 'POST',

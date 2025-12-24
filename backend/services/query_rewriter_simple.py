@@ -10,7 +10,7 @@ The LLM can:
 - Fix grammar and spelling
 - Make implicit information explicit
 
-Updated: December 2024 - Using improved standardized prompt templates
+Updated: December 2024 - Using unified PromptBuilder from prompts.py
 
 Author: AI Istanbul Team
 Date: November 14, 2025
@@ -21,9 +21,6 @@ import hashlib
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 import redis
-
-# Import improved prompt templates
-from IMPROVED_PROMPT_TEMPLATES import IMPROVED_QUERY_REWRITER_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -254,12 +251,20 @@ class SimpleQueryRewriter:
             location_str = f"{user_location.get('district', 'Istanbul')}"
             location_section = f"\n**User Location**: {location_str}"
         
-        # Use improved query rewriter prompt template
-        prompt = IMPROVED_QUERY_REWRITER_PROMPT.format(
-            query=query,
-            conversation_context_section=conversation_section,
-            location_context_section=location_section
-        )
+        # Build query rewriter prompt (inline, no legacy imports)
+        prompt = f"""Rewrite this Istanbul travel query to be clearer and more specific.
+
+Original Query: "{query}"{conversation_section}{location_section}
+
+Rules:
+1. If the query is already clear, return it unchanged
+2. Expand abbreviations (e.g., "hm" → "Hagia Sophia Museum")
+3. Fix spelling/grammar errors
+4. Add implicit context (e.g., "restaurants" → "restaurants in Istanbul")
+5. Keep the same language as the original query
+6. Don't add information the user didn't ask for
+
+Rewritten Query (or original if already clear):"""
         
         return prompt
     

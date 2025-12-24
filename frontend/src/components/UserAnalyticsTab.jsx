@@ -57,7 +57,7 @@ const UserAnalyticsTab = () => {
     try {
       const API_BASE_URL = process.env.NODE_ENV === 'production'
         ? 'https://ai-istanbul-backend.render.com'
-        : 'http://localhost:8001';  // Backend runs on port 8001
+        : 'http://localhost:8000';  // Backend runs on port 8000
 
       // Fetch user analytics data
       const response = await fetch(`${API_BASE_URL}/api/v1/llm/stats/users`);

@@ -14,7 +14,8 @@ import {
   checkApiHealth,
   debouncedFetchRestaurants,
   debouncedFetchPlaces,
-  getSessionId
+  getSessionId,
+  resetAllCircuitBreakers
 } from './api/api';
 import { 
   ErrorTypes, 
@@ -876,6 +877,14 @@ function Chatbot({ userLocation: propUserLocation }) {
 
   // Enhanced message management
   const addMessage = (text, sender = 'assistant', metadata = {}) => {
+    console.log('📨 addMessage called with mapData:', metadata.mapData ? 'YES' : 'NO');
+    if (metadata.mapData) {
+      console.log('📨 mapData in addMessage:', {
+        markers: metadata.mapData.markers?.length || 0,
+        routes: metadata.mapData.routes?.length || 0,
+        coordinates: metadata.mapData.coordinates?.length || 0
+      });
+    }
     const newMessage = {
       id: Date.now() + Math.random(),
       text: typeof text === 'string' ? text : '',
@@ -1163,6 +1172,11 @@ function Chatbot({ userLocation: propUserLocation }) {
       try {
         const isHealthy = await checkApiHealth();
         setApiHealth(isHealthy ? 'healthy' : 'unhealthy');
+        
+        // If API is healthy, reset circuit breakers to allow requests
+        if (isHealthy) {
+          resetAllCircuitBreakers();
+        }
       } catch (error) {
         setApiHealth('error');
       }
@@ -1199,22 +1213,32 @@ function Chatbot({ userLocation: propUserLocation }) {
     
     setCurrentError(errorInfo);
     
-    // Set retry action if we have a failed message and not already retrying
+    // Only set retry action if we're not already in a retry attempt
+    // This prevents infinite retry loops on persistent errors
     if (failedMessage && failedMessage.input && !isRetrying) {
+      const inputToRetry = failedMessage.input;
       setRetryAction(() => () => {
+        // Don't retry if already retrying
+        if (isRetrying) {
+          console.log('⚠️ Retry already in progress, skipping');
+          return Promise.resolve();
+        }
+        
         setIsRetrying(true);
-        console.log('🔄 Retrying failed message:', failedMessage.input);
+        console.log('🔄 Retrying failed message:', inputToRetry);
         
         // Clear error state before retry
         setCurrentError(null);
         
         // Retry the send operation
-        handleSend(failedMessage.input);
+        handleSend(inputToRetry);
         
         // Reset retry flag after a delay to prevent rapid retries
         setTimeout(() => {
           setIsRetrying(false);
         }, 2000);
+        
+        return Promise.resolve();
       });
     }
     
@@ -1222,11 +1246,28 @@ function Chatbot({ userLocation: propUserLocation }) {
   };
 
   const handleRetry = () => {
+    // Prevent retry if already retrying
+    if (isRetrying) {
+      console.log('⚠️ Retry already in progress, ignoring duplicate request');
+      return Promise.resolve();
+    }
+    
     if (retryAction) {
       console.log('🔄 Retrying last action');
+      // Reset circuit breakers before retrying to give it a fresh chance
+      resetAllCircuitBreakers();
       setCurrentError(null);
-      retryAction();
+      
+      // Clear the retry action to prevent duplicate retries
+      const actionToRun = retryAction;
+      setRetryAction(null);
+      
+      // Return the result of retryAction for Promise-based error handling
+      const result = actionToRun();
+      // Ensure we return a Promise for the caller
+      return result instanceof Promise ? result : Promise.resolve(result);
     }
+    return Promise.resolve();
   };
 
   const dismissError = () => {
@@ -1234,6 +1275,8 @@ function Chatbot({ userLocation: propUserLocation }) {
     setRetryAction(null);
     setLastFailedMessage(null);
     setIsRetrying(false);
+    // Reset circuit breakers when user dismisses error to give fresh start
+    resetAllCircuitBreakers();
   };
 
   const handleSend = async (customInput = null) => {
@@ -1248,12 +1291,10 @@ function Chatbot({ userLocation: propUserLocation }) {
       console.warn('Analytics tracking failed:', e);
     }
 
-    // Create retry action for this message
-    const retryCurrentMessage = () => {
-      console.log('🔄 Retrying message:', originalUserInput);
-      handleSend(originalUserInput);
-    };
-    setRetryAction(() => retryCurrentMessage);
+    // Store the message info for potential retry (handleError will set retryAction if needed)
+    // Don't set retryAction here - let handleError set it only when an error actually occurs
+    // This prevents competing retryAction setters causing confusion
+    setLastFailedMessage({ input: originalUserInput });
 
     // CRITICAL SECURITY: Sanitize input immediately
     const sanitizedInput = preprocessInput(originalUserInput);
@@ -1400,6 +1441,15 @@ function Chatbot({ userLocation: propUserLocation }) {
             
             onComplete: (finalText, metadata) => {
               console.log('✅ Streaming complete:', finalText.substring(0, 100) + '...');
+              console.log('🗺️ Map data in metadata:', metadata?.map_data ? 'YES' : 'NO');
+              if (metadata?.map_data) {
+                console.log('🗺️ Map data details:', {
+                  markers: metadata.map_data.markers?.length || 0,
+                  routes: metadata.map_data.routes?.length || 0,
+                  coordinates: metadata.map_data.coordinates?.length || 0,
+                  hasRouteData: !!metadata.map_data.route_data
+                });
+              }
               abortControllerRef.current = null; // Clear abort controller
               setIsStreamingResponse(false);
               setStreamingText('');
@@ -1496,7 +1546,7 @@ function Chatbot({ userLocation: propUserLocation }) {
           setLastFailedMessage(null);
           
         } catch (fallbackError) {
-          handleError(fallbackError, 'fallback message sending', lastFailedMessage);
+          handleError(fallbackError, 'fallback message sending', { input: originalUserInput });
           addMessage('Sorry, I encountered an error. Please try again.', 'assistant', {
             type: 'error',
             errorType: classifyError(fallbackError),
@@ -1546,9 +1596,11 @@ function Chatbot({ userLocation: propUserLocation }) {
       
       // Clear failed message on success
       setLastFailedMessage(null);
+      setRetryAction(null); // Clear any retry action on success
       
     } catch (error) {
-      handleError(error, 'message sending', lastFailedMessage);
+      // Pass the original input for retry purposes
+      handleError(error, 'message sending', { input: originalUserInput });
       
       // Track error (analytics)
       try {

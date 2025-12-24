@@ -10,7 +10,7 @@ import {
 
 // API utility that works for both local and deployed environments
 // Updated: Backend migrated from Render to GCP Cloud Run
-const BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:8001' : 'https://ai-stanbul-509659445005.europe-west1.run.app');
+const BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://ai-stanbul-509659445005.europe-west1.run.app');
 
 // Clean up BASE_URL and construct proper endpoints
 const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
@@ -67,6 +67,22 @@ const restaurantsCircuitBreaker = createCircuitBreaker({
 const placesCircuitBreaker = createCircuitBreaker({
   failureThreshold: 3,
   resetTimeout: 30000
+});
+
+// Function to reset all circuit breakers (useful after connection issues are resolved)
+export const resetAllCircuitBreakers = () => {
+  console.log('🔄 Resetting all circuit breakers...');
+  chatCircuitBreaker.reset();
+  restaurantsCircuitBreaker.reset();
+  placesCircuitBreaker.reset();
+  console.log('✅ All circuit breakers reset');
+};
+
+// Expose circuit breaker states for debugging
+export const getCircuitBreakerStates = () => ({
+  chat: chatCircuitBreaker.state,
+  restaurants: restaurantsCircuitBreaker.state,
+  places: placesCircuitBreaker.state
 });
 
 // Enhanced error handling wrapper
@@ -772,6 +788,7 @@ export const fetchUnifiedChatV2 = async (query, options = {}) => {
 // ============================================
 
 const STREAM_API_URL = `${cleanBaseUrl}/api/stream`;
+console.log('🌊 Streaming API URL configured:', STREAM_API_URL);
 
 /**
  * Stream chat response using Server-Sent Events (SSE)

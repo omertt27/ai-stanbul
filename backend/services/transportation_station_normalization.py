@@ -418,7 +418,7 @@ class StationNormalizer:
         # ==========================================
         m4_stations = [
             ("Kadıköy", "Kadikoy", "kadikoy", ["kadikoy"], 40.9903, 29.0275, []),
-            ("Ayrılık Çeşmesi", "Ayrilik Cesmesi", "ayrilik_cesmesi", ["ayrilik", "ayrilik cesmesi"], 40.9908, 28.9975, ["MARMARAY"]),
+            ("Ayrılık Çeşmesi", "Ayrilik Cesmesi", "ayrilik_cesmesi", ["ayrilik", "ayrilik cesmesi"], 40.9797, 29.0510, ["MARMARAY"]),
             ("Acıbadem", "Acibadem", "acibadem", ["acibadem"], 41.0028, 29.0194, []),
             ("Ünalan", "Unalan", "unalan", ["unalan"], 41.0092, 29.0247, []),
             ("Göztepe", "Goztepe", "goztepe_m4", ["goztepe"], 41.0164, 29.0381, []),
@@ -643,7 +643,7 @@ class StationNormalizer:
             ("Göztepe", "Goztepe", "goztepe_marmaray", ["goztepe"], 40.9772, 29.0347, []),
             ("Feneryolu", "Feneryolu", "feneryolu", ["feneryolu"], 40.9831, 29.0253, []),
             ("Söğütlüçeşme", "Sogutlucesme", "sogutlucesme", ["sogutlucesme"], 40.9872, 29.0136, []),
-            ("Ayrılık Çeşmesi", "Ayrilik Cesmesi", "ayrilik_cesmesi_marmaray", ["ayrilik", "ayrilik cesmesi"], 40.9908, 28.9975, ["M4"]),
+            ("Ayrılık Çeşmesi", "Ayrilik Cesmesi", "ayrilik_cesmesi_marmaray", ["ayrilik", "ayrilik cesmesi"], 40.9797, 29.0510, ["M4"]),
             ("Üsküdar", "Uskudar", "uskudar_marmaray", ["uskudar"], 41.0255, 29.0144, ["M5"]),
             
             # UNDER BOSPHORUS - The undersea tunnel

@@ -5,36 +5,56 @@ Supports:
 - Hugging Face Inference API
 - OpenAI-compatible endpoints
 
-Updated: December 2024 - Using improved standardized prompt templates
+Updated: December 2024
+IMPORTANT: This client is for API communication ONLY.
+Prompt building is handled by services/llm/prompts.py (PromptBuilder)
 """
 
 import os
 import logging
 import httpx
+import uuid
 from typing import Dict, Optional, Any
+from dataclasses import dataclass
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-
-# Import improved prompt templates
-from IMPROVED_PROMPT_TEMPLATES import (
-    IMPROVED_BASE_PROMPT,
-    INTENT_PROMPTS,
-    CONTEXT_FORMAT_TEMPLATE
-)
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class LLMClientConfig:
+    """Configuration for LLM client"""
+    connect_timeout: float = 10.0  # Connection timeout
+    read_timeout: float = 60.0     # Read timeout for generation
+    max_retries: int = 2
+    max_connections: int = 10      # Connection pool size
+    max_keepalive: int = 5         # Keep-alive connections
+
+
 class RunPodLLMClient:
-    """Client for LLM APIs (RunPod, Hugging Face, OpenAI-compatible)"""
+    """Client for LLM APIs (RunPod, Hugging Face, OpenAI-compatible)
+    
+    Features:
+    - Persistent connection pool for better performance
+    - Request correlation IDs for tracing
+    - Separate connect/read timeouts
+    - Automatic resource cleanup
+    """
+    
+    # Class-level shared client for connection pooling
+    _shared_client: Optional[httpx.AsyncClient] = None
+    _client_lock: Optional[Any] = None
     
     def __init__(
         self,
         api_url: Optional[str] = None,
         api_key: Optional[str] = None,
         timeout: float = 60.0,
-        max_tokens: int = 1024
+        max_tokens: int = 1024,
+        config: Optional[LLMClientConfig] = None
     ):
         """
         Initialize LLM client
@@ -47,6 +67,7 @@ class RunPodLLMClient:
             api_key: API key (from RUNPOD_API_KEY or HUGGING_FACE_API_KEY env)
             timeout: Request timeout in seconds
             max_tokens: Maximum tokens to generate (default: 1024 for full responses)
+            config: Optional configuration for client (timeouts, retries, etc.)
         """
         self.api_url = api_url or os.getenv("LLM_API_URL")
         self.model_name = os.getenv("LLM_MODEL_NAME", "/workspace/llama-3.1-8b")
@@ -63,6 +84,9 @@ class RunPodLLMClient:
         self.max_tokens = int(os.getenv("LLM_MAX_TOKENS", max_tokens))
         self.enabled = bool(self.api_url)
         
+        # Connection pool configuration
+        self.config = config or LLMClientConfig()
+        
         # Detect API type
         self.api_type = self._detect_api_type()
         
@@ -78,8 +102,46 @@ class RunPodLLMClient:
             logger.info(f"   API Key: {'***' + self.api_key[-4:] if self.api_key else 'None'}")
             logger.info(f"   Timeout: {self.timeout}s")
             logger.info(f"   Max Tokens: {self.max_tokens}")
+            logger.info(f"   Connection Pool: {self.config.max_connections} max, {self.config.max_keepalive} keepalive")
         else:
             logger.warning("⚠️ LLM Client disabled (no LLM_API_URL)")
+    
+    async def _get_client(self) -> httpx.AsyncClient:
+        """Get or create shared async HTTP client with connection pooling."""
+        if RunPodLLMClient._shared_client is None or RunPodLLMClient._shared_client.is_closed:
+            timeout = httpx.Timeout(
+                connect=self.config.connect_timeout,
+                read=self.config.read_timeout,
+                write=10.0,
+                pool=5.0
+            )
+            limits = httpx.Limits(
+                max_connections=self.config.max_connections,
+                max_keepalive_connections=self.config.max_keepalive
+            )
+            
+            # Check if h2 is available for HTTP/2 support
+            try:
+                import h2
+                use_http2 = True
+            except ImportError:
+                use_http2 = False
+                logger.info("ℹ️ HTTP/2 not available (h2 package not installed), using HTTP/1.1")
+            
+            RunPodLLMClient._shared_client = httpx.AsyncClient(
+                timeout=timeout,
+                limits=limits,
+                http2=use_http2
+            )
+            logger.info(f"🔌 Created shared HTTP client with connection pool (HTTP/2: {use_http2})")
+        return RunPodLLMClient._shared_client
+    
+    async def close(self):
+        """Close the shared HTTP client and release resources."""
+        if RunPodLLMClient._shared_client is not None:
+            await RunPodLLMClient._shared_client.aclose()
+            RunPodLLMClient._shared_client = None
+            logger.info("🔌 Closed shared HTTP client")
     
     def _detect_api_type(self) -> str:
         """Detect API type from URL"""
@@ -163,7 +225,8 @@ class RunPodLLMClient:
         prompt: str,
         max_tokens: Optional[int] = None,
         temperature: float = 0.7,
-        top_p: float = 0.9
+        top_p: float = 0.9,
+        request_id: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Generate text using LLM (supports multiple API formats)
@@ -173,6 +236,7 @@ class RunPodLLMClient:
             max_tokens: Maximum tokens to generate (overrides default)
             temperature: Sampling temperature (0.0-1.0)
             top_p: Nucleus sampling parameter
+            request_id: Optional correlation ID for logging
             
         Returns:
             Generated response dict or None if failed
@@ -181,34 +245,40 @@ class RunPodLLMClient:
             logger.warning("LLM disabled - skipping generation")
             return None
         
+        # Generate correlation ID if not provided
+        req_id = request_id or str(uuid.uuid4())[:8]
+        
+        # Get shared client with connection pool
+        client = await self._get_client()
+        
         try:
             if self.api_type == "huggingface":
-                return await self._generate_huggingface(prompt, max_tokens, temperature)
+                return await self._generate_huggingface(prompt, max_tokens, temperature, client, req_id)
             elif self.api_type == "runpod":
-                # Use RunPod custom /generate endpoint format
-                return await self._generate_runpod_custom(prompt, max_tokens, temperature, top_p)
+                return await self._generate_runpod_custom(prompt, max_tokens, temperature, top_p, client, req_id)
             else:
-                # Try OpenAI-compatible format for other types
-                return await self._generate_openai_compatible(prompt, max_tokens, temperature, top_p)
+                return await self._generate_openai_compatible(prompt, max_tokens, temperature, top_p, client, req_id)
                 
         except httpx.TimeoutException:
-            logger.error(f"⏱️ LLM timeout after {self.timeout}s")
+            logger.error(f"[{req_id}] ⏱️ LLM timeout after {self.config.read_timeout}s")
             return None
         except httpx.HTTPStatusError as e:
-            logger.error(f"❌ LLM HTTP error: {e.response.status_code}")
-            logger.error(f"   Response: {e.response.text if hasattr(e.response, 'text') else 'N/A'}")
+            logger.error(f"[{req_id}] ❌ LLM HTTP error: {e.response.status_code}")
+            logger.error(f"[{req_id}]    Response: {e.response.text if hasattr(e.response, 'text') else 'N/A'}")
             return None
         except Exception as e:
             import traceback
-            logger.error(f"❌ LLM generation failed: {e}")
-            logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            logger.error(f"[{req_id}] ❌ LLM generation failed: {e}")
+            logger.error(f"[{req_id}] ❌ Traceback: {traceback.format_exc()}")
             return None
     
     async def _generate_huggingface(
         self,
         prompt: str,
         max_tokens: Optional[int],
-        temperature: float
+        temperature: float,
+        client: httpx.AsyncClient,
+        req_id: str
     ) -> Optional[Dict[str, Any]]:
         """Generate using Hugging Face Inference API format"""
         payload = {
@@ -224,168 +294,46 @@ class RunPodLLMClient:
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                self.api_url,
-                json=payload,
-                headers=headers
-            )
-            response.raise_for_status()
-            result = response.json()
-            
-            # Handle Hugging Face response format
-            if isinstance(result, list) and len(result) > 0:
-                generated_text = result[0].get('generated_text', '')
-                logger.info(f"✅ Hugging Face generated {len(generated_text)} chars")
-                return {"generated_text": generated_text, "raw": result}
-            elif isinstance(result, dict) and 'generated_text' in result:
-                generated_text = result['generated_text']
-                logger.info(f"✅ Hugging Face generated {len(generated_text)} chars")
-                return {"generated_text": generated_text, "raw": result}
-            else:
-                logger.error("❌ Invalid response format from Hugging Face")
-                return None
+        response = await client.post(
+            self.api_url,
+            json=payload,
+            headers=headers
+        )
+        response.raise_for_status()
+        result = response.json()
+        
+        # Handle Hugging Face response format
+        if isinstance(result, list) and len(result) > 0:
+            generated_text = result[0].get('generated_text', '')
+            logger.info(f"[{req_id}] ✅ Hugging Face generated {len(generated_text)} chars")
+            return {"generated_text": generated_text, "raw": result}
+        elif isinstance(result, dict) and 'generated_text' in result:
+            generated_text = result['generated_text']
+            logger.info(f"[{req_id}] ✅ Hugging Face generated {len(generated_text)} chars")
+            return {"generated_text": generated_text, "raw": result}
+        else:
+            logger.error(f"[{req_id}] ❌ Invalid response format from Hugging Face")
+            return None
     
     async def _generate_runpod_custom(
         self,
         prompt: str,
         max_tokens: Optional[int],
         temperature: float,
-        top_p: float
+        top_p: float,
+        client: httpx.AsyncClient,
+        req_id: str
     ) -> Optional[Dict[str, Any]]:
-        """Generate using RunPod custom /generate endpoint format"""
+        """
+        Generate using RunPod custom /generate endpoint format.
         
-        # Extract user query from complex prompt for cleaner generation
-        user_query = prompt
+        IMPORTANT: This method now passes the prompt directly to the API.
+        Prompt building is handled upstream by PromptBuilder (prompts.py).
+        """
         
-        # Try multiple patterns to extract the actual user question
-        if "Current User Question:" in prompt:
-            parts = prompt.split("Current User Question:")
-            if len(parts) > 1:
-                user_query = parts[1].replace("Your Direct Answer:", "").strip()
-        elif "User Question:" in prompt:
-            parts = prompt.split("User Question:")
-            if len(parts) > 1:
-                question_part = parts[1].strip()
-                for stop_word in ["\nENGLISH Answer:", "\nAnswer:", "\nYour Answer:"]:
-                    if stop_word in question_part:
-                        question_part = question_part.split(stop_word)[0].strip()
-                user_query = question_part
-        elif "USER'S QUESTION:" in prompt:
-            parts = prompt.split("USER'S QUESTION:")
-            if len(parts) > 1:
-                user_query = parts[1].split("YOUR ANSWER")[0].strip()
-        
-        logger.debug(f"Extracted user query: '{user_query[:100]}...'")
-        
-        # Handle greetings specially
-        greeting_words = ['hi', 'hello', 'hey', 'selam', 'merhaba', 'hallo', 'привет', 'hola', 'مرحبا']
-        cleaned_query = user_query.lower().strip().rstrip('!?.,')
-        is_greeting = cleaned_query in [g.lower() for g in greeting_words]
-        
-        if is_greeting:
-            # For greetings, provide a context-aware welcoming prompt
-            # Determine the language from the greeting word itself
-            if cleaned_query in ['hi', 'hello', 'hey']:
-                greeting_lang = "English"
-            elif cleaned_query in ['selam', 'merhaba']:
-                greeting_lang = "Turkish"
-            elif cleaned_query == 'hallo':
-                greeting_lang = "German"
-            elif cleaned_query == 'привет':
-                greeting_lang = "Russian"
-            elif cleaned_query == 'hola':
-                greeting_lang = "Spanish"
-            elif cleaned_query == 'مرحبا':
-                greeting_lang = "Arabic"
-            else:
-                greeting_lang = "English"  # Default
-            
-            formatted_prompt = (
-                f"You are KAM, an Istanbul tour guide.\n\n"
-                f"Respond ONLY in {greeting_lang}. Say a brief friendly greeting and mention you can help with Istanbul restaurants, attractions, and directions.\n\n"
-                f"Keep your response under 30 words. Start your response immediately - no explanations."
-            )
-            logger.info(f"🎯 Greeting detected: '{user_query}' -> {greeting_lang}")
-            # Override max_tokens for greetings - we don't need much!
-            max_tokens = 50
-        else:
-            # For real questions, extract context and build a direct prompt
-            context_data = ""
-            
-            # Look for database/context sections
-            if "Database Information:" in prompt or "CONTEXT:" in prompt:
-                if "Database Information:" in prompt:
-                    db_start = prompt.find("Database Information:")
-                    db_end = prompt.find("\n## ", db_start + 1)
-                    if db_end == -1:
-                        db_end = prompt.find("\n---", db_start + 1)
-                    if db_end > db_start:
-                        context_data = prompt[db_start:db_end].strip()
-                elif "CONTEXT:" in prompt:
-                    ctx_start = prompt.find("CONTEXT:")
-                    ctx_end = prompt.find("\nUSER'S QUESTION:", ctx_start)
-                    if ctx_end > ctx_start:
-                        context_data = prompt[ctx_start:ctx_end].strip()
-            
-            # Check if user provided GPS location - extract coordinates if available
-            has_gps = "GPS STATUS" in prompt and "AVAILABLE" in prompt
-            user_lat = None
-            user_lon = None
-            
-            if has_gps:
-                # Try to extract coordinates from prompt using multiple patterns
-                import re
-                # Pattern 1: "latitude: X, longitude: Y" or "lat: X, lon: Y"
-                coord_match = re.search(r'lat(?:itude)?[:\s]+([-\d.]+).*lon(?:gitude)?[:\s]+([-\d.]+)', prompt, re.IGNORECASE)
-                if coord_match:
-                    try:
-                        user_lat = float(coord_match.group(1))
-                        user_lon = float(coord_match.group(2))
-                        logger.info(f"📍 Extracted GPS coordinates: ({user_lat}, {user_lon})")
-                    except (ValueError, IndexError):
-                        pass
-            
-            # Build a concise, focused prompt - LLM will auto-detect and match user's language
-            if context_data:
-                formatted_prompt = (
-                    f"You are KAM, an Istanbul tour guide. Answer the user's question using the context provided.\n\n"
-                    f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
-                    f"{context_data}\n\n"
-                )
-                
-                # Add GPS location prominently if available
-                if has_gps and user_lat and user_lon:
-                    formatted_prompt += (
-                        f"🎯 USER'S CURRENT GPS LOCATION:\n"
-                        f"   Coordinates: ({user_lat}, {user_lon})\n"
-                        f"   **IMPORTANT**: When user asks about 'nearby', 'near me', 'close by', 'around here', they mean near THIS GPS location.\n"
-                        f"   Prioritize recommendations that are physically close to these coordinates.\n\n"
-                    )
-                
-                formatted_prompt += f"USER'S QUESTION: {user_query}\n\nYOUR ANSWER (in the same language as the question above):"
-            else:
-                formatted_prompt = (
-                    f"You are KAM, an Istanbul tour guide. Answer the user's question.\n\n"
-                    f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
-                )
-                
-                # Add GPS location prominently if available
-                if has_gps and user_lat and user_lon:
-                    formatted_prompt += (
-                        f"🎯 USER'S CURRENT GPS LOCATION:\n"
-                        f"   Coordinates: ({user_lat}, {user_lon})\n"
-                        f"   **IMPORTANT**: When user asks about 'nearby', 'near me', 'close by', 'around here', they mean near THIS GPS location.\n"
-                        f"   If you recognize these coordinates, mention the specific neighborhood or area in Istanbul.\n\n"
-                    )
-                
-                formatted_prompt += f"USER'S QUESTION: {user_query}\n\nYOUR ANSWER (in the same language as the question above):"
-            
-            logger.info(f"📝 Direct prompt built - Query length: {len(user_query)}, Context: {len(context_data)} chars")
-        
-        # Use RunPod custom /generate format
+        # Use the prompt as-is - it's already built by PromptBuilder
         payload = {
-            "prompt": formatted_prompt,
+            "prompt": prompt,
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": temperature,
             "top_p": top_p
@@ -400,236 +348,63 @@ class RunPodLLMClient:
         if not url.endswith('/generate'):
             url = url + '/generate'
         
-        logger.info(f"🔄 Calling RunPod LLM at: {url}")
+        logger.info(f"[{req_id}] 🔄 Calling RunPod LLM at: {url}")
+        logger.debug(f"[{req_id}]    Prompt length: {len(prompt)} chars")
         
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                url,
-                json=payload,
-                headers=headers
-            )
-            response.raise_for_status()
-            result = response.json()
-            
-            # Handle RunPod custom response format
-            # Expected format: {"response": "...", "tokens_generated": 50, "generation_time": 0.74, "tokens_per_second": 67.12}
-            generated_text = None
-            
-            if 'response' in result:
-                generated_text = result['response']
-                logger.info(f"✅ RunPod generated {len(generated_text)} chars in {result.get('generation_time', 0):.2f}s")
-                logger.info(f"   Tokens: {result.get('tokens_generated', 0)}, Speed: {result.get('tokens_per_second', 0):.1f} t/s")
-            else:
-                logger.error(f"❌ Invalid response format from RunPod: {result.keys() if isinstance(result, dict) else type(result)}")
-                return None
-            
-            if generated_text:
-                # Hard limit: truncate responses that are too long (increased to 2048 for full responses)
-                MAX_RESPONSE_LENGTH = 2048
-                if len(generated_text) > MAX_RESPONSE_LENGTH:
-                    logger.warning(f"⚠️ Response too long ({len(generated_text)} chars), truncating to {MAX_RESPONSE_LENGTH}")
-                    generated_text = generated_text[:MAX_RESPONSE_LENGTH].rsplit('.', 1)[0] + '.'
-                
-                return {"generated_text": generated_text, "raw": result}
-            else:
-                return None
-    
-    def _format_llama_chat_prompt(self, prompt: str) -> str:
-        """
-        Format prompt using Llama 3.1 chat template.
-        
-        Llama 3.1 requires special tokens for proper instruction following:
-        <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-        {system_message}<|eot_id|>
-        <|start_header_id|>user<|end_header_id|>
-        {user_message}<|eot_id|>
-        <|start_header_id|>assistant<|end_header_id|>
-        
-        Args:
-            prompt: Raw prompt text
-            
-        Returns:
-            Formatted prompt with Llama 3.1 chat tokens
-        """
-        # Split prompt into system instructions and user query
-        # Look for patterns like "Current User Question:" to separate
-        if "Current User Question:" in prompt:
-            parts = prompt.split("Current User Question:")
-            system_part = parts[0].strip()
-            user_part = parts[1].replace("Your Direct Answer:", "").strip()
-        elif "User Question:" in prompt:
-            parts = prompt.split("User Question:")
-            system_part = parts[0].strip()
-            user_part = parts[1].strip()
-        else:
-            # If no clear separation, treat first 80% as system, last 20% as user
-            split_point = int(len(prompt) * 0.8)
-            system_part = prompt[:split_point].strip()
-            user_part = prompt[split_point:].strip()
-        
-        # Build Llama 3.1 chat format
-        formatted = (
-            "<|begin_of_text|>"
-            "<|start_header_id|>system<|end_header_id|>\n\n"
-            f"{system_part}<|eot_id|>"
-            "<|start_header_id|>user<|end_header_id|>\n\n"
-            f"{user_part}<|eot_id|>"
-            "<|start_header_id|>assistant<|end_header_id|>\n\n"
+        response = await client.post(
+            url,
+            json=payload,
+            headers=headers
         )
+        response.raise_for_status()
+        result = response.json()
         
-        logger.debug(f"🔄 Llama chat template applied:")
-        logger.debug(f"   System part length: {len(system_part)} chars")
-        logger.debug(f"   User part length: {len(user_part)} chars")
-        logger.debug(f"   User part preview: {user_part[:100]}...")
+        # Handle RunPod custom response format
+        generated_text = None
         
-        return formatted
-
+        if 'response' in result:
+            generated_text = result['response']
+            logger.info(f"[{req_id}] ✅ RunPod generated {len(generated_text)} chars in {result.get('generation_time', 0):.2f}s")
+            logger.info(f"[{req_id}]    Tokens: {result.get('tokens_generated', 0)}, Speed: {result.get('tokens_per_second', 0):.1f} t/s")
+        else:
+            logger.error(f"[{req_id}] ❌ Invalid response format from RunPod: {result.keys() if isinstance(result, dict) else type(result)}")
+            return None
+        
+        if generated_text:
+            # Hard limit: truncate responses that are too long
+            MAX_RESPONSE_LENGTH = 2048
+            if len(generated_text) > MAX_RESPONSE_LENGTH:
+                logger.warning(f"[{req_id}] ⚠️ Response too long ({len(generated_text)} chars), truncating")
+                generated_text = generated_text[:MAX_RESPONSE_LENGTH].rsplit('.', 1)[0] + '.'
+            
+            return {"generated_text": generated_text, "raw": result, "request_id": req_id}
+        else:
+            return None
+    
     async def _generate_openai_compatible(
         self,
         prompt: str,
         max_tokens: Optional[int],
         temperature: float,
-        top_p: float
+        top_p: float,
+        client: httpx.AsyncClient,
+        req_id: str
     ) -> Optional[Dict[str, Any]]:
-        """Generate using OpenAI-compatible API format (vLLM, RunPod, etc.)"""
+        """
+        Generate using OpenAI-compatible API format (vLLM, RunPod, etc.)
         
-        # Extract user query from complex prompt
-        user_query = prompt
-        
-        # Try multiple patterns to extract the actual user question
-        if "Current User Question:" in prompt:
-            parts = prompt.split("Current User Question:")
-            if len(parts) > 1:
-                user_query = parts[1].replace("Your Direct Answer:", "").strip()
-        elif "User Question:" in prompt:
-            parts = prompt.split("User Question:")
-            if len(parts) > 1:
-                # Extract just the question part, stopping at "Answer:" or similar
-                question_part = parts[1].strip()
-                # Remove any answer labels that might follow
-                for stop_word in ["\nENGLISH Answer:", "\nAnswer:", "\nYour Answer:"]:
-                    if stop_word in question_part:
-                        question_part = question_part.split(stop_word)[0].strip()
-                user_query = question_part
-        
-        logger.debug(f"Extracted user query: '{user_query[:100]}...'")
-        
-        # Handle greetings specially
-        greeting_words = ['hi', 'hello', 'hey', 'selam', 'merhaba', 'hallo', 'привет', 'hola', 'مرحبا']
-        cleaned_query = user_query.lower().strip().rstrip('!?.,')
-        is_greeting = cleaned_query in [g.lower() for g in greeting_words]
-        
-        if is_greeting:
-            # For greetings, provide a context-aware welcoming prompt
-            # Determine the language from the greeting word itself
-            if cleaned_query in ['hi', 'hello', 'hey']:
-                greeting_lang = "English"
-            elif cleaned_query in ['selam', 'merhaba']:
-                greeting_lang = "Turkish"
-            elif cleaned_query == 'hallo':
-                greeting_lang = "German"
-            elif cleaned_query == 'привет':
-                greeting_lang = "Russian"
-            elif cleaned_query == 'hola':
-                greeting_lang = "Spanish"
-            elif cleaned_query == 'مرحبا':
-                greeting_lang = "Arabic"
-            else:
-                greeting_lang = "English"  # Default
-            
-            formatted_prompt = (
-                f"You are KAM, an Istanbul tour guide.\n\n"
-                f"Respond ONLY in {greeting_lang}. Say a brief friendly greeting and mention you can help with Istanbul restaurants, attractions, and directions.\n\n"
-                f"Keep your response under 30 words. Start your response immediately - no explanations."
-            )
-            logger.info(f"🎯 Greeting detected: '{user_query}' -> {greeting_lang}")
-            # Override max_tokens for greetings - we don't need much!
-            max_tokens = 50
-        else:
-            # For real questions, extract context and build a direct prompt
-            context_data = ""
-            
-            # Extract any context from the full prompt
-            # Look for database/context sections
-            if "Database Information:" in prompt:
-                db_start = prompt.find("Database Information:")
-                db_end = prompt.find("\n## ", db_start + 1)
-                if db_end == -1:
-                    db_end = prompt.find("\n---", db_start + 1)
-                if db_end > db_start:
-                    context_data = prompt[db_start:db_end].strip()
-            elif "CONTEXT:" in prompt:
-                ctx_start = prompt.find("CONTEXT:")
-                ctx_end = prompt.find("\nUSER'S QUESTION:", ctx_start)
-                if ctx_end > ctx_start:
-                    context_data = prompt[ctx_start:ctx_end].strip()
-            
-            # Check if user provided GPS location - extract coordinates if available
-            has_gps = "GPS STATUS" in prompt and "AVAILABLE" in prompt
-            user_lat = None
-            user_lon = None
-            
-            if has_gps:
-                # Try to extract coordinates from prompt using multiple patterns
-                import re
-                # Pattern 1: "latitude: X, longitude: Y" or "lat: X, lon: Y"
-                coord_match = re.search(r'lat(?:itude)?[:\s]+([-\d.]+).*lon(?:gitude)?[:\s]+([-\d.]+)', prompt, re.IGNORECASE)
-                if coord_match:
-                    try:
-                        user_lat = float(coord_match.group(1))
-                        user_lon = float(coord_match.group(2))
-                        logger.info(f"📍 Extracted GPS coordinates: ({user_lat}, {user_lon})")
-                    except (ValueError, IndexError):
-                        pass
-            
-            # Build a concise, focused prompt - LLM will auto-detect and match user's language
-            if context_data:
-                formatted_prompt = (
-                    f"You are KAM, an Istanbul tour guide. Answer the user's question using the context provided.\n\n"
-                    f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
-                    f"CONTEXT:\n{context_data}\n\n"
-                )
-                
-                # Add GPS location prominently if available
-                if has_gps and user_lat and user_lon:
-                    formatted_prompt += (
-                        f"🎯 USER'S CURRENT GPS LOCATION:\n"
-                        f"   Coordinates: ({user_lat}, {user_lon})\n"
-                        f"   **IMPORTANT**: When user asks about 'nearby', 'near me', 'close by', 'around here', they mean near THIS GPS location.\n"
-                        f"   Prioritize recommendations that are physically close to these coordinates.\n\n"
-                    )
-                
-                formatted_prompt += f"USER'S QUESTION: {user_query}\n\nYOUR ANSWER (in the same language as the question above):"
-            else:
-                # Query without context - use general knowledge
-                formatted_prompt = (
-                    f"You are KAM, an Istanbul tour guide. Answer the user's question.\n\n"
-                    f"CRITICAL RULE: Respond in the SAME language as the question below.\n\n"
-                )
-                
-                # Add GPS location prominently if available
-                if has_gps and user_lat and user_lon:
-                    formatted_prompt += (
-                        f"🎯 USER'S CURRENT GPS LOCATION:\n"
-                        f"   Coordinates: ({user_lat}, {user_lon})\n"
-                        f"   **IMPORTANT**: When user asks about 'nearby', 'near me', 'close by', 'around here', they mean near THIS GPS location.\n"
-                        f"   If you recognize these coordinates, mention the specific neighborhood or area in Istanbul.\n\n"
-                    )
-                
-                formatted_prompt += f"USER'S QUESTION: {user_query}\n\nYOUR ANSWER (in the same language as the question above):"
-            
-            logger.info(f"📝 Direct prompt built - Query length: {len(user_query)}, Context: {len(context_data)} chars, GPS: {has_gps}")
-        
-        logger.debug(f"Prompt length: {len(formatted_prompt)} chars")
+        IMPORTANT: This method now passes the prompt directly to the API.
+        Prompt building is handled upstream by PromptBuilder (prompts.py).
+        """
         
         # Use standard completions format for vLLM
         payload = {
             "model": self.model_name,
-            "prompt": formatted_prompt,
+            "prompt": prompt,
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": temperature,
             "top_p": top_p,
-            "stop": ["<|eot_id|>", "\n\nUser:", "\n\n---", "\n\nLet me know", "\n\n(Also"]  # Stop at common hallucination patterns
+            "stop": ["<|eot_id|>", "\n\nUser:", "\n\n---"]
         }
         
         headers = {"Content-Type": "application/json"}
@@ -644,102 +419,98 @@ class RunPodLLMClient:
             else:
                 url = url.rstrip('/') + '/v1/completions'
         
-        logger.info(f"🔄 Calling LLM at: {url}")
+        logger.info(f"[{req_id}] 🔄 Calling LLM at: {url}")
+        logger.debug(f"[{req_id}]    Prompt length: {len(prompt)} chars")
         
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                url,
-                json=payload,
-                headers=headers
-            )
-            response.raise_for_status()
-            result = response.json()
+        response = await client.post(
+            url,
+            json=payload,
+            headers=headers
+        )
+        response.raise_for_status()
+        result = response.json()
+        
+        # Handle multiple response formats
+        generated_text = None
+        
+        if 'choices' in result:
+            choices = result['choices']
+            if isinstance(choices, list) and len(choices) > 0:
+                generated_text = choices[0].get('text', '')
+        elif 'text' in result:
+            generated_text = result['text']
+        elif 'generated_text' in result:
+            generated_text = result['generated_text']
+        
+        if generated_text:
+            MAX_RESPONSE_LENGTH = 2048
+            if len(generated_text) > MAX_RESPONSE_LENGTH:
+                logger.warning(f"[{req_id}] ⚠️ Response too long, truncating")
+                generated_text = generated_text[:MAX_RESPONSE_LENGTH].rsplit('.', 1)[0] + '.'
             
-            # Handle multiple response formats from different vLLM versions
-            generated_text = None
-            
-            # Format 1: Standard vLLM with choices array
-            if 'choices' in result:
-                choices = result['choices']
-                if isinstance(choices, list) and len(choices) > 0:
-                    generated_text = choices[0].get('text', '')
-                else:
-                    logger.error(f"❌ Invalid 'choices' format: {type(choices)}, value: {choices}")
-            
-            # Format 2: Direct text field (RunPod custom format)
-            elif 'text' in result:
-                generated_text = result['text']
-            
-            # Format 3: Generated_text field
-            elif 'generated_text' in result:
-                generated_text = result['generated_text']
-            
-            if generated_text:
-                # Hard limit: truncate responses that are too long (increased to 2048 for full responses)
-                MAX_RESPONSE_LENGTH = 2048
-                if len(generated_text) > MAX_RESPONSE_LENGTH:
-                    logger.warning(f"⚠️ Response too long ({len(generated_text)} chars), truncating to {MAX_RESPONSE_LENGTH}")
-                    generated_text = generated_text[:MAX_RESPONSE_LENGTH].rsplit('.', 1)[0] + '.'  # Cut at last sentence
-                
-                logger.info(f"✅ LLM generated {len(generated_text)} chars")
-                return {"generated_text": generated_text, "raw": result}
-            else:
-                logger.error(f"❌ Invalid response format from LLM: {result.keys() if isinstance(result, dict) else type(result)}")
-                logger.error(f"❌ Full result: {result}")
-                return None
+            logger.info(f"[{req_id}] ✅ LLM generated {len(generated_text)} chars")
+            return {"generated_text": generated_text, "raw": result, "request_id": req_id}
+        else:
+            logger.error(f"[{req_id}] ❌ Invalid response format from LLM")
+            return None
     
     async def generate_istanbul_response(
         self,
         query: str,
         context: Optional[str] = None,
-        intent: Optional[str] = None
+        intent: Optional[str] = None,
+        language: str = "en"
     ) -> Optional[str]:
         """
-        Generate Istanbul-specific response using LLM with improved prompts
+        Generate Istanbul-specific response using LLM.
+        
+        NOTE: This method now uses the unified PromptBuilder from prompts.py
+        for consistent prompt construction across all LLM calls.
         
         Args:
             query: User query
             context: Optional context from search/data
             intent: Detected intent type
+            language: Response language (default: en)
             
         Returns:
             Generated response text or None
         """
-        # Build prompt using improved template (no language detection - LLM auto-detects)
-        system_prompt = IMPROVED_BASE_PROMPT
+        from services.llm.prompts import PromptBuilder
         
-        # Add intent-specific guidance if available
-        if intent and intent in INTENT_PROMPTS:
-            system_prompt += f"\n\n{INTENT_PROMPTS[intent]}"
+        prompt_builder = PromptBuilder()
         
-        if context:
-            prompt = f"""{system_prompt}
-
-CONTEXT DATA:
-{context}
-
-USER QUESTION: {query}
-
-YOUR RESPONSE (match the user's language):"""
-        else:
-            prompt = f"""{system_prompt}
-
-USER QUESTION: {query}
-
-YOUR RESPONSE (match the user's language):"""
+        # Build signals from intent
+        signals = {}
+        if intent:
+            if intent in ['transportation', 'directions', 'route']:
+                signals['needs_transportation'] = True
+            elif intent in ['restaurant', 'food', 'dining']:
+                signals['needs_restaurant'] = True
+            elif intent in ['attraction', 'museum', 'place']:
+                signals['needs_attraction'] = True
+            elif intent == 'weather':
+                signals['needs_weather'] = True
         
-        result = await self.generate(prompt=prompt, max_tokens=100)  # Reduced from 150 for faster responses
+        # Build context dict
+        prompt_context = {
+            'database': context or '',
+            'rag': context or '',
+            'services': {}
+        }
+        
+        # Build prompt using unified PromptBuilder
+        prompt = prompt_builder.build_prompt(
+            query=query,
+            signals=signals,
+            context=prompt_context,
+            language=language
+        )
+        
+        result = await self.generate(prompt=prompt, max_tokens=500)
         
         if result and 'generated_text' in result:
-            # Extract just the response part (after the prompt)
-            full_text = result['generated_text']
-            # Try to extract response after "YOUR RESPONSE"
-            if "YOUR RESPONSE" in full_text:
-                response = full_text.split("YOUR RESPONSE", 1)[-1]
-                response = response.lstrip(":").lstrip("(in").split("):")[1] if "):" in response else response.lstrip(":")
-                response = response.strip()
-                return response
-            return full_text
+            return result['generated_text']
         
         return None
     
@@ -748,89 +519,75 @@ YOUR RESPONSE (match the user's language):"""
         query: str,
         intent: Optional[str] = None,
         entities: Optional[Dict] = None,
-        service_context: Optional[Dict[str, Any]] = None
+        service_context: Optional[Dict[str, Any]] = None,
+        language: str = "en"
     ) -> Optional[str]:
         """
-        Generate response using service context data with improved prompts
+        Generate response using service context data.
+        
+        NOTE: This method now uses the unified PromptBuilder from prompts.py
+        for consistent prompt construction across all LLM calls.
         
         Args:
             query: User query
             intent: Detected intent
             entities: Extracted entities
             service_context: Context from LLMContextBuilder with service data
+            language: Response language (default: en)
             
         Returns:
             Generated response text or None
         """
-        if not service_context or not service_context.get("service_data"):
-            # No service data, fall back to basic generation
-            return await self.generate_istanbul_response(query, intent=intent)
+        from services.llm.prompts import PromptBuilder
         
-        # Import here to avoid circular dependency
-        from services.llm_context_builder import get_context_builder
+        prompt_builder = PromptBuilder()
         
-        context_builder = get_context_builder()
-        formatted_context = context_builder.format_context_for_llm(service_context)
+        # Build signals from intent
+        signals = {}
+        if intent:
+            if intent in ['transportation', 'directions', 'route']:
+                signals['needs_transportation'] = True
+            elif intent in ['restaurant', 'food', 'dining']:
+                signals['needs_restaurant'] = True
+            elif intent in ['attraction', 'museum', 'place']:
+                signals['needs_attraction'] = True
+            elif intent == 'weather':
+                signals['needs_weather'] = True
         
-        # Build enhanced prompt using improved templates (no language detection - LLM auto-detects)
-        system_prompt = IMPROVED_BASE_PROMPT
+        # Build context dict from service context
+        prompt_context = {
+            'database': '',
+            'rag': '',
+            'services': service_context.get('service_data', {}) if service_context else {}
+        }
         
-        # Add intent-specific guidance if available
-        if intent and intent in INTENT_PROMPTS:
-            system_prompt += f"\n\n{INTENT_PROMPTS[intent]}"
-            logger.info(f"🎯 Added intent-specific prompt for: {intent}")
+        # Format service context into database/rag if available
+        if service_context and service_context.get('service_data'):
+            from services.llm_context_builder import get_context_builder
+            context_builder = get_context_builder()
+            formatted = context_builder.format_context_for_llm(service_context)
+            if formatted:
+                prompt_context['database'] = formatted
         
-        if formatted_context:
-            # Use improved context formatting
-            from datetime import datetime
-            context_section = f"""
----CONTEXT DATA PROVIDED---
-
-{formatted_context}
-
-**Data Sources**: {', '.join(service_context.get('service_data', {}).keys()) if service_context.get('service_data') else 'Multiple sources'}
-**Data Status**: Real-time
-
----END OF CONTEXT---
-
-**REMEMBER**: Base your response on this CONTEXT data. Include specific details (names, locations, ratings, prices) from above.
-"""
-            
-            prompt = f"""{system_prompt}
-
-{context_section}
-
-USER QUESTION: {query}
-
-YOUR RESPONSE (match the user's language):"""
-        else:
-            prompt = f"""{system_prompt}
-
-USER QUESTION: {query}
-
-YOUR RESPONSE (match the user's language):"""
+        # Build prompt using unified PromptBuilder
+        prompt = prompt_builder.build_prompt(
+            query=query,
+            signals=signals,
+            context=prompt_context,
+            language=language
+        )
         
         logger.info(f"🤖 Generating service-enhanced response for intent: {intent}")
-        logger.debug(f"Prompt length: {len(prompt)} chars")
         
         result = await self.generate(
             prompt=prompt,
-            max_tokens=150,  # Reduced from 200 for faster responses
+            max_tokens=500,
             temperature=0.7,
             top_p=0.9
         )
         
         if result and 'generated_text' in result:
-            full_text = result['generated_text']
-            
-            # Extract response after "YOUR RESPONSE"
-            if "YOUR RESPONSE" in full_text:
-                response = full_text.split("YOUR RESPONSE", 1)[-1]
-                response = response.lstrip(":").lstrip("(match").split("):")[1] if "):" in response else response.lstrip(":")
-                response = response.strip()
-                return response
-            
-            return full_text
+            return result['generated_text']
         
         return None
     

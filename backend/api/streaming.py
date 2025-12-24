@@ -75,23 +75,110 @@ async def stream_chat_sse(request: StreamChatRequest):
             
             # Process with NLP
             nlp_result = nlp_service.process(request.message)
+            intent_value = nlp_result.intent.value if hasattr(nlp_result.intent, 'value') else str(nlp_result.intent)
+            
+            # === RAG ENHANCEMENT: Retrieve relevant context ===
+            rag_context = None
+            map_data = None
+            route_data = None
+            
+            # Check if this is a transportation query
+            query_lower = request.message.lower()
+            transportation_keywords = ['how do i get', 'how can i get', 'how to get', 'route to', 
+                                       'from', 'directions to', 'navigate to', 'take me to', 'go to',
+                                       'taksim', 'kadikoy', 'kadıköy', 'sultanahmet', 'metro', 'tram']
+            is_transportation = (
+                intent_value in ['transportation', 'directions', 'route', 'navigate'] or
+                any(keyword in query_lower for keyword in transportation_keywords)
+            )
+            
+            # Get RAG context based on query type
+            try:
+                if is_transportation:
+                    # Use Transportation RAG for route queries
+                    logger.info("🚇 Transportation query detected - using Transportation RAG")
+                    from services.transportation_rag_system import get_transportation_rag
+                    transport_rag = get_transportation_rag()
+                    
+                    if transport_rag:
+                        # Get route context from Transportation RAG
+                        user_loc = None
+                        if request.user_location:
+                            user_loc = {
+                                'lat': request.user_location.get('latitude') or request.user_location.get('lat'),
+                                'lon': request.user_location.get('longitude') or request.user_location.get('lon')
+                            }
+                        
+                        route_context = transport_rag.get_rag_context_for_query(request.message, user_loc)
+                        if route_context:
+                            rag_context = route_context
+                            logger.info(f"✅ Got transportation RAG context")
+                        
+                        # Get map data for visualization
+                        map_data = transport_rag.get_map_data_for_last_route()
+                        if map_data:
+                            logger.info(f"🗺️ Got map_data for route visualization")
+                        
+                        # Get enriched route data
+                        if transport_rag.last_route:
+                            basic_route_data = {
+                                'origin': transport_rag.last_route.origin,
+                                'destination': transport_rag.last_route.destination,
+                                'steps': transport_rag.last_route.steps,
+                                'total_time': transport_rag.last_route.total_time,
+                                'total_distance': transport_rag.last_route.total_distance,
+                                'transfers': transport_rag.last_route.transfers,
+                                'lines_used': transport_rag.last_route.lines_used
+                            }
+                            route_data = transport_rag.station_normalizer.enrich_route_data(basic_route_data)
+                            logger.info(f"✅ Got enriched route_data: {route_data.get('origin')} → {route_data.get('destination')}")
+                else:
+                    # Use Database RAG for general queries
+                    logger.info("🔍 Using Database RAG for general query")
+                    from services.database_rag_service import get_rag_service
+                    from database import get_db
+                    
+                    # Get database session
+                    db = next(get_db())
+                    try:
+                        rag_service = get_rag_service(db=db)
+                        if rag_service:
+                            rag_context = rag_service.get_context_for_llm(request.message, top_k=3)
+                            if rag_context:
+                                logger.info(f"✅ Got database RAG context")
+                    finally:
+                        db.close()
+                        
+            except Exception as rag_err:
+                logger.warning(f"RAG retrieval failed: {rag_err}")
             
             # Get conversation context
-            context = None
+            context = {
+                "location": request.user_location,
+                "intent": intent_value,
+                "entities": [e.to_dict() for e in nlp_result.entities]
+            }
+            
+            # Add RAG context
+            if rag_context:
+                context["rag_context"] = rag_context
+            
+            # Add map_data and route_data to context for prompt builder
+            if map_data:
+                context["map_data"] = map_data
+            if route_data:
+                context["route_data"] = route_data
+            
+            # Add conversation history
             if request.include_context and request.session_id:
                 conversation_history = history_service.get_conversation_context(
                     request.session_id,
                     max_turns=5
                 )
-                context = {
-                    "conversation_history": conversation_history,
-                    "location": request.user_location,
-                    "intent": nlp_result.intent.value,
-                    "entities": [e.to_dict() for e in nlp_result.entities]
-                }
+                context["conversation_history"] = conversation_history
             
             # Send start event
-            yield f"event: start\ndata: {json.dumps({'timestamp': time.time(), 'intent': nlp_result.intent.value})}\n\n"
+            yield f"event: start\ndata: {json.dumps({'timestamp': time.time(), 'intent': intent_value})}\n\n"
             
             # Stream response
             full_response = ""
@@ -112,13 +199,23 @@ async def stream_chat_sse(request: StreamChatRequest):
                             user_message=request.message,
                             assistant_response=full_response,
                             metadata={
-                                "intent": nlp_result.intent.value,
+                                "intent": intent_value,
                                 "language": request.language
                             }
                         )
                     
-                    # Send completion event
-                    yield f"event: complete\ndata: {json.dumps({'content': full_response, 'metadata': {'intent': nlp_result.intent.value, 'language': nlp_result.language}})}\n\n"
+                    # Build metadata including map_data and route_data if available
+                    metadata = {
+                        'intent': intent_value,
+                        'language': nlp_result.language
+                    }
+                    if map_data:
+                        metadata['map_data'] = map_data
+                    if route_data:
+                        metadata['route_data'] = route_data
+                    
+                    # Send completion event with all metadata
+                    yield f"event: complete\ndata: {json.dumps({'content': full_response, 'metadata': metadata})}\n\n"
             
         except Exception as e:
             logger.error(f"Streaming error: {e}")
@@ -393,3 +490,48 @@ async def get_location_suggestions(
     suggestions = nlp_service.get_location_suggestions(query)
     
     return {"suggestions": suggestions}
+
+
+# ==========================================
+# Metrics & Health Endpoints
+# ==========================================
+
+@router.get("/metrics")
+async def get_streaming_metrics():
+    """
+    Get streaming service metrics.
+    
+    Returns:
+    - Request counts (total, success, failed)
+    - Cache hit rate
+    - Average latency
+    - Circuit breaker state
+    - Token counts
+    """
+    from services.streaming_llm_service import get_streaming_metrics
+    
+    return get_streaming_metrics()
+
+
+@router.get("/health")
+async def streaming_health_check():
+    """
+    Check streaming service health.
+    
+    Returns service status, circuit breaker state, and basic metrics.
+    """
+    from services.streaming_llm_service import get_streaming_llm_service
+    
+    service = get_streaming_llm_service()
+    return await service.health_check()
+
+
+@router.post("/cache/clear")
+async def clear_streaming_cache():
+    """Clear the streaming response cache."""
+    from services.streaming_llm_service import get_streaming_llm_service
+    
+    service = get_streaming_llm_service()
+    service.clear_cache()
+    
+    return {"status": "success", "message": "Streaming cache cleared"}
