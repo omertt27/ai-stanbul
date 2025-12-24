@@ -64,7 +64,8 @@ const SimpleChatInput = ({
     };
   }, []);
 
-  // Keep focus even when keyboard dismisses temporarily
+  // Keep focus when blur is caused by clicking send button only
+  // DON'T steal focus when user is selecting text in chat messages
   useEffect(() => {
     const input = inputRef.current;
     if (!input) return;
@@ -72,18 +73,15 @@ const SimpleChatInput = ({
     const handleBlur = (e) => {
       const relatedTarget = e.relatedTarget;
       
-      // If blur was to a button, allow it
-      if (relatedTarget?.tagName === 'BUTTON') {
+      // If blur was to a button (like send), refocus after
+      if (relatedTarget?.tagName === 'BUTTON' && 
+          relatedTarget.closest('.simple-chat-input-wrapper')) {
+        setTimeout(() => input.focus(), 100);
         return;
       }
       
-      // Otherwise, refocus after a short delay
-      setTimeout(() => {
-        if (document.activeElement !== input && 
-            !document.activeElement?.closest('.message-actions')) {
-          input.focus();
-        }
-      }, 100);
+      // DON'T refocus automatically - let users select and copy text
+      // The input will be focused again when they click on it or start typing
     };
     
     input.addEventListener('blur', handleBlur, { passive: true });

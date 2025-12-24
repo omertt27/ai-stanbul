@@ -30,6 +30,7 @@ import ScrollToBottom from './components/ScrollToBottom';
 import ChatHeader from './components/ChatHeader';
 import ChatSessionsPanel from './components/ChatSessionsPanel';
 import MapVisualization from './components/MapVisualization';
+import TripPlanCard from './components/TripPlanCard';
 import SimpleChatInput from './components/SimpleChatInput';
 import RestaurantCard from './components/RestaurantCard';
 import TransportationRouteCard from './components/TransportationRouteCard';
@@ -788,9 +789,24 @@ function Chatbot({ userLocation: propUserLocation }) {
   // Mobile ergonomics: Keyboard detection
   const { isKeyboardVisible, keyboardHeight } = useKeyboardDetection();
   
-  // Enhanced state management
+  // Enhanced state management with migration for feedback support
   const [messages, setMessages] = useState(() => {
-    return safeStorage.getJSON('chat-messages', []);
+    const savedMessages = safeStorage.getJSON('chat-messages', []);
+    // Migrate existing messages to have interaction_id for feedback buttons
+    const migratedMessages = savedMessages.map(msg => {
+      if (msg.sender === 'assistant' && !msg.interaction_id) {
+        return {
+          ...msg,
+          interaction_id: `migrated_${msg.id || Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        };
+      }
+      return msg;
+    });
+    // Save migrated messages if any changes were made
+    if (migratedMessages.some((msg, i) => msg.interaction_id !== savedMessages[i]?.interaction_id)) {
+      safeStorage.setJSON('chat-messages', migratedMessages);
+    }
+    return migratedMessages;
   });
   
   const [input, setInput] = useState('');
@@ -878,6 +894,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   // Enhanced message management
   const addMessage = (text, sender = 'assistant', metadata = {}) => {
     console.log('📨 addMessage called with mapData:', metadata.mapData ? 'YES' : 'NO');
+    console.log('📨 addMessage interaction_id:', metadata.interaction_id || 'NOT SET - will generate');
     if (metadata.mapData) {
       console.log('📨 mapData in addMessage:', {
         markers: metadata.mapData.markers?.length || 0,
@@ -885,12 +902,19 @@ function Chatbot({ userLocation: propUserLocation }) {
         coordinates: metadata.mapData.coordinates?.length || 0
       });
     }
+    
+    // Generate interaction_id for assistant messages if not provided (for feedback)
+    const messageId = Date.now() + Math.random();
+    const interaction_id = metadata.interaction_id || 
+      (sender === 'assistant' ? `frontend_${messageId.toString(36)}` : null);
+    
     const newMessage = {
-      id: Date.now() + Math.random(),
+      id: messageId,
       text: typeof text === 'string' ? text : '',
       sender,
       timestamp: new Date().toISOString(),
-      ...metadata
+      ...metadata,
+      interaction_id  // Ensure interaction_id is always set for assistant messages
     };
     
     setMessages(prev => {
@@ -1442,12 +1466,16 @@ function Chatbot({ userLocation: propUserLocation }) {
             onComplete: (finalText, metadata) => {
               console.log('✅ Streaming complete:', finalText.substring(0, 100) + '...');
               console.log('🗺️ Map data in metadata:', metadata?.map_data ? 'YES' : 'NO');
+              console.log('🗓️ Trip plan in metadata:', metadata?.trip_plan ? 'YES' : 'NO');
+              console.log('📝 Interaction ID for feedback:', metadata?.interaction_id || 'NOT SET');
               if (metadata?.map_data) {
                 console.log('🗺️ Map data details:', {
+                  type: metadata.map_data.type || 'route',
                   markers: metadata.map_data.markers?.length || 0,
                   routes: metadata.map_data.routes?.length || 0,
                   coordinates: metadata.map_data.coordinates?.length || 0,
-                  hasRouteData: !!metadata.map_data.route_data
+                  hasRouteData: !!metadata.map_data.route_data,
+                  days: metadata.map_data.days?.length || 0
                 });
               }
               abortControllerRef.current = null; // Clear abort controller
@@ -1460,12 +1488,14 @@ function Chatbot({ userLocation: propUserLocation }) {
                 confidence: metadata?.confidence,
                 mapData: metadata?.map_data,
                 routeData: metadata?.route_data,
+                tripPlan: metadata?.trip_plan,
                 llmMode: metadata?.llm_mode,
                 intent: metadata?.intent,
                 method: 'streaming',
                 cached: false,
                 responseTime: metadata?.response_time,
-                backend: 'streaming'
+                backend: 'streaming',
+                interaction_id: metadata?.interaction_id  // Include for feedback
               });
               
               // Track message received (analytics)
@@ -1968,11 +1998,37 @@ function Chatbot({ userLocation: propUserLocation }) {
                           </div>
                           
                           {/* NO background, just text - ChatGPT style */}
-                          <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 ${
+                          <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 select-text ${
                             darkMode ? 'text-gray-100' : 'text-gray-800'
                           }`}>
                             {renderMessageContent(msg.text || msg.content, darkMode)}
                           </div>
+                          
+                          {/* Copy Button - Easy copy functionality */}
+                          <button
+                            onClick={() => {
+                              const textToCopy = msg.text || msg.content || '';
+                              navigator.clipboard.writeText(textToCopy).then(() => {
+                                // Brief visual feedback
+                                const btn = document.getElementById(`copy-btn-${msg.id || idx}`);
+                                if (btn) {
+                                  btn.textContent = '✓ Copied!';
+                                  setTimeout(() => {
+                                    btn.textContent = '📋 Copy';
+                                  }, 2000);
+                                }
+                              }).catch(err => console.error('Copy failed:', err));
+                            }}
+                            id={`copy-btn-${msg.id || idx}`}
+                            className={`mt-2 px-2 py-1 text-xs rounded transition-all duration-200 ${
+                              darkMode 
+                                ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                            }`}
+                            title="Copy message"
+                          >
+                            📋 Copy
+                          </button>
                           
                           {/* Restaurant Cards */}
                           {msg.restaurants && msg.restaurants.length > 0 && (
@@ -1995,15 +2051,22 @@ function Chatbot({ userLocation: propUserLocation }) {
                           )}
                           
                           {/* Transportation Route Card - Show for routing queries */}
-                          {(msg.routeData || (msg.mapData && msg.mapData.route_data)) && (
+                          {(msg.routeData || (msg.mapData && msg.mapData.route_data && msg.mapData.type !== 'trip_plan')) && (
                             <TransportationRouteCard 
                               routeData={msg.routeData || msg.mapData?.route_data}
                               darkMode={darkMode}
                             />
                           )}
                           
-                          {/* Map Visualization */}
-                          {msg.mapData && (msg.mapData.markers || msg.mapData.coordinates || msg.mapData.route_data) && (
+                          {/* Trip Plan Card - Show for multi-day trip planning queries */}
+                          {(msg.tripPlan || (msg.mapData && msg.mapData.type === 'trip_plan')) && (
+                            <TripPlanCard 
+                              tripPlan={msg.tripPlan || msg.mapData}
+                            />
+                          )}
+                          
+                          {/* Map Visualization - Show for route queries (not trip plans, they have their own map) */}
+                          {msg.mapData && msg.mapData.type !== 'trip_plan' && (msg.mapData.markers || msg.mapData.coordinates || msg.mapData.route_data) && (
                             <div className="mt-4">
                               <div className={`text-sm font-medium mb-3 ${
                                 darkMode ? 'text-gray-300' : 'text-gray-700'
@@ -2117,11 +2180,36 @@ function Chatbot({ userLocation: propUserLocation }) {
                         }`}>KAM Assistant</div>
                         
                         {/* NO background, just text - ChatGPT style */}
-                        <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 ${
+                        <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 select-text ${
                           darkMode ? 'text-gray-100' : 'text-gray-800'
                         }`}>
                           {renderMessageContent(msg.text || msg.content, darkMode)}
                         </div>
+                        
+                        {/* Copy Button - Easy copy functionality */}
+                        <button
+                          onClick={() => {
+                            const textToCopy = msg.text || msg.content || '';
+                            navigator.clipboard.writeText(textToCopy).then(() => {
+                              const btn = document.getElementById(`copy-btn-desktop-${msg.id || idx}`);
+                              if (btn) {
+                                btn.textContent = '✓ Copied!';
+                                setTimeout(() => {
+                                  btn.textContent = '📋 Copy';
+                                }, 2000);
+                              }
+                            }).catch(err => console.error('Copy failed:', err));
+                          }}
+                          id={`copy-btn-desktop-${msg.id || idx}`}
+                          className={`mt-2 px-2 py-1 text-xs rounded transition-all duration-200 ${
+                            darkMode 
+                              ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
+                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                          }`}
+                          title="Copy message"
+                        >
+                          📋 Copy
+                        </button>
                         
                         {/* Restaurant Cards - Display when message has restaurant data */}
                         {msg.restaurants && msg.restaurants.length > 0 && (
@@ -2143,8 +2231,15 @@ function Chatbot({ userLocation: propUserLocation }) {
                           </div>
                         )}
                         
-                        {/* Map Visualization - Display when message has map data */}
-                        {msg.mapData && (msg.mapData.markers || msg.mapData.coordinates || msg.mapData.route_data) && (
+                        {/* Trip Plan Card - Show for multi-day trip planning queries */}
+                        {(msg.tripPlan || (msg.mapData && msg.mapData.type === 'trip_plan')) && (
+                          <TripPlanCard 
+                            tripPlan={msg.tripPlan || msg.mapData}
+                          />
+                        )}
+                        
+                        {/* Map Visualization - Display when message has map data (not trip plans) */}
+                        {msg.mapData && msg.mapData.type !== 'trip_plan' && (msg.mapData.markers || msg.mapData.coordinates || msg.mapData.route_data) && (
                           <div className="mt-4">
                             <div className={`text-sm font-medium mb-3 ${
                               darkMode ? 'text-gray-300' : 'text-gray-700'

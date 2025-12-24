@@ -13,12 +13,66 @@ import asyncio
 import json
 import logging
 import time
+import re
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+# Import data collection for feedback loop
+from services.data_collection import log_chat_interaction
+
 logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/stream", tags=["Streaming"])
+
+
+def clean_llm_response(text: str) -> str:
+    """
+    Clean LLM response to remove any prompt leakage.
+    
+    This removes:
+    - System instruction fragments
+    - Language instruction markers
+    - Internal notes and warnings
+    - Map/visualization mentions
+    """
+    if not text:
+        return text
+    
+    # Patterns that indicate prompt leakage (case insensitive)
+    leakage_patterns = [
+        r'\*\*Map:\*\*.*?(?=\n|$)',  # **Map:** ...
+        r'Map:.*will be shown.*?(?=\n|$)',  # Map will be shown
+        r'⚠️\s*CRITICAL.*?(?=\n\n|\Z)',  # ⚠️ CRITICAL warnings
+        r'CRITICAL:.*?(?=\n\n|\Z)',  # CRITICAL: ...
+        r'\[Respond in \w+\]',  # [Respond in Turkish]
+        r'\[.*instruction.*\]',  # [instruction...]
+        r'---\s*⚠️.*',  # --- ⚠️ ...
+        r'Write in \w+ \(\w+\) only\.?',  # Write in TURKISH (Türkçe) only
+        r'User Question:.*',  # User Question: ...
+        r'❌ DO NOT.*?(?=\n|$)',  # ❌ DO NOT ...
+        r'MUST be written ONLY in.*?(?=\n|$)',  # MUST be written ONLY in ...
+        r'Never use.*other language.*?(?=\n|$)',  # Never use other language
+        r'A map will be shown to the user\.?',  # Map mention
+        r'The map shows.*?(?=\n|$)',  # Map description
+        r'As shown on the map.*?(?=\n|$)',  # Map reference
+    ]
+    
+    cleaned = text
+    for pattern in leakage_patterns:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE | re.DOTALL)
+    
+    # Clean up multiple newlines and trailing whitespace
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+    cleaned = cleaned.strip()
+    
+    # If we removed significant content, log it
+    if len(cleaned) < len(text) * 0.8:
+        logger.warning(f"Cleaned significant prompt leakage from response ({len(text)} -> {len(cleaned)} chars)")
+    
+    return cleaned
+
 
 router = APIRouter(prefix="/api/stream", tags=["Streaming"])
 
@@ -92,9 +146,84 @@ async def stream_chat_sse(request: StreamChatRequest):
                 any(keyword in query_lower for keyword in transportation_keywords)
             )
             
+            # Check if this is a trip planning query
+            trip_planning_keywords = [
+                '1 day', '2 day', '3 day', '4 day', '5 day',
+                '1-day', '2-day', '3-day', '4-day', '5-day',
+                'one day', 'two day', 'three day', 'four day', 'five day',
+                'itinerary', 'trip plan', 'trip itinerary', 'day trip',
+                'plan my trip', 'plan a trip', 'plan trip',
+                'günlük', 'gün', 'gezi planı', 'gezi plan',
+            ]
+            is_trip_planning = any(keyword in query_lower for keyword in trip_planning_keywords)
+            trip_duration = None
+            if is_trip_planning:
+                # Extract number of days
+                import re
+                day_patterns = [
+                    r'(\d+)\s*(?:day|gün)',
+                    r'(one|two|three|four|five)\s*day',
+                    r'(bir|iki|üç|dört|beş)\s*gün'
+                ]
+                day_words = {
+                    'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+                    'bir': 1, 'iki': 2, 'üç': 3, 'dört': 4, 'beş': 5
+                }
+                for pattern in day_patterns:
+                    match = re.search(pattern, query_lower)
+                    if match:
+                        val = match.group(1)
+                        if val.isdigit():
+                            trip_duration = int(val)
+                        elif val in day_words:
+                            trip_duration = day_words[val]
+                        break
+                # Default to 1 day if just "itinerary" without number
+                if trip_duration is None:
+                    trip_duration = 1
+                logger.info(f"🗓️ Trip planning query detected - {trip_duration} day(s)")
+            
             # Get RAG context based on query type
+            trip_plan_data = None
             try:
-                if is_transportation:
+                if is_trip_planning:
+                    # Use Trip Planner for multi-day itinerary queries
+                    logger.info(f"🗓️ Trip planning query - using Trip Planner ({trip_duration} days)")
+                    from services.trip_planner import get_trip_planner
+                    trip_planner = get_trip_planner()
+                    
+                    # Parse user preferences from the query
+                    preferences = trip_planner.parse_user_preferences(request.message)
+                    trip_duration = preferences.get('duration', trip_duration)
+                    
+                    # Map duration to template key
+                    if trip_duration == 1:
+                        trip_id = "1_day_highlights"
+                    elif trip_duration <= 3:
+                        trip_id = "3_day_classic"
+                    else:
+                        trip_id = "5_day_complete"
+                    
+                    # Get trip plan map data
+                    trip_map_data = trip_planner.get_trip_map_data(trip_id)
+                    
+                    if trip_map_data:
+                        map_data = trip_map_data
+                        trip_plan_data = trip_map_data
+                        logger.info(f"✅ Got trip plan: {trip_map_data.get('name')} ({trip_duration} days)")
+                        
+                        # Get detailed RAG context for LLM
+                        rag_context = trip_planner.get_trip_rag_context(trip_id, language=request.language)
+                        
+                        # Add user preferences info
+                        if preferences.get('interests'):
+                            rag_context += f"\n\n**User Interests:** {', '.join(preferences['interests'])}"
+                        if preferences.get('style'):
+                            rag_context += f"\n**Travel Style:** {preferences['style'].value}"
+                        
+                        logger.info(f"✅ Built detailed trip planning RAG context ({len(rag_context)} chars)")
+                    
+                elif is_transportation:
                     # Use Transportation RAG for route queries
                     logger.info("🚇 Transportation query detected - using Transportation RAG")
                     from services.transportation_rag_system import get_transportation_rag
@@ -156,7 +285,11 @@ async def stream_chat_sse(request: StreamChatRequest):
             context = {
                 "location": request.user_location,
                 "intent": intent_value,
-                "entities": [e.to_dict() for e in nlp_result.entities]
+                "entities": [e.to_dict() for e in nlp_result.entities],
+                "signals": {
+                    "needs_trip_planning": is_trip_planning,
+                    "needs_transportation": is_transportation
+                }
             }
             
             # Add RAG context
@@ -168,6 +301,13 @@ async def stream_chat_sse(request: StreamChatRequest):
                 context["map_data"] = map_data
             if route_data:
                 context["route_data"] = route_data
+            if trip_plan_data:
+                context["trip_plan"] = trip_plan_data
+            
+            # Add trip planning signal for LLM prompt
+            if is_trip_planning:
+                context["needs_trip_planning"] = True
+                context["trip_duration"] = trip_duration
             
             # Add conversation history
             if request.include_context and request.session_id:
@@ -177,8 +317,12 @@ async def stream_chat_sse(request: StreamChatRequest):
                 )
                 context["conversation_history"] = conversation_history
             
-            # Send start event
-            yield f"event: start\ndata: {json.dumps({'timestamp': time.time(), 'intent': intent_value})}\n\n"
+            # Send start event with trip planning flag
+            start_data = {'timestamp': time.time(), 'intent': intent_value}
+            if is_trip_planning:
+                start_data['is_trip_planning'] = True
+                start_data['trip_duration'] = trip_duration
+            yield f"event: start\ndata: {json.dumps(start_data)}\n\n"
             
             # Stream response
             full_response = ""
@@ -192,30 +336,52 @@ async def stream_chat_sse(request: StreamChatRequest):
                     yield f"event: token\ndata: {json.dumps({'content': chunk['content']})}\n\n"
                 
                 elif chunk["type"] == "complete":
-                    # Save to history
+                    # Clean the response to remove any prompt leakage
+                    cleaned_response = clean_llm_response(full_response)
+                    
+                    # Save to history (use cleaned version)
                     if request.session_id:
                         history_service.add_exchange(
                             session_id=request.session_id,
                             user_message=request.message,
-                            assistant_response=full_response,
+                            assistant_response=cleaned_response,
                             metadata={
                                 "intent": intent_value,
                                 "language": request.language
                             }
                         )
                     
+                    # Log interaction for feedback loop (fine-tuning data collection)
+                    interaction_id = None
+                    try:
+                        interaction_id = log_chat_interaction(
+                            user_query=request.message,
+                            llm_response=cleaned_response,
+                            language=request.language or nlp_result.language,
+                            intent=intent_value,
+                            session_id=request.session_id,
+                            has_map_data=bool(map_data or route_data or trip_plan_data),
+                            method='streaming'
+                        )
+                        logger.info(f"📝 Logged interaction {interaction_id} for feedback loop")
+                    except Exception as log_err:
+                        logger.warning(f"⚠️ Failed to log interaction for feedback: {log_err}")
+                    
                     # Build metadata including map_data and route_data if available
                     metadata = {
                         'intent': intent_value,
-                        'language': nlp_result.language
+                        'language': nlp_result.language,
+                        'interaction_id': interaction_id  # Include for feedback
                     }
                     if map_data:
                         metadata['map_data'] = map_data
                     if route_data:
                         metadata['route_data'] = route_data
+                    if trip_plan_data:
+                        metadata['trip_plan'] = trip_plan_data
                     
-                    # Send completion event with all metadata
-                    yield f"event: complete\ndata: {json.dumps({'content': full_response, 'metadata': metadata})}\n\n"
+                    # Send completion event with cleaned response
+                    yield f"event: complete\ndata: {json.dumps({'content': cleaned_response, 'metadata': metadata})}\n\n"
             
         except Exception as e:
             logger.error(f"Streaming error: {e}")
@@ -392,11 +558,14 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                             })
                         
                         elif chunk["type"] == "complete":
+                            # Clean response to remove prompt leakage
+                            cleaned_response = clean_llm_response(full_response)
+                            
                             # Save to history
                             history_service.add_exchange(
                                 session_id=session_id,
                                 user_message=content,
-                                assistant_response=full_response,
+                                assistant_response=cleaned_response,
                                 metadata={
                                     "intent": nlp_result.intent.value,
                                     "language": language
@@ -405,7 +574,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                             
                             await websocket.send_json({
                                 "type": "complete",
-                                "content": full_response,
+                                "content": cleaned_response,
                                 "metadata": {
                                     "intent": nlp_result.intent.value,
                                     "language": nlp_result.language,

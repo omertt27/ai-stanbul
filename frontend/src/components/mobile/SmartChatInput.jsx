@@ -14,7 +14,7 @@
  * - Placeholder with typing hints
  */
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { scrollIntoViewSafe } from '../../utils/keyboardDetection';
 import { trackEvent } from '../../utils/analytics';
 import './SmartChatInput.css';
@@ -36,6 +36,33 @@ const SmartChatInput = ({
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState(null);
   const [inputHeight, setInputHeight] = useState(44);
+  const [voiceError, setVoiceError] = useState(null);
+  const [voiceSupported, setVoiceSupported] = useState(true);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  
+  // Use ref to access current value in callbacks (avoid stale closure)
+  const valueRef = useRef(value);
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+  // Detect browser language for speech recognition
+  const detectLanguage = useCallback(() => {
+    const browserLang = navigator.language || navigator.userLanguage || 'en-US';
+    // Support Turkish and English
+    if (browserLang.startsWith('tr')) {
+      return 'tr-TR';
+    }
+    return 'en-US';
+  }, []);
+
+  // Check if we're on iOS Safari (limited Web Speech API support)
+  const isIOSSafari = useCallback(() => {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS/.test(ua);
+    return isIOS && isSafari;
+  }, []);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -43,46 +70,120 @@ const SmartChatInput = ({
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.log('Speech recognition not supported');
+      console.log('Speech recognition not supported in this browser');
+      setVoiceSupported(false);
       return;
     }
 
-    const recognitionInstance = new SpeechRecognition();
-    recognitionInstance.continuous = false;
-    recognitionInstance.interimResults = false;
-    recognitionInstance.lang = 'en-US';
+    // iOS Safari has very limited Web Speech API support
+    if (isIOSSafari()) {
+      console.log('iOS Safari has limited speech recognition support');
+      // Still allow trying, but warn user if it fails
+    }
 
-    recognitionInstance.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      onChange(value + ' ' + transcript);
-      setIsListening(false);
+    try {
+      const recognitionInstance = new SpeechRecognition();
+      recognitionInstance.continuous = false;
+      recognitionInstance.interimResults = true; // Enable interim results for better UX
+      recognitionInstance.lang = detectLanguage();
+      recognitionInstance.maxAlternatives = 1;
+
+      recognitionInstance.onresult = (event) => {
+        let finalTranscript = '';
+        let interim = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript;
+          } else {
+            interim += result[0].transcript;
+          }
+        }
+        
+        // Show interim results as visual feedback
+        if (interim) {
+          setInterimTranscript(interim);
+        }
+        
+        // When we get a final result, append it to the input
+        if (finalTranscript) {
+          const currentValue = valueRef.current;
+          const newValue = currentValue 
+            ? currentValue.trim() + ' ' + finalTranscript.trim()
+            : finalTranscript.trim();
+          onChange(newValue);
+          setInterimTranscript('');
+          setIsListening(false);
+          
+          // Track successful voice input (analytics)
+          try {
+            trackEvent('voice_input_success', 'chat_input', 'Voice recognition completed', 
+              event.results[0]?.[0]?.confidence || 0);
+          } catch (e) {
+            console.warn('Analytics tracking failed:', e);
+          }
+        }
+      };
+
+      recognitionInstance.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        setInterimTranscript('');
+        
+        // Provide user-friendly error messages
+        let errorMessage = '';
+        switch (event.error) {
+          case 'not-allowed':
+          case 'permission-denied':
+            errorMessage = 'Microphone access denied. Please allow microphone permissions.';
+            break;
+          case 'no-speech':
+            errorMessage = 'No speech detected. Please try again.';
+            break;
+          case 'audio-capture':
+            errorMessage = 'No microphone found. Please check your device.';
+            break;
+          case 'network':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
+          case 'aborted':
+            // User cancelled, no error message needed
+            break;
+          default:
+            errorMessage = 'Voice input failed. Please try again or type your message.';
+        }
+        
+        if (errorMessage) {
+          setVoiceError(errorMessage);
+          // Clear error after 3 seconds
+          setTimeout(() => setVoiceError(null), 3000);
+        }
+        
+        // Track failed voice input (analytics)
+        try {
+          trackEvent('voice_input_error', 'chat_input', event.error || 'Unknown error', 0);
+        } catch (e) {
+          console.warn('Analytics tracking failed:', e);
+        }
+      };
+
+      recognitionInstance.onend = () => {
+        setIsListening(false);
+        setInterimTranscript('');
+      };
       
-      // Track successful voice input (analytics)
-      try {
-        trackEvent('voice_input_success', 'chat_input', 'Voice recognition completed', event.results[0][0].confidence);
-      } catch (e) {
-        console.warn('Analytics tracking failed:', e);
-      }
-    };
+      recognitionInstance.onaudiostart = () => {
+        console.log('Audio capture started');
+      };
 
-    recognitionInstance.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-      
-      // Track failed voice input (analytics)
-      try {
-        trackEvent('voice_input_error', 'chat_input', event.error || 'Unknown error', 0);
-      } catch (e) {
-        console.warn('Analytics tracking failed:', e);
-      }
-    };
-
-    recognitionInstance.onend = () => {
-      setIsListening(false);
-    };
-
-    setRecognition(recognitionInstance);
-  }, [enableVoice]);
+      setRecognition(recognitionInstance);
+      setVoiceSupported(true);
+    } catch (e) {
+      console.error('Failed to initialize speech recognition:', e);
+      setVoiceSupported(false);
+    }
+  }, [enableVoice, detectLanguage, isIOSSafari, onChange]);
 
   // Auto-resize textarea as content changes
   useEffect(() => {
@@ -123,20 +224,71 @@ const SmartChatInput = ({
     }
   };
 
-  const handleVoiceToggle = () => {
-    if (!recognition) return;
+  const handleVoiceToggle = async () => {
+    if (!recognition) {
+      if (!voiceSupported) {
+        setVoiceError('Voice input is not supported in this browser. Please try Chrome or Edge.');
+        setTimeout(() => setVoiceError(null), 3000);
+      }
+      return;
+    }
 
     if (isListening) {
-      recognition.stop();
+      try {
+        recognition.stop();
+      } catch (e) {
+        console.warn('Error stopping recognition:', e);
+      }
       setIsListening(false);
+      setInterimTranscript('');
     } else {
-      // Haptic feedback
+      // Clear any previous error
+      setVoiceError(null);
+      
+      // Haptic feedback for mobile
       if ('vibrate' in navigator) {
         navigator.vibrate(50);
       }
 
-      recognition.start();
-      setIsListening(true);
+      try {
+        // Request microphone permission first (helps with mobile browsers)
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Release the stream immediately, we just needed to prompt for permission
+            stream.getTracks().forEach(track => track.stop());
+          } catch (permError) {
+            console.warn('Microphone permission request failed:', permError);
+            // Continue anyway, the speech recognition will handle the error
+          }
+        }
+        
+        // Update language before starting (in case user changed browser language)
+        recognition.lang = detectLanguage();
+        
+        recognition.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error('Failed to start speech recognition:', e);
+        setIsListening(false);
+        
+        if (e.message?.includes('already started')) {
+          // Recognition was already running, try to stop and restart
+          try {
+            recognition.stop();
+            setTimeout(() => {
+              recognition.start();
+              setIsListening(true);
+            }, 100);
+          } catch (retryError) {
+            setVoiceError('Voice input is busy. Please try again.');
+            setTimeout(() => setVoiceError(null), 3000);
+          }
+        } else {
+          setVoiceError('Failed to start voice input. Please try again.');
+          setTimeout(() => setVoiceError(null), 3000);
+        }
+      }
     }
   };
 
@@ -161,12 +313,29 @@ const SmartChatInput = ({
   const charCount = value.length;
   const isNearLimit = charCount > maxLength * 0.8;
   
-  // In minimal mode: hide voice when typing, only show char counter when near limit
-  const showVoice = enableVoice && recognition && (!minimal || !value);
+  // Show voice button: always show if voice is enabled (even if not supported, to show error)
+  // In minimal mode: hide voice when typing
+  const showVoice = enableVoice && (!minimal || !value);
   const showCounter = showCharCounter && isNearLimit;
 
   return (
     <div ref={containerRef} className={`smart-chat-input-container ${darkMode ? 'dark' : 'light'} ${minimal ? 'minimal' : ''}`}>
+      {/* Voice error notification */}
+      {voiceError && (
+        <div className={`voice-error-toast ${darkMode ? 'dark' : 'light'}`}>
+          <span className="voice-error-icon">⚠️</span>
+          <span className="voice-error-text">{voiceError}</span>
+        </div>
+      )}
+      
+      {/* Interim transcript indicator */}
+      {isListening && interimTranscript && (
+        <div className={`interim-transcript ${darkMode ? 'dark' : 'light'}`}>
+          <span className="interim-icon">🎤</span>
+          <span className="interim-text">{interimTranscript}...</span>
+        </div>
+      )}
+      
       <div 
         className="smart-chat-input-wrapper"
         style={{ minHeight: `${inputHeight + 16}px` }}
@@ -175,10 +344,16 @@ const SmartChatInput = ({
         {showVoice && (
           <button
             onClick={handleVoiceToggle}
-            className={`voice-button ${isListening ? 'listening' : ''}`}
+            onTouchEnd={(e) => {
+              // Prevent double-tap zoom on mobile
+              e.preventDefault();
+              handleVoiceToggle();
+            }}
+            className={`voice-button ${isListening ? 'listening' : ''} ${!voiceSupported ? 'unsupported' : ''}`}
             disabled={loading}
             aria-label={isListening ? 'Stop listening' : 'Start voice input'}
-            title="Voice input"
+            title={voiceSupported ? 'Voice input' : 'Voice input not supported'}
+            type="button"
           >
             {isListening ? '🔴' : '🎤'}
           </button>
@@ -190,7 +365,7 @@ const SmartChatInput = ({
           value={value}
           onChange={(e) => onChange(e.target.value.slice(0, maxLength))}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={isListening ? 'Listening...' : placeholder}
           disabled={loading}
           className="smart-chat-textarea"
           rows={1}
@@ -215,6 +390,7 @@ const SmartChatInput = ({
           disabled={loading || !value.trim()}
           className="smart-send-button"
           aria-label="Send message"
+          type="button"
         >
           {loading ? (
             <svg className="spinner" viewBox="0 0 24 24">
@@ -239,8 +415,6 @@ const SmartChatInput = ({
           )}
         </button>
       </div>
-
-      {/* Keyboard hint - REMOVED for cleaner mobile UI like ChatGPT */}
     </div>
   );
 };

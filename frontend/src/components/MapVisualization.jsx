@@ -69,6 +69,21 @@ const createMarkerIcon = (type = 'default', color = null, emoji = '') => {
   });
 };
 
+// Helper function to normalize coordinates to [lat, lng] array format
+const normalizeCoord = (coord) => {
+  if (Array.isArray(coord) && coord.length === 2) {
+    return [coord[0], coord[1]];
+  }
+  if (coord && typeof coord === 'object') {
+    const lat = coord.lat ?? coord.latitude;
+    const lng = coord.lng ?? coord.lon ?? coord.longitude;
+    if (lat !== undefined && lng !== undefined) {
+      return [lat, lng];
+    }
+  }
+  return null;
+};
+
 // Auto-fit bounds component
 const AutoFitBounds = ({ coordinates, markers, routes }) => {
   const map = useMap();
@@ -83,8 +98,9 @@ const AutoFitBounds = ({ coordinates, markers, routes }) => {
       routes.forEach(route => {
         if (route.coordinates) {
           route.coordinates.forEach(coord => {
-            if (Array.isArray(coord) && coord.length === 2) {
-              bounds.push([coord[0], coord[1]]);
+            const normalized = normalizeCoord(coord);
+            if (normalized) {
+              bounds.push(normalized);
             }
           });
         }
@@ -94,8 +110,9 @@ const AutoFitBounds = ({ coordinates, markers, routes }) => {
     // Add flat coordinates
     if (coordinates && coordinates.length > 0) {
       coordinates.forEach(coord => {
-        if (Array.isArray(coord) && coord.length === 2) {
-          bounds.push([coord[0], coord[1]]);
+        const normalized = normalizeCoord(coord);
+        if (normalized) {
+          bounds.push(normalized);
         }
       });
     }
@@ -232,10 +249,17 @@ const MapVisualization = ({
           {routes && routes.map((segment, idx) => {
             if (!segment.coordinates || segment.coordinates.length < 2) return null;
             
+            // Normalize coordinates to [lat, lng] array format
+            const normalizedPositions = segment.coordinates
+              .map(normalizeCoord)
+              .filter(Boolean);
+            
+            if (normalizedPositions.length < 2) return null;
+            
             return (
               <Polyline
                 key={`segment-${idx}`}
-                positions={segment.coordinates}
+                positions={normalizedPositions}
                 color={segment.color || '#4285F4'}
                 weight={segment.weight || 5}
                 opacity={segment.opacity || 0.85}

@@ -55,6 +55,15 @@ except ImportError as e:
     STREAMING_API_AVAILABLE = False
     streaming_router = None
 
+# Import feedback API (for thumbs up/down on chat responses)
+try:
+    from api.feedback import router as feedback_router
+    FEEDBACK_API_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Feedback API not available: {e}")
+    FEEDBACK_API_AVAILABLE = False
+    feedback_router = None
+
 # Import blog API
 try:
     from blog_api import router as blog_api_router
@@ -119,6 +128,11 @@ app.include_router(admin_experiments.router)
 if STREAMING_API_AVAILABLE and streaming_router:
     app.include_router(streaming_router)
     logger.info("✅ Streaming API registered at /api/stream")
+
+# Register feedback API for thumbs up/down on chat responses
+if FEEDBACK_API_AVAILABLE and feedback_router:
+    app.include_router(feedback_router)
+    logger.info("✅ Feedback API registered at /api/feedback")
 
 # Register direct routing API (fast, deterministic transportation routing)
 try:

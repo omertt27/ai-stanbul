@@ -57,6 +57,73 @@ except ImportError:
     logger.warning("⚠️ Semantic Cache not available")
 
 
+def clean_streaming_response(text: str) -> str:
+    """
+    Clean prompt leakage and artifacts from streaming LLM response.
+    
+    This removes common patterns where the LLM echoes parts of the prompt
+    or instruction text back in its response.
+    """
+    if not text:
+        return text
+    
+    original_text = text
+    
+    # Patterns that indicate prompt leakage (should not appear in response)
+    # Check from the END of the response for these patterns
+    leakage_patterns = [
+        "⚠️ CRITICAL",
+        "❌ DO NOT",
+        "CRITICAL: Your response",
+        "Your response MUST",
+        "[Respond in ",
+        "**Map:** A map",
+        "A map will be shown",
+        "User Question:",
+        "Answer:",
+        "---\n\n⚠️",
+        "CRITICAL LANGUAGE",
+        "\n\nUser:",
+        "\n\nAssistant:",
+    ]
+    
+    # Find the earliest leakage pattern and truncate from there
+    earliest_idx = len(text)
+    found_pattern = None
+    
+    for pattern in leakage_patterns:
+        idx = text.find(pattern)
+        if idx != -1 and idx < earliest_idx and idx > 30:  # Must have some content before
+            earliest_idx = idx
+            found_pattern = pattern
+    
+    if found_pattern:
+        text = text[:earliest_idx].rstrip(' \n-')
+        logger.warning(f"🧹 Cleaned prompt leakage: '{found_pattern}' at position {earliest_idx}")
+    
+    # Additional cleanup: remove incomplete sentences at the end that might be cut off
+    # Look for trailing fragments after a clean sentence
+    if text and not text[-1] in '.!?؟':
+        # Find the last complete sentence
+        last_sentence_end = max(
+            text.rfind('. '),
+            text.rfind('! '),
+            text.rfind('? '),
+            text.rfind('.\n'),
+            text.rfind('!\n'),
+            text.rfind('?\n'),
+        )
+        # Only truncate if there's substantial content and the trailing part looks like garbage
+        if last_sentence_end > len(text) * 0.7:
+            trailing = text[last_sentence_end + 1:].strip()
+            # Check if trailing looks like prompt leakage (contains instruction markers)
+            if any(marker in trailing for marker in ['[', '⚠️', '❌', '---', 'CRITICAL']):
+                text = text[:last_sentence_end + 1].rstrip()
+                logger.warning(f"🧹 Removed trailing garbage after sentence end")
+    
+    return text
+
+
 @dataclass
 class StreamingConfig:
     """Configuration for streaming responses"""
@@ -645,6 +712,10 @@ class StreamingLLMService:
         
         # Post-generation validation
         validation_result = None
+        
+        # Clean any prompt leakage from the response
+        full_response = clean_streaming_response(full_response)
+        
         if self._response_validator and full_response:
             try:
                 context_sources = []
@@ -767,6 +838,10 @@ class StreamingLLMService:
                 signals['needs_attraction'] = True
             elif intent == 'weather':
                 signals['needs_weather'] = True
+        
+        # Add trip planning signal if present in context
+        if context and context.get('needs_trip_planning'):
+            signals['needs_trip_planning'] = True
         
         # Build prompt using the SINGLE source of truth
         prompt = prompt_builder.build_prompt(
