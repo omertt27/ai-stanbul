@@ -31,6 +31,7 @@ from .resilience import (
     TimeoutManager,
     GracefulDegradation
 )
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -416,12 +417,15 @@ class ContextBuilder:
         try:
             # Database query with circuit breaker and timeout
             async def _query_db():
-                cursor = await self.db.execute("""
-                    SELECT name, cuisine, district, price_range, rating
-                    FROM restaurants
-                    WHERE language = ?
-                    LIMIT 5
-                """, (language,))
+                cursor = await self.db.execute(
+                    text("""
+                        SELECT name, cuisine, district, price_range, rating
+                        FROM restaurants
+                        WHERE language = :language
+                        LIMIT 5
+                    """),
+                    {"language": language}
+                )
                 return await cursor.fetchall()
             
             # Apply timeout if timeout manager available
@@ -493,12 +497,15 @@ class ContextBuilder:
             
             # Fallback: Basic database query
             async def _query_db():
-                cursor = await self.db.execute("""
-                    SELECT name, category, district, description
-                    FROM attractions
-                    WHERE language = ?
-                    LIMIT 5
-                """, (language,))
+                cursor = await self.db.execute(
+                    text("""
+                        SELECT name, category, district, description
+                        FROM attractions
+                        WHERE language = :language
+                        LIMIT 5
+                    """),
+                    {"language": language}
+                )
                 return await cursor.fetchall()
             
             # Apply timeout if timeout manager available

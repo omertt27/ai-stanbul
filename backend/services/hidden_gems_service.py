@@ -234,6 +234,10 @@ class HiddenGemsService:
             print(f"❌ Error searching hidden gems: {e}")
             return "I'm having trouble accessing my hidden gems collection right now. Try asking about specific areas or types of places you're interested in!"
     
+    def search(self, query: str, **kwargs) -> str:
+        """Alias for search_hidden_gems - provides consistent interface"""
+        return self.search_hidden_gems(query)
+    
     def get_gems_by_category(self, category: str, limit: int = 3) -> List[Dict]:
         """Get hidden gems by category"""
         return [gem for gem in self.gems if gem.get('category', '').lower() == category.lower()][:limit]

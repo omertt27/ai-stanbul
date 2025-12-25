@@ -471,6 +471,9 @@ class DatabaseRAGService:
             List of relevant results with metadata and relevance scores
         """
         try:
+            # Guard: Ensure top_k is at least 1
+            top_k = max(top_k, 1)
+            
             # Generate query embedding
             query_embedding = self.encoder.encode([query])[0].tolist()
             
@@ -487,9 +490,18 @@ class DatabaseRAGService:
             all_results = []
             for name, collection in collections_to_search:
                 try:
+                    # Guard against empty collections or zero top_k
+                    collection_size = collection.count()
+                    if collection_size == 0:
+                        logger.debug(f"Collection '{name}' is empty, skipping")
+                        continue
+                    
+                    # Ensure n_results is at least 1 and at most collection size
+                    n_results = max(1, min(top_k, collection_size))
+                    
                     results = collection.query(
                         query_embeddings=[query_embedding],
-                        n_results=min(top_k, collection.count()),
+                        n_results=n_results,
                         where=filters
                     )
                     

@@ -891,6 +891,102 @@ function Chatbot({ userLocation: propUserLocation }) {
     }
   }, [messages, useSmartQuickReplies, i18n.language]);
 
+  // ===============================================
+  // 📊 BEHAVIORAL SIGNALS TRACKING
+  // Track user behavior for smart feedback system
+  // ===============================================
+  const lastResponseRef = useRef({ timestamp: null, interactionId: null, query: null });
+  const behaviorSignalsRef = useRef({});
+  
+  // Track when user sends a message - detect rephrase patterns
+  const trackUserMessage = (userQuery, previousInteractionId) => {
+    const now = Date.now();
+    const lastResponse = lastResponseRef.current;
+    
+    if (lastResponse.timestamp && previousInteractionId) {
+      const timeSinceResponse = (now - lastResponse.timestamp) / 1000;
+      
+      // Check for quick rephrase (indicates dissatisfaction)
+      const isQuickRephrase = timeSinceResponse < 30;
+      const isVeryQuickRephrase = timeSinceResponse < 10;
+      
+      // Simple similarity check (could be improved with Levenshtein distance)
+      const isSimilarQuery = lastResponse.query && 
+        userQuery.toLowerCase().includes(lastResponse.query.toLowerCase().split(' ')[0]) ||
+        lastResponse.query.toLowerCase().includes(userQuery.toLowerCase().split(' ')[0]);
+      
+      if (isQuickRephrase && isSimilarQuery) {
+        // Store rephrase signal for the previous response
+        if (!behaviorSignalsRef.current[previousInteractionId]) {
+          behaviorSignalsRef.current[previousInteractionId] = {};
+        }
+        behaviorSignalsRef.current[previousInteractionId].rephrase_within_30s = true;
+        if (isVeryQuickRephrase) {
+          behaviorSignalsRef.current[previousInteractionId].rephrase_within_10s = true;
+        }
+        console.log(`📊 Rephrase detected for ${previousInteractionId} (${timeSinceResponse.toFixed(1)}s)`);
+      }
+    }
+  };
+  
+  // Track when AI response is received
+  const trackResponseReceived = (interactionId, userQuery) => {
+    lastResponseRef.current = {
+      timestamp: Date.now(),
+      interactionId,
+      query: userQuery
+    };
+    
+    // Initialize behavior signals for this interaction
+    behaviorSignalsRef.current[interactionId] = {
+      session_continued: false,
+      rephrase_within_30s: false,
+      rephrase_within_10s: false,
+      time_on_response_seconds: 0,
+      copied_response: false,
+      shared_response: false,
+      follow_up_question: false
+    };
+  };
+  
+  // Mark session as continued when user asks follow-up
+  const markSessionContinued = (previousInteractionId) => {
+    if (previousInteractionId && behaviorSignalsRef.current[previousInteractionId]) {
+      behaviorSignalsRef.current[previousInteractionId].session_continued = true;
+      behaviorSignalsRef.current[previousInteractionId].follow_up_question = true;
+    }
+  };
+  
+  // Track copy action
+  const trackCopyAction = (interactionId) => {
+    if (interactionId && behaviorSignalsRef.current[interactionId]) {
+      behaviorSignalsRef.current[interactionId].copied_response = true;
+      console.log(`📊 Copy tracked for ${interactionId}`);
+    }
+  };
+  
+  // Track share action
+  const trackShareAction = (interactionId) => {
+    if (interactionId && behaviorSignalsRef.current[interactionId]) {
+      behaviorSignalsRef.current[interactionId].shared_response = true;
+      console.log(`📊 Share tracked for ${interactionId}`);
+    }
+  };
+  
+  // Get behavior signals for an interaction
+  const getBehaviorSignals = (interactionId) => {
+    const signals = behaviorSignalsRef.current[interactionId] || {};
+    
+    // Calculate time on response if we have the timestamp
+    if (lastResponseRef.current.interactionId === interactionId) {
+      signals.time_on_response_seconds = 
+        (Date.now() - lastResponseRef.current.timestamp) / 1000;
+    }
+    
+    return signals;
+  };
+  // ===============================================
+
   // Enhanced message management
   const addMessage = (text, sender = 'assistant', metadata = {}) => {
     console.log('📨 addMessage called with mapData:', metadata.mapData ? 'YES' : 'NO');
@@ -916,6 +1012,20 @@ function Chatbot({ userLocation: propUserLocation }) {
       ...metadata,
       interaction_id  // Ensure interaction_id is always set for assistant messages
     };
+    
+    // 📊 BEHAVIORAL TRACKING
+    if (sender === 'user') {
+      // Track user message for rephrase detection
+      const lastAssistantMsg = messages.filter(m => m.sender === 'assistant').slice(-1)[0];
+      if (lastAssistantMsg?.interaction_id) {
+        trackUserMessage(text, lastAssistantMsg.interaction_id);
+        markSessionContinued(lastAssistantMsg.interaction_id);
+      }
+    } else if (sender === 'assistant' && interaction_id) {
+      // Track when AI responds - store the user query that triggered this
+      const lastUserMsg = messages.filter(m => m.sender === 'user').slice(-1)[0];
+      trackResponseReceived(interaction_id, lastUserMsg?.text || '');
+    }
     
     setMessages(prev => {
       const updated = [...prev, newMessage];
@@ -1000,11 +1110,16 @@ function Chatbot({ userLocation: propUserLocation }) {
     setIsSessionsPanelOpen(!isSessionsPanelOpen);
   };
   
-  // Enhanced clipboard and sharing
+  // Enhanced clipboard and sharing with behavioral tracking
   const copyMessageToClipboard = async (message) => {
     try {
       await navigator.clipboard.writeText(message.text);
       console.log('📋 Message copied to clipboard');
+      
+      // Track copy action for behavioral signals
+      if (message.interaction_id) {
+        trackCopyAction(message.interaction_id);
+      }
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
     }
@@ -1012,6 +1127,11 @@ function Chatbot({ userLocation: propUserLocation }) {
 
   const shareMessage = async (message) => {
     const shareText = `KAM Assistant: ${message.text}`;
+    
+    // Track share action for behavioral signals
+    if (message.interaction_id) {
+      trackShareAction(message.interaction_id);
+    }
     
     if (navigator.share) {
       try {
@@ -1033,40 +1153,120 @@ function Chatbot({ userLocation: propUserLocation }) {
   };
 
   // Handle user feedback on AI responses (for model fine-tuning)
-  const handleFeedback = async (interactionId, feedbackType) => {
+  const [showDislikeReasons, setShowDislikeReasons] = useState(null); // interaction_id when showing reasons
+  
+  const dislikeReasons = [
+    { id: 'incorrect', label: '❌ Incorrect', short: 'Wrong info' },
+    { id: 'unclear', label: '😕 Unclear', short: 'Confusing' },
+    { id: 'too_generic', label: '📋 Generic', short: 'Not specific' },
+    { id: 'outdated', label: '📅 Outdated', short: 'Old info' },
+    { id: 'off_topic', label: '🎯 Off Topic', short: 'Wrong answer' },
+    { id: 'too_long', label: '📏 Too Long', short: 'Verbose' },
+    { id: 'too_short', label: '📝 Too Short', short: 'Need more' },
+  ];
+  
+  const handleFeedback = async (interactionId, feedbackType, dislikeReason = 'none') => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/feedback/submit`, {
+      // If thumbs down and no reason yet, show reason selector
+      if (feedbackType === 'thumbs_down' && dislikeReason === 'none' && showDislikeReasons !== interactionId) {
+        setShowDislikeReasons(interactionId);
+        return; // Wait for user to select a reason
+      }
+      
+      // Collect behavioral signals for this interaction
+      const behaviorSignals = getBehaviorSignals(interactionId);
+      
+      // Find the message to get the query/response for smart feedback
+      const message = messages.find(m => m.interaction_id === interactionId);
+      const userMessages = messages.filter(m => m.sender === 'user');
+      const messageIndex = messages.findIndex(m => m.interaction_id === interactionId);
+      const precedingUserMessage = messageIndex > 0 
+        ? messages.slice(0, messageIndex).reverse().find(m => m.sender === 'user')
+        : null;
+      
+      // Use smart feedback endpoint if available
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/feedback/submit-smart`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           interaction_id: interactionId,
-          feedback_type: feedbackType,
+          user_query: precedingUserMessage?.text || '',
+          llm_response: message?.text || '',
+          thumbs_up: feedbackType === 'thumbs_up',
+          thumbs_down: feedbackType === 'thumbs_down',
+          dislike_reason: dislikeReason,
+          // Behavioral signals (flatten the object)
+          session_continued: behaviorSignals.session_continued || false,
+          rephrase_within_30s: behaviorSignals.rephrase_within_30s || false,
+          rephrase_within_10s: behaviorSignals.rephrase_within_10s || false,
+          tool_or_link_used: behaviorSignals.tool_or_link_used || false,
+          time_on_response_seconds: behaviorSignals.time_on_response_seconds || 0,
+          follow_up_question: behaviorSignals.follow_up_question || false,
+          copied_response: behaviorSignals.copied_response || false,
+          // Metadata
+          intent: message?.intent || 'general',  // Include intent for pattern analysis
+          session_id: currentSessionId,
+          language: i18n.language,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit feedback');
+        // Handle rate limiting gracefully
+        if (response.status === 429) {
+          console.warn('⚠️ Feedback rate limited, will retry later');
+          // Still update UI to show feedback was acknowledged
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.interaction_id === interactionId 
+                ? { ...msg, feedback: feedbackType, dislikeReason: dislikeReason }
+                : msg
+            )
+          );
+          setShowDislikeReasons(null);
+          return; // Don't throw, just return
+        }
+        
+        // Fall back to simple feedback endpoint
+        const fallbackResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/feedback/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            interaction_id: interactionId,
+            feedback_type: feedbackType,
+            dislike_reason: dislikeReason,
+          }),
+        });
+        
+        if (!fallbackResponse.ok && fallbackResponse.status !== 429) {
+          throw new Error('Failed to submit feedback');
+        }
       }
 
       // Update message feedback state
       setMessages(prev => 
         prev.map(msg => 
           msg.interaction_id === interactionId 
-            ? { ...msg, feedback: feedbackType }
+            ? { ...msg, feedback: feedbackType, dislikeReason: dislikeReason }
             : msg
         )
       );
+      
+      // Hide reason selector
+      setShowDislikeReasons(null);
 
       // Track feedback event in analytics
       trackEvent('feedback_submitted', {
         interaction_id: interactionId,
         feedback_type: feedbackType,
+        dislike_reason: dislikeReason,
         session_id: currentSessionId,
       });
 
-      console.log(`✅ Feedback submitted: ${feedbackType} for ${interactionId}`);
+      console.log(`✅ Feedback submitted: ${feedbackType} for ${interactionId}${dislikeReason !== 'none' ? ` (reason: ${dislikeReason})` : ''}`);
     } catch (error) {
       console.error('❌ Failed to submit feedback:', error);
     }
@@ -2156,6 +2356,40 @@ function Chatbot({ userLocation: propUserLocation }) {
                               )}
                             </div>
                           )}
+                          
+                          {/* Dislike Reason Selector - One-click reasons */}
+                          {showDislikeReasons === msg.interaction_id && (
+                            <div className={`mt-2 p-3 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                              <p className={`text-xs mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                                What was wrong with this response?
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {dislikeReasons.map((reason) => (
+                                  <button
+                                    key={reason.id}
+                                    onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down', reason.id)}
+                                    className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all duration-200 ${
+                                      darkMode
+                                        ? 'bg-gray-600 text-gray-200 hover:bg-red-600 hover:text-white'
+                                        : 'bg-white text-gray-700 hover:bg-red-500 hover:text-white border border-gray-200'
+                                    }`}
+                                  >
+                                    {reason.label}
+                                  </button>
+                                ))}
+                                <button
+                                  onClick={() => setShowDislikeReasons(null)}
+                                  className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all ${
+                                    darkMode
+                                      ? 'text-gray-400 hover:text-gray-200'
+                                      : 'text-gray-500 hover:text-gray-700'
+                                  }`}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </SwipeableMessage>
@@ -2327,6 +2561,40 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 Thanks for your feedback!
                               </span>
                             )}
+                          </div>
+                        )}
+                        
+                        {/* Dislike Reason Selector - One-click reasons (Desktop) */}
+                        {showDislikeReasons === msg.interaction_id && (
+                          <div className={`mt-2 p-3 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                              What was wrong with this response?
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {dislikeReasons.map((reason) => (
+                                <button
+                                  key={reason.id}
+                                  onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down', reason.id)}
+                                  className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all duration-200 ${
+                                    darkMode
+                                      ? 'bg-gray-600 text-gray-200 hover:bg-red-600 hover:text-white'
+                                      : 'bg-white text-gray-700 hover:bg-red-500 hover:text-white border border-gray-200'
+                                  }`}
+                                >
+                                  {reason.label}
+                                </button>
+                              ))}
+                              <button
+                                onClick={() => setShowDislikeReasons(null)}
+                                className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all ${
+                                  darkMode
+                                    ? 'text-gray-400 hover:text-gray-200'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
