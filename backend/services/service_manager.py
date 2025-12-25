@@ -247,10 +247,10 @@ class ServiceManager:
         return None
     
     def get_attractions(self, category: str = None, district: str = None) -> Optional[List]:
-        """Get attractions"""
+        """Get attractions using unified wrapper"""
         if self.attractions_service:
             try:
-                return self.attractions_service.search_attractions(category, district)
+                return self.search_attractions(query='', category=category, district=district)
             except Exception as e:
                 logger.error(f"Error getting attractions: {e}")
         return None
@@ -308,6 +308,35 @@ class ServiceManager:
             "context_manager": self.context_manager is not None,
             "typo_corrector": self.typo_corrector is not None,
         }
+    
+    def search_attractions(self, query: str = '', category: str = None, district: str = None) -> List[Dict[str, Any]]:
+        """Unified attractions search wrapper to handle interface differences between services.
+        Some services implement `search_attractions(query, category=None)` while others use
+        `search_attractions(query_params)` or different signatures. This wrapper normalizes calls.
+        """
+        if not self.attractions_service:
+            logger.debug("Attractions service not available")
+            return []
+
+        try:
+            # Prefer direct signature if available
+            import inspect
+            sig = inspect.signature(self.attractions_service.search_attractions)
+            params = sig.parameters
+
+            # If service expects (query, category=None)
+            if 'query' in params:
+                return self.attractions_service.search_attractions(query, category)
+
+            # If service expects (category, district) (legacy), try to call accordingly
+            if 'category' in params and 'district' in params:
+                return self.attractions_service.search_attractions(category, district)
+
+            # Fallback: try calling with kwargs
+            return self.attractions_service.search_attractions(query=query, category=category, district=district)
+        except Exception as e:
+            logger.warning(f"Attractions search wrapper failed: {e}")
+            return []
 
 
 # Global service manager instance

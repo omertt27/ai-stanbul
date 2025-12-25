@@ -419,12 +419,10 @@ class ContextBuilder:
             async def _query_db():
                 cursor = await self.db.execute(
                     text("""
-                        SELECT name, cuisine, district, price_range, rating
+                        SELECT name, cuisine, location, price_level, rating
                         FROM restaurants
-                        WHERE language = :language
                         LIMIT 5
-                    """),
-                    {"language": language}
+                    """)
                 )
                 return await cursor.fetchall()
             
@@ -446,7 +444,7 @@ class ContextBuilder:
             for row in rows:
                 results.append(
                     f"- {row[0]}: {row[1]} cuisine in {row[2]}, "
-                    f"Price: {row[3]}, Rating: {row[4]}/5"
+                    f"Price Level: {row[3]}, Rating: {row[4]}/5"
                 )
             
             return "\n".join(results)
@@ -469,7 +467,8 @@ class ContextBuilder:
                     logger.debug("Using EnhancedAttractionsService from ServiceManager")
                     try:
                         # Use enhanced service for richer data
-                        attractions = self.service_manager.attractions_service.search_attractions(
+                        attractions = self.service_manager.search_attractions(
+                            query='',
                             category=None,  # LLM will filter
                             district=None   # LLM will filter
                         )
@@ -495,16 +494,14 @@ class ContextBuilder:
                     except Exception as e:
                         logger.warning(f"Enhanced attractions service failed: {e}, falling back to database")
             
-            # Fallback: Basic database query
+            # Fallback: Basic database query (use 'places' table instead of 'attractions')
             async def _query_db():
                 cursor = await self.db.execute(
                     text("""
-                        SELECT name, category, district, description
-                        FROM attractions
-                        WHERE language = :language
+                        SELECT name, category, district
+                        FROM places
                         LIMIT 5
-                    """),
-                    {"language": language}
+                    """)
                 )
                 return await cursor.fetchall()
             
@@ -525,7 +522,7 @@ class ContextBuilder:
             results = []
             for row in rows:
                 results.append(
-                    f"- {row[0]} ({row[1]}): Located in {row[2]}. {row[3][:100]}..."
+                    f"- {row[0]} ({row[1]}): Located in {row[2]}"
                 )
             
             return "\n".join(results)

@@ -208,8 +208,8 @@ class LocationBasedContextEnhancer:
             if districts:
                 parsed_query.district = districts[0]  # Use first detected district
             
-            # Search for gems
-            gems = self.hidden_gems_service.search(parsed_query)
+            # Use filter_gems directly with parsed query (not search which expects string)
+            gems = self.hidden_gems_service.filter_gems(parsed_query)
             
             # Format for LLM context
             formatted_gems = []

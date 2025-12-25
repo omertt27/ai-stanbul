@@ -47,6 +47,213 @@ from .auto_tuning import AutoTuner
 logger = logging.getLogger(__name__)
 
 
+# ============================================================
+# Entity Validation for Hallucination Detection
+# ============================================================
+
+class EntityValidator:
+    """
+    Validates entities mentioned in LLM responses against known data.
+    
+    Used to detect and flag potential hallucinations for:
+    - Restaurant names
+    - Attraction names
+    - Location/neighborhood names
+    - Transit line numbers
+    
+    Author: AI Istanbul Team
+    Date: December 2025
+    """
+    
+    # Known Istanbul landmarks (always valid)
+    KNOWN_LANDMARKS = {
+        'hagia sophia', 'ayasofya', 'blue mosque', 'sultanahmet mosque',
+        'topkapi palace', 'topkapı sarayı', 'dolmabahce palace', 'dolmabahçe',
+        'grand bazaar', 'kapalıçarşı', 'spice bazaar', 'mısır çarşısı',
+        'galata tower', 'galata kulesi', 'maiden tower', 'kız kulesi',
+        'basilica cistern', 'yerebatan sarnıcı', 'suleymaniye mosque',
+        'chora church', 'kariye museum', 'istiklal street', 'taksim square',
+        'bosphorus', 'boğaz', 'ortakoy mosque', 'rumeli fortress',
+        'yildiz park', 'gulhane park', 'princes islands', 'pierre loti',
+        'balat', 'fener', 'eyup sultan mosque', 'miniaturk', 'rahmi koc museum'
+    }
+    
+    # Known neighborhoods/districts
+    KNOWN_LOCATIONS = {
+        'sultanahmet', 'taksim', 'kadikoy', 'kadıköy', 'besiktas', 'beşiktaş',
+        'uskudar', 'üsküdar', 'ortakoy', 'ortaköy', 'bebek', 'nisantasi', 'nişantaşı',
+        'karakoy', 'karaköy', 'galata', 'cihangir', 'beyoglu', 'beyoğlu',
+        'fatih', 'eminonu', 'eminönü', 'sariyer', 'sarıyer', 'bakirkoy', 'bakırköy',
+        'balat', 'fener', 'moda', 'bahariye', 'bagdat caddesi', 'bağdat caddesi',
+        'levent', 'mecidiyekoy', 'mecidiyeköy', 'sisli', 'şişli', 'etiler',
+        'arnavutkoy', 'arnavutköy', 'kuzguncuk', 'cengelkoy', 'çengelköy',
+        'atasehir', 'ataşehir', 'umraniye', 'ümraniye', 'maltepe', 'kartal', 'pendik'
+    }
+    
+    # Known transit lines
+    KNOWN_TRANSIT = {
+        'm1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm9', 'm11',
+        't1', 't4', 't5', 'marmaray', 'f1', 'f2', 'metrobus',
+        'havaist', 'iett', 'ido', 'turyol', 'sehir hatlari'
+    }
+    
+    def __init__(self, db_connection=None):
+        self.db = db_connection
+        self._known_restaurants = set()
+        self._known_attractions = set(self.KNOWN_LANDMARKS)
+        self._known_locations = set(self.KNOWN_LOCATIONS)
+        self._loaded_from_db = False
+    
+    async def load_from_database(self):
+        """Load known entities from database."""
+        if self._loaded_from_db or not self.db:
+            return
+        
+        try:
+            from sqlalchemy import text
+            
+            # Load restaurants
+            result = await self.db.execute(text("SELECT name FROM restaurants"))
+            rows = await result.fetchall()
+            self._known_restaurants.update(row[0].lower() for row in rows if row[0])
+            
+            # Load places/attractions
+            result = await self.db.execute(text("SELECT name FROM places"))
+            rows = await result.fetchall()
+            self._known_attractions.update(row[0].lower() for row in rows if row[0])
+            
+            self._loaded_from_db = True
+            logger.info(f"✅ EntityValidator loaded {len(self._known_restaurants)} restaurants, "
+                       f"{len(self._known_attractions)} attractions from DB")
+            
+        except Exception as e:
+            logger.warning(f"Failed to load entities from database: {e}")
+    
+    def validate_location(self, name: str) -> bool:
+        """Check if location name is known."""
+        name_lower = name.lower().strip()
+        
+        # Direct match
+        if name_lower in self._known_locations:
+            return True
+        
+        # Partial match (for compound names)
+        for known in self._known_locations:
+            if known in name_lower or name_lower in known:
+                return True
+        
+        return False
+    
+    def validate_attraction(self, name: str) -> bool:
+        """Check if attraction name is known."""
+        name_lower = name.lower().strip()
+        
+        # Direct match
+        if name_lower in self._known_attractions:
+            return True
+        
+        # Partial match
+        for known in self._known_attractions:
+            if known in name_lower or name_lower in known:
+                return True
+        
+        return False
+    
+    def validate_transit_line(self, line: str) -> bool:
+        """Check if transit line is valid."""
+        line_lower = line.lower().strip()
+        
+        # Check direct match
+        if line_lower in self.KNOWN_TRANSIT:
+            return True
+        
+        # Check pattern (M1-M11, T1-T5)
+        if re.match(r'^m([1-9]|1[0-1])$', line_lower):
+            return True
+        if re.match(r'^t[1-5]$', line_lower):
+            return True
+        if re.match(r'^f[1-2]$', line_lower):
+            return True
+        
+        return False
+    
+    def find_potentially_hallucinated(self, response: str) -> Dict[str, List[str]]:
+        """
+        Analyze response for potentially hallucinated entities.
+        
+        Args:
+            response: The LLM-generated response text
+            
+        Returns:
+            Dict with lists of potentially fake entities by type
+        """
+        issues = {
+            'restaurants': [],
+            'attractions': [],
+            'locations': [],
+            'transit': []
+        }
+        
+        # Extract quoted names (common for entity mentions)
+        quoted = re.findall(r'"([^"]+)"', response)
+        quoted += re.findall(r"'([^']+)'", response)
+        
+        # Extract bold names (markdown)
+        bold = re.findall(r'\*\*([^*]+)\*\*', response)
+        
+        # Check for fake metro lines (M15, M20, etc.)
+        fake_lines = re.findall(r'\b[MT](\d{2,})\b', response)
+        for num in fake_lines:
+            if int(num) > 11:  # No metro line above M11
+                issues['transit'].append(f"M{num}")
+        
+        # Check for suspicious line references
+        all_line_refs = re.findall(r'\b([MT]\d+)\b', response, re.IGNORECASE)
+        for line in all_line_refs:
+            if not self.validate_transit_line(line):
+                issues['transit'].append(line)
+        
+        # Check quoted/bold entities
+        all_mentioned = set(quoted + bold)
+        for entity in all_mentioned:
+            if len(entity) < 3:
+                continue
+            
+            # Skip if it's a known entity
+            if self.validate_attraction(entity) or self.validate_location(entity):
+                continue
+            
+            # Check if looks like a proper name that might be hallucinated
+            # Pattern: Title Case words that aren't common English
+            if re.match(r'^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$', entity):
+                # Not a known place - could be hallucinated
+                if len(entity.split()) <= 3:  # Short names are more suspicious
+                    issues['attractions'].append(entity)
+        
+        return issues
+    
+    def get_validation_score(self, response: str) -> Tuple[float, Dict[str, List[str]]]:
+        """
+        Calculate validation score and return issues.
+        
+        Returns:
+            Tuple of (score 0.0-1.0, issues dict)
+        """
+        issues = self.find_potentially_hallucinated(response)
+        total_issues = sum(len(v) for v in issues.values())
+        
+        if total_issues == 0:
+            return 1.0, issues
+        elif total_issues <= 1:
+            return 0.85, issues
+        elif total_issues <= 3:
+            return 0.6, issues
+        elif total_issues <= 5:
+            return 0.4, issues
+        else:
+            return 0.2, issues
+
+
 class PureLLMCore:
     """
     Central orchestrator for the Pure LLM Handler system.
@@ -261,6 +468,9 @@ class PureLLMCore:
             }
         )
         
+        # 11. Entity Validator (hallucination detection) - NEW
+        self.entity_validator = EntityValidator(db_connection=self.db)
+        
         logger.info("✅ All subsystems initialized (including Phase 2 features)")
     
     async def _rewrite_query_with_llm(
@@ -337,6 +547,12 @@ Fixed version (max 50 chars):"""
             
             # Remove any quotes, newlines, or extra formatting
             rewritten = rewritten.strip('"\'').split('\n')[0].strip()
+            # ADDITIONAL: Remove any stray quotes at end, beginning, or trailing punctuation issues
+            rewritten = rewritten.strip('"\'').rstrip('"\'?').strip()
+            if rewritten.endswith('"') or rewritten.endswith("'"):
+                rewritten = rewritten[:-1].strip()
+            # Fix double question marks or trailing quote-question combos
+            rewritten = rewritten.replace('?"', '?').replace('"?', '?').replace("?'", '?')
             
             # STRICT Validation: Must be similar length and reasonable
             max_length = max(len(query) * 2.5, len(query) + 20)  # More forgiving but still bounded
@@ -473,6 +689,180 @@ Fixed version (max 50 chars):"""
         
         return any(pattern in query_lower for pattern in route_patterns)
     
+    def _detect_ambiguous_query(self, query: str, signals: Dict[str, bool]) -> Dict[str, Any]:
+        """
+        Detect if a query is ambiguous and needs clarification.
+        
+        Ambiguity indicators:
+        - Multiple conflicting signals detected
+        - Very short queries without context
+        - Generic queries without specifics
+        - Queries with unclear intent
+        
+        Args:
+            query: User query
+            signals: Detected signals
+            
+        Returns:
+            {
+                'is_ambiguous': bool,
+                'ambiguity_type': str,
+                'clarification_questions': List[str],
+                'confidence': float
+            }
+        """
+        query_lower = query.lower().strip()
+        word_count = len(query.split())
+        
+        result = {
+            'is_ambiguous': False,
+            'ambiguity_type': None,
+            'clarification_questions': [],
+            'confidence': 1.0
+        }
+        
+        # Count active signals
+        active_signals = [k for k, v in signals.items() if v]
+        signal_count = len(active_signals)
+        
+        # Type 1: Multiple conflicting signals (e.g., restaurant + transportation)
+        conflicting_pairs = [
+            ('needs_restaurant', 'needs_transportation'),
+            ('needs_attraction', 'needs_restaurant'),
+            ('needs_weather', 'needs_transportation'),
+        ]
+        
+        has_conflict = any(
+            signals.get(a, False) and signals.get(b, False) 
+            for a, b in conflicting_pairs
+        )
+        
+        if has_conflict:
+            result['is_ambiguous'] = True
+            result['ambiguity_type'] = 'multi_intent'
+            result['confidence'] = 0.6
+            
+            if signals.get('needs_restaurant') and signals.get('needs_transportation'):
+                result['clarification_questions'] = [
+                    "Are you looking for restaurant recommendations, or do you need directions to a restaurant?",
+                    "Would you like me to suggest restaurants nearby, or help you get to a specific place?"
+                ]
+            elif signals.get('needs_attraction') and signals.get('needs_restaurant'):
+                result['clarification_questions'] = [
+                    "Are you looking for attractions to visit, or restaurants to eat at?",
+                    "Would you like sightseeing recommendations or dining options?"
+                ]
+        
+        # Type 2: Very short query without clear intent
+        if word_count <= 2 and signal_count == 0:
+            result['is_ambiguous'] = True
+            result['ambiguity_type'] = 'too_short'
+            result['confidence'] = 0.4
+            result['clarification_questions'] = [
+                f"Could you tell me more about what you're looking for?",
+                "I can help with restaurants, attractions, transportation, and more. What interests you?"
+            ]
+        
+        # Type 3: Generic location query
+        generic_patterns = [
+            r'^where\s+(is|can|should|do)',
+            r'^what\s+(is|should|can)',
+            r'^(show|tell)\s+me',
+            r'^find\s+me',
+            r'^i\s+want',
+            r'^looking\s+for'
+        ]
+        
+        is_generic = any(re.match(p, query_lower) for p in generic_patterns)
+        has_specifics = any([
+            # Check for specific locations
+            any(loc in query_lower for loc in ['taksim', 'sultanahmet', 'kadikoy', 'besiktas']),
+            # Check for specific types
+            any(t in query_lower for t in ['kebab', 'fish', 'meze', 'baklava', 'museum', 'mosque']),
+        ])
+        
+        if is_generic and not has_specifics and word_count < 6:
+            result['is_ambiguous'] = True
+            result['ambiguity_type'] = 'generic'
+            result['confidence'] = 0.5
+            
+            if 'restaurant' in query_lower or 'food' in query_lower or 'eat' in query_lower:
+                result['clarification_questions'] = [
+                    "What type of cuisine are you in the mood for? (Turkish, seafood, kebab, etc.)",
+                    "Any preferred area or neighborhood in Istanbul?"
+                ]
+            elif 'see' in query_lower or 'visit' in query_lower or 'do' in query_lower:
+                result['clarification_questions'] = [
+                    "Are you interested in historical sites, museums, markets, or nature?",
+                    "How much time do you have for sightseeing?"
+                ]
+            else:
+                result['clarification_questions'] = [
+                    "Could you be more specific about what you're looking for?",
+                    "Are you interested in food, sightseeing, transportation, or something else?"
+                ]
+        
+        # Type 4: No signals detected at all
+        if signal_count == 0 and word_count > 2:
+            result['is_ambiguous'] = True
+            result['ambiguity_type'] = 'unclear_intent'
+            result['confidence'] = 0.3
+            result['clarification_questions'] = [
+                "I'm not sure I understand. Could you rephrase your question?",
+                "I can help with restaurants, attractions, transportation, weather, and events in Istanbul."
+            ]
+        
+        return result
+    
+    def _generate_clarification_response(
+        self,
+        query: str,
+        ambiguity_info: Dict[str, Any],
+        language: str = "en"
+    ) -> str:
+        """
+        Generate a clarification response for ambiguous queries.
+        
+        Args:
+            query: Original query
+            ambiguity_info: Result from _detect_ambiguous_query
+            language: Response language
+            
+        Returns:
+            Clarification response string
+        """
+        questions = ambiguity_info.get('clarification_questions', [])
+        ambiguity_type = ambiguity_info.get('ambiguity_type', 'unknown')
+        
+        if language == 'tr':
+            intro_phrases = {
+                'multi_intent': "Birkaç şekilde yardımcı olabilirim:",
+                'too_short': "Size daha iyi yardımcı olmak için biraz daha bilgiye ihtiyacım var:",
+                'generic': "Daha iyi öneriler sunabilmem için:",
+                'unclear_intent': "Sorunuzu tam anlayamadım:",
+            }
+            intro = intro_phrases.get(ambiguity_type, "Daha fazla bilgiye ihtiyacım var:")
+        else:
+            intro_phrases = {
+                'multi_intent': "I can help with several things here:",
+                'too_short': "I'd love to help! To give you the best answer:",
+                'generic': "To give you better recommendations:",
+                'unclear_intent': "I want to make sure I understand correctly:",
+            }
+            intro = intro_phrases.get(ambiguity_type, "I'd like to clarify:")
+        
+        response = f"{intro}\n\n"
+        
+        for i, question in enumerate(questions[:2], 1):
+            response += f"{i}. {question}\n"
+        
+        if language == 'tr':
+            response += "\n💡 İstanbul hakkında restoranlar, turistik yerler, ulaşım ve daha fazlası konusunda yardımcı olabilirim!"
+        else:
+            response += "\n💡 I'm your Istanbul guide and can help with restaurants, attractions, transportation, and more!"
+        
+        return response
+
     async def process_query(
         self,
         query: str,
@@ -614,6 +1004,40 @@ Fixed version (max 50 chars):"""
         logger.info(f"🎯 Signals detected: {', '.join(active_signals) if active_signals else 'none'}")
         
         self.analytics.track_signals(signals['signals'])
+        
+        # STEP 3.5: Ambiguity Detection and Clarification Flow
+        if self.config.get('enable_clarification_flow', True):
+            ambiguity_info = self._detect_ambiguous_query(query, signals['signals'])
+            
+            if ambiguity_info['is_ambiguous'] and ambiguity_info['confidence'] < 0.5:
+                logger.info(f"❓ Ambiguous query detected: {ambiguity_info['ambiguity_type']} (confidence: {ambiguity_info['confidence']:.2f})")
+                
+                # Generate clarification response instead of proceeding
+                clarification_response = self._generate_clarification_response(
+                    query=query,
+                    ambiguity_info=ambiguity_info,
+                    language=language
+                )
+                
+                return {
+                    "status": "clarification_needed",
+                    "response": clarification_response,
+                    "map_data": None,
+                    "signals": signals['signals'],
+                    "metadata": {
+                        "signals_detected": active_signals,
+                        "ambiguity": {
+                            "type": ambiguity_info['ambiguity_type'],
+                            "confidence": ambiguity_info['confidence'],
+                            "questions": ambiguity_info['clarification_questions']
+                        },
+                        "enhancement": enhancement_metadata,
+                        "processing_time": time.time() - start_time,
+                        "cached": False,
+                        "language": language,
+                        "source": "clarification_flow"
+                    }
+                }
         
         # STEP 4: Conversation Context (if enabled)
         conversation_context = None
@@ -815,6 +1239,68 @@ Fixed version (max 50 chars):"""
                     logger.warning(f"Failed to extract LLM intents: {e}")
             
             logger.info(f"✅ LLM generated response in {llm_latency:.2f}s (length: {len(response_text)} chars)")
+            
+            # === RESPONSE TRUNCATION VALIDATOR ===
+            # Detect and handle truncated responses (cut off mid-sentence/word)
+            response_text, was_truncated = self._validate_and_fix_truncation(response_text)
+            if was_truncated:
+                logger.warning(f"⚠️ Response was truncated and cleaned up")
+            
+            # === FACTUAL GROUNDING CHECK ===
+            # If we have no DB context and low RAG results, add disclaimer
+            db_context_len = len(context.get('database', ''))
+            rag_context_len = len(context.get('rag', ''))
+            has_grounding = db_context_len > 50 or rag_context_len > 100
+            
+            if not has_grounding and signals['signals'].get('needs_restaurant') or signals['signals'].get('needs_attraction'):
+                logger.warning(f"⚠️ Low factual grounding (DB: {db_context_len}, RAG: {rag_context_len} chars)")
+                # Don't completely block, but add a subtle disclaimer at end
+                if "specific" not in response_text.lower() and "recommend checking" not in response_text.lower():
+                    response_text = response_text.rstrip()
+                    if not response_text.endswith('.'):
+                        response_text += '.'
+                    response_text += "\n\n💡 *For the most up-to-date info, I recommend verifying details on Google Maps or calling ahead.*"
+            
+            # === ENTITY VALIDATION (Hallucination Detection) ===
+            # Check for potentially hallucinated entities in the response
+            if self.config.get('enable_entity_validation', True):
+                try:
+                    validation_score, hallucination_issues = self.entity_validator.get_validation_score(response_text)
+                    
+                    # Track validation in monitoring system
+                    has_hallucinations = validation_score < 0.7
+                    try:
+                        from .monitoring import get_monitor
+                        monitor = get_monitor()
+                        monitor.track_entity_validation(validation_score, has_hallucinations)
+                    except Exception as mon_err:
+                        logger.debug(f"Could not track entity validation in monitor: {mon_err}")
+                    
+                    if validation_score < 0.7:
+                        # Log potentially hallucinated entities
+                        total_issues = sum(len(v) for v in hallucination_issues.values())
+                        logger.warning(f"⚠️ Entity validation score: {validation_score:.2f}, issues: {total_issues}")
+                        
+                        for issue_type, entities in hallucination_issues.items():
+                            if entities:
+                                logger.warning(f"   - Potential hallucinated {issue_type}: {entities}")
+                        
+                        # Track for analytics
+                        self.analytics.track_validation_failure(
+                            f"entity_hallucination: {hallucination_issues}"
+                        )
+                        
+                        # If very low score, add a subtle warning
+                        if validation_score < 0.4 and "verify" not in response_text.lower():
+                            response_text = response_text.rstrip()
+                            if not response_text.endswith('.'):
+                                response_text += '.'
+                            response_text += "\n\n⚠️ *Some details may need verification. Please double-check names and addresses.*"
+                    else:
+                        logger.debug(f"✅ Entity validation passed: {validation_score:.2f}")
+                        
+                except Exception as e:
+                    logger.warning(f"Entity validation failed: {e}")
             
             # Validate response
             is_valid, validation_error = await self._validate_response(
@@ -1603,6 +2089,92 @@ Fixed version (max 50 chars):"""
             logger.error(f"❌ Weather post-processing failed: {e}")
             return response
     
+    def _validate_and_fix_truncation(self, response: str) -> Tuple[str, bool]:
+        """
+        Detect and fix truncated responses.
+        
+        Truncation indicators:
+        - Ends with incomplete markdown (*, **, -)
+        - Ends mid-word
+        - Ends with incomplete sentence (no punctuation)
+        - Cut off list items
+        
+        Args:
+            response: The generated response text
+            
+        Returns:
+            Tuple of (cleaned_response, was_truncated)
+        """
+        if not response:
+            return response, False
+        
+        original_response = response
+        was_truncated = False
+        
+        # Strip trailing whitespace first
+        response = response.rstrip()
+        
+        # Pattern 1: Ends with incomplete markdown formatting
+        truncation_patterns = [
+            r'\*\*[^*]*$',       # Unclosed bold (e.g., "**Beş")
+            r'\*[^*]*$',         # Unclosed italic
+            r'^\s*[-*]\s*\*\*[^*]*$',  # List item with unclosed bold
+            r'^\s*[-*]\s*$',     # Empty list item
+            r'^\s*\d+\.\s*$',    # Empty numbered list item
+        ]
+        
+        for pattern in truncation_patterns:
+            if re.search(pattern, response, re.MULTILINE):
+                was_truncated = True
+                # Remove the incomplete line
+                lines = response.split('\n')
+                while lines and re.search(pattern, lines[-1]):
+                    lines.pop()
+                response = '\n'.join(lines)
+        
+        # Pattern 2: Ends mid-sentence (no terminal punctuation)
+        # But allow responses ending with emoji or markdown
+        valid_endings = '.!?)"\'`>]'
+        emoji_pattern = r'[\U0001F300-\U0001F9FF]$'
+        
+        if response and response[-1] not in valid_endings and not re.search(emoji_pattern, response):
+            # Check if it's a cut-off word (no space before last word boundary)
+            last_line = response.split('\n')[-1].strip()
+            words = last_line.split()
+            
+            if words:
+                last_word = words[-1].rstrip('*_`')
+                # If last word is very short or looks incomplete
+                if len(last_word) <= 2 and last_word.isalpha():
+                    was_truncated = True
+                    # Remove the incomplete word
+                    response = response[:response.rfind(last_word)].rstrip()
+        
+        # Pattern 3: Ends with standalone formatting characters
+        while response and response[-1] in '*_-:':
+            was_truncated = True
+            response = response[:-1].rstrip()
+        
+        # Pattern 4: Ensure response ends cleanly
+        # If truncated, add ellipsis to indicate incompleteness (optional)
+        if was_truncated and response:
+            # Clean up any trailing incomplete structures
+            response = response.rstrip(' \t*_-:')
+            
+            # If response now ends awkwardly, trim to last complete sentence
+            if response and response[-1] not in '.!?)':
+                # Find last sentence boundary
+                for punct in ['. ', '! ', '? ', '.\n', '!\n', '?\n']:
+                    last_punct = response.rfind(punct)
+                    if last_punct > len(response) * 0.5:  # Only trim if we keep >50%
+                        response = response[:last_punct + 1]
+                        break
+        
+        if was_truncated:
+            logger.info(f"🔧 Fixed truncated response: {len(original_response)} → {len(response)} chars")
+        
+        return response.strip(), was_truncated
+    
     async def _validate_response(
         self,
         response: str,
@@ -1748,9 +2320,8 @@ Fixed version (max 50 chars):"""
         # Known Istanbul transit lines
         valid_lines = {
             'm1', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm9', 'm11',
-            't1', 't2', 't3', 't4', 't5',
-            'f1', 'f2', 'f3', 'f4', 'f5',
-            'marmaray', 'metrobus', 'banliyö'
+            't1', 't4', 't5', 'marmaray', 'f1', 'f2', 'metrobus',
+            'havaist', 'iett', 'ido', 'turyol', 'sehir hatlari'
         }
         
         # Extract mentioned lines from response (case-insensitive)
