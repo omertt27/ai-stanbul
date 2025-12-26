@@ -88,17 +88,22 @@ class MapIntegrationService:
             
             # Add attractions
             for attr in attractions:
-                if 'lat' in attr and 'lon' in attr:
+                # Support both 'lat'/'lon' and 'latitude'/'longitude' field names
+                lat = attr.get('lat') or attr.get('latitude')
+                lon = attr.get('lon') or attr.get('lng') or attr.get('longitude')
+                
+                if lat is not None and lon is not None:
                     metadata = {
                         'description': attr.get('description', ''),
                         'address': attr.get('address', ''),
                         'rating': attr.get('rating', ''),
-                        'category': attr.get('category', '')
+                        'category': attr.get('category', ''),
+                        'district': attr.get('district', '')
                     }
                     locations.append(
                         self.engine.create_location(
-                            attr['lat'],
-                            attr['lon'],
+                            lat,
+                            lon,
                             attr.get('name', 'Attraction'),
                             'poi',
                             metadata
@@ -153,18 +158,24 @@ class MapIntegrationService:
             
             # Add restaurants
             for rest in restaurants:
-                if 'lat' in rest and 'lon' in rest:
+                # Support both 'lat'/'lon' and 'latitude'/'longitude' field names
+                lat = rest.get('lat') or rest.get('latitude')
+                lon = rest.get('lon') or rest.get('lng') or rest.get('longitude')
+                
+                if lat is not None and lon is not None:
                     metadata = {
                         'description': rest.get('description', ''),
                         'address': rest.get('address', ''),
-                        'cuisine': rest.get('cuisine', ''),
-                        'price_range': rest.get('price_range', ''),
-                        'rating': rest.get('rating', '')
+                        'cuisine': rest.get('cuisine', '') or ', '.join(rest.get('cuisine_types', [])),
+                        'price_range': rest.get('price_range', '') or rest.get('budget_category', ''),
+                        'rating': rest.get('rating', ''),
+                        'district': rest.get('district', ''),
+                        'neighborhood': rest.get('neighborhood', '')
                     }
                     locations.append(
                         self.engine.create_location(
-                            rest['lat'],
-                            rest['lon'],
+                            lat,
+                            lon,
                             rest.get('name', 'Restaurant'),
                             'poi',
                             metadata

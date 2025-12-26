@@ -61,6 +61,9 @@ class EntityValidator:
     - Location/neighborhood names
     - Transit line numbers
     
+    IMPORTANT: For transportation queries, entity validation is DISABLED
+    to prevent false positives on valid transport entities like "Marmaray", "Sirkeci", etc.
+    
     Author: AI Istanbul Team
     Date: December 2025
     """
@@ -76,6 +79,34 @@ class EntityValidator:
         'bosphorus', 'boğaz', 'ortakoy mosque', 'rumeli fortress',
         'yildiz park', 'gulhane park', 'princes islands', 'pierre loti',
         'balat', 'fener', 'eyup sultan mosque', 'miniaturk', 'rahmi koc museum'
+    }
+    
+    # Valid transport entities - NOT hallucinations (Week 3 Fix)
+    VALID_TRANSPORT_ENTITIES = {
+        # Metro lines
+        'm1', 'm1a', 'm1b', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm9', 'm11',
+        # Tram lines  
+        't1', 't4', 't5',
+        # Other transit
+        'marmaray', 'f1', 'f2', 'metrobus', 'ferry', 'ido', 'turyol', 'şehir hatları',
+        # Common stations that might be flagged
+        'sirkeci', 'yenikapı', 'yenikapi', 'ayrılık çeşmesi', 'ayrilik cesmesi',
+        'kadıköy', 'kadikoy', 'üsküdar', 'uskudar', 'taksim', 'levent',
+        'mecidiyeköy', 'mecidiyekoy', 'şişli', 'sisli', 'osmanbey',
+        'kabataş', 'kabatas', 'karaköy', 'karakoy', 'eminönü', 'eminonu',
+        'sultanahmet', 'beyazıt', 'beyazit', 'aksaray', 'zeytinburnu',
+        'bağcılar', 'bagcilar', 'kirazlı', 'kirazli', 'otogar',
+        'bakırköy', 'bakirkoy', 'yeşilköy', 'yesilkoy', 'florya',
+        'pendik', 'kartal', 'maltepe', 'bostancı', 'bostanci',
+        'beşiktaş', 'besiktas', 'ortaköy', 'ortakoy', 'bebek',
+        'hacıosman', 'hacimosman', 'maslak', 'gayrettepe',
+        '4. levent', '4 levent', 'levent', 'zincirlikuyu',
+        # Islands (ferry destinations)
+        'büyükada', 'buyukada', 'heybeliada', 'burgazada', 'kınalıada', 'kinaliada',
+        'adalar', 'princes islands', 'sedef adası',
+        # Airport stations
+        'istanbul havalimanı', 'istanbul havalimani', 'atatürk havalimanı',
+        'sabiha gökçen', 'sabiha gokcen',
     }
     
     # Known neighborhoods/districts
@@ -177,12 +208,36 @@ class EntityValidator:
         
         return False
     
-    def find_potentially_hallucinated(self, response: str) -> Dict[str, List[str]]:
+    def _is_valid_transport_entity(self, entity: str) -> bool:
+        """Check if entity is a valid transport-related term."""
+        entity_lower = entity.lower().strip()
+        
+        # Direct match
+        if entity_lower in self.VALID_TRANSPORT_ENTITIES:
+            return True
+        
+        # Check for partial matches
+        for valid_entity in self.VALID_TRANSPORT_ENTITIES:
+            if valid_entity in entity_lower or entity_lower in valid_entity:
+                return True
+        
+        # Check metro/tram line patterns
+        if re.match(r'^m\d{1,2}$', entity_lower):
+            return True
+        if re.match(r'^t\d$', entity_lower):
+            return True
+        if re.match(r'^f\d$', entity_lower):
+            return True
+            
+        return False
+    
+    def find_potentially_hallucinated(self, response: str, is_transport_query: bool = False) -> Dict[str, List[str]]:
         """
         Analyze response for potentially hallucinated entities.
         
         Args:
             response: The LLM-generated response text
+            is_transport_query: If True, skip entity validation for transport entities
             
         Returns:
             Dict with lists of potentially fake entities by type
@@ -193,6 +248,12 @@ class EntityValidator:
             'locations': [],
             'transit': []
         }
+        
+        # WEEK 3 FIX: For transport queries, skip entity validation entirely
+        # Transport entities like "Marmaray", "Sirkeci" are NOT hallucinations
+        if is_transport_query:
+            logger.debug("Skipping entity validation for transportation query")
+            return issues
         
         # Extract quoted names (common for entity mentions)
         quoted = re.findall(r'"([^"]+)"', response)
@@ -219,6 +280,10 @@ class EntityValidator:
             if len(entity) < 3:
                 continue
             
+            # WEEK 3 FIX: Skip valid transport entities
+            if self._is_valid_transport_entity(entity):
+                continue
+            
             # Skip if it's a known entity
             if self.validate_attraction(entity) or self.validate_location(entity):
                 continue
@@ -227,19 +292,24 @@ class EntityValidator:
             # Pattern: Title Case words that aren't common English
             if re.match(r'^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$', entity):
                 # Not a known place - could be hallucinated
+                # Not a known place - could be hallucinated
                 if len(entity.split()) <= 3:  # Short names are more suspicious
                     issues['attractions'].append(entity)
         
         return issues
     
-    def get_validation_score(self, response: str) -> Tuple[float, Dict[str, List[str]]]:
+    def get_validation_score(self, response: str, is_transport_query: bool = False) -> Tuple[float, Dict[str, List[str]]]:
         """
         Calculate validation score and return issues.
+        
+        Args:
+            response: The LLM-generated response text
+            is_transport_query: If True, skip entity validation for transport entities
         
         Returns:
             Tuple of (score 0.0-1.0, issues dict)
         """
-        issues = self.find_potentially_hallucinated(response)
+        issues = self.find_potentially_hallucinated(response, is_transport_query=is_transport_query)
         total_issues = sum(len(v) for v in issues.values())
         
         if total_issues == 0:
@@ -1263,9 +1333,15 @@ Fixed version (max 50 chars):"""
             
             # === ENTITY VALIDATION (Hallucination Detection) ===
             # Check for potentially hallucinated entities in the response
-            if self.config.get('enable_entity_validation', True):
+            # WEEK 3 FIX: Skip entity validation for transport queries to avoid false positives
+            is_transport_query = signals['signals'].get('needs_transportation', False)
+            
+            if self.config.get('enable_entity_validation', True) and not is_transport_query:
                 try:
-                    validation_score, hallucination_issues = self.entity_validator.get_validation_score(response_text)
+                    validation_score, hallucination_issues = self.entity_validator.get_validation_score(
+                        response_text, 
+                        is_transport_query=is_transport_query
+                    )
                     
                     # Track validation in monitoring system
                     has_hallucinations = validation_score < 0.7
@@ -1322,12 +1398,24 @@ Fixed version (max 50 chars):"""
                 )
             
             # === TRANSPORTATION-SPECIFIC VALIDATION ===
-            # Apply hard guardrails for transportation facts to prevent hallucinations
+            # WEEK 3 CRITICAL FIX: Make RAG route object AUTHORITATIVE
+            # If Transportation RAG has a route, use it - DO NOT let LLM override
             if signals['signals'].get('needs_transportation'):
                 logger.info(f"🚇 Applying transportation validation for route query...")
                 
+                # CRITICAL: Check RAG state FIRST (source of truth)
+                # The RAG already computed the route during context building
+                rag_has_route = False
+                try:
+                    from services.transportation_rag_system import get_transportation_rag
+                    transport_rag = get_transportation_rag()
+                    rag_has_route = transport_rag and transport_rag.last_route is not None
+                    if rag_has_route:
+                        logger.info(f"✅ RAG has computed route: {transport_rag.last_route.origin} → {transport_rag.last_route.destination}")
+                except Exception as e:
+                    logger.warning(f"Could not check RAG route state: {e}")
+                
                 # Extract route data from context (verified facts from Transportation RAG)
-                # FIXED: Look in context['route_data'] first (where context.py puts it)
                 route_data = context.get('route_data')
                 
                 # Fallback: check context['services'] for legacy compatibility
@@ -1340,19 +1428,40 @@ Fixed version (max 50 chars):"""
                                 route_data = service_item.get('route')
                                 break
                 
-                logger.info(f"🚇 Route data found: {bool(route_data)}, has steps: {bool(route_data and route_data.get('steps'))}")
+                # WEEK 3 FIX: Trust RAG state over route_data dict
+                # If RAG has a route but route_data is missing, rebuild it
+                if rag_has_route and not route_data:
+                    logger.warning(f"⚠️ RAG has route but route_data missing - rebuilding from RAG")
+                    try:
+                        route_obj = transport_rag.last_route
+                        route_data = {
+                            'origin': getattr(route_obj, 'origin', None),
+                            'destination': getattr(route_obj, 'destination', None),
+                            'steps': getattr(route_obj, 'steps', []),
+                            'total_time': getattr(route_obj, 'total_time', None),
+                            'total_distance': getattr(route_obj, 'total_distance', None),
+                            'transfers': getattr(route_obj, 'transfers', None),
+                            'lines_used': getattr(route_obj, 'lines_used', [])
+                        }
+                        logger.info(f"✅ Rebuilt route_data from RAG: {route_data['origin']} → {route_data['destination']}")
+                    except Exception as e:
+                        logger.error(f"Failed to rebuild route_data from RAG: {e}")
                 
-                # If we have valid route data from RAG, ALWAYS use template response
-                # This ensures accurate step-by-step directions from verified data
-                if route_data and route_data.get('steps'):
-                    logger.info(f"✅ Using template-based transportation response (RAG verified data)")
+                logger.info(f"🚇 Route data found: {bool(route_data)}, has steps: {bool(route_data and route_data.get('steps'))}")
+                logger.info(f"🚇 RAG has route: {rag_has_route}")
+                
+                # WEEK 3 CRITICAL RULE:
+                # If RAG has a route OR we have route_data with steps -> ALWAYS use template
+                # The LLM should NEVER say "no route found" if RAG computed one
+                if rag_has_route or (route_data and route_data.get('steps')):
+                    logger.info(f"✅ Using template-based transportation response (RAG is authoritative)")
                     response_text = await self._generate_template_transportation_response(
                         route_data=route_data,
                         query=query,
                         language=language
                     )
                 else:
-                    # Validate LLM response against verified route facts
+                    # No route from RAG - validate LLM response is not hallucinating
                     is_transport_valid, transport_error, corrected_response = await self._validate_transportation_response(
                         response=response_text,
                         route_data=route_data,

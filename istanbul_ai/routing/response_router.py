@@ -14,6 +14,13 @@ from ..core.models import UserProfile, ConversationContext
 
 logger = logging.getLogger(__name__)
 
+# Import RestaurantQueryHandler for location extraction and map display
+try:
+    from backend.services.restaurant_query_handler import get_restaurant_query_handler, RestaurantQueryHandler
+    RESTAURANT_QUERY_HANDLER_AVAILABLE = True
+except ImportError:
+    RESTAURANT_QUERY_HANDLER_AVAILABLE = False
+    logger.warning("RestaurantQueryHandler not available - restaurant map centering disabled")
 
 class ResponseRouter:
     """Route queries to appropriate handlers with intelligent fallback"""
@@ -218,9 +225,21 @@ class ResponseRouter:
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route restaurant queries with language context"""
+        """Route restaurant queries with language context and map location extraction"""
         # 🌐 BILINGUAL: Ensure language is in context
         language = self._ensure_language_context(context, user_profile)
+        
+        # 🗺️ Extract location info for map display using RestaurantQueryHandler
+        map_config = None
+        if RESTAURANT_QUERY_HANDLER_AVAILABLE:
+            try:
+                handler = get_restaurant_query_handler()
+                map_config = handler.get_map_display_config(message)
+                if map_config.get('show_map'):
+                    logger.info(f"🗺️ Restaurant query map config: center={map_config.get('center')}, "
+                              f"locations={map_config.get('locations')}, cuisine={map_config.get('cuisine_filter')}")
+            except Exception as e:
+                logger.warning(f"Failed to extract restaurant map config: {e}")
         
         # Try ML handler first (if it exists)
         ml_handler = handlers.get('ml_restaurant_handler')
@@ -248,6 +267,27 @@ class ResponseRouter:
                 if response and (isinstance(response, dict) and response.get('response') or isinstance(response, str)):
                     logger.info(f"✅ ML Restaurant Handler processed query (lang: {language})")
                     if isinstance(response, dict):
+                        # 🗺️ Enhance map_data with extracted location info if available
+                        if map_config and map_config.get('show_map'):
+                            if 'map_data' not in response or not response['map_data']:
+                                # Create map_data from extracted location config
+                                response['map_data'] = {
+                                    'center': map_config.get('center'),
+                                    'zoom': map_config.get('zoom', 14),
+                                    'search_radius_km': map_config.get('search_radius_km', 2.0),
+                                    'markers': map_config.get('markers', []),
+                                    'cuisine_filter': map_config.get('cuisine_filter'),
+                                    'locations': map_config.get('locations', []),
+                                    'query_type': 'restaurant'
+                                }
+                                logger.info(f"🗺️ Added location-based map_data to response")
+                            else:
+                                # Enhance existing map_data with center if not set
+                                existing_map = response['map_data']
+                                if not existing_map.get('center') and map_config.get('center'):
+                                    existing_map['center'] = map_config.get('center')
+                                    existing_map['zoom'] = map_config.get('zoom', 14)
+                                    logger.info(f"🗺️ Enhanced map_data center from location extraction")
                         return response if return_structured else response['response']
                     return response
             except Exception as e:
@@ -259,15 +299,46 @@ class ResponseRouter:
         response_generator = handlers.get('response_generator')
         if response_generator:
             logger.info(f"📝 Using response_generator for restaurant query (lang: {language})")
-            return response_generator.generate_comprehensive_recommendation(
+            result = response_generator.generate_comprehensive_recommendation(
                 'restaurant', entities, user_profile, context, 
                 return_structured=return_structured
             )
+            # 🗺️ Add map config to fallback response if available
+            if return_structured and isinstance(result, dict) and map_config and map_config.get('show_map'):
+                if 'map_data' not in result or not result['map_data']:
+                    result['map_data'] = {
+                        'center': map_config.get('center'),
+                        'zoom': map_config.get('zoom', 14),
+                        'search_radius_km': map_config.get('search_radius_km', 2.0),
+                        'markers': map_config.get('markers', []),
+                        'cuisine_filter': map_config.get('cuisine_filter'),
+                        'locations': map_config.get('locations', []),
+                        'query_type': 'restaurant'
+                    }
+            return result
         
-        # Final fallback with bilingual support
-        if language == 'tr':
-            return "İstanbul'daki harika restoranları bulmanıza yardımcı olabilirim! Aradığınız şey hakkında daha fazla bilgi verebilir misiniz?"
-        return "I can help you find great restaurants in Istanbul! Please tell me more about what you're looking for."
+        # Final fallback with bilingual support and map data
+        fallback_text = ("İstanbul'daki harika restoranları bulmanıza yardımcı olabilirim! "
+                        "Aradığınız şey hakkında daha fazla bilgi verebilir misiniz?") if language == 'tr' else \
+                       "I can help you find great restaurants in Istanbul! Please tell me more about what you're looking for."
+        
+        if return_structured:
+            result = {
+                'response': fallback_text,
+                'intent': 'restaurant',
+                'language': language
+            }
+            # Add map config if available
+            if map_config and map_config.get('show_map'):
+                result['map_data'] = {
+                    'center': map_config.get('center'),
+                    'zoom': map_config.get('zoom', 14),
+                    'markers': map_config.get('markers', []),
+                    'locations': map_config.get('locations', []),
+                    'query_type': 'restaurant'
+                }
+            return result
+        return fallback_text
     
     def _route_attraction_query(
         self, message: str, entities: Dict, user_profile: UserProfile,

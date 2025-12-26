@@ -320,14 +320,110 @@ class SignalDetector:
             },
             'needs_transportation': {
                 'en': [
+                    # === ROUTE/DIRECTION PATTERNS ===
                     r'\b(how\s+to\s+get|how\s+do\s+i\s+get|how\s+can\s+i\s+go|how.*go\s+to|directions?|route|way\s+to)\b',
-                    r'\b(metro|bus|tram|ferry|taxi|transport|travel|transit)\b',
-                    r'\b(from.*to|navigate|reach|get\s+to)\b'
+                    r'\b(how\s+to\s+go|how\s+to\s+reach|how\s+to\s+travel|best\s+way|fastest\s+way|cheapest\s+transport)\b',
+                    r'\b(get\s+from|go\s+from|travel\s+from|directions\s+from|coming\s+from)\b',
+                    r'\b(what.*best\s+option|easiest\s+way|quickest\s+way)\b',
+                    
+                    # === TRANSIT MODE KEYWORDS ===
+                    r'\b(metro|bus|tram|ferry|taxi|transport|travel|transit|train|subway|underground)\b',
+                    r'\b(metro\s+line|tram\s+line|bus\s+line|which\s+line|what\s+line)\b',
+                    r'\b(marmaray|funicular|cable\s+car|dolmus|minibus|vapur|istanbulkart)\b',
+                    r'\b(public\s+transport|public\s+transit|mass\s+transit)\b',
+                    
+                    # === ACTION PATTERNS ===
+                    r'\b(from.*to|navigate|reach|get\s+to|go\s+to|travel\s+to)\b',
+                    r'\b(take\s+me|guide\s+me|how\s+long.*take|how\s+long.*get)\b',
+                    r'\b(need\s+to\s+get|going\s+to|headed\s+to|heading\s+to)\b',
+                    r'\b(how\s+should\s+i\s+travel|what\s+should\s+i\s+take)\b',
+                    
+                    # === TIME-SPECIFIC PATTERNS ===
+                    r'\b(night\s+transport|night\s+bus|night\s+service|after\s+midnight|late\s+night)\b',
+                    r'\b(early\s+morning|first\s+metro|last\s+bus|last\s+ferry)\b',
+                    r'\b(how\s+long\s+does\s+it\s+take|travel\s+time|journey\s+time)\b',
+                    
+                    # === WALKING PATTERNS ===
+                    r'\b(walk|walking|on\s+foot|by\s+foot|walking\s+distance|walking\s+directions)\b',
+                    r'\b(can\s+i\s+walk|is\s+it\s+walkable|walk\s+from|walk\s+to)\b',
+                    
+                    # === AIRPORT TRANSPORT ===
+                    r'\b(airport\s+to|to\s+airport|from\s+airport|airport\s+transfer)\b',
+                    r'\b(ist\s+airport|saw\s+airport|sabiha|istanbul\s+airport)\b',
+                    
+                    # === FERRY/BOAT PATTERNS ===
+                    r'\b(ferry\s+to|ferry\s+from|boat\s+to|ferry\s+schedule|vapur)\b',
+                    r'\b(princes\s+islands|buyukada|heybeliada|adalar)\b',
+                    
+                    # === COMBINED JOURNEY PATTERNS ===
+                    r'\b(metro\s+and\s+tram|bus\s+and|combination|connection|transfer)\b',
+                    r'\b(via|through|stopping\s+at)\b',
+                    
+                    # === INFORMAL/CONVERSATIONAL ===
+                    r'\b(need\s+to\s+reach|trying\s+to\s+get|want\s+to\s+go)\b',
+                    r'\b(what\'?s?\s+the\s+best\s+way)\b',
                 ],
                 'tr': [
-                    r'\b(nasıl\s+gidilir|nasıl\s+giderim|yol\s+tarifi)\b',
-                    r'\b(metro|otobüs|tramvay|vapur|taksi|ulaşım)\b',
-                    r'\b(gidiş|ulaşmak)\b'
+                    # === YOL TARİFİ ===
+                    r'\b(nasıl\s+gidilir|nasıl\s+giderim|nasıl\s+gidebilirim|yol\s+tarifi)\b',
+                    r'\b(en\s+iyi\s+yol|en\s+hızlı|en\s+ucuz\s+ulaşım)\b',
+                    r'\b(nereden\s+gidilir|oraya\s+nasıl)\b',
+                    
+                    # === ULAŞIM ARAÇLARI ===
+                    r'\b(metro|otobüs|tramvay|vapur|taksi|ulaşım|tren)\b',
+                    r'\b(marmaray|füniküler|dolmuş|minibüs|istanbulkart)\b',
+                    r'\b(hangi\s+hat|hangi\s+metro|hangi\s+tramvay|hangi\s+otobüs)\b',
+                    r'\b(toplu\s+taşıma|toplu\s+ulaşım)\b',
+                    
+                    # === EYLEM KALIPLARI ===
+                    r'\b(gidiş|ulaşmak|gitmek|varmak|gidiyorum)\b',
+                    r'\b(ne\s+kadar\s+sürer|kaç\s+dakika|ne\s+zaman\s+varır)\b',
+                    
+                    # === YÜRÜME ===
+                    r'\b(yürüyerek|yürüme\s+mesafesi|yürünür\s+mü)\b',
+                    
+                    # === HAVALİMANI ===
+                    r'\b(havalimanına|havalimanından|havalimanı\s+ulaşım)\b',
+                    r'\b(ist|saw|sabiha\s+gökçen|istanbul\s+havalimanı)\b',
+                    
+                    # === VAPUR/FERIBOT ===
+                    r'\b(vapur\s+ile|feribot|ada|adalar|büyükada|heybeliada)\b',
+                ],
+                'de': [
+                    r'\b(wie\s+komme\s+ich|wie\s+kommt\s+man|wie\s+erreiche\s+ich|wegbeschreibung)\b',
+                    r'\b(metro|u[\s-]?bahn|s[\s-]?bahn|bus|straßenbahn|fähre|taxi|transport)\b',
+                    r'\b(von.*nach|fahren|reisen|weg\s+zum|weg\s+zur)\b',
+                    r'\b(öffentliche\s+verkehrsmittel|nahverkehr)\b',
+                    r'\b(flughafen|vom\s+flughafen|zum\s+flughafen)\b',
+                    r'\b(wie\s+lange\s+dauert|fahrtzeit|reisezeit)\b',
+                    r'\b(zu\s+fuß|fußweg|laufen)\b',
+                ],
+                'fr': [
+                    r'\b(comment\s+aller|comment\s+se\s+rendre|comment\s+arriver|itinéraire)\b',
+                    r'\b(métro|bus|tram|tramway|ferry|taxi|transport)\b',
+                    r'\b(de.*à|aller\s+à|se\s+rendre\s+à|direction)\b',
+                    r'\b(transports?\s+en\s+commun|transport\s+public)\b',
+                    r'\b(aéroport|de\s+l\'?aéroport|à\s+l\'?aéroport)\b',
+                    r'\b(combien\s+de\s+temps|durée\s+du\s+trajet)\b',
+                    r'\b(à\s+pied|marche|marcher)\b',
+                ],
+                'ru': [
+                    r'\b(как\s+добраться|как\s+доехать|как\s+попасть|маршрут)\b',
+                    r'\b(метро|автобус|трамвай|паром|такси|транспорт)\b',
+                    r'\b(от.*до|доехать\s+до|добраться\s+до)\b',
+                    r'\b(общественный\s+транспорт)\b',
+                    r'\b(аэропорт|из\s+аэропорта|в\s+аэропорт)\b',
+                    r'\b(сколько\s+времени|время\s+в\s+пути)\b',
+                    r'\b(пешком|пройти)\b',
+                ],
+                'ar': [
+                    r'\b(كيف\s+أصل|كيف\s+أذهب|الطريق\s+إلى|الاتجاهات)\b',
+                    r'\b(مترو|حافلة|ترام|عبارة|تاكسي|مواصلات|نقل)\b',
+                    r'\b(من.*إلى|الذهاب\s+إلى|الوصول\s+إلى)\b',
+                    r'\b(وسائل\s+النقل\s+العامة|المواصلات\s+العامة)\b',
+                    r'\b(مطار|من\s+المطار|إلى\s+المطار)\b',
+                    r'\b(كم\s+يستغرق|وقت\s+الرحلة)\b',
+                    r'\b(مشياً|سيراً\s+على\s+الأقدام)\b',
                 ]
             },
             'needs_neighborhood': {

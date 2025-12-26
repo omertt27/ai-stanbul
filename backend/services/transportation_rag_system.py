@@ -14,6 +14,7 @@ Features:
 - Time and distance calculations with confidence indicators
 - Accessibility information
 - Week 2: Canonical station/line ID normalization and multilingual support
+- Week 3: Destination type system (island, ferry-only, walking distance)
 
 Author: AI Istanbul Team
 Date: December 2024
@@ -27,10 +28,227 @@ import json
 import re
 import unicodedata
 import heapq  # For Dijkstra's priority queue
+from enum import Enum
 
 # Station normalization is imported later in __init__ from transportation_station_normalization
 
 logger = logging.getLogger(__name__)
+
+# =============================================================================
+# DESTINATION TYPE SYSTEM (Week 3 Fix)
+# =============================================================================
+class DestinationType(Enum):
+    """
+    Destination classification for proper routing.
+    
+    This prevents sending island destinations to rail-only route solvers.
+    """
+    STATION = "station"        # Direct transit station
+    AREA = "area"              # Neighborhood/district (map to nearest station)
+    ISLAND = "island"          # Ferry-only destination (Princes' Islands)
+    ATTRACTION = "attraction"  # Tourist attraction (map to nearest station)
+    FERRY_TERMINAL = "ferry_terminal"  # Ferry pier
+    WALKING = "walking"        # Destination within walking distance
+
+
+@dataclass
+class DestinationInfo:
+    """Information about a destination for routing."""
+    name: str
+    dest_type: DestinationType
+    access_mode: str  # 'rail', 'ferry', 'walk', 'multi'
+    terminals: List[str]  # Access points (stations/piers)
+    walking_time_min: Optional[int] = None  # Minutes if walkable
+    
+    
+# Island destinations - NEVER send to rail router
+ISLAND_DESTINATIONS = {
+    "buyukada": DestinationInfo(
+        name="Büyükada",
+        dest_type=DestinationType.ISLAND,
+        access_mode="ferry",
+        terminals=["FERRY-Kabataş", "FERRY-Eminönü", "FERRY-Kadıköy", "FERRY-Bostancı"]
+    ),
+    "büyükada": DestinationInfo(
+        name="Büyükada",
+        dest_type=DestinationType.ISLAND,
+        access_mode="ferry",
+        terminals=["FERRY-Kabataş", "FERRY-Eminönü", "FERRY-Kadıköy", "FERRY-Bostancı"]
+    ),
+    "heybeliada": DestinationInfo(
+        name="Heybeliada",
+        dest_type=DestinationType.ISLAND,
+        access_mode="ferry",
+        terminals=["FERRY-Kabataş", "FERRY-Eminönü", "FERRY-Kadıköy", "FERRY-Bostancı"]
+    ),
+    "burgazada": DestinationInfo(
+        name="Burgazada",
+        dest_type=DestinationType.ISLAND,
+        access_mode="ferry",
+        terminals=["FERRY-Kabataş", "FERRY-Eminönü", "FERRY-Kadıköy", "FERRY-Bostancı"]
+    ),
+    "kinaliada": DestinationInfo(
+        name="Kınalıada",
+        dest_type=DestinationType.ISLAND,
+        access_mode="ferry",
+        terminals=["FERRY-Kabataş", "FERRY-Eminönü", "FERRY-Kadıköy", "FERRY-Bostancı"]
+    ),
+    "kınalıada": DestinationInfo(
+        name="Kınalıada",
+        dest_type=DestinationType.ISLAND,
+        access_mode="ferry",
+        terminals=["FERRY-Kabataş", "FERRY-Eminönü", "FERRY-Kadıköy", "FERRY-Bostancı"]
+    ),
+    "princes islands": DestinationInfo(
+        name="Princes' Islands",
+        dest_type=DestinationType.ISLAND,
+        access_mode="ferry",
+        terminals=["FERRY-Kabataş", "FERRY-Eminönü", "FERRY-Kadıköy", "FERRY-Bostancı"]
+    ),
+    "adalar": DestinationInfo(
+        name="Princes' Islands",
+        dest_type=DestinationType.ISLAND,
+        access_mode="ferry",
+        terminals=["FERRY-Kabataş", "FERRY-Eminönü", "FERRY-Kadıköy", "FERRY-Bostancı"]
+    ),
+    "sedef adası": DestinationInfo(
+        name="Sedef Adası",
+        dest_type=DestinationType.ISLAND,
+        access_mode="ferry",
+        terminals=["FERRY-Bostancı"]
+    ),
+}
+
+# Walking distance threshold in meters
+WALK_THRESHOLD_METERS = 800  # ~10 minute walk
+
+
+def get_destination_type(destination: str) -> DestinationInfo:
+    """
+    Classify a destination before routing.
+    
+    Args:
+        destination: User-provided destination string
+        
+    Returns:
+        DestinationInfo with routing metadata
+    """
+    dest_normalized = destination.lower().strip()
+    
+    # Check if it's an island
+    if dest_normalized in ISLAND_DESTINATIONS:
+        return ISLAND_DESTINATIONS[dest_normalized]
+    
+    # Check for island patterns
+    island_patterns = ['ada', 'island', 'adası']
+    for pattern in island_patterns:
+        if pattern in dest_normalized:
+            # Generic island - default to Büyükada ferry terminals
+            return DestinationInfo(
+                name=destination,
+                dest_type=DestinationType.ISLAND,
+                access_mode="ferry",
+                terminals=["FERRY-Kabataş", "FERRY-Eminönü", "FERRY-Kadıköy", "FERRY-Bostancı"]
+            )
+    
+    # Default: area/station (will be resolved by normal routing)
+    return DestinationInfo(
+        name=destination,
+        dest_type=DestinationType.AREA,
+        access_mode="rail",
+        terminals=[]
+    )
+
+
+def is_walking_distance(origin_coords: Tuple[float, float], dest_coords: Tuple[float, float]) -> Tuple[bool, int]:
+    """
+    Check if destination is within walking distance.
+    
+    Args:
+        origin_coords: (lat, lon) of origin
+        dest_coords: (lat, lon) of destination
+        
+    Returns:
+        Tuple of (is_walkable, estimated_walk_time_minutes)
+    """
+    from math import radians, cos, sin, asin, sqrt
+    
+    lat1, lon1 = origin_coords
+    lat2, lon2 = dest_coords
+    
+    # Haversine formula
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    meters = 6371000 * c  # Earth radius in meters
+    
+    # Estimate walking time: ~80m/minute average walking speed
+    walk_time_minutes = int(meters / 80)
+    
+    return (meters <= WALK_THRESHOLD_METERS, walk_time_minutes)
+
+
+# =============================================================================
+# TRANSPORT ENTITY WHITELIST (Week 3 Fix)
+# =============================================================================
+# These are VALID transport entities - NOT hallucinations
+VALID_TRANSPORT_ENTITIES = {
+    # Metro lines
+    "m1", "m1a", "m1b", "m2", "m3", "m4", "m5", "m6", "m7", "m9", "m11",
+    # Tram lines  
+    "t1", "t4", "t5",
+    # Other transit
+    "marmaray", "f1", "f2", "metrobus", "ferry", "ido", "turyol", "şehir hatları",
+    # Common stations mentioned
+    "sirkeci", "yenikapı", "yenikapi", "ayrılık çeşmesi", "ayrilik cesmesi",
+    "kadıköy", "kadikoy", "üsküdar", "uskudar", "taksim", "levent",
+    "mecidiyeköy", "mecidiyekoy", "şişli", "sisli", "osmanbey",
+    "kabataş", "kabatas", "karaköy", "karakoy", "eminönü", "eminonu",
+    "sultanahmet", "beyazıt", "beyazit", "aksaray", "zeytinburnu",
+    "bağcılar", "bagcilar", "kirazlı", "kirazli", "otogar",
+    "bakırköy", "bakirkoy", "yeşilköy", "yesilkoy", "florya",
+    "pendik", "kartal", "maltepe", "bostancı", "bostanci",
+    "beşiktaş", "besiktas", "ortaköy", "ortakoy", "bebek",
+    "hacıosman", "hacimosman", "maslak", "gayrettepe",
+    "4. levent", "4 levent", "levent", "zincirlikuyu",
+    # Islands
+    "büyükada", "buyukada", "heybeliada", "burgazada", "kınalıada", "kinaliada",
+    "adalar", "princes islands", "sedef adası",
+    # Airport stations
+    "istanbul havalimanı", "istanbul havalimani", "atatürk havalimanı",
+    "sabiha gökçen", "sabiha gokcen",
+}
+
+
+def is_valid_transport_entity(entity: str) -> bool:
+    """
+    Check if an entity is a valid transport-related term.
+    
+    Use this to prevent marking transport entities as hallucinations.
+    """
+    entity_lower = entity.lower().strip()
+    
+    # Direct match
+    if entity_lower in VALID_TRANSPORT_ENTITIES:
+        return True
+    
+    # Check for partial matches (station names often appear in compound form)
+    for valid_entity in VALID_TRANSPORT_ENTITIES:
+        if valid_entity in entity_lower or entity_lower in valid_entity:
+            return True
+    
+    # Check metro/tram line patterns
+    if re.match(r'^m\d{1,2}$', entity_lower):
+        return True
+    if re.match(r'^t\d$', entity_lower):
+        return True
+    if re.match(r'^f\d$', entity_lower):
+        return True
+        
+    return False
+
 
 @dataclass
 class TransitStation:
@@ -250,6 +468,109 @@ class IstanbulTransportationRAG:
             
             # Pendik
             "pendik": ["MARMARAY-Pendik"],
+            
+            # ====== LANDMARKS & TOURIST ATTRACTIONS ======
+            # Palaces
+            "dolmabahce": ["T1-Kabataş"],
+            "dolmabahce palace": ["T1-Kabataş"],
+            "dolmabahçe": ["T1-Kabataş"],
+            "dolmabahçe palace": ["T1-Kabataş"],
+            "dolmabahçe sarayı": ["T1-Kabataş"],
+            "topkapi": ["T1-Gülhane", "T1-Sultanahmet"],
+            "topkapi palace": ["T1-Gülhane", "T1-Sultanahmet"],
+            "topkapı": ["T1-Gülhane", "T1-Sultanahmet"],
+            "topkapı palace": ["T1-Gülhane", "T1-Sultanahmet"],
+            "topkapı sarayı": ["T1-Gülhane", "T1-Sultanahmet"],
+            
+            # Mosques & Religious Sites
+            "blue mosque": ["T1-Sultanahmet"],
+            "sultan ahmed mosque": ["T1-Sultanahmet"],
+            "sultanahmet camii": ["T1-Sultanahmet"],
+            "suleymaniye": ["T1-Beyazıt-Kapalıçarşı"],
+            "suleymaniye mosque": ["T1-Beyazıt-Kapalıçarşı"],
+            "süleymaniye": ["T1-Beyazıt-Kapalıçarşı"],
+            "süleymaniye camii": ["T1-Beyazıt-Kapalıçarşı"],
+            
+            # Museums
+            "hagia sophia": ["T1-Sultanahmet"],
+            "ayasofya": ["T1-Sultanahmet"],
+            "aya sofya": ["T1-Sultanahmet"],
+            "archaeological museum": ["T1-Gülhane"],
+            "arkeoloji muzesi": ["T1-Gülhane"],
+            
+            # Markets & Shopping
+            "grand bazaar": ["T1-Beyazıt-Kapalıçarşı"],
+            "kapali carsi": ["T1-Beyazıt-Kapalıçarşı"],
+            "kapalıçarşı": ["T1-Beyazıt-Kapalıçarşı"],
+            "spice bazaar": ["T1-Eminönü"],
+            "misir carsisi": ["T1-Eminönü"],
+            "egyptian bazaar": ["T1-Eminönü"],
+            
+            # Galata/Beyoglu Landmarks
+            "galata bridge": ["T1-Karaköy", "T1-Eminönü"],
+            "galata köprüsü": ["T1-Karaköy", "T1-Eminönü"],
+            
+            # Parks
+            "gulhane": ["T1-Gülhane"],
+            "gülhane": ["T1-Gülhane"],
+            "gulhane park": ["T1-Gülhane"],
+            "gülhane parkı": ["T1-Gülhane"],
+            
+            # ====== NEIGHBORHOODS (Additional) ======
+            "ortakoy": ["T4-Beşiktaş", "FERRY-Beşiktaş"],  # Ortaköy is near Beşiktaş
+            "ortaköy": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
+            "balat": ["T4-Fener", "T4-Balat"],  # Historic neighborhood
+            "fener": ["T4-Fener"],
+            "fatih": ["T4-Fatih", "T1-Aksaray"],
+            "aksaray": ["T1-Aksaray", "M1A-Aksaray"],
+            "cihangir": ["M2-Taksim"],  # Near Taksim
+            "galatasaray": ["M2-Taksim"],  # On Istiklal
+            "nisantasi": ["M2-Osmanbey"],
+            "nişantaşı": ["M2-Osmanbey"],
+            "osmanbey": ["M2-Osmanbey"],
+            "bebek": ["T4-Beşiktaş", "FERRY-Beşiktaş"],  # Near Beşiktaş
+            
+            # ====== GENERIC DESTINATIONS ======
+            # Asian Side
+            "asian side": ["MARMARAY-Üsküdar", "M5-Üsküdar", "FERRY-Üsküdar"],
+            "asia": ["MARMARAY-Üsküdar", "M5-Üsküdar", "FERRY-Üsküdar"],
+            "anadolu yakasi": ["MARMARAY-Üsküdar", "M5-Üsküdar", "FERRY-Üsküdar"],
+            "anadolu yakası": ["MARMARAY-Üsküdar", "M5-Üsküdar", "FERRY-Üsküdar"],
+            
+            # European Side
+            "european side": ["M2-Taksim"],
+            "europe": ["M2-Taksim"],
+            "avrupa yakasi": ["M2-Taksim"],
+            "avrupa yakası": ["M2-Taksim"],
+            
+            # City Center
+            "city center": ["M2-Taksim", "T1-Sultanahmet"],
+            "city centre": ["M2-Taksim", "T1-Sultanahmet"],
+            "center": ["M2-Taksim", "T1-Sultanahmet"],
+            "centre": ["M2-Taksim", "T1-Sultanahmet"],
+            "downtown": ["M2-Taksim"],
+            "sehir merkezi": ["M2-Taksim", "T1-Sultanahmet"],
+            "şehir merkezi": ["M2-Taksim", "T1-Sultanahmet"],
+            
+            # Old City / Historic Peninsula
+            "old city": ["T1-Sultanahmet"],
+            "historic peninsula": ["T1-Sultanahmet"],
+            "tarihi yarimada": ["T1-Sultanahmet"],
+            "tarihi yarımada": ["T1-Sultanahmet"],
+            
+            # Islands
+            "princes islands": ["FERRY-Kadıköy", "FERRY-Eminönü"],  # Ferry from these
+            "adalar": ["FERRY-Kadıköy", "FERRY-Eminönü"],
+            "buyukada": ["FERRY-Kadıköy", "FERRY-Eminönü"],
+            "büyükada": ["FERRY-Kadıköy", "FERRY-Eminönü"],
+            "heybeliada": ["FERRY-Kadıköy", "FERRY-Eminönü"],
+            
+            # Sabiha Gökçen Airport (Asian side)
+            "sabiha gokcen": ["M4-Sabiha Gökçen Havalimanı"],
+            "sabiha gökçen": ["M4-Sabiha Gökçen Havalimanı"],
+            "saw": ["M4-Sabiha Gökçen Havalimanı"],
+            "sabiha gokcen airport": ["M4-Sabiha Gökçen Havalimanı"],
+            "sabiha gökçen airport": ["M4-Sabiha Gökçen Havalimanı"],
         }
     
     def _build_station_graph(self) -> Dict[str, TransitStation]:
@@ -336,31 +657,71 @@ class IstanbulTransportationRAG:
         return {
             # ASIAN SIDE
             "kadıköy": ["M4-Kadıköy", "M4-Ayrılık Çeşmesi"],
+            "kadikoy": ["M4-Kadıköy", "M4-Ayrılık Çeşmesi"],
             "üsküdar": ["MARMARAY-Üsküdar", "M5-Üsküdar"],
+            "uskudar": ["MARMARAY-Üsküdar", "M5-Üsküdar"],
             "bostancı": ["MARMARAY-Bostancı", "M4-Bostancı"],
+            "bostanci": ["MARMARAY-Bostancı", "M4-Bostancı"],
             "pendik": ["MARMARAY-Pendik", "M4-Pendik"],
             "kartal": ["MARMARAY-Kartal", "M4-Kartal"],
             "maltepe": ["M4-Maltepe"],
             "ataşehir": ["M4-Ünalan", "M4-Kozyatağı"],
+            "atasehir": ["M4-Ünalan", "M4-Kozyatağı"],
             
-            # EUROPEAN SIDE
+            # EUROPEAN SIDE - Historic/Tourist
             "taksim": ["M2-Taksim"],
             "beyoğlu": ["M2-Taksim", "T1-Karaköy"],
+            "beyoglu": ["M2-Taksim", "T1-Karaköy"],
             "sultanahmet": ["T1-Sultanahmet"],
             "eminönü": ["T1-Eminönü", "T4-Eminönü", "FERRY-Eminönü", "MARMARAY-Sirkeci"],
+            "eminonu": ["T1-Eminönü", "T4-Eminönü", "FERRY-Eminönü", "MARMARAY-Sirkeci"],
             "karaköy": ["T1-Karaköy", "T4-Karaköy", "FERRY-Karaköy"],
+            "karakoy": ["T1-Karaköy", "T4-Karaköy", "FERRY-Karaköy"],
             "kabataş": ["T1-Kabataş", "T4-Kabataş", "FERRY-Kabataş"],
+            "kabatas": ["T1-Kabataş", "T4-Kabataş", "FERRY-Kabataş"],
             "beşiktaş": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
+            "besiktas": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
             "şişli": ["M2-Şişli-Mecidiyeköy"],
+            "sisli": ["M2-Şişli-Mecidiyeköy"],
             "levent": ["M2-Levent", "M2-4. Levent", "M6-Levent"],
             "mecidiyeköy": ["M2-Şişli-Mecidiyeköy", "M7-Mecidiyeköy"],
+            "mecidiyekoy": ["M2-Şişli-Mecidiyeköy", "M7-Mecidiyeköy"],
             "zeytinburnu": ["T1-Zeytinburnu", "MARMARAY-Zeytinburnu"],
             "bakırköy": ["MARMARAY-Bakırköy"],
+            "bakirkoy": ["MARMARAY-Bakırköy"],
             "yeşilköy": ["MARMARAY-Yeşilköy"],
+            "yesilkoy": ["MARMARAY-Yeşilköy"],
+            
+            # EUROPEAN SIDE - Additional Neighborhoods
+            "fatih": ["T4-Fatih", "T1-Aksaray"],
+            "aksaray": ["T1-Aksaray", "M1A-Aksaray"],
+            "balat": ["T4-Fener", "T4-Balat"],
+            "fener": ["T4-Fener"],
+            "ortaköy": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
+            "ortakoy": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
+            "nişantaşı": ["M2-Osmanbey"],
+            "nisantasi": ["M2-Osmanbey"],
+            "osmanbey": ["M2-Osmanbey"],
+            "cihangir": ["M2-Taksim"],
+            "galata": ["T1-Karaköy"],
+            "bebek": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
+            "etiler": ["M2-4. Levent"],
+            "maslak": ["M2-Hacıosman"],
+            "sariyer": ["M2-Hacıosman"],
+            "sarıyer": ["M2-Hacıosman"],
+            
+            # Airports
             "atatürk airport": ["M1A-Atatürk Havalimanı"],  # Closed airport, legacy support
+            "ataturk airport": ["M1A-Atatürk Havalimanı"],
             "istanbul airport": ["M11-İstanbul Havalimanı"],
             "new airport": ["M11-İstanbul Havalimanı"],
+            "sabiha gökçen": ["M4-Sabiha Gökçen Havalimanı"],
+            "sabiha gokcen": ["M4-Sabiha Gökçen Havalimanı"],
+            
+            # Transfer Hubs
             "yenikapı": ["MARMARAY-Yenikapı", "M1A-Yenikapı", "M2-Yenikapı"],
+            "yenikapi": ["MARMARAY-Yenikapı", "M1A-Yenikapı", "M2-Yenikapı"],
+            "sirkeci": ["MARMARAY-Sirkeci", "T1-Sirkeci"],
         }
     
     def find_route(
@@ -376,6 +737,11 @@ class IstanbulTransportationRAG:
         
         This is the main routing function - like Google Maps pathfinding.
         
+        WEEK 3 IMPROVEMENTS:
+        - Destination type detection (island, walking, etc.)
+        - Walking distance short-circuit
+        - Ferry routing for islands
+        
         Args:
             origin: Starting point (neighborhood or station name)
             destination: Ending point (neighborhood or station name)
@@ -387,12 +753,54 @@ class IstanbulTransportationRAG:
             TransitRoute with step-by-step directions, or None if no route found
         """
         # Normalize names
-        origin = origin.lower().strip()
-        destination = destination.lower().strip()
+        origin_normalized = origin.lower().strip()
+        destination_normalized = destination.lower().strip()
         
+        # =================================================================
+        # WEEK 3 FIX #1: Destination Type Detection
+        # =================================================================
+        dest_info = get_destination_type(destination_normalized)
+        logger.info(f"🎯 Destination type: {dest_info.dest_type.value} for '{destination}'")
+        
+        # =================================================================
+        # WEEK 3 FIX #2: Walking Distance Short-Circuit
+        # =================================================================
+        # If same origin and destination OR within walking distance, skip transit routing
+        if origin_normalized == destination_normalized:
+            logger.info(f"🚶 Same origin and destination - returning walking response")
+            walking_route = self._create_walking_route(origin, destination, walk_time=2)
+            self.last_route = walking_route
+            return walking_route
+        
+        # Check walking distance if we have GPS for both
+        if origin_gps and destination_gps:
+            origin_coords = (origin_gps.get('lat', 0), origin_gps.get('lon', 0))
+            dest_coords = (destination_gps.get('lat', 0), destination_gps.get('lon', 0))
+            
+            is_walkable, walk_time = is_walking_distance(origin_coords, dest_coords)
+            if is_walkable:
+                logger.info(f"🚶 Destination within walking distance ({walk_time} min) - returning walking response")
+                walking_route = self._create_walking_route(origin, destination, walk_time=walk_time)
+                self.last_route = walking_route
+                return walking_route
+        
+        # =================================================================
+        # WEEK 3 FIX #3: Island Routing (Ferry-Only Destinations)
+        # =================================================================
+        if dest_info.dest_type == DestinationType.ISLAND:
+            logger.info(f"🛳️ Island destination detected - using ferry routing")
+            island_route = self._create_island_route(origin, destination, dest_info, origin_gps)
+            if island_route:
+                self.last_route = island_route
+                return island_route
+            # Fall through to normal routing if island route fails
+        
+        # =================================================================
+        # NORMAL TRANSIT ROUTING
+        # =================================================================
         # Week 1 Improvement #3: Try cache first (skip cache if GPS-based - those are dynamic)
         use_cache = not (origin_gps or destination_gps)
-        cache_key = f"route:{origin}|{destination}|{max_transfers}"
+        cache_key = f"route:{origin_normalized}|{destination_normalized}|{max_transfers}"
         
         if use_cache and self.redis:
             try:
@@ -428,19 +836,19 @@ class IstanbulTransportationRAG:
                 origin_stations = [nearest_origin]
                 logger.info(f"✅ Using nearest station for GPS origin: {self.stations[nearest_origin].name}")
             else:
-                origin_stations = self._get_stations_for_location(origin)
+                origin_stations = self._get_stations_for_location(origin_normalized)
         else:
-            origin_stations = self._get_stations_for_location(origin)
+            origin_stations = self._get_stations_for_location(origin_normalized)
         
         if destination_gps and isinstance(destination_gps, dict) and 'lat' in destination_gps and 'lon' in destination_gps:
             nearest_dest = self.find_nearest_station(destination_gps['lat'], destination_gps['lon'])
             if nearest_dest:
                 dest_stations = [nearest_dest]
-                logger.info(f"✅ Using nearest station for GPS destination: {self.stations[nearestDest].name}")
+                logger.info(f"✅ Using nearest station for GPS destination: {self.stations[nearest_dest].name}")
             else:
-                dest_stations = self._get_stations_for_location(destination)
+                dest_stations = self._get_stations_for_location(destination_normalized)
         else:
-            dest_stations = self._get_stations_for_location(destination)
+            dest_stations = self._get_stations_for_location(destination_normalized)
         
         if not origin_stations or not dest_stations:
             logger.warning(f"Could not find stations for {origin} or {destination}")
@@ -480,6 +888,135 @@ class IstanbulTransportationRAG:
         
         return best_route
     
+    def _create_walking_route(self, origin: str, destination: str, walk_time: int) -> TransitRoute:
+        """Create a walking-only route for nearby destinations."""
+        return TransitRoute(
+            origin=origin,
+            destination=destination,
+            total_time=walk_time,
+            total_distance=walk_time * 0.08,  # ~80m/min walking
+            steps=[{
+                'type': 'walk',
+                'instruction': f"Walk to {destination}",
+                'duration': walk_time,
+                'distance': walk_time * 80,
+                'details': f"The destination is within walking distance ({walk_time} minutes)."
+            }],
+            transfers=0,
+            lines_used=['WALK'],
+            alternatives=[],
+            time_confidence='high'
+        )
+    
+    def _create_island_route(
+        self, 
+        origin: str, 
+        destination: str, 
+        dest_info: DestinationInfo,
+        origin_gps: Optional[Dict[str, float]] = None
+    ) -> Optional[TransitRoute]:
+        """
+        Create a two-phase route to an island destination.
+        
+        Phase 1: Get to ferry terminal
+        Phase 2: Ferry to island
+        """
+        # Find the best ferry terminal based on origin
+        # Prefer terminals on the same side of the city
+        terminal_priorities = {
+            'european': ['FERRY-Kabataş', 'FERRY-Eminönü', 'FERRY-Karaköy'],
+            'asian': ['FERRY-Kadıköy', 'FERRY-Bostancı']
+        }
+        
+        # Determine which side of Istanbul the origin is on
+        origin_lower = origin.lower()
+        asian_keywords = ['kadıköy', 'kadikoy', 'üsküdar', 'uskudar', 'bostancı', 'bostanci', 
+                         'pendik', 'kartal', 'maltepe', 'ataşehir', 'atasehir', 'asian']
+        
+        if any(kw in origin_lower for kw in asian_keywords):
+            preferred_terminals = terminal_priorities['asian']
+        else:
+            preferred_terminals = terminal_priorities['european']
+        
+        # Try to find route to ferry terminal
+        for terminal in preferred_terminals:
+            terminal_name = terminal.split('-')[1] if '-' in terminal else terminal
+            
+            # Find route to terminal (recursive, but without island check)
+            terminal_route = self._find_route_to_terminal(origin, terminal_name, origin_gps)
+            
+            if terminal_route:
+                # Add ferry step to island
+                ferry_time = 45 if 'bostancı' in terminal.lower() else 60  # Bostancı is closer to islands
+                
+                # Combine routes
+                combined_steps = terminal_route.steps.copy()
+                combined_steps.append({
+                    'type': 'ferry',
+                    'line': 'İDO/Şehir Hatları',
+                    'instruction': f"Take the ferry from {terminal_name} to {dest_info.name}",
+                    'from_station': terminal_name,
+                    'to_station': dest_info.name,
+                    'duration': ferry_time,
+                    'details': f"Ferry service to {dest_info.name}. Ferries run approximately every 30-60 minutes."
+                })
+                
+                island_route = TransitRoute(
+                    origin=origin,
+                    destination=dest_info.name,
+                    total_time=terminal_route.total_time + ferry_time,
+                    total_distance=terminal_route.total_distance + 15,  # ~15km to islands
+                    steps=combined_steps,
+                    transfers=terminal_route.transfers + 1,
+                    lines_used=terminal_route.lines_used + ['FERRY'],
+                    alternatives=[],
+                    time_confidence='medium'  # Ferry schedules can vary
+                )
+                
+                logger.info(f"✅ Created island route: {origin} → {terminal_name} → {dest_info.name}")
+                return island_route
+        
+        logger.warning(f"Could not create island route to {destination}")
+        return None
+    
+    def _find_route_to_terminal(
+        self, 
+        origin: str, 
+        terminal: str,
+        origin_gps: Optional[Dict[str, float]] = None
+    ) -> Optional[TransitRoute]:
+        """Find route to a ferry terminal (internal, avoids island routing loop)."""
+        origin_normalized = origin.lower().strip()
+        terminal_normalized = terminal.lower().strip()
+        
+        # Get stations
+        if origin_gps and isinstance(origin_gps, dict) and 'lat' in origin_gps and 'lon' in origin_gps:
+            nearest_origin = self.find_nearest_station(origin_gps['lat'], origin_gps['lon'])
+            if nearest_origin:
+                origin_stations = [nearest_origin]
+            else:
+                origin_stations = self._get_stations_for_location(origin_normalized)
+        else:
+            origin_stations = self._get_stations_for_location(origin_normalized)
+        
+        terminal_stations = self._get_stations_for_location(terminal_normalized)
+        
+        if not origin_stations or not terminal_stations:
+            return None
+        
+        # Find best route
+        best_route = None
+        best_time = float('inf')
+        
+        for orig_station in origin_stations:
+            for term_station in terminal_stations:
+                route = self._find_path(orig_station, term_station, max_transfers=3)
+                if route and route.total_time < best_time:
+                    best_route = route
+                    best_time = route.total_time
+        
+        return best_route
+    
     def _get_stations_for_location(self, location: str) -> List[str]:
         """
         Get station IDs for a given location name with fuzzy matching.
@@ -508,6 +1045,13 @@ class IstanbulTransportationRAG:
             logger.debug(f"✅ Found via alias (original): {location} → {stations}")
             return stations
         
+        # Strategy 2b: Search all aliases with normalized comparison
+        for alias, stations in self.station_aliases.items():
+            alias_normalized = self._normalize_station_name(alias)
+            if normalized_location == alias_normalized:
+                logger.debug(f"✅ Found via normalized alias: {alias_normalized} → {stations}")
+                return stations
+        
         # Strategy 3: Check neighborhood mapping
         if location in self.neighborhoods:
             stations = self.neighborhoods[location]
@@ -518,6 +1062,13 @@ class IstanbulTransportationRAG:
             stations = self.neighborhoods[normalized_location]
             logger.debug(f"✅ Found via neighborhood (normalized): {normalized_location} → {stations}")
             return stations
+        
+        # Strategy 3b: Search all neighborhoods with normalized comparison
+        for neighborhood, stations in self.neighborhoods.items():
+            neighborhood_normalized = self._normalize_station_name(neighborhood)
+            if normalized_location == neighborhood_normalized:
+                logger.debug(f"✅ Found via normalized neighborhood: {neighborhood_normalized} → {stations}")
+                return stations
         
         # Strategy 4: Try normalized name matching against all stations
         matches = []

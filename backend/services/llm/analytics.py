@@ -24,6 +24,8 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from collections import defaultdict, deque
 
+logger = logging.getLogger(__name__)
+
 # Import Phase 4 Priority 4: Production Monitoring
 try:
     from .monitoring import get_monitor, track_query as monitor_track_query
@@ -31,8 +33,6 @@ try:
 except ImportError:
     MONITORING_AVAILABLE = False
     logger.warning("⚠️ Production monitoring module not available")
-
-logger = logging.getLogger(__name__)
 
 
 class AnalyticsManager:

@@ -417,14 +417,14 @@ class StationNormalizer:
         # M4 LINE (Kadıköy - Tavşantepe) - 23 stations
         # ==========================================
         m4_stations = [
-            ("Kadıköy", "Kadikoy", "kadikoy", ["kadikoy"], 40.9903, 29.0275, []),
+            ("Kadıköy", "Kadikoy", "kadikoy", ["kadikoy"], 40.9903, 29.0275, ["FERRY"]),  # FIXED: Added FERRY transfer
             ("Ayrılık Çeşmesi", "Ayrilik Cesmesi", "ayrilik_cesmesi", ["ayrilik", "ayrilik cesmesi"], 40.9797, 29.0510, ["MARMARAY"]),
             ("Acıbadem", "Acibadem", "acibadem", ["acibadem"], 41.0028, 29.0194, []),
             ("Ünalan", "Unalan", "unalan", ["unalan"], 41.0092, 29.0247, []),
             ("Göztepe", "Goztepe", "goztepe_m4", ["goztepe"], 41.0164, 29.0381, []),
             ("Yenisahra", "Yenisahra", "yenisahra", ["yeni sahra"], 41.0194, 29.0497, []),
             ("Kozyatağı", "Kozyatagi", "kozyatagi", ["kozyatagi"], 41.0242, 29.0625, []),
-            ("Bostancı", "Bostanci", "bostanci_m4", ["bostanci"], 40.9647, 29.0875, ["MARMARAY"]),
+            ("Bostancı", "Bostanci", "bostanci_m4", ["bostanci"], 40.9647, 29.0875, ["MARMARAY", "FERRY"]),  # FIXED: Added FERRY transfer
             ("Küçükyalı", "Kucukyali", "kucukyali_m4", ["kucukyali"], 40.9486, 29.1050, []),
             ("Maltepe", "Maltepe", "maltepe_m4", ["maltepe"], 40.9367, 29.1306, []),
             ("Huzurevi", "Huzurevi", "huzurevi", ["huzurevi"], 40.9236, 29.1483, []),
@@ -562,13 +562,13 @@ class StationNormalizer:
             ("Sultanahmet", "Sultanahmet", "sultanahmet_t4", ["sultanahmet"], 41.0058, 28.9781, ["T1"]),
             ("Gülhane", "Gulhane", "gulhane_t4", ["gulhane"], 41.0131, 28.9814, ["T1"]),
             ("Sirkeci", "Sirkeci", "sirkeci_t4", ["sirkeci"], 41.0175, 28.9839, ["T1", "MARMARAY"]),
-            ("Eminönü", "Eminonu", "eminonu_t4", ["eminonu"], 41.0178, 28.9706, ["T1"]),
-            ("Karaköy", "Karakoy", "karakoy_t4", ["karakoy"], 41.0236, 28.9753, ["T1", "F2"]),
+            ("Eminönü", "Eminonu", "eminonu_t4", ["eminonu"], 41.0178, 28.9706, ["T1", "FERRY"]),  # FIXED: Added FERRY transfer
+            ("Karaköy", "Karakoy", "karakoy_t4", ["karakoy"], 41.0236, 28.9753, ["T1", "F2", "FERRY"]),  # FIXED: Added FERRY transfer
             ("Tophane", "Tophane", "tophane_t4", ["tophane"], 41.0264, 28.9828, ["T1"]),
             ("Fındıklı", "Findikli", "findikli", ["findikli"], 41.0292, 28.9883, []),
-            ("Kabataş", "Kabatas", "kabatas_t4", ["kabatas"], 41.0356, 28.9914, ["T1", "F1"]),
+            ("Kabataş", "Kabatas", "kabatas_t4", ["kabatas"], 41.0356, 28.9914, ["T1", "F1", "FERRY"]),  # FIXED: Added FERRY transfer
             ("Dolmabahçe", "Dolmabahce", "dolmabahce", ["dolmabahce"], 41.0408, 28.9958, []),
-            ("Beşiktaş", "Besiktas", "besiktas_t4", ["besiktas"], 41.0425, 29.0019, []),
+            ("Beşiktaş", "Besiktas", "besiktas_t4", ["besiktas"], 41.0425, 29.0019, ["FERRY"]),  # FIXED: Added FERRY transfer
             ("Barbaros", "Barbaros", "barbaros", ["barbaros"], 41.0467, 29.0081, []),
             ("Mescid-i Selam", "Mescid-i Selam", "mescid_selam", ["mescid selam", "mescidi selam"], 41.0528, 29.0117, []),
         ]
