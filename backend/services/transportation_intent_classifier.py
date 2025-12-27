@@ -282,65 +282,6 @@ class TransportationIntentClassifier:
             r'\b(للوصول|الوصول)\s+(إلى|الى)\b',  # to reach/to arrive at
         ]
         
-        # =====================================================================
-        # NORMAL PATTERNS (all languages)
-        # =====================================================================
-        normal = [
-            # === ENGLISH ===
-            r'\b(go|get|reach|travel|arrive)\b.*\b(to|from)\b',
-            r'\b(how|what).*(way|route|get|go|reach)\b',
-            r'\b(directions?|route|routing|way|path)\b',
-            r'\b(from .+ to |to .+ from )\b',
-            r'\bfrom\b.*\bto\b',
-            r'\b(navigate|find my way|get there)\b',
-            r'\b(metro|tram|bus|ferry|marmaray|funicular|train)\b.*\b(to|from|station)\b',
-            r'\b(best way|quickest way|fastest way|easiest way)\b',
-            r'\b(going|headed|heading)\s+to\b',
-            r'\b(need|trying|want)\s+to\s+(get|go|reach)\b',
-            r'\b(istanbulkart|istanbul\s+card)\b',
-            
-            # === TURKISH ===
-            r'\b(git|gid|var|ulaş)\w*\s+(için|ile)\b',
-            r'\b(buradan|şuradan|oradan)\b',
-            r'\b(metro|tramvay|otobüs|vapur|feribot|dolmuş|minibüs)\b',
-            r'\b(durak|istasyon|iskele|terminal)\b',
-            r'\b(aktarma|aktarmalı|bağlantı)\b',
-            r'\b(en\s+iyi|en\s+hızlı|en\s+kolay)\s+(yol|rota)\b',
-            r'\b(lazım|gerek|gerekiyor)\b.*\b(git|gid|var)\b',
-            r'\b(toplu\s+taşıma|toplu\s+ulaşım)\b',
-            
-            # === GERMAN ===
-            r'\b(fahren|gehen|kommen)\s+(nach|zu|von)\b',
-            r'\b(metro|u-?bahn|s-?bahn|bus|tram|straßenbahn|fähre)\b',
-            r'\b(haltestelle|bahnhof|station|anleger)\b',
-            r'\b(umsteigen|umstieg|verbindung|anschluss)\b',
-            r'\b(schnellste|beste|einfachste)\s+(weg|route|verbindung)\b',
-            r'\b(muss|will|möchte)\s+(nach|zu|zum|zur)\b',
-            r'\böffentliche[nr]?\s+verkehrsmittel[n]?\b',  # öffentliche/öffentlichen Verkehrsmittel/Verkehrsmitteln
-            r'\bmit\s+(dem\s+)?(bus|bahn|zug|metro|tram)\b',  # mit dem Bus, mit der Bahn
-            
-            # === FRENCH ===
-            r'\b(aller|arriver|partir|venir)\s+(à|au|de|du|en)\b',
-            r'\b(métro|metro|tram|tramway|bus|ferry|bateau)\b',
-            r'\b(arrêt|station|gare|terminal|quai)\b',
-            r'\b(correspondance|changement|connexion)\b',
-            r'\b(meilleur|plus\s+rapide|plus\s+facile)\s+(moyen|chemin|trajet)\b',
-            r'\b(dois|veux|voudrais)\s+aller\b',
-            r'\btransport\s+(en\s+commun|public)\b',
-            
-            # === ARABIC ===
-            r'\b(اذهب|أذهب|اروح|أروح|امشي|أمشي)\b',
-            r'\b(مترو|المترو|حافلة|الحافلة|باص|الباص|عبارة|العبارة|قطار|القطار|ترام|الترام)\b',  # Added tram
-            r'\b(محطة|موقف|مرسى|مرفأ)\b',
-            r'\b(تحويل|تغيير|ربط|انتقال|أقوم\s+بالتحويل|بالتحويل)\b',  # transfer patterns
-            r'\b(أفضل|أسرع|أسهل)\s+(طريق|طريقة)\b',
-            r'\b(أحتاج|أريد|أود)\s+(أن\s+)?(أصل|أذهب|أوصل)\b',
-            r'\b(نقل\s+عام|مواصلات\s+عامة|وسائل\s+النقل\s+العام)\b',  # Added وسائل النقل العام
-            r'\b(يتوقف|توقف|يقف)\b',  # stops/stopping
-            r'\b(استخدام|استخدم|أستخدم)\b',  # use/using
-            r'\b(للوصول|الوصول)\s+(إلى|الى)\b',  # to reach/to arrive at
-        ]
-        
         return high_confidence, normal
     
     def _build_negative_patterns(self) -> list:

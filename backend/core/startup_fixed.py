@@ -60,13 +60,22 @@ class FastStartupManager:
         try:
             from database import get_db, engine, Base
             
+            # Import all models to register them with Base metadata
+            # This must be done BEFORE create_all() is called
+            try:
+                import models  # This registers all model classes with Base
+                logger.info("✅ Models imported and registered")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not import models: {e}")
+            
             # Create all tables if they don't exist
             logger.info("🔄 Creating database tables if needed...")
             Base.metadata.create_all(bind=engine)
             logger.info("✅ Database tables ready")
             
-            # Get database session
-            self.db = next(get_db())
+            # Get database session using SessionLocal directly instead of generator
+            from database import SessionLocal
+            self.db = SessionLocal()
             logger.info("✅ Database connection established")
         except Exception as e:
             error_msg = f"Database initialization failed: {str(e)}"
@@ -112,7 +121,15 @@ class FastStartupManager:
         try:
             logger.info("🔄 Starting background LLM initialization...")
             
-            # Wait for database and service manager to be ready (up to 30 seconds)
+            # 1. Preload ML models FIRST (before LLM, to share memory efficiently)
+            try:
+                from services.model_cache import preload_models
+                preload_models(['default', 'multilingual'])
+                logger.info("✅ ML models preloaded")
+            except Exception as e:
+                logger.warning(f"⚠️ Model preload skipped: {e}")
+            
+            # 2. Wait for database and service manager to be ready (up to 30 seconds)
             max_wait = 30
             waited = 0
             while waited < max_wait:
@@ -183,6 +200,12 @@ class FastStartupManager:
     async def shutdown(self):
         """Graceful shutdown"""
         try:
+            # Close database session
+            if self.db:
+                self.db.close()
+                logger.info("✅ Database session closed")
+            
+            # Shutdown Redis cache
             if self.redis_cache:
                 from services.redis_cache import shutdown_cache
                 await shutdown_cache()

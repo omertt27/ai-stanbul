@@ -55,22 +55,37 @@ class EmbeddingService:
         logger.info(f"✅ EmbeddingService initialized (mode: {self.model_name}, offline: {self.offline_mode})")
     
     def _load_model(self):
-        """Load the embedding model."""
+        """Load the embedding model using centralized cache."""
         try:
-            from sentence_transformers import SentenceTransformer
+            # Use centralized model cache to prevent duplicate loads
+            from services.model_cache import get_sentence_transformer
             
             if self.model_name == 'lightweight':
-                # Fast, good for production (384 dimensions, ~80MB)
-                model_id = 'all-MiniLM-L6-v2'
+                self.model = get_sentence_transformer('fast')
             elif self.model_name == 'high_quality':
                 # Better quality, slower (768 dimensions, ~420MB)
-                model_id = 'all-mpnet-base-v2'
+                from sentence_transformers import SentenceTransformer
+                self.model = SentenceTransformer('all-mpnet-base-v2')
             else:
+                self.model = get_sentence_transformer('default')
+            
+            if self.model:
+                logger.info(f"✅ Loaded embedding model: {self.model_name} (cached)")
+            else:
+                self.offline_mode = True
+                
+        except ImportError:
+            # Fallback to direct load
+            try:
+                from sentence_transformers import SentenceTransformer
                 model_id = 'all-MiniLM-L6-v2'
-            
-            self.model = SentenceTransformer(model_id)
-            logger.info(f"✅ Loaded embedding model: {model_id}")
-            
+                self.model = SentenceTransformer(model_id)
+                logger.info(f"✅ Loaded embedding model: {model_id} (direct)")
+            except Exception as e:
+                logger.info(f"ℹ️  SentenceTransformer not available - using keyword-based matching")
+                logger.debug(f"Embedding model error: {e}")
+                self.offline_mode = True
+                self.model = None
         except Exception as e:
             logger.info(f"ℹ️  SentenceTransformer not available - using keyword-based matching")
             logger.debug(f"Embedding model error: {e}")

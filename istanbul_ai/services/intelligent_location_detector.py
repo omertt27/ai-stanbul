@@ -2052,20 +2052,30 @@ class IntelligentLocationDetector:
                 'tags': {}
             }
 
-# Global detector instance
-intelligent_location_detector = IntelligentLocationDetector()
+# =============================================================================
+# SINGLETON PATTERN - Only create ONE instance
+# =============================================================================
+_intelligent_location_detector = None
+
+def get_intelligent_location_detector() -> IntelligentLocationDetector:
+    """
+    Get or create the singleton IntelligentLocationDetector instance.
+    This prevents multiple expensive ML model loads.
+    """
+    global _intelligent_location_detector
+    if _intelligent_location_detector is None:
+        logger.info("🔧 Creating singleton IntelligentLocationDetector...")
+        _intelligent_location_detector = IntelligentLocationDetector()
+    return _intelligent_location_detector
+
+# For backward compatibility - lazy initialization
+@property
+def intelligent_location_detector():
+    return get_intelligent_location_detector()
 
 async def detect_user_location(text: str, user_context: Optional[Dict] = None) -> LocationDetectionResult:
     """
     Detect user location from text input - main interface function
     """
-    return await intelligent_location_detector.detect_location_from_text(text, user_context)
-        
-# Global detector instance
-intelligent_location_detector = IntelligentLocationDetector()
-
-async def detect_user_location(text: str, user_context: Optional[Dict] = None) -> LocationDetectionResult:
-    """
-    Detect user location from text input - main interface function
-    """
-    return await intelligent_location_detector.detect_location_from_text(text, user_context)
+    detector = get_intelligent_location_detector()
+    return await detector.detect_location_from_text(text, user_context)

@@ -60,9 +60,14 @@ class DatabaseRAGService:
         logger.info("🚀 Initializing Database RAG Service")
         logger.info(f"   Vector store: {persist_directory}")
         
-        # Initialize embedding model (multilingual support)
+        # Initialize embedding model via centralized cache (prevents duplicate loads)
         logger.info("   Loading multilingual embedding model...")
-        self.encoder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+        try:
+            from services.model_cache import get_sentence_transformer
+            self.encoder = get_sentence_transformer('multilingual')
+        except ImportError:
+            # Fallback to direct load if model_cache not available
+            self.encoder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
         
         # Initialize ChromaDB
         logger.info("   Initializing ChromaDB...")

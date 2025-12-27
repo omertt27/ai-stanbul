@@ -21,7 +21,31 @@ Author: AI Istanbul Team
 Date: January 2025
 """
 
-# Import the modular app
+# =============================================================================
+# CRITICAL: Set environment variables BEFORE any imports
+# This prevents fork warnings and reduces noise from HuggingFace/Torch
+# =============================================================================
+import os
+import warnings
+
+# Prevent tokenizer fork warnings
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+
+# Reduce TensorFlow/Torch noise
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TF info/warnings
+os.environ['TRANSFORMERS_VERBOSITY'] = 'error'  # Only show errors from transformers
+
+# Suppress specific warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='torch')
+warnings.filterwarnings('ignore', category=UserWarning, module='transformers')
+warnings.filterwarnings('ignore', category=FutureWarning)
+
+# Reduce sentence-transformers progress bar noise
+os.environ['SENTENCE_TRANSFORMERS_HOME'] = os.path.expanduser('~/.cache/sentence_transformers')
+
+# =============================================================================
+# Now import the modular app
+# =============================================================================
 from main_modular import app
 
 # Export for uvicorn (main:app)

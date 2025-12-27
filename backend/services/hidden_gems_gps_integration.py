@@ -98,6 +98,13 @@ class HiddenGemLocation:
     neighborhood: str
     latitude: float
     longitude: float
+    local_tip: Optional[str] = None
+    best_time: Optional[str] = None
+    cost: Optional[str] = None
+    how_to_find: Optional[str] = None
+    distance_km: Optional[float] = None
+    walking_time_min: Optional[int] = None
+    directions_preview: Optional[str] = None
     distance_km: Optional[float] = None
     walking_time_min: Optional[int] = None
     directions_preview: Optional[str] = None

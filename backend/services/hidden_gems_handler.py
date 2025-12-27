@@ -43,6 +43,50 @@ except ImportError:
 class HiddenGemsHandler:
     """Enhanced handler for hidden gems and secret spots with intelligent filtering and real-time personalization"""
     
+    # Neighborhood mapping: sub-districts -> parent neighborhoods
+    NEIGHBORHOOD_MAPPING = {
+        # Beyoğlu sub-districts
+        'balat': ['beyoğlu', 'fatih'],  # Balat straddles both areas
+        'fener': ['beyoğlu', 'fatih'],
+        'cihangir': 'beyoğlu',
+        'çukurcuma': 'beyoğlu',
+        'galata': 'beyoğlu',
+        'karaköy': 'beyoğlu',
+        'tophane': 'beyoğlu',
+        'asmalımescit': 'beyoğlu',
+        'tünel': 'beyoğlu',
+        # Beşiktaş sub-districts
+        'ortaköy': 'beşiktaş',
+        'arnavutköy': 'beşiktaş',
+        'bebek': 'beşiktaş',
+        'etiler': 'beşiktaş',
+        'levent': 'beşiktaş',
+        # Sarıyer sub-districts
+        'tarabya': 'sarıyer',
+        'yeniköy': 'sarıyer',
+        'istinye': 'sarıyer',
+        'emirgan': 'sarıyer',
+        'kilyos': 'sarıyer',
+        'bahçeköy': 'sarıyer',
+        'zekeriyaköy': 'sarıyer',
+        'garipçe': 'sarıyer',
+        # Kadıköy sub-districts
+        'moda': 'kadıköy',
+        'yeldeğirmeni': 'kadıköy',
+        'fenerbahçe': 'kadıköy',
+        'kalamış': 'kadıköy',
+        # Üsküdar sub-districts
+        'kuzguncuk': 'üsküdar',
+        'beylerbeyi': 'üsküdar',
+        'çengelköy': 'üsküdar',
+        'nakkaştepe': 'üsküdar',
+        # Fatih/Sultanahmet sub-districts
+        'sultanahmet': 'sultanahmet',
+        'eminönü': 'fatih',
+        'sirkeci': 'fatih',
+        'gülhane': 'fatih',
+    }
+    
     def __init__(self, enable_realtime_learning: bool = True):
         self.database_available = DATABASE_LOADED
         if not self.database_available:
@@ -313,7 +357,51 @@ class HiddenGemsHandler:
         if self.database_available:
             # Use comprehensive database with helper functions
             if location:
-                gems = get_gems_by_neighborhood(location)
+                location_lower = location.lower().replace('i̇', 'i')
+                
+                # First try exact neighborhood match
+                gems = get_gems_by_neighborhood(location_lower)
+                
+                # If no results and it's a sub-district, try parent neighborhood(s)
+                # BUT filter results to only include gems mentioning the sub-district
+                if not gems and location_lower in self.NEIGHBORHOOD_MAPPING:
+                    parent_neighborhoods = self.NEIGHBORHOOD_MAPPING[location_lower]
+                    
+                    # Handle both single parent and multiple parents
+                    if isinstance(parent_neighborhoods, str):
+                        parent_neighborhoods = [parent_neighborhoods]
+                    
+                    # Search all parent neighborhoods
+                    gems = []
+                    for parent_neighborhood in parent_neighborhoods:
+                        parent_gems = get_gems_by_neighborhood(parent_neighborhood)
+                        
+                        # Filter to only gems that mention the specific sub-district
+                        for gem in parent_gems:
+                            searchable_text = ' '.join([
+                                gem.get('name', ''),
+                                gem.get('description', ''),
+                                gem.get('how_to_find', ''),
+                                gem.get('local_tip', '')
+                            ]).lower()
+                            
+                            if location_lower in searchable_text:
+                                gems.append(gem)
+                
+                # If still no results, search all gems for location name
+                if not gems:
+                    all_gems = get_all_hidden_gems()
+                    gems = []
+                    for gem in all_gems:
+                        searchable_text = ' '.join([
+                            gem.get('name', ''),
+                            gem.get('description', ''),
+                            gem.get('how_to_find', ''),
+                            gem.get('local_tip', '')
+                        ]).lower()
+                        
+                        if location_lower in searchable_text:
+                            gems.append(gem)
             else:
                 gems = get_all_hidden_gems()
             
@@ -497,93 +585,57 @@ class HiddenGemsHandler:
         filtered.sort(key=lambda x: x.get('hidden_factor', 0), reverse=True)
         return filtered[:limit] if filtered else all_gems[:limit]
     
-    def format_hidden_gem_response(self, gems: List[Dict], query_location: Optional[str] = None) -> str:
-        """Format hidden gems into beautiful, actionable response with enhanced data"""
+    def format_hidden_gem_response(self, gems: List[Dict], query_location: Optional[str] = None) -> Dict:
+        """
+        Format hidden gems into structured data for LLM to present naturally.
+        Returns dictionary with gems data instead of pre-formatted string.
+        This allows the LLM to create contextual, conversational responses.
+        """
         if not gems:
-            return self._get_fallback_response(query_location)
+            return {
+                'gems': [],
+                'location': query_location,
+                'available_neighborhoods': [
+                    'Sarıyer - Hidden beaches and cafes',
+                    'Beşiktaş - Secret parks and historical spots',
+                    'Beyoğlu - Underground bars and vintage shops',
+                    'Kadıköy - Local coves and street art',
+                    'Sultanahmet - Off-the-beaten-path historical sites',
+                    'Üsküdar - Secret viewpoints and peaceful mosques'
+                ],
+                'message': 'No gems found for this query'
+            }
         
-        location_header = f" in {query_location.title()}" if query_location else ""
-        response = f"🔍 **Hidden Gems{location_header}** - Local Secrets Revealed!\n\n"
-        response += "✨ These amazing spots are known mainly to locals - you're getting insider access!\n\n"
-        
+        # Structure gems data for LLM
+        formatted_gems = []
         for i, gem in enumerate(gems, 1):
-            # Star rating based on hidden_factor
-            hidden_factor = gem.get('hidden_factor', 5)
-            stars = '⭐' * min(hidden_factor // 2, 5) if hidden_factor else '✨'
-            
-            response += f"**{i}. {gem['name']}** {stars}\n"
-            
-            # Type and category
-            gem_type = gem.get('type', 'N/A').title()
-            category = gem.get('category', '')
-            if category:
-                response += f"📍 **Type:** {gem_type} | **Category:** {category.title()}\n"
-            else:
-                response += f"📍 **Type:** {gem_type}\n"
-            
-            response += f"💡 **What It Is:** {gem.get('description', 'A hidden gem')}\n"
-            
-            # Enhanced fields from new database
-            if gem.get('how_to_find'):
-                response += f"🗺️ **How to Find:** {gem['how_to_find']}\n"
-            
-            if gem.get('local_tip'):
-                response += f"🎯 **Local Tip:** {gem['local_tip']}\n"
-            
-            if gem.get('best_time'):
-                response += f"⏰ **Best Time:** {gem['best_time']}\n"
-            
-            if gem.get('cost'):
-                response += f"💰 **Cost:** {gem['cost']}\n"
-            
-            # Additional enhanced fields
-            if gem.get('why_special'):
-                response += f"✨ **Why Special:** {gem['why_special']}\n"
-            
-            if gem.get('insider_knowledge'):
-                response += f"🤫 **Insider Tip:** {gem['insider_knowledge']}\n"
-            
-            if gem.get('hidden_fact'):
-                response += f"🔍 **Hidden Fact:** {gem['hidden_fact']}\n"
-            
-            # Show tags if available
-            if gem.get('tags'):
-                tags_str = ' · '.join([f"#{tag}" for tag in gem['tags'][:5]])
-                response += f"🏷️ {tags_str}\n"
-            
-            response += "\n"
+            gem_data = {
+                'number': i,
+                'name': gem['name'],
+                'type': gem.get('type', 'Unknown').title(),
+                'category': gem.get('category', '').title() if gem.get('category') else None,
+                'description': gem.get('description', 'A hidden gem'),
+                'hidden_factor': gem.get('hidden_factor', 5),
+                'how_to_find': gem.get('how_to_find'),
+                'local_tip': gem.get('local_tip'),
+                'best_time': gem.get('best_time'),
+                'cost': gem.get('cost'),
+                'why_special': gem.get('why_special'),
+                'insider_knowledge': gem.get('insider_knowledge'),
+                'hidden_fact': gem.get('hidden_fact'),
+                'tags': gem.get('tags', [])[:5],
+                'coordinates': gem.get('coordinates')
+            }
+            # Remove None values for cleaner data
+            gem_data = {k: v for k, v in gem_data.items() if v is not None}
+            formatted_gems.append(gem_data)
         
-        # Add contextual footer
-        response += "💬 **Pro Tips:**\n"
-        response += "• These spots are authentic local favorites - perfect for avoiding tourist crowds\n"
-        response += "• Don't hesitate to ask locals for directions - they'll appreciate your interest\n"
-        response += "• Visit during recommended times for the best experience\n"
-        response += "• Share your discoveries but help keep them special! 🤫\n\n"
-        
-        if query_location:
-            response += f"Want more hidden gems in {query_location.title()} or other neighborhoods? Just ask! 🗺️"
-        else:
-            response += "Want gems for a specific neighborhood, time of day, or type? Just ask! 🗺️"
-        
-        return response
-    
-    def _get_fallback_response(self, location: Optional[str]) -> str:
-        """Fallback response when no gems found"""
-        response = "🔍 Looking for hidden gems"
-        if location:
-            response += f" in {location.title()}"
-        response += "!\n\n"
-        
-        response += "I have secret spots in these neighborhoods:\n"
-        response += "• **Sarıyer** - Hidden beaches and cafes\n"
-        response += "• **Beşiktaş** - Secret parks and historical spots\n"
-        response += "• **Beyoğlu** - Underground bars and vintage shops\n"
-        response += "• **Kadıköy** - Local coves and street art\n"
-        response += "• **Sultanahmet** - Off-the-beaten-path historical sites\n"
-        response += "• **Üsküdar** - Secret viewpoints and peaceful mosques\n\n"
-        response += "Which neighborhood interests you? 😊"
-        
-        return response
+        return {
+            'gems': formatted_gems,
+            'location': query_location,
+            'count': len(formatted_gems),
+            'message': 'success'
+        }
     
     def extract_query_parameters(self, query: str) -> Dict[str, any]:
         """Extract parameters from user query for intelligent filtering"""
@@ -595,16 +647,24 @@ class HiddenGemsHandler:
             'time_of_day': None
         }
         
-        # Extract neighborhood
+        # Extract neighborhood (check both top-level and sub-districts)
         if self.database_available:
             neighborhoods = get_all_neighborhoods()
         else:
             neighborhoods = list(self.hidden_gems_db.keys())
         
+        # First check for exact neighborhood matches
         for neighborhood in neighborhoods:
             if neighborhood in query_lower:
                 params['location'] = neighborhood
                 break
+        
+        # If no match, check sub-districts
+        if not params['location']:
+            for sub_district, parent in self.NEIGHBORHOOD_MAPPING.items():
+                if sub_district in query_lower:
+                    params['location'] = sub_district  # Keep original to enable proper search
+                    break
         
         # Extract gem type
         type_keywords = {

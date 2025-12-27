@@ -14,18 +14,55 @@ Author: AI Istanbul Team
 Date: January 2025
 """
 
+# =============================================================================
+# CRITICAL: Set environment variables BEFORE any imports (in case run directly)
+# =============================================================================
+import os
+import warnings
+
+# Prevent tokenizer fork warnings (if not already set by main.py)
+if 'TOKENIZERS_PARALLELISM' not in os.environ:
+    os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    os.environ['TRANSFORMERS_VERBOSITY'] = 'error'
+    os.environ['TQDM_DISABLE'] = '1'  # Disable tqdm progress bars
+    warnings.filterwarnings('ignore', category=UserWarning, module='torch')
+    warnings.filterwarnings('ignore', category=UserWarning, module='transformers')
+    warnings.filterwarnings('ignore', category=FutureWarning)
+
+# =============================================================================
+# Regular imports
+# =============================================================================
 import logging
 import asyncio
 from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-# Configure logging
+# Configure logging - PRODUCTION LEVEL (WARNING for optional systems)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Reduce noise from verbose libraries
+logging.getLogger('sentence_transformers').setLevel(logging.WARNING)
+logging.getLogger('transformers').setLevel(logging.WARNING)
+logging.getLogger('torch').setLevel(logging.WARNING)
+logging.getLogger('chromadb').setLevel(logging.WARNING)
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
+logging.getLogger('tqdm').setLevel(logging.CRITICAL)  # Silence tqdm completely
+
+# Disable tqdm progress bars programmatically (backup for env var)
+try:
+    from tqdm import tqdm
+    from functools import partialmethod
+    tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
+except ImportError:
+    pass
 
 # Import configuration
 from config.settings import settings
@@ -93,11 +130,55 @@ except ImportError as e:
     LEGACY_ROUTES_AVAILABLE = False
 
 
-# Create FastAPI app
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Modern FastAPI lifespan event handler.
+    Replaces deprecated @app.on_event("startup") and @app.on_event("shutdown")
+    """
+    # Startup
+    logger.info("🚀 Starting application (non-blocking startup)")
+    
+    # Start initialization in background - don't wait
+    asyncio.create_task(_background_initialization())
+    
+    logger.info("✅ Application ready to accept connections (background init in progress)")
+    
+    yield
+    
+    # Shutdown
+    await startup_manager.shutdown()
+    logger.info("👋 AI Istanbul Backend shut down complete")
+
+
+async def _background_initialization():
+    """Background initialization - runs after server starts"""
+    try:
+        logger.info("🔄 Starting background initialization...")
+        
+        # Initialize startup manager components
+        await startup_manager.initialize()
+        
+        # Initialize admin experiments managers
+        try:
+            from api.admin.experiments import initialize_managers
+            initialize_managers()
+            logger.info("✅ Admin experiment managers initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not initialize admin managers: {e}")
+        
+        logger.info("✅ Background initialization complete!")
+        
+    except Exception as e:
+        logger.error(f"❌ Background initialization failed: {e}")
+
+
+# Create FastAPI app with lifespan handler
 app = FastAPI(
     title=settings.APP_NAME,
     description=settings.APP_DESCRIPTION,
-    version=settings.APP_VERSION
+    version=settings.APP_VERSION,
+    lifespan=lifespan
 )
 
 # Setup middleware (CORS, logging, error handling)
@@ -168,46 +249,6 @@ if LEGACY_ROUTES_AVAILABLE:
     app.include_router(places.router)
     app.include_router(blog.router)
     logger.info("✅ Legacy routes registered")
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Application startup - NON-BLOCKING for Cloud Run"""
-    logger.info("🚀 Starting application (non-blocking startup)")
-    
-    # Start initialization in background - don't wait
-    asyncio.create_task(_background_initialization())
-    
-    logger.info("✅ Application ready to accept connections (background init in progress)")
-
-
-async def _background_initialization():
-    """Background initialization - runs after server starts"""
-    try:
-        logger.info("🔄 Starting background initialization...")
-        
-        # Initialize startup manager components
-        await startup_manager.initialize()
-        
-        # Initialize admin experiments managers
-        try:
-            from api.admin.experiments import initialize_managers
-            initialize_managers()
-            logger.info("✅ Admin experiment managers initialized")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not initialize admin managers: {e}")
-        
-        logger.info("✅ Background initialization complete!")
-        
-    except Exception as e:
-        logger.error(f"❌ Background initialization failed: {e}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Application shutdown"""
-    await startup_manager.shutdown()
-    logger.info("👋 AI Istanbul Backend shut down complete")
 
 
 @app.get("/")

@@ -93,7 +93,9 @@ class SmartRecommendationEngine:
     
     def __init__(self):
         self.logger = logger
-        self.location_detector = IntelligentLocationDetector()
+        # Use singleton location detector to avoid duplicate ML loads
+        from .intelligent_location_detector import get_intelligent_location_detector
+        self.location_detector = get_intelligent_location_detector()
         
         # Initialize ML components
         self.ml_available = ML_AVAILABLE
@@ -113,8 +115,16 @@ class SmartRecommendationEngine:
     def _initialize_ml_models(self):
         """Initialize ML/DL models for smart recommendations"""
         try:
-            # Sentence transformer for semantic matching
-            self.sentence_transformer = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+            # Use centralized model cache to prevent duplicate loads
+            try:
+                import sys
+                if 'backend.services.model_cache' in sys.modules or any('backend' in p for p in sys.path):
+                    from backend.services.model_cache import get_sentence_transformer
+                    self.sentence_transformer = get_sentence_transformer('multilingual')
+                else:
+                    self.sentence_transformer = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+            except ImportError:
+                self.sentence_transformer = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
             
             # Restaurant recommendation neural network
             self.restaurant_recommender = MLRestaurantRecommender()
