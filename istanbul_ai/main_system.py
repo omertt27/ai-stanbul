@@ -40,9 +40,19 @@ from .routing import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Ensure correct path setup for imports
+import sys
+import os
+_parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_backend_dir = os.path.join(_parent_dir, 'backend')
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
+
 # Import hidden gems and price filtering services (after logging is configured)
 try:
-    from backend.services.hidden_gems_handler import HiddenGemsHandler
+    from services.hidden_gems_handler import HiddenGemsHandler
     HIDDEN_GEMS_HANDLER_AVAILABLE = True
     logger.info("✅ Hidden Gems Handler loaded successfully")
 except ImportError as e:
@@ -50,7 +60,7 @@ except ImportError as e:
     HIDDEN_GEMS_HANDLER_AVAILABLE = False
 
 try:
-    from backend.services.price_filter_service import PriceFilterService
+    from services.price_filter_service import PriceFilterService
     PRICE_FILTER_AVAILABLE = True
     logger.info("✅ Price Filter Service loaded successfully")
 except ImportError as e:
@@ -59,7 +69,7 @@ except ImportError as e:
 
 # Import Events Service
 try:
-    from backend.services.events_service import get_events_service
+    from services.events_service import get_events_service
     EVENTS_SERVICE_AVAILABLE = True
     logger.info("✅ Events Service loaded successfully")
 except ImportError as e:
@@ -68,7 +78,7 @@ except ImportError as e:
 
 # Import Weather Recommendations Service
 try:
-    from backend.services.weather_recommendations import get_weather_recommendations_service
+    from services.weather_recommendations import get_weather_recommendations_service
     WEATHER_RECOMMENDATIONS_AVAILABLE = True
     logger.info("✅ Weather Recommendations Service loaded successfully")
 except ImportError as e:
@@ -149,7 +159,7 @@ except ImportError as e:
 
 # Import Lightweight Neural Query Enhancement System (Budget-Friendly!)
 try:
-    from backend.services.lightweight_neural_query_enhancement import (
+    from services.lightweight_neural_query_enhancement import (
         get_lightweight_neural_processor,
         LightweightNeuralInsights
     )
@@ -170,7 +180,7 @@ except ImportError as e:
 
 # Import Advanced Personalization System
 try:
-    from backend.services.advanced_personalization import AdvancedPersonalizationSystem
+    from services.advanced_personalization import AdvancedPersonalizationSystem
     ADVANCED_PERSONALIZATION_AVAILABLE = True
     logger.info("✅ Advanced Personalization System loaded successfully")
 except ImportError as e:
@@ -179,7 +189,7 @@ except ImportError as e:
 
 # Import Real-time Feedback Loop System
 try:
-    from backend.services.feedback_loop import FeedbackLoopSystem
+    from services.feedback_loop import FeedbackLoopSystem
     FEEDBACK_LOOP_AVAILABLE = True
     logger.info("✅ Real-time Feedback Loop System loaded successfully")
 except ImportError as e:

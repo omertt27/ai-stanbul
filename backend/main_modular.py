@@ -47,6 +47,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# =============================================================================
+# STARTUP GUARD - Prevent duplicate initialization
+# =============================================================================
+from core.startup_guard import (
+    ensure_single_init, 
+    is_initialized, 
+    check_redis_once,
+    is_redis_ready,
+    log_init_status
+)
+
 # Reduce noise from verbose libraries
 logging.getLogger('sentence_transformers').setLevel(logging.WARNING)
 logging.getLogger('transformers').setLevel(logging.WARNING)
@@ -136,8 +147,17 @@ async def lifespan(app: FastAPI):
     Modern FastAPI lifespan event handler.
     Replaces deprecated @app.on_event("startup") and @app.on_event("shutdown")
     """
-    # Startup
+    # Startup - Check if already initialized (prevents duplicate init on reload)
+    if not ensure_single_init("lifespan_startup"):
+        logger.info("🔁 Lifespan startup already executed, skipping duplicate init")
+        yield
+        return
+    
     logger.info("🚀 Starting application (non-blocking startup)")
+    
+    # Check Redis once at startup (cached for all components)
+    redis_available = check_redis_once()
+    logger.info(f"📡 Redis status: {'CONNECTED' if redis_available else 'NOT AVAILABLE'}")
     
     # Start initialization in background - don't wait
     asyncio.create_task(_background_initialization())
@@ -153,6 +173,11 @@ async def lifespan(app: FastAPI):
 
 async def _background_initialization():
     """Background initialization - runs after server starts"""
+    # Guard against duplicate background init
+    if not ensure_single_init("background_init"):
+        logger.info("🔁 Background initialization already running/completed, skipping")
+        return
+    
     try:
         logger.info("🔄 Starting background initialization...")
         
@@ -273,11 +298,9 @@ def get_recommendation_engine():
     return startup_manager.get_recommendation_engine()
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "main_modular:app",
-        host=settings.API_HOST,
-        port=settings.API_PORT,
-        reload=not settings.is_production()
-    )
+# ====================================================================
+# DO NOT RUN THIS FILE DIRECTLY!
+# Use: uvicorn main_modular:app --host 0.0.0.0 --port 8001
+# Or:  python run.py
+# Running `python main_modular.py` causes DOUBLE app construction!
+# ====================================================================

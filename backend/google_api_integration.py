@@ -16,6 +16,13 @@ import json
 import redis
 from dataclasses import dataclass
 
+# Import centralized Redis readiness check
+try:
+    from core.startup_guard import is_redis_ready, get_redis_client
+    STARTUP_GUARD_AVAILABLE = True
+except ImportError:
+    STARTUP_GUARD_AVAILABLE = False
+
 # Import TTL fine-tuning system
 logger = logging.getLogger(__name__)
 
@@ -576,7 +583,19 @@ class TimeAwareCacheManager:
         }
         
     def _initialize_redis(self) -> Optional[redis.Redis]:
-        """Initialize Redis connection with fallback handling"""
+        """Initialize Redis connection with fallback handling - uses centralized check"""
+        # Use centralized Redis check if available
+        if STARTUP_GUARD_AVAILABLE:
+            if not is_redis_ready():
+                logger.info("⏭️ Time-aware cache: Redis not available (centralized check)")
+                return None
+            
+            client = get_redis_client()
+            if client:
+                logger.info("✅ Time-aware cache using centralized Redis client")
+                return client
+        
+        # Fallback: try to connect directly
         try:
             redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/1')  # Use DB 1 for time-aware cache
             client = redis.from_url(redis_url, decode_responses=True)

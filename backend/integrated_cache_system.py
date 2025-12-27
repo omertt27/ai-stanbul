@@ -28,6 +28,9 @@ from collections import defaultdict, Counter
 import threading
 from contextlib import contextmanager
 
+# Import centralized Redis readiness check
+from core.startup_guard import is_redis_ready, get_redis_client, ensure_single_init
+
 # Import the enhanced Google API integration
 from google_api_integration import (
     GoogleApiFieldOptimizer, 
@@ -129,8 +132,20 @@ class ProductionCacheMonitor:
         self._start_monitoring()
     
     def _initialize_redis(self) -> Optional[redis.Redis]:
-        """Initialize Redis with monitoring extensions"""
+        """Initialize Redis with monitoring extensions - uses centralized check"""
+        # Use centralized Redis readiness check
+        if not is_redis_ready():
+            logger.info("⏭️ Redis not available (centralized check) - monitoring disabled")
+            return None
+        
         try:
+            # Get cached Redis client from startup_guard
+            client = get_redis_client()
+            if client:
+                logger.info("✅ Production cache monitor using centralized Redis client")
+                return client
+            
+            # Fallback: create new client for monitoring DB
             redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/2')  # Use DB 2 for monitoring
             client = redis.from_url(redis_url, decode_responses=True)
             client.ping()

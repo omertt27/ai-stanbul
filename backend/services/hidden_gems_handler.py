@@ -17,7 +17,7 @@ if parent_dir not in sys.path:
 
 # Import the comprehensive database
 try:
-    from backend.data.hidden_gems_database import (
+    from data.hidden_gems_database import (
         HIDDEN_GEMS_DATABASE,
         get_all_hidden_gems,
         get_gems_by_neighborhood,
@@ -28,16 +28,33 @@ try:
     )
     DATABASE_LOADED = True
 except ImportError:
-    DATABASE_LOADED = False
-    HIDDEN_GEMS_DATABASE = {}
+    # Try alternate path
+    try:
+        from backend.data.hidden_gems_database import (
+            HIDDEN_GEMS_DATABASE,
+            get_all_hidden_gems,
+            get_gems_by_neighborhood,
+            get_gems_by_type,
+            get_gems_by_category,
+            get_top_hidden_gems,
+            get_all_neighborhoods
+        )
+        DATABASE_LOADED = True
+    except ImportError:
+        DATABASE_LOADED = False
+        HIDDEN_GEMS_DATABASE = {}
 
 # Import real-time feedback loop for personalization
 try:
-    from backend.services.realtime_feedback_loop import get_realtime_feedback_loop
+    from services.realtime_feedback_loop import get_realtime_feedback_loop
     REALTIME_LEARNING_ENABLED = True
 except ImportError:
-    REALTIME_LEARNING_ENABLED = False
-    print("⚠️ Real-time learning not available - using static recommendations")
+    try:
+        from backend.services.realtime_feedback_loop import get_realtime_feedback_loop
+        REALTIME_LEARNING_ENABLED = True
+    except ImportError:
+        REALTIME_LEARNING_ENABLED = False
+        print("⚠️ Real-time learning not available - using static recommendations")
 
 
 class HiddenGemsHandler:

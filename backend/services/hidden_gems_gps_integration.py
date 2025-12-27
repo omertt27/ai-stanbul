@@ -45,28 +45,65 @@ except ImportError:
 
 # Import route integration
 try:
-    from backend.services.ai_chat_route_integration import (
+    from services.ai_chat_route_integration import (
         AIChatRouteHandler,
         create_chat_route_handler
     )
     ROUTE_HANDLER_AVAILABLE = True
 except ImportError:
-    ROUTE_HANDLER_AVAILABLE = False
-    # Route handler module is optional
+    try:
+        from backend.services.ai_chat_route_integration import (
+            AIChatRouteHandler,
+            create_chat_route_handler
+        )
+        ROUTE_HANDLER_AVAILABLE = True
+    except ImportError:
+        ROUTE_HANDLER_AVAILABLE = False
+        # Route handler module is optional
 
 # Import hidden gems database
 try:
-    from backend.data.hidden_gems_database import (
+    from data.hidden_gems_database import (
         HIDDEN_GEMS_DATABASE,
         get_gems_by_neighborhood,
         get_gems_by_type,
         get_all_hidden_gems
     )
     GEMS_DB_AVAILABLE = True
-except ImportError as e:
-    GEMS_DB_AVAILABLE = False
-    logger.warning(f"⚠️ Hidden gems database not available: {e}")
+except ImportError:
+    try:
+        from backend.data.hidden_gems_database import (
+            HIDDEN_GEMS_DATABASE,
+            get_gems_by_neighborhood,
+            get_gems_by_type,
+            get_all_hidden_gems
+        )
+        GEMS_DB_AVAILABLE = True
+    except ImportError as e:
+        GEMS_DB_AVAILABLE = False
+        logger.warning(f"⚠️ Hidden gems database not available: {e}")
 
+# Import multilingual intent keywords
+try:
+    from services.multilingual_intent_keywords import (
+        detect_hidden_gems_intent,
+        extract_neighborhood,
+        HIDDEN_GEMS_KEYWORDS,
+        NEIGHBORHOOD_KEYWORDS
+    )
+    MULTILINGUAL_AVAILABLE = True
+except ImportError:
+    try:
+        from backend.services.multilingual_intent_keywords import (
+            detect_hidden_gems_intent,
+            extract_neighborhood,
+            HIDDEN_GEMS_KEYWORDS,
+            NEIGHBORHOOD_KEYWORDS
+        )
+        MULTILINGUAL_AVAILABLE = True
+    except ImportError as e:
+        MULTILINGUAL_AVAILABLE = False
+        logger.warning(f"⚠️ Multilingual intent keywords not available: {e}")
 
 # Istanbul neighborhoods with approximate GPS coordinates
 NEIGHBORHOOD_COORDS = {
@@ -130,16 +167,9 @@ class HiddenGemsGPSIntegration:
         """Initialize integration with GPS and routing services"""
         self.db = db_session
         
-        # Initialize GPS navigator
-        if GPS_NAV_AVAILABLE:
-            try:
-                self.gps_navigator = GPSTurnByTurnNavigator(db_session=db_session)
-                logger.info("✅ GPS navigator initialized")
-            except Exception as e:
-                logger.error(f"❌ Failed to initialize GPS navigator: {e}")
-                self.gps_navigator = None
-        else:
-            self.gps_navigator = None
+        # GPS navigator is created per-navigation-session, not at init time
+        # GPSTurnByTurnNavigator requires route_steps, mode, language
+        self.gps_nav_available = GPS_NAV_AVAILABLE
         
         # Initialize route handler
         if ROUTE_HANDLER_AVAILABLE:
@@ -152,7 +182,34 @@ class HiddenGemsGPSIntegration:
         else:
             self.route_handler = None
         
-        logger.info(f"🗺️ Hidden Gems GPS Integration initialized (GPS: {self.gps_navigator is not None}, Routes: {self.route_handler is not None})")
+        logger.info(f"🗺️ Hidden Gems GPS Integration initialized (GPS available: {self.gps_nav_available}, Routes: {self.route_handler is not None})")
+    
+    # Sub-neighborhood to parent neighborhood mapping
+    SUB_NEIGHBORHOOD_MAP = {
+        'balat': ['beyoğlu', 'fatih'],
+        'fener': ['beyoğlu', 'fatih'],
+        'cihangir': ['beyoğlu'],
+        'galata': ['beyoğlu'],
+        'karaköy': ['beyoğlu'],
+        'taksim': ['beyoğlu'],
+        'ortaköy': ['beşiktaş'],
+        'bebek': ['beşiktaş'],
+        'arnavutköy': ['beşiktaş'],
+        'moda': ['kadıköy'],
+        'yeldeğirmeni': ['kadıköy'],
+        'sultanahmet': ['fatih'],
+        'eminönü': ['fatih'],
+        'kuzguncuk': ['üsküdar'],
+        'kilyos': ['sarıyer'],
+        'tarabya': ['sarıyer'],
+    }
+    
+    def _resolve_neighborhood(self, neighborhood: str) -> List[str]:
+        """Resolve sub-neighborhood to parent neighborhoods"""
+        neighborhood = neighborhood.lower()
+        if neighborhood in self.SUB_NEIGHBORHOOD_MAP:
+            return self.SUB_NEIGHBORHOOD_MAP[neighborhood]
+        return [neighborhood]
     
     def get_hidden_gems_with_navigation(
         self,
@@ -188,11 +245,27 @@ class HiddenGemsGPSIntegration:
             }
         
         # Get gems from database
+        gems = []
         if neighborhood:
-            gems = get_gems_by_neighborhood(neighborhood.lower())
+            # Resolve sub-neighborhood to parent neighborhoods
+            parent_neighborhoods = self._resolve_neighborhood(neighborhood)
+            for parent in parent_neighborhoods:
+                gems.extend(get_gems_by_neighborhood(parent))
+            
+            # Also filter by name/description containing the sub-neighborhood
+            search_term = neighborhood.lower()
+            if not gems:
+                # Try searching all gems for mentions of the neighborhood
+                all_gems = get_all_hidden_gems()
+                gems = [g for g in all_gems if search_term in g.get('name', '').lower() 
+                        or search_term in g.get('description', '').lower()]
         elif gem_type:
             gems = get_gems_by_type(gem_type.lower())
         else:
+            gems = get_all_hidden_gems()
+        
+        # If still no gems found, return all gems as fallback
+        if not gems:
             gems = get_all_hidden_gems()
         
         # Enrich gems with GPS coordinates
@@ -200,12 +273,23 @@ class HiddenGemsGPSIntegration:
         map_markers = []
         
         for gem in gems[:limit * 2]:  # Get more than needed, filter by distance
-            # Get neighborhood coordinates
+            # Get neighborhood coordinates - use stored neighborhood or default
             gem_neighborhood = gem.get('neighborhood', '').lower()
             if gem_neighborhood not in NEIGHBORHOOD_COORDS:
-                continue
-            
-            lat, lon = NEIGHBORHOOD_COORDS[gem_neighborhood]
+                # Try to find a matching parent neighborhood
+                found = False
+                for parent in self._resolve_neighborhood(gem_neighborhood):
+                    if parent in NEIGHBORHOOD_COORDS:
+                        gem_neighborhood = parent
+                        found = True
+                        break
+                if not found:
+                    # Use Istanbul center as fallback
+                    lat, lon = 41.0082, 28.9784
+                else:
+                    lat, lon = NEIGHBORHOOD_COORDS[gem_neighborhood]
+            else:
+                lat, lon = NEIGHBORHOOD_COORDS[gem_neighborhood]
             
             # Create location object
             gem_location = HiddenGemLocation(
@@ -280,7 +364,7 @@ class HiddenGemsGPSIntegration:
         return {
             'gems': [self._gem_to_dict(g) for g in enriched_gems],
             'map_data': map_data,
-            'navigation_ready': self.gps_navigator is not None,
+            'navigation_ready': self.gps_nav_available,
             'user_location': user_location,
             'count': len(enriched_gems)
         }
@@ -302,10 +386,10 @@ class HiddenGemsGPSIntegration:
         Returns:
             Navigation data with turn-by-turn instructions
         """
-        if not self.gps_navigator:
+        if not user_location:
             return {
-                'error': 'GPS navigation not available',
-                'message': 'Please enable GPS navigation to use this feature.'
+                'error': 'Location required',
+                'message': 'Please enable GPS to navigate to hidden gems.'
             }
         
         # Find gem by name
@@ -326,51 +410,46 @@ class HiddenGemsGPSIntegration:
         
         dest_lat, dest_lon = NEIGHBORHOOD_COORDS[gem_neighborhood]
         
-        # Start navigation
-        try:
-            nav_result = self.gps_navigator.start_navigation(
-                start_location=GPSLocation(
-                    latitude=user_location['lat'],
-                    longitude=user_location['lon'],
-                    timestamp=datetime.now()
-                ),
-                destination=GPSLocation(
-                    latitude=dest_lat,
-                    longitude=dest_lon,
-                    timestamp=datetime.now()
-                ),
-                session_id=session_id,
-                mode=NavigationMode.WALKING
+        # Calculate distance and direction
+        distance_km = self._calculate_distance(
+            user_location['lat'], user_location['lon'],
+            dest_lat, dest_lon
+        )
+        direction = self._get_direction_preview(
+            user_location['lat'], user_location['lon'],
+            dest_lat, dest_lon
+        )
+        walking_time_min = int(distance_km * 15)  # ~4km/h walking
+        
+        # Create simple navigation data
+        nav_data = {
+            'destination': {
+                'name': gem['name'],
+                'lat': dest_lat,
+                'lon': dest_lon,
+                'neighborhood': gem_neighborhood
+            },
+            'distance_km': round(distance_km, 2),
+            'walking_time_min': walking_time_min,
+            'direction': direction,
+            'how_to_find': gem.get('how_to_find', f'Head {direction} towards {gem_neighborhood}')
+        }
+        
+        # Format response
+        return {
+            'success': True,
+            'message': f"🗺️ {gem['name']} is {distance_km:.1f}km {direction} from you (~{walking_time_min} min walk). {gem.get('how_to_find', '')}",
+            'gem': gem,
+            'navigation_data': nav_data,
+            'navigation_active': True,
+            'map_data': self._create_navigation_map_data(
+                nav_data,
+                gem['name'],
+                user_location,
+                dest_lat,
+                dest_lon
             )
-            
-            if not nav_result['success']:
-                return {
-                    'error': 'Navigation failed',
-                    'message': nav_result.get('error', 'Could not start navigation')
-                }
-            
-            # Format response
-            return {
-                'success': True,
-                'message': f"🗺️ Navigating to {gem['name']}! Follow the turn-by-turn directions.",
-                'gem': gem,
-                'navigation_data': nav_result,
-                'navigation_active': True,
-                'map_data': self._create_navigation_map_data(
-                    nav_result,
-                    gem['name'],
-                    user_location,
-                    dest_lat,
-                    dest_lon
-                )
-            }
-            
-        except Exception as e:
-            logger.error(f"Navigation error: {e}")
-            return {
-                'error': 'Navigation error',
-                'message': f'Failed to start navigation: {str(e)}'
-            }
+        }
     
     def plan_hidden_gems_tour(
         self,
@@ -451,10 +530,16 @@ class HiddenGemsGPSIntegration:
         session_id: str = 'default'
     ) -> Optional[Dict[str, Any]]:
         """
-        Handle hidden gem requests in chat
+        Handle hidden gem requests in chat - MULTILINGUAL
         
-        Detects requests like:
-        - "Show me hidden cafes"
+        Detects requests in English, Turkish, Russian, German, Arabic like:
+        - "Show me hidden cafes" (EN)
+        - "Gizli kafeler göster" (TR) 
+        - "Покажи скрытые кафе" (RU)
+        - "Zeig mir versteckte Cafés" (DE)
+        - "أرني المقاهي المخفية" (AR)
+        
+        Also handles:
         - "Navigate to [gem name]"
         - "Hidden gems near me"
         - "Plan route to visit [gem1], [gem2], [gem3]"
@@ -476,17 +561,57 @@ class HiddenGemsGPSIntegration:
             if gem_names:
                 return self.plan_hidden_gems_tour(user_location, gem_names)
         
-        # Check for hidden gem discovery
-        if any(keyword in message_lower for keyword in ['hidden', 'secret', 'local spot', 'off the beaten']):
+        # Check for hidden gem discovery - MULTILINGUAL
+        is_hidden_gems_request = False
+        
+        if MULTILINGUAL_AVAILABLE:
+            # Use multilingual intent detection
+            is_hidden_gems_request = detect_hidden_gems_intent(message)
+            if is_hidden_gems_request:
+                logger.info(f"🌍 Multilingual hidden gems intent detected for: {message[:50]}...")
+        else:
+            # Fallback to English-only detection
+            is_hidden_gems_request = any(keyword in message_lower for keyword in [
+                'hidden', 'secret', 'local spot', 'off the beaten'
+            ])
+        
+        if is_hidden_gems_request:
             # Extract type and neighborhood
             gem_type = self._extract_gem_type(message)
             neighborhood = self._extract_neighborhood(message)
             
-            return self.get_hidden_gems_with_navigation(
+            result = self.get_hidden_gems_with_navigation(
                 user_location=user_location,
                 gem_type=gem_type,
                 neighborhood=neighborhood
             )
+            
+            # Format response message for gems
+            if result.get('gems') and not result.get('error'):
+                gems = result['gems']
+                gem_count = len(gems)
+                
+                # Build response message
+                msg_parts = [f"🔮 Found {gem_count} hidden gem{'s' if gem_count > 1 else ''}"]
+                if neighborhood:
+                    msg_parts[0] += f" in {neighborhood}"
+                msg_parts[0] += ":\n"
+                
+                for gem in gems[:5]:  # Show top 5
+                    distance_info = ""
+                    if gem.get('distance_km'):
+                        distance_info = f" ({gem['distance_km']:.1f}km away)"
+                    msg_parts.append(f"• **{gem['name']}** - {gem['description'][:100]}...{distance_info}\n")
+                
+                result['message'] = "\n".join(msg_parts)
+                result['suggestions'] = [
+                    f"Navigate to {gems[0]['name']}" if gems else "Show more hidden gems",
+                    "Show hidden restaurants",
+                    "Show hidden cafes",
+                    "Show hidden spots in Kadıköy"
+                ]
+            
+            return result
         
         return None
     
@@ -605,9 +730,16 @@ class HiddenGemsGPSIntegration:
         return None
     
     def _extract_neighborhood(self, message: str) -> Optional[str]:
-        """Extract neighborhood from message"""
+        """Extract neighborhood from message (multilingual)"""
         message_lower = message.lower()
         
+        # First try multilingual extraction if available
+        if MULTILINGUAL_AVAILABLE:
+            extracted = extract_neighborhood(message)
+            if extracted:
+                return extracted
+        
+        # Fallback to local neighborhood coords
         for neighborhood in NEIGHBORHOOD_COORDS.keys():
             if neighborhood in message_lower:
                 return neighborhood

@@ -6,6 +6,7 @@ This version focuses on:
 2. Lazy initialization of heavy components
 3. Graceful degradation if components fail
 4. No blocking operations during startup
+5. SINGLE initialization via startup_guard (no duplicates)
 
 Author: AI Istanbul Team
 Date: December 2025
@@ -15,6 +16,9 @@ import logging
 import asyncio
 from typing import Optional
 from sqlalchemy.orm import Session
+
+# Import startup guard to prevent duplicate initialization
+from core.startup_guard import ensure_single_init, is_initialized, is_redis_ready
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +38,22 @@ class FastStartupManager:
     
     async def initialize(self):
         """Fast initialization - minimal blocking"""
-        logger.info("🚀 Starting ULTRA-FAST initialization...")
+        # Guard against duplicate initialization
+        if not ensure_single_init("startup_manager"):
+            logger.info("� StartupManager already initialized, skipping")
+            return
+        
+        logger.info("�🚀 Starting ULTRA-FAST initialization...")
         
         try:
             # 1. Database (critical) - but don't wait too long
             asyncio.create_task(self._initialize_database())
             
-            # 2. Redis Cache (non-critical) - initialize in background
-            asyncio.create_task(self._initialize_redis())
+            # 2. Redis Cache - use centralized check from startup_guard
+            if is_redis_ready():
+                asyncio.create_task(self._initialize_redis())
+            else:
+                logger.info("⏭️ Skipping Redis init - not available (checked at startup)")
             
             # 3. Service Manager (non-critical) - initialize in background
             asyncio.create_task(self._initialize_service_manager())
@@ -57,6 +69,11 @@ class FastStartupManager:
     
     async def _initialize_database(self):
         """Initialize database connection and create tables"""
+        # Guard against duplicate DB init
+        if not ensure_single_init("database"):
+            logger.info("🔁 Database already initialized, skipping")
+            return
+        
         try:
             from database import get_db, engine, Base
             
@@ -85,6 +102,11 @@ class FastStartupManager:
     
     async def _initialize_redis(self):
         """Initialize Redis cache with reasonable timeout for AWS MemoryDB via EC2 proxy"""
+        # Guard against duplicate Redis init
+        if not ensure_single_init("redis"):
+            logger.info("🔁 Redis already initialized, skipping")
+            return
+        
         try:
             from services.redis_cache import init_cache
             # 5 second timeout for AWS MemoryDB through EC2 proxy (local dev)
@@ -103,6 +125,11 @@ class FastStartupManager:
     
     async def _initialize_service_manager(self):
         """Initialize local service manager"""
+        # Guard against duplicate service manager init
+        if not ensure_single_init("services"):
+            logger.info("🔁 Service Manager already initialized, skipping")
+            return
+        
         try:
             from services.service_manager import service_manager
             # ServiceManager uses initialize_all(), not initialize()
@@ -118,6 +145,11 @@ class FastStartupManager:
     
     async def _lazy_initialize_llm(self):
         """Lazy initialization of Pure LLM Core (runs in background)"""
+        # Guard against duplicate LLM init
+        if not ensure_single_init("models"):
+            logger.info("🔁 LLM already initialized, skipping")
+            return
+        
         try:
             logger.info("🔄 Starting background LLM initialization...")
             

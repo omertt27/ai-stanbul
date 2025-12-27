@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+# Track if database has been configured (prevent duplicate logging)
+_db_config_logged = False
+
 # Add config directory to path
 config_path = os.path.join(os.path.dirname(__file__), 'config')
 if config_path not in sys.path:
@@ -45,10 +48,13 @@ except ImportError:
 
 Base = declarative_base()
 
-# Database configuration
+# Database configuration - only log once
 if USE_CENTRALIZED_CONFIG:
-    # Use centralized configuration
-    db_config.log_configuration()
+    # Use centralized configuration (log only once)
+    if not _db_config_logged:
+        db_config.log_configuration()
+        _db_config_logged = True
+    
     DATABASE_URL = db_config.get_sqlalchemy_url()
     
     # Create engine with proper configuration

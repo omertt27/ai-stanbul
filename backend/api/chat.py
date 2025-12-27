@@ -304,11 +304,88 @@ async def pure_llm_chat(
     if resolved_context:
         user_context['resolved_context'] = resolved_context.get('implicit_context', {})
     
+    # === AUTO-DETECT LANGUAGE FROM QUERY ===
+    # If client didn't specify language, detect it from the message
+    detected_language = request.language or "en"
+    if not request.language or request.language == "en":
+        # Auto-detect language from query text
+        try:
+            from services.multilingual_intent_keywords import HIDDEN_GEMS_KEYWORDS
+            query_lower = request.message.lower()
+            
+            # Simple heuristic detection based on character sets and keywords
+            # Turkish characters
+            if any(c in query_lower for c in ['ı', 'ğ', 'ş', 'ç', 'ö', 'ü']):
+                detected_language = "tr"
+            # Russian (Cyrillic)
+            elif any('\u0400' <= c <= '\u04FF' for c in query_lower):
+                detected_language = "ru"
+            # Arabic
+            elif any('\u0600' <= c <= '\u06FF' for c in query_lower):
+                detected_language = "ar"
+            # German specific
+            elif any(c in query_lower for c in ['ä', 'ß']) or 'straße' in query_lower:
+                detected_language = "de"
+            
+            if detected_language != "en":
+                logger.info(f"🌍 Auto-detected language: {detected_language} from query")
+        except Exception as e:
+            logger.warning(f"Language detection failed: {e}")
+    
+    # Update request language for downstream use
+    effective_language = detected_language
+    user_context['language'] = effective_language
+    
     # No LLM intent classification - Pure LLM will handle everything
     llm_intent = None
     location_resolution = None
     
-    # === PHASE 3: SPECIALIZED HANDLERS ===
+    # === UNIFIED INTENT ROUTER (NEW - Multilingual, Fast) ===
+    # This replaces scattered if/else blocks with a clean, centralized router
+    # Handles all 9 features in 5 languages with ~10ms response time
+    try:
+        from services.unified_intent_router import get_intent_router
+        
+        intent_router = get_intent_router(db)
+        router_result = await intent_router.route(
+            query=request.message,
+            user_location=request.user_location,
+            session_id=session_id,
+            user_context=user_context
+        )
+        
+        if router_result and router_result.success:
+            logger.info(f"✅ Unified Router handled: {router_result.intent} (fast path)")
+            
+            # Enhance response if needed
+            enhanced_response = await enhance_chat_response(
+                base_response=router_result.response,
+                original_query=request.message,
+                user_context=user_context,
+                route_data=router_result.navigation_data,
+                response_type=router_result.intent
+            )
+            
+            return ChatResponse(
+                response=enhanced_response,
+                session_id=session_id,
+                llm_mode="general",
+                intent=router_result.intent,
+                confidence=1.0,
+                suggestions=router_result.suggestions or [],
+                map_data=router_result.map_data,
+                route_data=router_result.navigation_data,
+                navigation_active=router_result.navigation_data is not None
+            )
+        else:
+            logger.info("🔄 Unified Router: No confident match, falling through to specialized handlers")
+            
+    except ImportError as e:
+        logger.warning(f"⚠️ Unified Intent Router not available: {e}")
+    except Exception as e:
+        logger.warning(f"⚠️ Unified Router error: {e}, falling through to handlers")
+    
+    # === PHASE 3: SPECIALIZED HANDLERS (Legacy - kept as fallback) ===
     # Keep these - they're fast and useful for specific intents
     # Try hidden gems GPS request first
     try:
@@ -552,12 +629,13 @@ async def pure_llm_chat(
             force_confidence = 0.80  # High confidence from pattern match
         
         # Process query through Pure LLM
-        logger.info("🚀 Processing query through Pure LLM" + (" [STRUCTURED MODE]" if force_structured_mode else ""))
+        # Use auto-detected language (effective_language) instead of request.language
+        logger.info(f"🚀 Processing query through Pure LLM (language: {effective_language})" + (" [STRUCTURED MODE]" if force_structured_mode else ""))
         result = await pure_llm_core.process_query(
             query=request.message,
             user_location=request.user_location,
             session_id=request.session_id,
-            language=request.language or "en"
+            language=effective_language  # Use auto-detected language!
         )
         
         # 🔥 CRITICAL FIX: Handle early return of map_data from routing visualization
@@ -696,7 +774,7 @@ async def pure_llm_chat(
         # Remove system prompt leakage, ensure language consistency
         sanitized_response = _response_sanitizer.sanitize(
             response=enhanced_response,
-            expected_language=request.language or 'en',  # Use requested language
+            expected_language=effective_language,  # Use auto-detected language
             strict_language_check=True
         )
         
@@ -790,7 +868,7 @@ async def pure_llm_chat(
             interaction_id = log_chat_interaction(
                 user_query=original_query,
                 llm_response=enhanced_response,
-                language=request.language or 'en',
+                language=effective_language,  # Use auto-detected language
                 intent=result.get('intent'),
                 response_time=int((time.time() - start_time) * 1000) if 'start_time' in locals() else None,
                 cached=result.get('cached', False),
