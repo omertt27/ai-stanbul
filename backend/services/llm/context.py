@@ -382,7 +382,8 @@ class ContextBuilder:
         if hasattr(self, '_transport_alternatives') and self._transport_alternatives:
             if self._transport_alternatives.get('alternatives') or self._transport_alternatives.get('primary_route'):
                 context['transport_alternatives'] = self._transport_alternatives
-                logger.info(f"✅ Added transport alternatives to context for frontend ({"len(self._transport_alternatives.get('alternatives', []))} routes)")
+                num_routes = len(self._transport_alternatives.get('alternatives', []))
+                logger.info(f"✅ Added transport alternatives to context for frontend ({num_routes} routes)")
         
         return context
     

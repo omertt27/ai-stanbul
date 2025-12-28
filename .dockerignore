@@ -17,6 +17,9 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+venv_*/
+backend/venv/
+backend/venv_*/
 env/
 ENV/
 
@@ -39,6 +42,30 @@ logs/
 # Frontend (we only need backend for this Docker image)
 frontend/
 node_modules/
+
+# HUGE directories - DO NOT COPY!
+models/
+model/
+*.pth
+*.bin
+*.safetensors
+*.gguf
+venv_*/
+phase2_*/
+data_collection/
+cache/
+backend/cache/
+images/
+backend/images/
+*.pkg
+*.db
+*.db.old
+*.db.backup
+*.db.corrupted*
+backend/*.db
+backend/*.log
+backend/uploads/
+backend/static/
 
 # Google Cloud SDK (HUGE - don't copy to Docker!)
 Users/
