@@ -135,16 +135,25 @@ async def stream_chat_sse(request: StreamChatRequest):
             rag_context = None
             map_data = None
             route_data = None
+            transport_alternatives = None  # NEW: Multi-route data
             
             # Check if this is a transportation query
             query_lower = request.message.lower()
             transportation_keywords = ['how do i get', 'how can i get', 'how to get', 'route to', 
                                        'from', 'directions to', 'navigate to', 'take me to', 'go to',
+                                       'way to', 'best way to', 'how can i reach', 'how do i reach',
                                        'taksim', 'kadikoy', 'kadıköy', 'sultanahmet', 'metro', 'tram']
             is_transportation = (
                 intent_value in ['transportation', 'directions', 'route', 'navigate'] or
                 any(keyword in query_lower for keyword in transportation_keywords)
             )
+            
+            # Check if query asks for route alternatives/options
+            use_multi_route = is_transportation and any(keyword in query_lower for keyword in [
+                'how to get', 'how do i get', 'route to', 'way to',
+                'directions to', 'how can i reach', 'best way to',
+                'options', 'alternatives', 'routes', 'ways'
+            ])
             
             # Check if this is a trip planning query
             trip_planning_keywords = [
@@ -224,43 +233,120 @@ async def stream_chat_sse(request: StreamChatRequest):
                         logger.info(f"✅ Built detailed trip planning RAG context ({len(rag_context)} chars)")
                     
                 elif is_transportation:
-                    # Use Transportation RAG for route queries
-                    logger.info("🚇 Transportation query detected - using Transportation RAG")
-                    from services.transportation_rag_system import get_transportation_rag
-                    transport_rag = get_transportation_rag()
+                    # Use Moovit-style enhanced multi-route system for transportation queries
+                    logger.info("🚇 Transportation query detected - using ENHANCED MULTI-ROUTE system")
                     
-                    if transport_rag:
-                        # Get route context from Transportation RAG
-                        user_loc = None
-                        if request.user_location:
-                            user_loc = {
-                                'lat': request.user_location.get('latitude') or request.user_location.get('lat'),
-                                'lon': request.user_location.get('longitude') or request.user_location.get('lon')
-                            }
+                    if use_multi_route:
+                        # MOOVIT-LEVEL: Use route optimizer for multi-route with comfort scores
+                        logger.info("🗺️ Using MOOVIT-STYLE multi-route optimizer with comfort scoring")
+                        try:
+                            from services.transportation_route_integration import get_route_integration
+                            
+                            # Extract locations from query
+                            import re
+                            
+                            # Get user location
+                            user_loc = None
+                            if request.user_location:
+                                user_loc = {
+                                    'lat': request.user_location.get('latitude') or request.user_location.get('lat'),
+                                    'lon': request.user_location.get('longitude') or request.user_location.get('lon')
+                                }
+                            
+                            # Parse origin and destination
+                            locations = _extract_transportation_locations(request.message, user_loc)
+                            
+                            if locations and locations.get('origin') and locations.get('destination'):
+                                route_integration = get_route_integration()
+                                
+                                # Get multi-route alternatives with comfort scoring
+                                result = route_integration.get_route_alternatives(
+                                    origin=locations['origin'],
+                                    destination=locations['destination'],
+                                    origin_gps=locations.get('origin_gps'),
+                                    destination_gps=locations.get('destination_gps'),
+                                    num_alternatives=3,  # Generate 3 route options
+                                    generate_llm_summaries=False,  # LLM will generate its own
+                                    user_language=request.language
+                                )
+                                
+                                if result['success']:
+                                    logger.info(f"✅ Got {len(result.get('alternatives', []))} route alternatives with comfort scores")
+                                    
+                                    # Store multi-route data
+                                    transport_alternatives = {
+                                        'primary_route': result.get('primary_route'),
+                                        'alternatives': result.get('alternatives', []),
+                                        'route_comparison': result.get('route_comparison', {}),
+                                        'map_data': result.get('map_data')
+                                    }
+                                    
+                                    # Build rich context for LLM
+                                    rag_context = _build_multi_route_context(result, request.language)
+                                    
+                                    # Set map_data for visualization
+                                    if result.get('map_data'):
+                                        map_data = result['map_data']
+                                        # Add multi-route fields
+                                        map_data.update({
+                                            'type': 'multi_route',
+                                            'multi_routes': result.get('alternatives', []),
+                                            'primary_route': result.get('primary_route'),
+                                            'route_comparison': result.get('route_comparison', {})
+                                        })
+                                    
+                                    logger.info("✅ Multi-route context built with comfort scores and comparison")
+                                else:
+                                    logger.warning(f"Multi-route generation failed: {result.get('error')}")
+                                    # Fallback to standard RAG
+                                    use_multi_route = False
+                            else:
+                                logger.warning("Could not extract origin/destination - falling back to standard RAG")
+                                use_multi_route = False
+                                
+                        except Exception as multi_err:
+                            logger.error(f"Multi-route system failed: {multi_err}")
+                            use_multi_route = False
+                    
+                    # Fallback or standard transportation RAG
+                    if not use_multi_route or not rag_context:
+                        logger.info("🚇 Using standard Transportation RAG system")
+                        from services.transportation_rag_system import get_transportation_rag
+                        transport_rag = get_transportation_rag()
                         
-                        route_context = transport_rag.get_rag_context_for_query(request.message, user_loc)
-                        if route_context:
-                            rag_context = route_context
-                            logger.info(f"✅ Got transportation RAG context")
-                        
-                        # Get map data for visualization
-                        map_data = transport_rag.get_map_data_for_last_route()
-                        if map_data:
-                            logger.info(f"🗺️ Got map_data for route visualization")
-                        
-                        # Get enriched route data
-                        if transport_rag.last_route:
-                            basic_route_data = {
-                                'origin': transport_rag.last_route.origin,
-                                'destination': transport_rag.last_route.destination,
-                                'steps': transport_rag.last_route.steps,
-                                'total_time': transport_rag.last_route.total_time,
-                                'total_distance': transport_rag.last_route.total_distance,
-                                'transfers': transport_rag.last_route.transfers,
-                                'lines_used': transport_rag.last_route.lines_used
-                            }
-                            route_data = transport_rag.station_normalizer.enrich_route_data(basic_route_data)
-                            logger.info(f"✅ Got enriched route_data: {route_data.get('origin')} → {route_data.get('destination')}")
+                        if transport_rag:
+                            # Get route context from Transportation RAG
+                            user_loc = None
+                            if request.user_location:
+                                user_loc = {
+                                    'lat': request.user_location.get('latitude') or request.user_location.get('lat'),
+                                    'lon': request.user_location.get('longitude') or request.user_location.get('lon')
+                                }
+                            
+                            route_context = transport_rag.get_rag_context_for_query(request.message, user_loc)
+                            if route_context:
+                                rag_context = route_context
+                                logger.info(f"✅ Got transportation RAG context")
+                            
+                            # Get map data for visualization
+                            if not map_data:
+                                map_data = transport_rag.get_map_data_for_last_route()
+                                if map_data:
+                                    logger.info(f"🗺️ Got map_data for route visualization")
+                            
+                            # Get enriched route data
+                            if transport_rag.last_route and not route_data:
+                                basic_route_data = {
+                                    'origin': transport_rag.last_route.origin,
+                                    'destination': transport_rag.last_route.destination,
+                                    'steps': transport_rag.last_route.steps,
+                                    'total_time': transport_rag.last_route.total_time,
+                                    'total_distance': transport_rag.last_route.total_distance,
+                                    'transfers': transport_rag.last_route.transfers,
+                                    'lines_used': transport_rag.last_route.lines_used
+                                }
+                                route_data = transport_rag.station_normalizer.enrich_route_data(basic_route_data)
+                                logger.info(f"✅ Got enriched route_data: {route_data.get('origin')} → {route_data.get('destination')}")
                 else:
                     # Use Database RAG for general queries
                     logger.info("🔍 Using Database RAG for general query")
@@ -303,6 +389,8 @@ async def stream_chat_sse(request: StreamChatRequest):
                 context["route_data"] = route_data
             if trip_plan_data:
                 context["trip_plan"] = trip_plan_data
+            if transport_alternatives:
+                context["transport_alternatives"] = transport_alternatives  # Multi-route data
             
             # Add trip planning signal for LLM prompt
             if is_trip_planning:
@@ -379,6 +467,9 @@ async def stream_chat_sse(request: StreamChatRequest):
                         metadata['route_data'] = route_data
                     if trip_plan_data:
                         metadata['trip_plan'] = trip_plan_data
+                    if transport_alternatives:
+                        # Include multi-route data for frontend
+                        metadata['transport_alternatives'] = transport_alternatives
                     
                     # Send completion event with cleaned response
                     yield f"event: complete\ndata: {json.dumps({'content': cleaned_response, 'metadata': metadata})}\n\n"
@@ -704,3 +795,135 @@ async def clear_streaming_cache():
     service.clear_cache()
     
     return {"status": "success", "message": "Streaming cache cleared"}
+
+
+# ==========================================
+# Helper Functions for Multi-Route System
+# ==========================================
+
+def _extract_transportation_locations(query: str, user_location: Optional[Dict[str, float]] = None) -> Optional[Dict[str, Any]]:
+    """
+    Extract origin and destination from transportation query.
+    
+    Returns dict with:
+    - origin: origin name
+    - destination: destination name
+    - origin_gps: optional GPS dict
+    - destination_gps: optional GPS dict
+    """
+    import re
+    
+    query_lower = query.lower()
+    
+    # Check for GPS patterns
+    uses_gps_origin = any(pattern in query_lower for pattern in [
+        'from my location', 'from here', 'from current location',
+        'from where i am', 'from my position', 'starting from here'
+    ])
+    
+    uses_gps_dest = any(pattern in query_lower for pattern in [
+        'to my location', 'to here', 'to current location',
+        'to where i am', 'back here'
+    ])
+    
+    # Extract locations using patterns
+    # Pattern 1: "from X to Y" or "X to Y"
+    match = re.search(r'(?:from\s+)?([a-zğüşöçıİ\s]+?)\s+to\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
+    
+    if match:
+        origin = match.group(1).strip()
+        destination = match.group(2).strip()
+        
+        # Replace GPS placeholders with actual location
+        result = {}
+        
+        if 'my location' in origin or 'here' in origin or 'current location' in origin:
+            if user_location:
+                result['origin'] = 'Current Location'
+                result['origin_gps'] = user_location
+            else:
+                return None  # GPS origin but no location available
+        else:
+            result['origin'] = origin.title()
+            
+        if 'my location' in destination or 'here' in destination or 'current location' in destination:
+            if user_location:
+                result['destination'] = 'Current Location'
+                result['destination_gps'] = user_location
+            else:
+                return None  # GPS destination but no location available
+        else:
+            result['destination'] = destination.title()
+        
+        return result
+    
+    # Pattern 2: "how to get to X" (implies GPS origin if available)
+    match = re.search(r'(?:how|way)\s+(?:do i |can i |to )?(?:get|go|reach)\s+to\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
+    
+    if match and user_location:
+        destination = match.group(1).strip()
+        return {
+            'origin': 'Current Location',
+            'origin_gps': user_location,
+            'destination': destination.title()
+        }
+    
+    return None
+
+
+def _build_multi_route_context(result: Dict[str, Any], language: str) -> str:
+    """Build context string from multi-route result for LLM"""
+    lines = []
+    
+    # Primary route
+    pr = result.get('primary_route')
+    if pr:
+        lines.append(f"PRIMARY ROUTE: {pr['origin']} → {pr['destination']}")
+        lines.append(f"Duration: {pr['duration_minutes']} minutes")
+        lines.append(f"Distance: {pr.get('distance_km', pr.get('total_distance', 0)):.1f} km")
+        lines.append(f"Transfers: {pr['num_transfers']}")
+        lines.append(f"Walking: {int(pr['walking_meters'])}m")
+        
+        # Comfort scores
+        if pr.get('comfort_score'):
+            cs = pr['comfort_score']
+            lines.append(f"Comfort Score: {cs.get('overall_comfort', 0):.0f}/100")
+            lines.append(f"  - Crowding: {cs.get('crowding_comfort', 0):.0f}/100")
+            lines.append(f"  - Transfers: {cs.get('transfer_comfort', 0):.0f}/100")
+            lines.append(f"  - Walking: {cs.get('walking_comfort', 0):.0f}/100")
+        
+        lines.append("")
+    
+    # Alternatives
+    alternatives = result.get('alternatives', [])
+    if alternatives:
+        lines.append(f"ALTERNATIVE ROUTES ({len(alternatives)} options):")
+        for i, alt in enumerate(alternatives, 1):
+            lines.append(f"\n{i}. {alt['preference'].upper().replace('-', ' ')}")
+            lines.append(f"   Duration: {alt['duration_minutes']} min")
+            lines.append(f"   Transfers: {alt['num_transfers']}")
+            lines.append(f"   Walking: {int(alt['walking_meters'])}m")
+            
+            if alt.get('comfort_score'):
+                lines.append(f"   Comfort: {alt['comfort_score']['overall_comfort']:.0f}/100")
+            
+            if alt.get('overall_score'):
+                lines.append(f"   Score: {alt['overall_score']:.1f}/100")
+            
+            if alt.get('highlights'):
+                lines.append(f"   Highlights: {', '.join(alt['highlights'])}")
+    
+    # Route comparison
+    comparison = result.get('route_comparison', {})
+    if comparison:
+        lines.append("\nQUICK COMPARISON:")
+        if comparison.get('fastest_route') is not None:
+            lines.append(f"  - Fastest: Route {comparison['fastest_route'] + 1}")
+        if comparison.get('fewest_transfers') is not None:
+            lines.append(f"  - Fewest Transfers: Route {comparison['fewest_transfers'] + 1}")
+        if comparison.get('most_comfortable') is not None:
+            lines.append(f"  - Most Comfortable: Route {comparison['most_comfortable'] + 1}")
+        if comparison.get('least_walking') is not None:
+            lines.append(f"  - Least Walking: Route {comparison['least_walking'] + 1}")
+    
+    return "\n".join(lines)

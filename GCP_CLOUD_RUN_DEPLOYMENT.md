@@ -1,5 +1,27 @@
 # 🚀 Deploy AI Istanbul Backend to Google Cloud Run
 
+**Date:** December 28, 2025  
+**Entry Point:** `main_modular.py` (Moovit-level Multi-Route System)  
+**Status:** ✅ Updated for Multi-Route Deployment
+
+---
+
+## ⚡ CRITICAL: Entry Point Configuration
+
+**IMPORTANT:** Cloud Run MUST use `main_modular.py` as the entry point!
+
+✅ **Correct Entry Point:** `uvicorn main_modular:app`  
+❌ **OLD (Don't use):** `uvicorn main:app`
+
+### Why main_modular.py?
+- ✅ Includes Moovit-level multi-route optimizer
+- ✅ Enhanced map visualization service
+- ✅ Comfort scoring system
+- ✅ Transportation route integration
+- ✅ Streaming API with multi-route support
+
+---
+
 ## Why Google Cloud Run?
 
 ### ✅ Advantages Over Render

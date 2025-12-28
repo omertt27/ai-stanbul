@@ -27,45 +27,52 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Custom marker icons with colors
+// Custom marker icons with colors - Moovit-style minimal design
 const createMarkerIcon = (type = 'default', color = null, emoji = '') => {
   const colors = {
-    start: '#22c55e',      // Green
-    end: '#ef4444',        // Red
-    destination: '#ef4444', // Red
-    origin: '#22c55e',     // Green
-    transfer: '#f59e0b',   // Orange/Amber
-    stop: '#3b82f6',       // Blue
-    attraction: '#8b5cf6', // Purple
-    default: '#6b7280'     // Gray
+    start: '#00C853',      // Vibrant green
+    end: '#FF1744',        // Vibrant red
+    destination: '#FF1744', // Red
+    origin: '#00C853',     // Green
+    transfer: '#FF9100',   // Vibrant amber
+    stop: '#2979FF',       // Vibrant blue
+    attraction: '#D500F9', // Vibrant purple
+    default: '#757575'     // Gray
   };
   
   const bgColor = color || colors[type] || colors.default;
   const displayEmoji = emoji || (type === 'origin' ? '🚩' : type === 'destination' ? '🏁' : type === 'transfer' ? '🔄' : '📍');
   
+  // Moovit-style: very small, minimal markers with clean shadow
   const iconHtml = `
     <div style="
       background-color: ${bgColor};
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
       display: flex;
       align-items: center;
       justify-content: center;
       border: 3px solid white;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.4);
-      font-size: 18px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
     ">
-      ${displayEmoji}
+      <div style="
+        transform: rotate(45deg);
+        font-size: 14px;
+        margin-bottom: 3px;
+      ">
+        ${displayEmoji}
+      </div>
     </div>
   `;
   
   return L.divIcon({
     html: iconHtml,
     className: 'custom-marker-icon',
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-    popupAnchor: [0, -18]
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28]
   });
 };
 
@@ -200,44 +207,62 @@ const MapVisualization = ({
 
   return (
     <div className={`map-visualization-container ${className}`}>
-      {/* Route Information Header */}
+      {/* Route Information Header - Moovit-style minimal design */}
       {route_data && (
         <div className="route-info-panel" style={{
-          background: 'linear-gradient(135deg, #1a73e8 0%, #4285f4 100%)',
-          color: 'white',
-          padding: '14px 18px',
-          borderRadius: '8px 8px 0 0',
+          background: 'white',
+          color: '#1a1a1a',
+          padding: '16px 20px',
+          borderBottom: '1px solid #e5e5e5',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '24px' }}>🗺️</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #2979FF 0%, #1E88E5 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                boxShadow: '0 2px 8px rgba(41, 121, 255, 0.3)'
+              }}>
+                🗺️
+              </div>
               <div>
-                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>
+                <div style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a1a', marginBottom: '4px' }}>
                   {route_data.origin} → {route_data.destination}
                 </div>
-                <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                <div style={{ fontSize: '13px', color: '#666' }}>
                   {isMultiRoute && allRouteOptions.length > 0
-                    ? `${allRouteOptions.length} route options available`
+                    ? `${allRouteOptions.length} route options`
                     : route_data.transfers === 0 
-                      ? 'Direct' 
+                      ? 'Direct route' 
                       : `${route_data.transfers} transfer${route_data.transfers > 1 ? 's' : ''}`
                   }
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '20px', fontSize: '15px', fontWeight: '500' }}>
+            <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#1a1a1a' }}>
               {route_data.duration_min && (
-                <span>⏱️ {Math.round(route_data.duration_min)} min</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>⏱️</span>
+                  <span style={{ fontWeight: '600' }}>{Math.round(route_data.duration_min)} min</span>
+                </div>
               )}
               {route_data.distance_km && (
-                <span>📍 {route_data.distance_km.toFixed(1)} km</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>📍</span>
+                  <span style={{ fontWeight: '600' }}>{route_data.distance_km.toFixed(1)} km</span>
+                </div>
               )}
             </div>
           </div>
           
-          {/* Multi-route selector */}
+          {/* Multi-route selector - Moovit-style pills */}
           {isMultiRoute && allRouteOptions.length > 0 && (
-            <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {allRouteOptions.map((routeOpt, idx) => {
                 const isActive = idx === activeRouteIndex;
                 const comfortScore = routeOpt.comfort_score?.overall_comfort || 0;
@@ -249,32 +274,42 @@ const MapVisualization = ({
                     onMouseEnter={() => onRouteHover && onRouteHover(idx)}
                     onMouseLeave={() => onRouteHover && onRouteHover(null)}
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      border: isActive ? '2px solid white' : '2px solid transparent',
-                      background: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                      color: 'white',
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      border: isActive ? '2px solid #2979FF' : '2px solid #e5e5e5',
+                      background: isActive ? '#F0F7FF' : 'white',
+                      color: isActive ? '#2979FF' : '#1a1a1a',
                       fontSize: '13px',
-                      fontWeight: isActive ? 'bold' : 'normal',
+                      fontWeight: isActive ? '600' : '500',
                       cursor: 'pointer',
-                      transition: 'all 0.2s',
+                      transition: 'all 0.2s ease',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'flex-start',
-                      minWidth: '120px'
+                      minWidth: '120px',
+                      boxShadow: isActive ? '0 2px 8px rgba(41, 121, 255, 0.15)' : 'none'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                      <span>{idx === 0 ? '⚡' : idx === 1 ? '🔄' : idx === 2 ? '🛋️' : '⚖️'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '16px' }}>
+                        {idx === 0 ? '⚡' : idx === 1 ? '🔄' : idx === 2 ? '🛋️' : '⚖️'}
+                      </span>
                       <span style={{ textTransform: 'capitalize' }}>
                         {routeOpt.preference || `Option ${idx + 1}`}
                       </span>
                     </div>
-                    <div style={{ fontSize: '11px', opacity: 0.9 }}>
-                      {routeOpt.duration_minutes}'  • {routeOpt.num_transfers} transfers
+                    <div style={{ fontSize: '12px', color: isActive ? '#2979FF' : '#666', marginBottom: '4px' }}>
+                      {routeOpt.duration_minutes}' • {routeOpt.num_transfers} transfers
                     </div>
-                    <div style={{ fontSize: '11px', opacity: 0.9 }}>
-                      Comfort: {Math.round(comfortScore)}/100
+                    <div style={{ 
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      borderRadius: '8px',
+                      background: isActive ? '#2979FF' : '#f5f5f5',
+                      color: isActive ? 'white' : '#666',
+                      fontWeight: '600'
+                    }}>
+                      Comfort {Math.round(comfortScore)}/100
                     </div>
                   </button>
                 );
@@ -284,30 +319,36 @@ const MapVisualization = ({
         </div>
       )}
 
-      {/* Transport Lines Legend */}
+      {/* Transport Lines Legend - Moovit-style minimal */}
       {transport_lines && transport_lines.length > 0 && (
         <div className="transport-lines-panel" style={{
-          background: '#f8f9fa',
-          padding: '10px 14px',
+          background: 'white',
+          padding: '12px 20px',
           display: 'flex',
-          gap: '10px',
+          gap: '8px',
           flexWrap: 'wrap',
           fontSize: '13px',
-          borderBottom: '1px solid #e0e0e0'
+          borderBottom: '1px solid #e5e5e5'
         }}>
+          <span style={{ fontSize: '12px', color: '#666', fontWeight: '500', marginRight: '4px' }}>
+            Lines:
+          </span>
           {transport_lines.map((line, idx) => (
             <div key={idx} style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '5px 10px',
-              borderRadius: '16px',
-              background: line.color || '#3b82f6',
+              padding: '4px 10px',
+              borderRadius: '12px',
+              background: line.color || '#2979FF',
               color: 'white',
-              fontWeight: 'bold',
-              fontSize: '12px'
+              fontWeight: '600',
+              fontSize: '12px',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
             }}>
-              <span>{line.type === 'metro' ? '🚇' : line.type === 'tram' ? '🚊' : line.type === 'ferry' ? '⛴️' : '🚆'}</span>
+              <span style={{ fontSize: '14px' }}>
+                {line.type === 'metro' ? '🚇' : line.type === 'tram' ? '🚊' : line.type === 'ferry' ? '⛴️' : '🚆'}
+              </span>
               <span>{line.line}</span>
             </div>
           ))}
@@ -321,18 +362,19 @@ const MapVisualization = ({
           zoom={zoom}
           style={{ height: '100%', width: '100%' }}
           zoomControl={true}
-          attributionControl={true}
+          attributionControl={false}
         >
+          {/* Use ultra-light, minimal map style (Moovit/Apple Maps-like) */}
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             maxZoom={19}
           />
 
           {/* Auto-fit bounds */}
           <AutoFitBounds coordinates={coordinates} markers={markers} routes={routes} />
 
-          {/* Draw color-coded route segments */}
+          {/* Draw color-coded route segments - Moovit-style clean lines */}
           {displayRoutes && displayRoutes.map((segment, idx) => {
             if (!segment.coordinates || segment.coordinates.length < 2) return null;
             
@@ -343,19 +385,33 @@ const MapVisualization = ({
             
             if (normalizedPositions.length < 2) return null;
             
-            // Adjust opacity for multi-route display
+            // Moovit-style: bold, clean route lines with subtle shadows
             const opacity = isMultiRoute ? 0.9 : (segment.opacity || 0.85);
-            const weight = isMultiRoute ? 6 : (segment.weight || 5);
+            const weight = isMultiRoute ? 8 : (segment.weight || 7);
             
             return (
-              <Polyline
-                key={`segment-${idx}`}
-                positions={normalizedPositions}
-                color={segment.color || '#4285F4'}
-                weight={weight}
-                opacity={opacity}
-                smoothFactor={1}
-              />
+              <React.Fragment key={`segment-${idx}`}>
+                {/* Shadow/outline for depth */}
+                <Polyline
+                  positions={normalizedPositions}
+                  color="#000000"
+                  weight={weight + 2}
+                  opacity={0.15}
+                  smoothFactor={1.5}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+                {/* Main route line */}
+                <Polyline
+                  positions={normalizedPositions}
+                  color={segment.color || '#2979FF'}
+                  weight={weight}
+                  opacity={opacity}
+                  smoothFactor={1.5}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+              </React.Fragment>
             );
           })}
 
@@ -370,7 +426,7 @@ const MapVisualization = ({
             />
           )}
 
-          {/* Draw markers */}
+          {/* Draw markers - Moovit-style minimal design */}
           {markers && markers.map((marker, idx) => {
             if (!marker.lat || !marker.lon) return null;
             
@@ -380,25 +436,40 @@ const MapVisualization = ({
 
             return (
               <Marker key={`marker-${idx}`} position={position} icon={icon}>
-                <Popup>
-                  <div style={{ minWidth: '180px' }}>
-                    <strong style={{ fontSize: '15px', display: 'block', marginBottom: '6px' }}>
+                <Popup className="moovit-style-popup" minWidth={200} maxWidth={300}>
+                  <div style={{ 
+                    padding: '8px 4px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}>
+                    <div style={{ 
+                      fontSize: '14px', 
+                      fontWeight: '600', 
+                      marginBottom: '6px',
+                      color: '#1a1a1a'
+                    }}>
                       {marker.title || marker.label || `Stop ${idx + 1}`}
-                    </strong>
+                    </div>
                     {marker.description && (
-                      <div style={{ fontSize: '13px', color: '#555', marginTop: '4px' }}>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#666', 
+                        lineHeight: '1.4',
+                        marginTop: '4px'
+                      }}>
                         {marker.description}
                       </div>
                     )}
                     {marker.line && (
                       <div style={{ 
-                        fontSize: '12px', 
+                        fontSize: '11px', 
                         marginTop: '8px',
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        background: marker.color || '#4285F4',
+                        padding: '3px 8px',
+                        borderRadius: '10px',
+                        background: marker.color || '#2979FF',
                         color: 'white',
-                        display: 'inline-block'
+                        display: 'inline-block',
+                        fontWeight: '600',
+                        letterSpacing: '0.3px'
                       }}>
                         {marker.line}
                       </div>
@@ -411,30 +482,42 @@ const MapVisualization = ({
         </MapContainer>
       </div>
 
-      {/* Alternative Routes */}
+      {/* Alternative Routes - Moovit-style minimal */}
       {alternatives && alternatives.length > 0 && (
         <div style={{
-          background: '#fff',
-          padding: '12px 16px',
-          borderTop: '1px solid #e0e0e0',
-          borderRadius: '0 0 8px 8px'
+          background: '#fafafa',
+          padding: '14px 20px',
+          borderTop: '1px solid #e5e5e5',
+          borderRadius: '0 0 12px 12px'
         }}>
-          <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#555' }}>
-            Alternative Routes:
+          <div style={{ fontSize: '12px', fontWeight: '600', marginBottom: '10px', color: '#666' }}>
+            Alternative Routes
           </div>
           {alternatives.map((alt, idx) => (
             <div key={idx} style={{
-              fontSize: '12px',
-              padding: '6px 10px',
-              background: '#f5f5f5',
-              borderRadius: '6px',
-              marginBottom: '4px',
+              fontSize: '13px',
+              padding: '8px 12px',
+              background: 'white',
+              borderRadius: '10px',
+              marginBottom: '6px',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              border: '1px solid #e5e5e5',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
-              <span>{alt.summary || `${alt.lines_used?.join(' → ')} (${alt.total_time} min)`}</span>
-              <span style={{ color: '#666' }}>+{alt.total_time - (route_data?.duration_min || 0)} min</span>
+              <span style={{ color: '#1a1a1a', fontWeight: '500' }}>
+                {alt.summary || `${alt.lines_used?.join(' → ')} (${alt.total_time} min)`}
+              </span>
+              <span style={{ 
+                color: '#666',
+                fontSize: '12px',
+                padding: '2px 8px',
+                borderRadius: '8px',
+                background: '#f5f5f5'
+              }}>
+                +{alt.total_time - (route_data?.duration_min || 0)} min
+              </span>
             </div>
           ))}
         </div>
@@ -443,14 +526,57 @@ const MapVisualization = ({
       <style jsx>{`
         .map-visualization-container {
           margin: 16px 0;
-          border-radius: 8px;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+          border-radius: 12px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
           overflow: hidden;
+          background: white;
         }
 
         .route-info-panel,
         .transport-lines-panel {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        /* Moovit-style minimal popup styling */
+        :global(.moovit-style-popup .leaflet-popup-content-wrapper) {
+          border-radius: 12px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+          padding: 0;
+        }
+
+        :global(.moovit-style-popup .leaflet-popup-content) {
+          margin: 0;
+        }
+
+        :global(.moovit-style-popup .leaflet-popup-tip) {
+          border-radius: 2px;
+        }
+
+        /* Clean marker icons */
+        :global(.custom-marker-icon) {
+          border: none;
+          background: transparent;
+        }
+
+        /* Improve zoom controls */
+        :global(.leaflet-control-zoom) {
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          border: none;
+        }
+
+        :global(.leaflet-control-zoom a) {
+          width: 36px;
+          height: 36px;
+          line-height: 36px;
+          font-size: 20px;
+          border: none;
+          color: #333;
+        }
+
+        :global(.leaflet-control-zoom a:hover) {
+          background: #f0f0f0;
         }
 
         @media (max-width: 768px) {
@@ -460,6 +586,12 @@ const MapVisualization = ({
 
           .transport-lines-panel {
             font-size: 11px;
+          }
+
+          :global(.leaflet-control-zoom a) {
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
           }
         }
       `}</style>

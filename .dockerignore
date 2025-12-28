@@ -40,6 +40,13 @@ logs/
 frontend/
 node_modules/
 
+# Google Cloud SDK (HUGE - don't copy to Docker!)
+Users/
+google-cloud-sdk/
+**/google-cloud-sdk/**
+**/gsutil/**
+**/platform/**
+
 # Data files
 *.db
 *.sqlite

@@ -32,8 +32,13 @@ class FastStartupManager:
         self.service_manager = None
         self.pure_llm_core = None
         self.recommendation_engine = None
+        # Multi-route system components
+        self.route_optimizer = None
+        self.transportation_route_integration = None
+        self.enhanced_map_visualization = None
         self._llm_initialized = False
         self._services_initialized = False
+        self._multi_route_initialized = False
         self._initialization_errors = []
     
     async def initialize(self):
@@ -58,9 +63,12 @@ class FastStartupManager:
             # 3. Service Manager (non-critical) - initialize in background
             asyncio.create_task(self._initialize_service_manager())
             
+            # 4. Multi-route system (enhanced map visualization)
+            asyncio.create_task(self._initialize_multi_route_system())
+            
             logger.info("✅ App ready to serve traffic - components initializing in background!")
             
-            # 4. Schedule lazy initialization of heavy components
+            # 5. Schedule lazy initialization of heavy components
             asyncio.create_task(self._lazy_initialize_llm())
             
         except Exception as e:
@@ -142,6 +150,43 @@ class FastStartupManager:
             logger.warning(f"⚠️ {error_msg}")
             self._initialization_errors.append(error_msg)
             self.service_manager = None
+    
+    async def _initialize_multi_route_system(self):
+        """Initialize multi-route transportation system with comfort scoring"""
+        # Guard against duplicate multi-route init
+        if not ensure_single_init("multi_route"):
+            logger.info("🔁 Multi-route system already initialized, skipping")
+            return
+        
+        try:
+            logger.info("🔄 Initializing Moovit-style multi-route system...")
+            
+            # Import route optimizer
+            from services.route_optimizer import RouteOptimizer
+            self.route_optimizer = RouteOptimizer()
+            logger.info("✅ Route Optimizer initialized")
+            
+            # Import transportation route integration
+            from services.transportation_route_integration import get_route_integration
+            self.transportation_route_integration = get_route_integration()
+            logger.info("✅ Transportation Route Integration initialized")
+            
+            # Import enhanced map visualization service
+            from services.enhanced_map_visualization_service import EnhancedMapVisualizationService
+            self.enhanced_map_visualization = EnhancedMapVisualizationService()
+            logger.info("✅ Enhanced Map Visualization Service initialized")
+            
+            self._multi_route_initialized = True
+            logger.info("🗺️ Multi-route system ready - Moovit-level features enabled!")
+            
+        except Exception as e:
+            error_msg = f"Multi-route system initialization failed: {str(e)}"
+            logger.warning(f"⚠️ {error_msg}")
+            logger.warning("⚠️ Continuing WITHOUT multi-route - fallback to single route")
+            self._initialization_errors.append(error_msg)
+            self.route_optimizer = None
+            self.transportation_route_integration = None
+            self.enhanced_map_visualization = None
     
     async def _lazy_initialize_llm(self):
         """Lazy initialization of Pure LLM Core (runs in background)"""
@@ -262,6 +307,24 @@ class FastStartupManager:
     def is_services_ready(self) -> bool:
         """Check if services are ready"""
         return self._services_initialized and self.service_manager is not None
+    
+    def is_multi_route_ready(self) -> bool:
+        """Check if multi-route system is ready"""
+        return self._multi_route_initialized and self.route_optimizer is not None
+    
+    def get_route_optimizer(self):
+        """Get route optimizer instance"""
+        if not self._multi_route_initialized:
+            logger.warning("⚠️ Multi-route system still initializing...")
+        return self.route_optimizer
+    
+    def get_transportation_route_integration(self):
+        """Get transportation route integration instance"""
+        return self.transportation_route_integration
+    
+    def get_enhanced_map_visualization(self):
+        """Get enhanced map visualization service"""
+        return self.enhanced_map_visualization
 
 
 # Create singleton instance

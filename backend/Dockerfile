@@ -31,5 +31,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:${PORT}/api/health || exit 1
 
-# Run the application
-CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT} --workers 1
+# Run the application using main_modular.py (Moovit-level multi-route system)
+CMD exec uvicorn main_modular:app --host 0.0.0.0 --port ${PORT} --workers 1
