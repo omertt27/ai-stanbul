@@ -34,6 +34,7 @@ import TripPlanCard from './components/TripPlanCard';
 import SimpleChatInput from './components/SimpleChatInput';
 import RestaurantCard from './components/RestaurantCard';
 import TransportationRouteCard from './components/TransportationRouteCard';
+import MultiRouteComparison from './components/MultiRouteComparison';
 import MinimizedGPSBanner from './components/MinimizedGPSBanner';
 import StreamingMessage from './components/StreamingMessage';
 import { useKeyboardDetection, scrollIntoViewSafe } from './utils/keyboardDetection';
@@ -845,6 +846,10 @@ function Chatbot({ userLocation: propUserLocation }) {
   const [streamingText, setStreamingText] = useState(''); // Current streaming text
   const [isStreamingResponse, setIsStreamingResponse] = useState(false); // Is currently streaming
   const abortControllerRef = useRef(null); // AbortController for cancelling streaming requests
+  
+  // Multi-route state
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(null);
+  const [hoveredRouteIndex, setHoveredRouteIndex] = useState(null);
   
   // Stop button handler - Cancel streaming response
   const handleStopStreaming = () => {
@@ -2209,7 +2214,6 @@ function Chatbot({ userLocation: propUserLocation }) {
                             onClick={() => {
                               const textToCopy = msg.text || msg.content || '';
                               navigator.clipboard.writeText(textToCopy).then(() => {
-                                // Brief visual feedback
                                 const btn = document.getElementById(`copy-btn-${msg.id || idx}`);
                                 if (btn) {
                                   btn.textContent = '✓ Copied!';
@@ -2258,6 +2262,23 @@ function Chatbot({ userLocation: propUserLocation }) {
                             />
                           )}
                           
+                          {/* Multi-Route Comparison - Show when multiple route alternatives available */}
+                          {msg.mapData && (msg.mapData.multi_routes || msg.mapData.alternatives) && (
+                            msg.mapData.multi_routes?.length > 0 || msg.mapData.alternatives?.length > 0
+                          ) && (
+                            <MultiRouteComparison
+                              routes={msg.mapData.multi_routes || msg.mapData.alternatives || []}
+                              primaryRoute={msg.mapData.primary_route}
+                              routeComparison={msg.mapData.route_comparison || {}}
+                              onRouteSelect={(route, index) => {
+                                console.log('Selected route:', index, route);
+                                setSelectedRouteIndex(index);
+                              }}
+                              darkMode={darkMode}
+                              className="mt-4"
+                            />
+                          )}
+                          
                           {/* Trip Plan Card - Show for multi-day trip planning queries */}
                           {(msg.tripPlan || (msg.mapData && msg.mapData.type === 'trip_plan')) && (
                             <TripPlanCard 
@@ -2277,6 +2298,8 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 mapData={msg.mapData} 
                                 height="400px" 
                                 className="rounded-lg shadow-md"
+                                selectedRouteIndex={selectedRouteIndex}
+                                onRouteHover={setHoveredRouteIndex}
                               />
                               <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
                                 darkMode ? 'text-gray-500' : 'text-gray-600'
@@ -2325,8 +2348,8 @@ function Chatbot({ userLocation: propUserLocation }) {
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                                </svg>
-                                {msg.feedback === 'thumbs_up' ? 'Helpful!' : 'Helpful'}
+                              </svg>
+                              {msg.feedback === 'thumbs_up' ? 'Helpful!' : 'Helpful'}
                               </button>
                               
                               <button
@@ -2472,6 +2495,23 @@ function Chatbot({ userLocation: propUserLocation }) {
                           />
                         )}
                         
+                        {/* Multi-Route Comparison - Show when multiple route alternatives available */}
+                        {msg.mapData && (msg.mapData.multi_routes || msg.mapData.alternatives) && (
+                          msg.mapData.multi_routes?.length > 0 || msg.mapData.alternatives?.length > 0
+                        ) && (
+                          <MultiRouteComparison
+                            routes={msg.mapData.multi_routes || msg.mapData.alternatives || []}
+                            primaryRoute={msg.mapData.primary_route}
+                            routeComparison={msg.mapData.route_comparison || {}}
+                            onRouteSelect={(route, index) => {
+                              console.log('Selected route:', index, route);
+                              setSelectedRouteIndex(index);
+                            }}
+                            darkMode={darkMode}
+                            className="mt-4"
+                          />
+                        )}
+                        
                         {/* Map Visualization - Display when message has map data (not trip plans) */}
                         {msg.mapData && msg.mapData.type !== 'trip_plan' && (msg.mapData.markers || msg.mapData.coordinates || msg.mapData.route_data) && (
                           <div className="mt-4">
@@ -2484,6 +2524,8 @@ function Chatbot({ userLocation: propUserLocation }) {
                               mapData={msg.mapData} 
                               height="400px" 
                               className="rounded-lg shadow-md"
+                              selectedRouteIndex={selectedRouteIndex}
+                              onRouteHover={setHoveredRouteIndex}
                             />
                             <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
                               darkMode ? 'text-gray-500' : 'text-gray-600'
@@ -2534,20 +2576,20 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                               </svg>
                               {msg.feedback === 'thumbs_up' ? 'Helpful!' : 'Helpful'}
-                            </button>
-                            
-                            <button
-                              onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down')}
-                              disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                msg.feedback === 'thumbs_down'
-                                  ? darkMode
-                                    ? 'bg-red-600 text-white'
-                                    : 'bg-red-500 text-white'
-                                  : darkMode
-                                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              </button>
+                              
+                              <button
+                                onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down')}
+                                disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                  msg.feedback === 'thumbs_down'
+                                    ? darkMode
+                                      ? 'bg-red-600 text-white'
+                                      : 'bg-red-500 text-white'
+                                    : darkMode
+                                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
                             aria-label="Not helpful"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

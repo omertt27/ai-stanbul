@@ -139,9 +139,18 @@ const AutoFitBounds = ({ coordinates, markers, routes }) => {
 const MapVisualization = ({ 
   mapData, 
   height = '400px',
-  className = '' 
+  className = '',
+  selectedRouteIndex = null,
+  onRouteHover = null
 }) => {
   const [error, setError] = useState(null);
+  const [activeRouteIndex, setActiveRouteIndex] = useState(selectedRouteIndex ?? 0);
+
+  useEffect(() => {
+    if (selectedRouteIndex !== null) {
+      setActiveRouteIndex(selectedRouteIndex);
+    }
+  }, [selectedRouteIndex]);
 
   if (!mapData) {
     return null;
@@ -157,11 +166,37 @@ const MapVisualization = ({
     zoom = 13,
     route_data = null,
     transport_lines = [],
-    alternatives = []
+    alternatives = [],
+    // Multi-route specific fields
+    multi_routes = [],  // Array of complete route objects with comfort scores
+    primary_route = null,
+    route_comparison = {}
   } = mapData;
 
-  // Default center if not provided
-  const defaultCenter = [center.lat || 41.0082, center.lon || 28.9784];
+  // Check if this is a multi-route map
+  const isMultiRoute = type === 'multi_route' || multi_routes.length > 0;
+  
+  // Use multi_routes if available, otherwise fall back to alternatives
+  const allRouteOptions = multi_routes.length > 0 ? multi_routes : alternatives;
+  
+  // Determine which routes to display on map
+  const displayRoutes = isMultiRoute 
+    ? (allRouteOptions[activeRouteIndex]?.routes || routes)
+    : routes;
+
+  // Comfort score calculation (example: average of all segments' weights)
+  const comfortScores = isMultiRoute 
+    ? allRouteOptions.map(option => {
+        const totalWeight = (option.routes || []).reduce((sum, route) => sum + (route.weight || 0), 0);
+        const segmentCount = (option.routes || []).length;
+        return segmentCount > 0 ? totalWeight / segmentCount : 0;
+      })
+    : [];
+
+  // Find the primary route index in the multi-route options (if available)
+  const primaryRouteIndex = isMultiRoute 
+    ? allRouteOptions.findIndex(option => option.routes?.some(route => route.is_primary))
+    : -1;
 
   return (
     <div className={`map-visualization-container ${className}`}>
@@ -181,7 +216,12 @@ const MapVisualization = ({
                   {route_data.origin} → {route_data.destination}
                 </div>
                 <div style={{ fontSize: '13px', opacity: 0.9 }}>
-                  {route_data.transfers === 0 ? 'Direct' : `${route_data.transfers} transfer${route_data.transfers > 1 ? 's' : ''}`}
+                  {isMultiRoute && allRouteOptions.length > 0
+                    ? `${allRouteOptions.length} route options available`
+                    : route_data.transfers === 0 
+                      ? 'Direct' 
+                      : `${route_data.transfers} transfer${route_data.transfers > 1 ? 's' : ''}`
+                  }
                 </div>
               </div>
             </div>
@@ -190,10 +230,57 @@ const MapVisualization = ({
                 <span>⏱️ {Math.round(route_data.duration_min)} min</span>
               )}
               {route_data.distance_km && (
-                <span>� {route_data.distance_km.toFixed(1)} km</span>
+                <span>📍 {route_data.distance_km.toFixed(1)} km</span>
               )}
             </div>
           </div>
+          
+          {/* Multi-route selector */}
+          {isMultiRoute && allRouteOptions.length > 0 && (
+            <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {allRouteOptions.map((routeOpt, idx) => {
+                const isActive = idx === activeRouteIndex;
+                const comfortScore = routeOpt.comfort_score?.overall_comfort || 0;
+                
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveRouteIndex(idx)}
+                    onMouseEnter={() => onRouteHover && onRouteHover(idx)}
+                    onMouseLeave={() => onRouteHover && onRouteHover(null)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: isActive ? '2px solid white' : '2px solid transparent',
+                      background: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      fontSize: '13px',
+                      fontWeight: isActive ? 'bold' : 'normal',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      minWidth: '120px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <span>{idx === 0 ? '⚡' : idx === 1 ? '🔄' : idx === 2 ? '🛋️' : '⚖️'}</span>
+                      <span style={{ textTransform: 'capitalize' }}>
+                        {routeOpt.preference || `Option ${idx + 1}`}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '11px', opacity: 0.9 }}>
+                      {routeOpt.duration_minutes}'  • {routeOpt.num_transfers} transfers
+                    </div>
+                    <div style={{ fontSize: '11px', opacity: 0.9 }}>
+                      Comfort: {Math.round(comfortScore)}/100
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -246,7 +333,7 @@ const MapVisualization = ({
           <AutoFitBounds coordinates={coordinates} markers={markers} routes={routes} />
 
           {/* Draw color-coded route segments */}
-          {routes && routes.map((segment, idx) => {
+          {displayRoutes && displayRoutes.map((segment, idx) => {
             if (!segment.coordinates || segment.coordinates.length < 2) return null;
             
             // Normalize coordinates to [lat, lng] array format
@@ -256,13 +343,17 @@ const MapVisualization = ({
             
             if (normalizedPositions.length < 2) return null;
             
+            // Adjust opacity for multi-route display
+            const opacity = isMultiRoute ? 0.9 : (segment.opacity || 0.85);
+            const weight = isMultiRoute ? 6 : (segment.weight || 5);
+            
             return (
               <Polyline
                 key={`segment-${idx}`}
                 positions={normalizedPositions}
                 color={segment.color || '#4285F4'}
-                weight={segment.weight || 5}
-                opacity={segment.opacity || 0.85}
+                weight={weight}
+                opacity={opacity}
                 smoothFactor={1}
               />
             );

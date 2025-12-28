@@ -173,8 +173,8 @@ class FastStartupManager:
                 logger.info(f"⏳ Waiting for dependencies... ({waited}s)")
             
             if self.db is None:
-                logger.error("❌ Database not initialized - cannot start LLM")
-                return
+                logger.warning("⚠️ Database not initialized - LLM will work with limited functionality")
+                # Proceed without database - LLM can still work
             
             if not self._services_initialized:
                 logger.warning("⚠️ Service Manager not ready - LLM may have limited functionality")

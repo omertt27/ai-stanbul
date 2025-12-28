@@ -281,7 +281,7 @@ class ContextBuilder:
             except Exception as e:
                 logger.warning(f"Daily life context failed: {e}")
         
-        # Generate map visualization
+        # Generate map visualization with multi-route support
         # Auto-generate maps for location-based queries (neighborhoods, attractions, restaurants)
         should_generate_map = (
             signals.get('needs_map') or 
@@ -289,18 +289,61 @@ class ContextBuilder:
             signals.get('needs_neighborhood') or
             signals.get('needs_attraction') or
             signals.get('needs_restaurant') or
-            signals.get('needs_hidden_gems')
+            signals.get('needs_hidden_gems') or
+            signals.get('needs_transportation')
         )
         
-        if should_generate_map and self.map_service:
+        if should_generate_map:
             try:
-                context['map_data'] = await self._generate_map(
-                    query=query,
-                    signals=signals,
-                    user_location=user_location,
-                    language=language
-                )
-                logger.info(f"✅ Map data generated for query with signals: {[k for k, v in signals.items() if v]}")
+                # Check if we have multi-route data from transportation context
+                if hasattr(self, '_transport_alternatives') and self._transport_alternatives.get('alternatives'):
+                    # Use enhanced map service for multi-route visualization
+                    logger.info("🗺️ Generating multi-route map visualization")
+                    
+                    try:
+                        from services.enhanced_map_visualization_service import get_enhanced_map_service
+                        enhanced_map_service = get_enhanced_map_service()
+                        
+                        # Extract location info from alternatives
+                        primary = self._transport_alternatives.get('primary_route', {})
+                        origin = primary.get('origin', 'Unknown')
+                        destination = primary.get('destination', 'Unknown')
+                        
+                        # Generate multi-route map
+                        # Note: The enhanced map service will use the route integration
+                        # which already has the routes we need
+                        multi_map_data = await enhanced_map_service.generate_multi_route_map(
+                            origin=origin,
+                            destination=destination,
+                            origin_gps=user_location,  # User's current location if available
+                            destination_gps=None,  # Destination coords would need lookup
+                            num_alternatives=len(self._transport_alternatives.get('alternatives', []))
+                        )
+                        
+                        if multi_map_data and multi_map_data['type'] == 'multi_route':
+                            context['map_data'] = multi_map_data
+                            logger.info(f"✅ Multi-route map generated with {len(multi_map_data['routes'])} routes")
+                        else:
+                            # Fallback to stored map data if available
+                            if self._transport_alternatives.get('map_data'):
+                                context['map_data'] = self._transport_alternatives['map_data']
+                                logger.info("✅ Using stored map data from transport alternatives")
+                    except Exception as e:
+                        logger.warning(f"Enhanced map generation failed, using fallback: {e}")
+                        # Use stored map data if available
+                        if self._transport_alternatives.get('map_data'):
+                            context['map_data'] = self._transport_alternatives['map_data']
+                
+                elif self.map_service:
+                    # Use standard map service
+                    context['map_data'] = await self._generate_map(
+                        query=query,
+                        signals=signals,
+                        user_location=user_location,
+                        language=language
+                    )
+                    logger.info(f"✅ Standard map data generated for query with signals: {[k for k, v in signals.items() if v]}")
+                    
             except Exception as e:
                 logger.warning(f"Map generation failed: {e}")
         
@@ -333,6 +376,13 @@ class ContextBuilder:
                 logger.error(f"Location-based context enhancement failed with KeyError: {ke} - likely missing user_location key")
             except Exception as e:
                 logger.warning(f"Location-based context enhancement failed: {e}")
+        
+        # CRITICAL: Pass multi-route data to context return for frontend
+        # If we have transport alternatives with multi-route data, include it in context
+        if hasattr(self, '_transport_alternatives') and self._transport_alternatives:
+            if self._transport_alternatives.get('alternatives') or self._transport_alternatives.get('primary_route'):
+                context['transport_alternatives'] = self._transport_alternatives
+                logger.info(f"✅ Added transport alternatives to context for frontend ({"len(self._transport_alternatives.get('alternatives', []))} routes)")
         
         return context
     
@@ -393,17 +443,51 @@ class ContextBuilder:
                 context_parts.append("=== NEIGHBORHOODS ===")
                 context_parts.append(neighborhoods)
         
-        # Get transportation context
+        # Get transportation context with route alternatives
         if signals.get('needs_transportation'):
-            transport = await self._get_transportation(
-                query,
-                language,
-                original_query=original_query,
-                user_location=user_location  # Pass GPS location
-            )
-            if transport:
-                context_parts.append("=== TRANSPORTATION ===")
-                context_parts.append(transport)
+            # Check if we should use multi-route optimization
+            # Enable for queries that seem to be asking for routes
+            use_multi_route = any(keyword in query.lower() for keyword in [
+                'how to get', 'how do i get', 'route to', 'way to',
+                'directions to', 'how can i reach', 'best way to'
+            ])
+            
+            if use_multi_route:
+                # Use Moovit-style multi-route optimization
+                transport_data = await self._get_transportation_with_alternatives(
+                    query,
+                    language,
+                    original_query=original_query,
+                    user_location=user_location,
+                    num_alternatives=3,
+                    generate_llm_summaries=False  # LLM will generate its own summary
+                )
+                
+                if transport_data and transport_data.get('context'):
+                    context_parts.append("=== TRANSPORTATION (MULTI-ROUTE) ===")
+                    context_parts.append(transport_data['context'])
+                    
+                    # Store alternatives for later use in response
+                    # This can be accessed by the prompt builder
+                    if not hasattr(self, '_transport_alternatives'):
+                        self._transport_alternatives = {}
+                    self._transport_alternatives = {
+                        'primary_route': transport_data.get('primary_route'),
+                        'alternatives': transport_data.get('alternatives', []),
+                        'route_comparison': transport_data.get('route_comparison', {}),
+                        'map_data': transport_data.get('map_data')
+                    }
+            else:
+                # Use standard transportation context
+                transport = await self._get_transportation(
+                    query,
+                    language,
+                    original_query=original_query,
+                    user_location=user_location  # Pass GPS location
+                )
+                if transport:
+                    context_parts.append("=== TRANSPORTATION ===")
+                    context_parts.append(transport)
         
         return "\n\n".join(context_parts) if context_parts else ""
     
@@ -759,502 +843,230 @@ Total time: ~30 minutes (more scenic!)"""
 
 **IMPORTANT: Marmaray DOES serve Kadıköy via Ayrılık Çeşmesi station (M4 connection point).**"""
     
-    async def _get_rag_context(self, query: str, language: str) -> str:
-        """Get RAG context from embeddings with circuit breaker protection."""
-        context_parts = []
-        
-        # PART 1: Database RAG (restaurants, museums, events, etc.)
-        if self.rag_service:
-            try:
-                # Use circuit breaker if available
-                if 'rag' in self.circuit_breakers:
-                    async def _search():
-                        return await self.rag_service.search(query, language=language, top_k=3)
-                    
-                    results = await self.circuit_breakers['rag'].call(_search)
-                else:
-                    results = await self.rag_service.search(query, language=language, top_k=3)
-                
-                if results:
-                    # Format Database RAG results
-                    for result in results:
-                        context_parts.append(f"[Score: {result.get('score', 0):.2f}] {result.get('text', '')[:200]}...")
-            
-            except Exception as e:
-                logger.error(f"Database RAG search failed: {e}")
-        
-        # PART 2: Istanbul Knowledge RAG (neighborhoods, food, attractions, scams, etc.)
-        if KNOWLEDGE_RAG_AVAILABLE:
-            try:
-                knowledge_rag = get_knowledge_rag()
-                knowledge_context = knowledge_rag.get_context_for_llm(query, max_length=1500)
-                
-                if knowledge_context:
-                    context_parts.append("\n=== ISTANBUL KNOWLEDGE BASE ===")
-                    context_parts.append(knowledge_context)
-                    logger.info(f"✅ Added Knowledge RAG context: {len(knowledge_context)} chars")
-            except Exception as e:
-                logger.warning(f"Knowledge RAG failed: {e}")
-        
-        if not context_parts:
-            # Return graceful degradation message
-            from .resilience import GracefulDegradation
-            fallback = GracefulDegradation.get_fallback_context('rag')
-            return fallback.get('message', '')
-        
-        return "\n\n".join(context_parts)
-    
-    async def _get_weather_context(self, query: str) -> str:
-        """Get weather context with smart recommendations based on conditions."""
-        if not self.weather_service:
-            return ""
-        
-        try:
-            # Get current weather
-            weather = self.weather_service.get_current_weather("Istanbul")
-            
-            # Extract condition from weather data (handle different formats)
-            condition = weather.get('condition')
-            if not condition and 'weather' in weather and isinstance(weather['weather'], list) and len(weather['weather']) > 0:
-                condition = weather['weather'][0].get('main', 'Unknown')
-            condition = condition or 'Unknown'
-            
-            temperature = weather.get('temperature', 20)
-            description = weather.get('description', '')
-            
-            logger.info(f"🌤️ Weather data extracted: condition={condition}, temp={temperature}°C, desc={description}")
-            
-            # Try to get weather-based activity recommendations
-            try:
-                from services.weather_recommendations import WeatherRecommendationsService
-                weather_rec = WeatherRecommendationsService()
-                
-                # Get formatted recommendations
-                recommendations = weather_rec.format_weather_activities_response(
-                    temperature=temperature,
-                    weather_condition=condition.lower(),
-                    limit=5
-                )
-                
-                # Combine weather info with recommendations
-                weather_info = (
-                    f"Current weather in Istanbul: {condition}, "
-                    f"{temperature}°C. {description}\n\n"
-                    f"{recommendations}"
-                )
-                
-                return weather_info
-                
-            except Exception as rec_error:
-                logger.warning(f"Weather recommendations failed: {rec_error}")
-                # Fallback to basic weather info
-                return (
-                    f"Current weather in Istanbul: {condition}, "
-                    f"{temperature}°C. {description}"
-                )
-        
-        except Exception as e:
-            logger.error(f"Weather service failed: {e}")
-            # Return graceful degradation message
-            from .resilience import GracefulDegradation
-            fallback = GracefulDegradation.get_fallback_context('weather')
-            return fallback.get('weather_info', '')
-    
-    async def _get_events_context(self) -> str:
-        """Get events context with circuit breaker protection."""
-        if not self.events_service:
-            return ""
-        
-        try:
-            # Check if method exists
-            if not hasattr(self.events_service, 'get_upcoming_events'):
-                logger.warning("Events service doesn't have get_upcoming_events method")
-                return ""
-            
-            # Use circuit breaker if available
-            if 'events' in self.circuit_breakers:
-                async def _get_events():
-                    # Call synchronously if not async
-                    events_result = self.events_service.get_upcoming_events(limit=5)
-                    return events_result
-                
-                events = await self.circuit_breakers['events'].call(_get_events)
-            else:
-                # Call synchronously
-                events = self.events_service.get_upcoming_events(limit=5)
-            
-            if not events:
-                return ""
-            
-            # Format events
-            event_list = []
-            for event in events:
-                event_list.append(
-                    f"- {event.get('name', 'Unknown')}: {event.get('date', 'TBA')} "
-                    f"at {event.get('venue', 'Various locations')}"
-                )
-            
-            return "\n".join(event_list)
-        
-        except Exception as e:
-            logger.error(f"Events service failed: {e}")
-            # Return graceful degradation message
-            from .resilience import GracefulDegradation
-            fallback = GracefulDegradation.get_fallback_context('events')
-            return fallback.get('message', '')
-    
-    async def _get_hidden_gems_context(self, query: str) -> str:
-        """Get hidden gems context."""
-        if not self.hidden_gems_service:
-            return ""
-        
-        try:
-            gems = await self.hidden_gems_service.get_recommendations(query, limit=3)
-            
-            if not gems:
-                return ""
-            
-            # Format hidden gems
-            gem_list = []
-            for gem in gems:
-                gem_list.append(
-                    f"- {gem.get('name', 'Unknown')}: {gem.get('description', '')} "
-                    f"(District: {gem.get('district', 'Unknown')})"
-                )
-            
-            return "\n".join(gem_list)
-            
-        except Exception as e:
-            logger.error(f"Hidden gems service failed: {e}")
-            return ""
-    
-    async def _get_airport_context(
+    async def _get_transportation_with_alternatives(
         self,
         query: str,
-        user_location: Optional[Dict[str, float]],
-        language: str
-    ) -> str:
-        """Get airport transport information from AirportTransportService."""
-        try:
-            # Try to use service_manager's airport service first
-            airport_service = None
-            
-            if self.service_manager and hasattr(self.service_manager, 'airport_service'):
-                airport_service = self.service_manager.airport_service
-                logger.debug("Using airport service from ServiceManager")
-            
-            # Fallback: import directly
-            if not airport_service:
-                from services.airport_transport_service import IstanbulAirportTransportService
-                airport_service = IstanbulAirportTransportService()
-                logger.debug("Using standalone airport service")
-            
-            # Determine which airport is being asked about
-            query_lower = query.lower()
-            airport_code = None
-            
-            if 'ist' in query_lower or 'istanbul airport' in query_lower or 'new airport' in query_lower:
-                airport_code = 'IST'
-            elif 'saw' in query_lower or 'sabiha' in query_lower or 'gokcen' in query_lower or 'gökçen' in query_lower:
-                airport_code = 'SAW'
-            
-            # If specific airport mentioned, get detailed info for that airport
-            if airport_code:
-                airport_info = airport_service.get_route_recommendations(airport_code)
-                return f"=== AIRPORT TRANSPORT ({airport_code}) ===\n{airport_info}"
-            else:
-                # General airport query - provide comparison
-                comparison = airport_service.get_airport_comparison()
-                return f"=== ISTANBUL AIRPORTS ===\n{comparison}"
-                
-        except Exception as e:
-            logger.error(f"Failed to get airport info: {e}")
-            # Fallback: basic airport info
-            return """Istanbul has two main airports:
-- Istanbul Airport (IST): European side, main international hub. Access via M11 metro or Havaist buses.
-- Sabiha Gökçen Airport (SAW): Asian side. Access via buses, metro, or private shuttle."""
-    
-    async def _get_daily_life_context(self, query: str, language: str) -> str:
-        """Get practical daily life suggestions from DailyLifeSuggestionsService."""
-        try:
-            # Try to use service_manager's daily life service first
-            daily_service = None
-            
-            if self.service_manager and hasattr(self.service_manager, 'daily_life_service'):
-                daily_service = self.service_manager.daily_life_service
-                logger.debug("Using daily life service from ServiceManager")
-            
-            # Fallback: import directly
-            if not daily_service:
-                from services.daily_life_suggestions_service import DailyLifeSuggestionsService
-                daily_service = DailyLifeSuggestionsService()
-                logger.debug("Using standalone daily life service")
-            
-            # NEW: Get specific locations for the query
-            location_data = daily_service.get_specific_locations(query, language)
-            
-            if location_data and location_data.get('type') != 'general':
-                # Format specific location data
-                result = f"=== {location_data.get('title', 'PRACTICAL INFORMATION')} ===\n\n"
-                
-                if 'locations' in location_data:
-                    for loc in location_data['locations']:
-                        result += f"📍 {loc['name']}\n"
-                        result += f"   Areas: {', '.join(loc['areas'])}\n"
-                        result += f"   {loc['description']}\n"
-                        result += f"   💡 Tip: {loc['tip']}\n\n"
-                
-                if 'practical_tips' in location_data:
-                    result += "PRACTICAL TIPS:\n"
-                    for tip in location_data['practical_tips']:
-                        result += f"• {tip}\n"
-                
-                return result
-            else:
-                # Fallback to general tips
-                if 'tips' in location_data:
-                    result = f"=== {location_data.get('title', 'PRACTICAL TIPS')} ===\n\n"
-                    for tip in location_data['tips']:
-                        result += f"• {tip}\n"
-                    return result
-                
-                # Last resort fallback
-                return """=== PRACTICAL LIVING TIPS ===
-For groceries: Migros, Carrefour, or local markets
-For pharmacy: Look for green cross sign "ECZANE"
-For banks/ATM: Available throughout the city, many accept international cards
-For SIM cards: Turkcell, Vodafone, Türk Telekom stores at airports and malls"""
-                
-        except Exception as e:
-            logger.error(f"Failed to get daily life suggestions: {e}")
-            # Fallback: basic tips
-            return """=== PRACTICAL LIVING TIPS ===
-For groceries: Migros, Carrefour, or local markets
-For pharmacy: Look for green cross sign "ECZANE"
-For banks/ATM: Available throughout the city, many accept international cards
-For SIM cards: Turkcell, Vodafone, Türk Telekom stores at airports and malls"""
-    
-    async def _generate_map(
-        self,
-        query: str,
-        signals: Dict[str, bool],
-        user_location: Optional[Dict[str, float]],
-        language: str
-    ) -> Optional[Dict[str, Any]]:
-        """Generate map visualization."""
-        if not self.map_service:
-            return None
-        
-        try:
-            # Enable routing for both GPS routing and general transportation queries
-            routing = signals.get('needs_gps_routing', False) or signals.get('needs_transportation', False)
-            
-            map_data = await self.map_service.generate_map(
-                query=query,
-                user_location=user_location,
-                language=language,
-                routing=routing
-            )
-            
-            return map_data
-            
-        except Exception as e:
-            logger.error(f"Map generation failed: {e}")
-            return None
-    
-    async def _get_rag_context_with_retry(self, query: str, language: str) -> str:
-        """Get RAG context with retry logic for transient failures."""
-        async def _get_rag():
-            if self.timeout_manager:
-                return await self.timeout_manager.execute(
-                    'rag_search',
-                    self._get_rag_context,
-                    query,
-                    language,
-                    timeout=4.0
-                )
-            return await self._get_rag_context(query, language)
-        
-        return await self.retry_strategy.execute(
-            _get_rag,
-            retryable_exceptions=[ConnectionError, TimeoutError, asyncio.TimeoutError]
-        )
-    
-    async def _get_weather_context_with_retry(self, query: str) -> dict:
-        """Get weather context with retry logic for transient failures."""
-        async def _get_weather():
-            if self.timeout_manager:
-                return await self.timeout_manager.execute(
-                    'weather_api',
-                    self._get_weather_context,
-                    query,
-                    timeout=2.0
-                )
-            return await self._get_weather_context(query)
-        
-        return await self.retry_strategy.execute(
-            _get_weather,
-            retryable_exceptions=[ConnectionError, TimeoutError, asyncio.TimeoutError]
-        )
-    
-    async def _get_events_context_with_retry(self) -> dict:
-        """Get events context with retry logic for transient failures."""
-        async def _get_events():
-            if self.timeout_manager:
-                return await self.timeout_manager.execute(
-                    'events_api',
-                    self._get_events_context,
-                    timeout=2.0
-                )
-            return await self._get_events_context()
-        
-        return await self.retry_strategy.execute(
-            _get_events,
-            retryable_exceptions=[ConnectionError, TimeoutError, asyncio.TimeoutError]
-        )
-    
-    async def _get_daily_life_context(self, query: str, language: str) -> str:
-        """Get daily life suggestions context."""
-        try:
-            # TODO: Implement actual daily life suggestions logic
-            suggestions = [
-                "Visit the historic Sultanahmet district.",
-                "Take a Bosphorus cruise.",
-                "Explore the Grand Bazaar.",
-                "Visit the Hagia Sophia and Blue Mosque.",
-                "Enjoy a Turkish bath experience."
-            ]
-            
-            return "\n".join(f"- {s}" for s in suggestions)
-        
-        except Exception as e:
-            logger.error(f"Failed to get daily life suggestions: {e}")
-            return ""
-    
-    def _merge_location_enriched_context(
-        self,
-        context: Dict[str, Any],
-        enriched_context: Dict[str, Any]
+        language: str,
+        original_query: str = None,
+        user_location: Optional[Dict[str, float]] = None,
+        num_alternatives: int = 3,
+        generate_llm_summaries: bool = False
     ) -> Dict[str, Any]:
         """
-        Merge location-enriched context into main context.
+        Get Moovit-style transportation data with multiple route alternatives.
         
-        Extracts hidden gems, events, restaurants, and attractions from
-        the location enrichment and adds them to the services context.
+        This provides:
+        - Primary recommended route
+        - 3-5 alternative routes with different optimizations
+        - Comfort scoring for each route
+        - Route comparison data
+        - Map visualization data
+        - Optional LLM-powered route summaries
+        
+        Args:
+            query: Current query (may be rewritten)
+            language: Response language
+            original_query: Original unmodified query (better for location extraction)
+            user_location: User GPS location {"lat": float, "lon": float}
+            num_alternatives: Number of route alternatives to generate
+            generate_llm_summaries: Whether to generate LLM summaries for routes
+            
+        Returns:
+            Dict with primary_route, alternatives, route_comparison, map_data, and context string
         """
-        enrichment = enriched_context.get('location_enrichment', {})
-        
-        if not enrichment:
-            return context
-        
-        # Add detected districts to services
-        if 'detected_districts' in enrichment:
-            context['services']['detected_districts'] = enrichment['detected_districts']
-            logger.info(f"📍 Detected districts: {enrichment['detected_districts']}")
-        
-        # Add hidden gems
-        if 'hidden_gems' in enrichment:
-            gems = enrichment['hidden_gems']
-            gems_text = self._format_hidden_gems_for_context(gems)
+        try:
+            # Check if route integration is available
+            try:
+                from services.transportation_route_integration import get_route_integration
+                ROUTE_INTEGRATION_AVAILABLE = True
+            except ImportError as e:
+                ROUTE_INTEGRATION_AVAILABLE = False
+                logger.warning(f"⚠️ Route integration not available: {e}")
             
-            # Append to existing hidden gems or create new
-            if 'hidden_gems' in context['services']:
-                context['services']['hidden_gems'] += "\n\n" + gems_text
+            if not ROUTE_INTEGRATION_AVAILABLE:
+                # Fallback to standard transportation
+                context_str = await self._get_transportation(query, language, original_query, user_location)
+                return {
+                    'context': context_str,
+                    'primary_route': None,
+                    'alternatives': [],
+                    'route_comparison': {},
+                    'map_data': None
+                }
+            
+            # Use industry-level Transportation RAG + Route Optimizer
+            logger.info("🚀 Using Moovit-Style Route Integration with Multi-Route Optimization")
+            
+            # Extract origin and destination from query
+            query_for_extraction = original_query if original_query else query
+            locations = self._extract_transportation_locations(query_for_extraction, user_location)
+            
+            if not locations or not locations.get('origin') or not locations.get('destination'):
+                # Can't extract locations - fallback to standard
+                logger.warning("Could not extract origin/destination - using standard transportation")
+                context_str = await self._get_transportation(query, language, original_query, user_location)
+                return {
+                    'context': context_str,
+                    'primary_route': None,
+                    'alternatives': [],
+                    'route_comparison': {},
+                    'map_data': None
+                }
+            
+            # Get route integration
+            route_integration = get_route_integration()
+            
+            # Get route alternatives
+            result = route_integration.get_route_alternatives(
+                origin=locations['origin'],
+                destination=locations['destination'],
+                origin_gps=locations.get('origin_gps'),
+                destination_gps=locations.get('destination_gps'),
+                num_alternatives=num_alternatives,
+                generate_llm_summaries=generate_llm_summaries,
+                user_language=language
+            )
+            
+            if result['success']:
+                logger.info(f"✅ Got {len(result.get('alternatives', []))} route alternatives")
+                
+                # Build context string from result
+                context_str = self._build_multi_route_context(result, language)
+                
+                return {
+                    'context': context_str,
+                    'primary_route': result.get('primary_route'),
+                    'alternatives': result.get('alternatives', []),
+                    'route_comparison': result.get('route_comparison', {}),
+                    'map_data': result.get('map_data')
+                }
             else:
-                context['services']['hidden_gems'] = gems_text
-            
-            logger.info(f"💎 Added {len(gems)} hidden gems to context")
+                # Error - fallback to standard
+                logger.warning(f"Route integration failed: {result.get('error')}")
+                context_str = await self._get_transportation(query, language, original_query, user_location)
+                return {
+                    'context': context_str,
+                    'primary_route': None,
+                    'alternatives': [],
+                    'route_comparison': {},
+                    'map_data': None
+                }
+                
+        except Exception as e:
+            logger.error(f"Failed to get transportation with alternatives: {e}", exc_info=True)
+            # Fallback to standard transportation
+            context_str = await self._get_transportation(query, language, original_query, user_location)
+            return {
+                'context': context_str,
+                'primary_route': None,
+                'alternatives': [],
+                'route_comparison': {},
+                'map_data': None
+            }
+    
+    def _extract_transportation_locations(
+        self,
+        query: str,
+        user_location: Optional[Dict[str, float]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Extract origin and destination from transportation query.
         
-        # Add events
-        if 'events' in enrichment:
-            events = enrichment['events']
-            events_text = self._format_events_for_context(events)
+        Returns dict with:
+        - origin: origin name
+        - destination: destination name
+        - origin_gps: optional GPS dict
+        - destination_gps: optional GPS dict
+        """
+        import re
+        
+        query_lower = query.lower()
+        
+        # Check for GPS patterns
+        uses_gps_origin = any(pattern in query_lower for pattern in [
+            'from my location', 'from here', 'from current location',
+            'from where i am', 'from my position', 'starting from here'
+        ])
+        
+        uses_gps_dest = any(pattern in query_lower for pattern in [
+            'to my location', 'to here', 'to current location',
+            'to where i am', 'back here'
+        ])
+        
+        # Extract locations using patterns
+        # Pattern 1: "from X to Y" or "X to Y"
+        match = re.search(r'(?:from\s+)?([a-zğüşöçıİ\s]+?)\s+to\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
+        
+        if match:
+            origin = match.group(1).strip()
+            destination = match.group(2).strip()
             
-            if 'events' in context['services']:
-                context['services']['events'] += "\n\n" + events_text
+            # Replace GPS placeholders with actual location
+            result = {}
+            
+            if 'my location' in origin or 'here' in origin or 'current location' in origin:
+                if user_location:
+                    result['origin'] = 'Current Location'
+                    result['origin_gps'] = user_location
+                else:
+                    return None  # GPS origin but no location available
             else:
-                context['services']['events'] = events_text
-            
-            logger.info(f"🎭 Added {len(events)} events to context")
-        
-        # Add restaurants
-        if 'restaurants' in enrichment:
-            restaurants = enrichment['restaurants']
-            restaurant_text = self._format_restaurants_for_context(restaurants)
-            
-            # Append to database context
-            if context['database']:
-                context['database'] += "\n\n=== LOCAL RECOMMENDATIONS ===\n" + restaurant_text
+                result['origin'] = origin.title()
+                
+            if 'my location' in destination or 'here' in destination or 'current location' in destination:
+                if user_location:
+                    result['destination'] = 'Current Location'
+                    result['destination_gps'] = user_location
+                else:
+                    return None  # GPS destination but no location available
             else:
-                context['database'] = "=== LOCAL RECOMMENDATIONS ===\n" + restaurant_text
+                result['destination'] = destination.title()
             
-            logger.info(f"🍽️ Added {len(restaurants)} restaurants to context")
+            return result
         
-        # Add attractions
-        if 'attractions' in enrichment:
-            attractions = enrichment['attractions']
-            attraction_text = self._format_attractions_for_context(attractions)
-            
-            if context['database']:
-                context['database'] += "\n\n=== LOCAL ATTRACTIONS ===\n" + attraction_text
-            else:
-                context['database'] = "=== LOCAL ATTRACTIONS ===\n" + attraction_text
-            
-            logger.info(f"🏛️ Added {len(attractions)} attractions to context")
+        # Pattern 2: "how to get to X" (implies GPS origin if available)
+        match = re.search(r'(?:how|way)\s+(?:do i |can i |to )?(?:get|go)\s+to\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
         
-        return context
+        if match and user_location:
+            destination = match.group(1).strip()
+            return {
+                'origin': 'Current Location',
+                'origin_gps': user_location,
+                'destination': destination.title()
+            }
+        
+        return None
     
-    def _format_hidden_gems_for_context(self, gems: List[Dict[str, Any]]) -> str:
-        """Format hidden gems for LLM context"""
-        formatted = []
-        for gem in gems:
-            text = f"💎 **{gem['name']}** ({gem['district']}) - {gem['category']}\n"
-            text += f"   {gem['description']}\n"
-            if gem.get('insider_tip'):
-                text += f"   💡 Insider Tip: {gem['insider_tip']}\n"
-            if gem.get('best_time'):
-                text += f"   ⏰ Best Time: {gem['best_time']}\n"
-            formatted.append(text)
-        return "\n".join(formatted)
-    
-    def _format_events_for_context(self, events: List[Dict[str, Any]]) -> str:
-        """Format events for LLM context"""
-        formatted = []
-        for event in events:
-            text = f"🎭 **{event['title']}**\n"
-            if event.get('venue'):
-                text += f"   📍 Venue: {event['venue']}\n"
-            if event.get('date'):
-                text += f"   📅 Date: {event['date']}\n"
-            if event.get('description'):
-                text += f"   {event['description'][:150]}\n"
-            formatted.append(text)
-        return "\n".join(formatted)
-    
-    def _format_restaurants_for_context(self, restaurants: List[Dict[str, Any]]) -> str:
-        """Format restaurants for LLM context"""
-        formatted = []
-        for restaurant in restaurants:
-            text = f"🍽️ **{restaurant['name']}** - {restaurant.get('cuisine', 'N/A')}\n"
-            text += f"   📍 {restaurant['district']} | {restaurant.get('price_range', 'N/A')}"
-            if restaurant.get('rating'):
-                text += f" | ⭐ {restaurant['rating']}/5"
-            formatted.append(text)
-        return "\n".join(formatted)
-    
-    def _format_attractions_for_context(self, attractions: List[Dict[str, Any]]) -> str:
-        """Format attractions for LLM context"""
-        formatted = []
-        for attraction in attractions:
-            text = f"🏛️ **{attraction['name']}** - {attraction.get('category', 'N/A')}\n"
-            text += f"   📍 {attraction['district']}"
-            if attraction.get('opening_hours'):
-                text += f" | ⏰ {attraction['opening_hours']}"
-            if attraction.get('entry_fee'):
-                text += f" | 💰 {attraction['entry_fee']}"
-            formatted.append(text)
-        return "\n".join(formatted)
-    
-    def _merge_location_context(self, context: Dict[str, Any], location_context: Dict[str, Any]) -> Dict[str, Any]:
-        """Legacy method - kept for backward compatibility"""
-        return self._merge_location_enriched_context(context, location_context)
+    def _build_multi_route_context(self, result: Dict[str, Any], language: str) -> str:
+        """Build context string from multi-route result for LLM"""
+        lines = []
+        
+        # Primary route
+        pr = result.get('primary_route')
+        if pr:
+            lines.append(f"PRIMARY ROUTE: {pr['origin']} → {pr['destination']}")
+            lines.append(f"Duration: {pr['total_time']} minutes")
+            lines.append(f"Distance: {pr['total_distance']:.1f} km")
+            lines.append(f"Transfers: {pr['transfers']}")
+            lines.append(f"Lines: {', '.join(pr.get('lines_used', []))}")
+            lines.append("")
+        
+        # Alternatives
+        alternatives = result.get('alternatives', [])
+        if alternatives:
+            lines.append(f"ALTERNATIVE ROUTES ({len(alternatives)} options):")
+            for i, alt in enumerate(alternatives, 1):
+                lines.append(f"\n{i}. {alt['preference'].upper()}")
+                lines.append(f"   Duration: {alt['duration_minutes']} min")
+                lines.append(f"   Transfers: {alt['num_transfers']}")
+                lines.append(f"   Walking: {int(alt['walking_meters'])}m")
+                lines.append(f"   Comfort: {alt['comfort_score']['overall_comfort']:.0f}/100")
+                lines.append(f"   Score: {alt['overall_score']:.1f}/100")
+                
+                if alt.get('highlights'):
+                    lines.append(f"   Highlights: {', '.join(alt['highlights'])}")
+                
+                if alt.get('llm_summary'):
+                    lines.append(f"   Summary: {alt['llm_summary']}")
+        
+        return "\n".join(lines)

@@ -29,6 +29,46 @@ router = APIRouter(prefix="/api/chat", tags=["Chat"])
 _response_sanitizer = ResponseSanitizer()
 
 # ==========================================
+# Translation Service Integration (Priority #3)
+# ==========================================
+_i18n_service = None
+
+def get_i18n_service():
+    """Get or create i18n service singleton"""
+    global _i18n_service
+    if _i18n_service is None:
+        try:
+            from i18n_service import i18n_service
+            _i18n_service = i18n_service
+            logger.info("✅ I18n Service initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ I18n Service not available: {e}")
+            _i18n_service = None
+    return _i18n_service
+
+
+def translate_if_needed(response_text: str, target_language: str) -> str:
+    """
+    Translate response to target language if needed.
+    Priority #3 implementation - ensures all responses match user's language preference.
+    """
+    if not target_language or target_language == 'en':
+        return response_text
+    
+    try:
+        i18n = get_i18n_service()
+        if i18n and target_language in i18n.supported_languages:
+            # Translate from English to target language
+            translated = i18n.translate_openai_response(response_text, target_language)
+            logger.info(f"🌍 Translated response: en → {target_language}")
+            return translated
+    except Exception as e:
+        logger.warning(f"⚠️ Translation failed ({target_language}): {e}")
+    
+    # Fallback: return original if translation fails
+    return response_text
+
+# ==========================================
 # RAG Service Integration
 # ==========================================
 _rag_service = None
@@ -222,17 +262,17 @@ async def pure_llm_chat(
         if pure_llm_core:
             llm_client = pure_llm_core.llm_client if hasattr(pure_llm_core, 'llm_client') else None
             
-            # DISABLED FOR SPEED: Context resolution adds 20-30s per request
-            # Re-enable when we have a faster LLM or can run it in parallel
-            ENABLE_CONTEXT_RESOLUTION = False
+            # ENABLED: Fast rule-based context resolution (~10-50ms overhead)
+            # Using rule-based only (no LLM) for speed
+            ENABLE_CONTEXT_RESOLUTION = True  # ✅ Priority #4 implementation
             
             if ENABLE_CONTEXT_RESOLUTION and llm_client:
                 context_manager = get_context_manager(
                     llm_client=llm_client,
                     config={
-                        'enable_llm': False,  # DISABLED: Too slow, using rule-based fallback
+                        'enable_llm': False,  # Use rule-based only (fast!)
                         'fallback_to_rules': True,
-                        'timeout_seconds': 2,
+                        'timeout_seconds': 0.5,  # Very fast timeout
                         'max_history_turns': 10
                     }
                 )
@@ -263,15 +303,21 @@ async def pure_llm_chat(
                 # If clarification is needed, return early with question
                 if resolved_context.get('needs_clarification') and resolved_context.get('clarification_question'):
                     logger.info(f"   ⚠️ Clarification needed: {resolved_context['clarification_question']}")
-                    return ChatResponse(                    response=resolved_context['clarification_question'],
-                    intent="clarification",
-                    confidence=resolved_context.get('confidence', 0.8),
-                    method="context_clarification",
-                    suggestions=[],
-                    response_time=0.1,
-                    session_id=session_id,
-                    llm_mode="general",  # Default mode
-                )
+                    
+                    # 🌍 Translate clarification question
+                    clarification_text = translate_if_needed(
+                        resolved_context['clarification_question'], 
+                        effective_language
+                    )
+                    
+                    return ChatResponse(
+                        response=clarification_text,
+                        session_id=session_id,
+                        llm_mode="clarify",
+                        intent="clarification",
+                        confidence=resolved_context.get('confidence', 0.8),
+                        suggestions=[]
+                    )
         else:
             logger.warning("⚠️ Pure LLM Core not available, skipping context resolution")
             
@@ -304,33 +350,23 @@ async def pure_llm_chat(
     if resolved_context:
         user_context['resolved_context'] = resolved_context.get('implicit_context', {})
     
-    # === AUTO-DETECT LANGUAGE FROM QUERY ===
-    # If client didn't specify language, detect it from the message
+    # === AUTO-DETECT LANGUAGE FROM QUERY (Using LLM's Detection) ===
+    # Use the multilingual intent system's language detection
+    # This is more accurate than character-based detection
     detected_language = request.language or "en"
-    if not request.language or request.language == "en":
-        # Auto-detect language from query text
-        try:
-            from services.multilingual_intent_keywords import HIDDEN_GEMS_KEYWORDS
-            query_lower = request.message.lower()
-            
-            # Simple heuristic detection based on character sets and keywords
-            # Turkish characters
-            if any(c in query_lower for c in ['ı', 'ğ', 'ş', 'ç', 'ö', 'ü']):
-                detected_language = "tr"
-            # Russian (Cyrillic)
-            elif any('\u0400' <= c <= '\u04FF' for c in query_lower):
-                detected_language = "ru"
-            # Arabic
-            elif any('\u0600' <= c <= '\u06FF' for c in query_lower):
-                detected_language = "ar"
-            # German specific
-            elif any(c in query_lower for c in ['ä', 'ß']) or 'straße' in query_lower:
-                detected_language = "de"
-            
-            if detected_language != "en":
-                logger.info(f"🌍 Auto-detected language: {detected_language} from query")
-        except Exception as e:
-            logger.warning(f"Language detection failed: {e}")
+    
+    try:
+        from services.multilingual_intent_keywords import detect_intent_multilingual
+        
+        # Detect intent and language together (fast, ~10ms)
+        intent_result, confidence, language, _ = detect_intent_multilingual(request.message)
+        
+        if language and language != "en":
+            detected_language = language
+            logger.info(f"🌍 LLM detected language: {detected_language} from query")
+        
+    except Exception as e:
+        logger.warning(f"Language detection failed, using default: {e}")
     
     # Update request language for downstream use
     effective_language = detected_language
@@ -366,48 +402,11 @@ async def pure_llm_chat(
                 response_type=router_result.intent
             )
             
-            return ChatResponse(
-                response=enhanced_response,
-                session_id=session_id,
-                llm_mode="general",
-                intent=router_result.intent,
-                confidence=1.0,
-                suggestions=router_result.suggestions or [],
-                map_data=router_result.map_data,
-                route_data=router_result.navigation_data,
-                navigation_active=router_result.navigation_data is not None
-            )
-        else:
-            logger.info("🔄 Unified Router: No confident match, falling through to specialized handlers")
+            # 🌍 Priority #3: Translate response to user's language
+            final_response = translate_if_needed(enhanced_response, effective_language)
             
-    except ImportError as e:
-        logger.warning(f"⚠️ Unified Intent Router not available: {e}")
-    except Exception as e:
-        logger.warning(f"⚠️ Unified Router error: {e}, falling through to handlers")
-    
-    # === PHASE 3: SPECIALIZED HANDLERS (Legacy - kept as fallback) ===
-    # Keep these - they're fast and useful for specific intents
-    # Try hidden gems GPS request first
-    try:
-        from services.hidden_gems_gps_integration import get_hidden_gems_gps_integration
-        
-        gems_handler = get_hidden_gems_gps_integration(db)
-        
-        # Try to handle as hidden gem request
-        gems_result = gems_handler.handle_hidden_gem_chat_request(
-            message=request.message,
-            user_location=request.user_location,
-            session_id=request.session_id or 'new'
-        )
-        
-        if gems_result:
-            # This was a hidden gems request
-            if gems_result.get('error'):
-                # Error occurred (no enhancement for errors)
-                return ChatResponse(
-                    response=gems_result.get('message', 'Sorry, something went wrong with hidden gems.'),
-                    session_id=request.session_id or 'new',
-                    llm_mode="general",  # Default mode
+            return ChatResponse(
+                response=final_response,
                     intent='hidden_gems',
                     confidence=0.8,
                     suggestions=["Show me restaurants", "What are popular attractions?"]
@@ -945,14 +944,51 @@ async def pure_llm_chat(
         # Use route_data_from_transport if available, otherwise fall back to extracted route_data
         final_route_data = route_data_from_transport or route_data
         
+        # 🌍 Priority #3: Translate final response to user's language
+        translated_response = translate_if_needed(final_response, effective_language)
+        
+        # CRITICAL: Merge multi-route data into map_data for frontend
+        final_map_data = map_data_from_transport or result.get('map_data')
+        
+        # Try to get transport alternatives from context builder
+        # The context builder stores it but we need to access it from the result
+        try:
+            # Check if context was built and has transport alternatives
+            if pure_llm_core and hasattr(pure_llm_core, 'context_builder'):
+                ctx_builder = pure_llm_core.context_builder
+                if hasattr(ctx_builder, '_transport_alternatives') and ctx_builder._transport_alternatives:
+                    transport_alts = ctx_builder._transport_alternatives
+                    
+                    if transport_alts and (transport_alts.get('alternatives') or transport_alts.get('primary_route')):
+                        logger.info(f"🗺️ Merging multi-route data into map_data for frontend")
+                        
+                        if not final_map_data:
+                            final_map_data = {}
+                        
+                        # Add multi-route data
+                        final_map_data.update({
+                            'type': 'multi_route',
+                            'multi_routes': transport_alts.get('alternatives', []),
+                            'primary_route': transport_alts.get('primary_route'),
+                            'route_comparison': transport_alts.get('route_comparison', {})
+                        })
+                        
+                        # Preserve existing map_data if present
+                        if transport_alts.get('map_data'):
+                            final_map_data.update(transport_alts['map_data'])
+                        
+                        logger.info(f"✅ Added {len(transport_alts.get('alternatives', []))} route alternatives to map_data")
+        except Exception as e:
+            logger.warning(f"Failed to merge multi-route data: {e}")
+        
         return ChatResponse(
-            response=final_response,  # 🔥 FIX #4: Use safety-netted response
+            response=translated_response,  # 🔥 Translated + safety-netted response
             session_id=result.get('session_id', request.session_id or 'new'),
             llm_mode=llm_mode,  # 🔥 FIX #2: Forced mode
             intent=final_intent,  # 🔥 FIX #2: Forced intent
             confidence=final_confidence,  # 🔥 FIX #2: Forced confidence
             suggestions=final_suggestions,
-            map_data=map_data_from_transport or result.get('map_data'),  # Use transportation RAG mapData if available
+            map_data=final_map_data,  # 🗺️ Include multi-route data
             route_data=final_route_data,  # 🔥 FIX #3: Early-extracted route data
             navigation_active=result.get('navigation_active', False),
             navigation_data=result.get('navigation_data'),
@@ -1087,8 +1123,11 @@ async def chat(
             "I'll be back online shortly! Thank you for your patience. 🙏"
         )
         
+        # 🌍 Translate emergency fallback (use request.language since we don't have effective_language here)
+        translated_fallback = translate_if_needed(response_text, request.language or "en")
+        
         return ChatResponse(
-            response=response_text,
+            response=translated_fallback,
             session_id=request.session_id or "new",
             llm_mode="general",  # Default mode
             intent="error_fallback",
