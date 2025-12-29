@@ -8,6 +8,9 @@ import {
   debounce
 } from '../utils/errorHandler.js';
 
+// Import response sanitizer to prevent data leakage
+import { processApiResponse, sanitizeResponse } from '../utils/responseSanitizer.js';
+
 // API utility that works for both local and deployed environments
 // Updated: Backend migrated from Render to GCP Cloud Run
 const BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://ai-stanbul-509659445005.europe-west1.run.app');
@@ -137,7 +140,9 @@ export const fetchResults = async (query, sessionId = null) => {
       
       const data = await response.json();
       console.log('✅ Chat API response data:', data);
-      return data;
+      
+      // 🔒 Sanitize response to prevent data leakage
+      return processApiResponse(data);
       
     } catch (error) {
       throw handleApiError(error, null, 'Chat API');
@@ -198,7 +203,8 @@ export const fetchUnifiedChat = async (query, options = {}) => {
         sessionId: data.session_id
       });
       
-      return data;
+      // 🔒 Sanitize response to prevent data leakage
+      return processApiResponse(data);
       
     } catch (error) {
       throw handleApiError(error, null, 'Chat API');
@@ -692,14 +698,17 @@ export const fetchPureLLMChat = async (message, options = {}) => {
         hasMapData: !!data.map_data
       });
       
+      // 🔒 Sanitize response to prevent data leakage
+      const sanitizedData = processApiResponse(data);
+      
       // Add frontend response time to metadata
-      if (data.metadata) {
-        data.metadata.frontend_response_time = responseTime;
+      if (sanitizedData.metadata) {
+        sanitizedData.metadata.frontend_response_time = responseTime;
       }
       
       return {
         success: true,
-        data,
+        data: sanitizedData,
         responseTime
       };
       

@@ -59,69 +59,63 @@ const UserAnalyticsTab = () => {
         ? 'https://ai-istanbul-backend.render.com'
         : 'http://localhost:8000';  // Backend runs on port 8000
 
-      // Fetch user analytics data
-      const response = await fetch(`${API_BASE_URL}/api/v1/llm/stats/users`);
-      if (response.ok) {
-        const data = await response.json();
-        setUserStats(data);
-      } else {
-        // Use mock data if endpoint doesn't exist yet
-        setUserStats({
-          totalUsers: 1247,
-          activeUsers: 89,
-          newUsers: 23,
-          avgSessionDuration: '8m 32s',
-          topLanguages: [
-            { language: 'Turkish', percentage: 45, count: 561 },
-            { language: 'English', percentage: 38, count: 474 },
-            { language: 'German', percentage: 10, count: 125 },
-            { language: 'Arabic', percentage: 7, count: 87 }
-          ],
-          topLocations: [
-            { city: 'Istanbul', country: 'Turkey', count: 432 },
-            { city: 'Ankara', country: 'Turkey', count: 178 },
-            { city: 'London', country: 'UK', count: 95 },
-            { city: 'Berlin', country: 'Germany', count: 67 },
-            { city: 'Dubai', country: 'UAE', count: 54 }
-          ],
-          recentSessions: [
-            { id: 1, user: 'Anonymous', language: 'Turkish', duration: '12m 45s', queries: 8, time: '5 mins ago' },
-            { id: 2, user: 'Anonymous', language: 'English', duration: '6m 20s', queries: 4, time: '12 mins ago' },
-            { id: 3, user: 'Anonymous', language: 'Turkish', duration: '15m 10s', queries: 11, time: '18 mins ago' },
-            { id: 4, user: 'Anonymous', language: 'German', duration: '8m 30s', queries: 6, time: '25 mins ago' },
-            { id: 5, user: 'Anonymous', language: 'English', duration: '10m 05s', queries: 7, time: '32 mins ago' }
-          ]
-        });
+      // Fetch multiple real data sources
+      const [userResponse, feedbackResponse, blogResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/v1/llm/stats/users`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/feedback/stats`).catch(() => null),
+        fetch(`${API_BASE_URL}/blog/analytics/performance`).catch(() => null)
+      ]);
+
+      let stats = { ...userStats };
+
+      // Try to get user stats from LLM endpoint
+      if (userResponse?.ok) {
+        const userData = await userResponse.json();
+        stats = { ...stats, ...userData };
       }
+
+      // Get real feedback/interaction data from database
+      if (feedbackResponse?.ok) {
+        const feedbackData = await feedbackResponse.json();
+        stats.totalUsers = feedbackData.total_interactions || 0;
+        
+        // Convert language data to expected format
+        if (feedbackData.languages) {
+          const langTotal = Object.values(feedbackData.languages).reduce((a, b) => a + b, 0);
+          stats.topLanguages = Object.entries(feedbackData.languages).map(([lang, count]) => ({
+            language: lang.charAt(0).toUpperCase() + lang.slice(1),
+            count: count,
+            percentage: langTotal > 0 ? Math.round((count / langTotal) * 100) : 0
+          })).sort((a, b) => b.count - a.count);
+        }
+        
+        // Convert intent data
+        if (feedbackData.intents) {
+          stats.intents = feedbackData.intents;
+        }
+      }
+
+      // Get real blog analytics from Google Analytics
+      if (blogResponse?.ok) {
+        const blogData = await blogResponse.json();
+        if (blogData.success && blogData.analytics) {
+          stats.activeUsers = blogData.analytics.total_users || 0;
+          stats.avgSessionDuration = blogData.analytics.average_session_duration || '0m';
+          
+          // Convert country data to locations
+          if (blogData.analytics.top_countries) {
+            stats.topLocations = Object.entries(blogData.analytics.top_countries).map(([country, count]) => ({
+              city: country,
+              country: country,
+              count: count
+            }));
+          }
+        }
+      }
+
+      setUserStats(stats);
     } catch (error) {
       console.error('Error fetching user stats:', error);
-      // Use mock data on error
-      setUserStats({
-        totalUsers: 1247,
-        activeUsers: 89,
-        newUsers: 23,
-        avgSessionDuration: '8m 32s',
-        topLanguages: [
-          { language: 'Turkish', percentage: 45, count: 561 },
-          { language: 'English', percentage: 38, count: 474 },
-          { language: 'German', percentage: 10, count: 125 },
-          { language: 'Arabic', percentage: 7, count: 87 }
-        ],
-        topLocations: [
-          { city: 'Istanbul', country: 'Turkey', count: 432 },
-          { city: 'Ankara', country: 'Turkey', count: 178 },
-          { city: 'London', country: 'UK', count: 95 },
-          { city: 'Berlin', country: 'Germany', count: 67 },
-          { city: 'Dubai', country: 'UAE', count: 54 }
-        ],
-        recentSessions: [
-          { id: 1, user: 'Anonymous', language: 'Turkish', duration: '12m 45s', queries: 8, time: '5 mins ago' },
-          { id: 2, user: 'Anonymous', language: 'English', duration: '6m 20s', queries: 4, time: '12 mins ago' },
-          { id: 3, user: 'Anonymous', language: 'Turkish', duration: '15m 10s', queries: 11, time: '18 mins ago' },
-          { id: 4, user: 'Anonymous', language: 'German', duration: '8m 30s', queries: 6, time: '25 mins ago' },
-          { id: 5, user: 'Anonymous', language: 'English', duration: '10m 05s', queries: 7, time: '32 mins ago' }
-        ]
-      });
     } finally {
       setLoading(false);
     }

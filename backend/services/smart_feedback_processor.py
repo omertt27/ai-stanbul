@@ -369,10 +369,11 @@ class SmartFeedbackProcessor:
         return entry
     
     def _save_to_bucket(self, entry: FeedbackEntry, bucket: FeedbackQuality):
-        """Save entry to the appropriate bucket file with thread-safety and error handling"""
+        """Save entry to the appropriate bucket file AND database with thread-safety"""
         entry_dict = asdict(entry)
         entry_json = json.dumps(entry_dict, ensure_ascii=False) + '\n'
         
+        # Save to local files (for backup and local analysis)
         try:
             with self._lock:
                 if bucket == FeedbackQuality.GOLD:
@@ -387,6 +388,56 @@ class SmartFeedbackProcessor:
                     f.write(entry_json)
         except IOError as e:
             logger.error(f"❌ Failed to save feedback to file: {e}")
+        
+        # Save to database for production (GCP Cloud SQL)
+        try:
+            self._save_to_database(entry, bucket)
+        except Exception as e:
+            logger.error(f"❌ Failed to save feedback to database: {e}")
+    
+    def _save_to_database(self, entry: FeedbackEntry, bucket: FeedbackQuality):
+        """Save feedback entry to the database for production use"""
+        try:
+            from database import get_db
+            from sqlalchemy import text
+            
+            db = next(get_db())
+            try:
+                # Insert into feedback_events table
+                db.execute(
+                    text("""
+                        INSERT INTO feedback_events 
+                        (user_id, session_id, item_id, item_type, event_type, metadata, timestamp, processed)
+                        VALUES (:user_id, :session_id, :item_id, :item_type, :event_type, :metadata, :timestamp, :processed)
+                    """),
+                    {
+                        "user_id": entry.session_id or "anonymous",
+                        "session_id": entry.session_id or "unknown",
+                        "item_id": entry.interaction_id,
+                        "item_type": "chat_response",
+                        "event_type": bucket.value,  # gold, fail, or noise
+                        "metadata": json.dumps({
+                            "user_query": entry.user_query,
+                            "llm_response": entry.llm_response[:500] if entry.llm_response else "",
+                            "thumbs_up": entry.thumbs_up,
+                            "thumbs_down": entry.thumbs_down,
+                            "dislike_reason": entry.dislike_reason,
+                            "base_score": entry.base_quality_score,
+                            "adjusted_score": entry.adjusted_score,
+                            "quality_bucket": entry.quality_bucket,
+                            "intent": entry.intent,
+                            "language": entry.language
+                        }),
+                        "timestamp": datetime.now(),
+                        "processed": False
+                    }
+                )
+                db.commit()
+                logger.info(f"✅ Feedback saved to database: {entry.interaction_id} ({bucket.value})")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning(f"⚠️ Database save failed (will use file backup): {e}")
             # Don't raise - feedback collection shouldn't break the app
     
     def _update_analysis(

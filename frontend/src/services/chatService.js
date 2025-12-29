@@ -3,6 +3,9 @@
  * Handles communication with the FastAPI backend on port 8002
  */
 
+// Import response sanitizer to prevent data leakage
+import { processApiResponse, sanitizeResponse } from '../utils/responseSanitizer.js';
+
 // API Configuration
 const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8002';
 const CHAT_ENDPOINT = `${PURE_LLM_BASE_URL}/api/chat`;
@@ -80,14 +83,17 @@ export async function sendMessage(message, sessionId = null, language = 'en') {
       contextUsed: data.context_used?.length || 0
     });
 
+    // 🔒 Sanitize response to prevent data leakage
+    const sanitizedData = processApiResponse(data);
+
     // Add response time to metadata
-    if (data.metadata) {
-      data.metadata.frontend_response_time = responseTime;
+    if (sanitizedData.metadata) {
+      sanitizedData.metadata.frontend_response_time = responseTime;
     }
 
     return {
       success: true,
-      data,
+      data: sanitizedData,
       responseTime
     };
 

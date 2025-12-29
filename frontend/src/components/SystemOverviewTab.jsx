@@ -53,12 +53,38 @@ const SystemOverviewTab = () => {
         ? 'https://ai-istanbul-backend.render.com'
         : 'http://localhost:8000';  // Backend runs on port 8000
 
-      // Fetch system stats from existing endpoint
-      const response = await fetch(`${API_BASE_URL}/api/v1/llm/stats`);
-      if (response.ok) {
-        const data = await response.json();
-        setSystemStats(data);
+      // Fetch multiple real data sources in parallel
+      const [llmResponse, feedbackResponse, adminResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/v1/llm/stats`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/feedback/stats`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/admin/stats`).catch(() => null)
+      ]);
+
+      let stats = { ...systemStats };
+
+      // Get LLM stats
+      if (llmResponse?.ok) {
+        const llmData = await llmResponse.json();
+        stats = { ...stats, ...llmData };
       }
+
+      // Get feedback stats (real data from database)
+      if (feedbackResponse?.ok) {
+        const feedbackData = await feedbackResponse.json();
+        stats.total_queries = feedbackData.total_interactions || stats.total_queries;
+        stats.languages = feedbackData.languages;
+        stats.intents = feedbackData.intents;
+      }
+
+      // Get admin stats
+      if (adminResponse?.ok) {
+        const adminData = await adminResponse.json();
+        if (adminData.data) {
+          stats.blog_posts = adminData.data.blog_posts || 0;
+        }
+      }
+
+      setSystemStats(stats);
     } catch (error) {
       console.error('Error fetching system stats:', error);
     } finally {

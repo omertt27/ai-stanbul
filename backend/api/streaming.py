@@ -36,6 +36,8 @@ def clean_llm_response(text: str) -> str:
     - Language instruction markers
     - Internal notes and warnings
     - Map/visualization mentions
+    - Conversation history leakage
+    - Context metadata
     """
     if not text:
         return text
@@ -57,6 +59,27 @@ def clean_llm_response(text: str) -> str:
         r'A map will be shown to the user\.?',  # Map mention
         r'The map shows.*?(?=\n|$)',  # Map description
         r'As shown on the map.*?(?=\n|$)',  # Map reference
+        # NEW: Conversation history leakage patterns
+        r'---\s*User:.*?(?=---|$)',  # --- User: ... pattern
+        r'Response:.*?(?=---|$)',  # Response: ... pattern
+        r'Turn \d+:.*?(?=Turn \d+:|$)',  # Turn numbering
+        r'Bot:.*?(?=\n|$)',  # Bot: labels
+        r'Intent:.*?(?=\n|$)',  # Intent: labels
+        r'Locations:.*?(?=\n|$)',  # Locations: labels
+        r'Session Context:.*?(?=\n\n|\Z)',  # Session context
+        r'Last Mentioned.*?(?=\n|$)',  # Last Mentioned metadata
+        r"User's GPS Location.*?(?=\n|$)",  # GPS metadata
+        r'Active Task:.*?(?=\n|$)',  # Task tracking
+        r'User Preferences:.*?(?=\n|$)',  # Preference data
+        r'Conversation Age:.*?(?=\n|$)',  # Conversation stats
+        r'CONVERSATION HISTORY:.*?(?=\n\n|\Z)',  # History section
+        r'CURRENT QUERY:.*?(?=\n\n|\Z)',  # Query markers
+        r'YOUR TASK:.*?(?=\n\n|\Z)',  # Task instructions
+        r'RETURN FORMAT.*?(?=\n\n|\Z)',  # Format instructions
+        r'"has_references".*?(?=\n|$)',  # JSON analysis
+        r'"resolved_references".*?(?=\n|$)',  # Reference resolution
+        r'"implicit_context".*?(?=\n|$)',  # Context analysis
+        r'"needs_clarification".*?(?=\n|$)',  # Clarification flags
     ]
     
     cleaned = text

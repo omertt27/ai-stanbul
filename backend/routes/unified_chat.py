@@ -38,6 +38,9 @@ import time
 # Add parent directories to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
+# Import response sanitizer to prevent data leakage
+from backend.services.response_sanitizer import sanitize_response
+
 # Import ML systems from backend.main
 try:
     from backend.main import (
@@ -184,13 +187,16 @@ async def unified_chat(request: ChatRequest):
                     logger.info(f"✅ Cache hit for query: {request.message[:50]}...")
                     processing_time = (time.time() - start_time) * 1000
                     
+                    # 🔒 SANITIZE cached response too
+                    cached_text = sanitize_response(cached_response['response'])
+                    
                     if metric:
                         metric.cache_hit = True
                         metric.processing_time_ms = processing_time
                         system_monitor.end_request(metric, success=True)
                     
                     return ChatResponse(
-                        response=cached_response['response'],
+                        response=cached_text,
                         intent=cached_response.get('intent'),
                         confidence=cached_response.get('confidence'),
                         session_id=session_id,
@@ -251,6 +257,10 @@ async def unified_chat(request: ChatRequest):
         else:
             ai_response = str(ai_result)
             raw_map_data = {}
+        
+        # 🔒 SANITIZE RESPONSE to prevent data leakage
+        ai_response = sanitize_response(ai_response)
+        logger.debug(f"Response sanitized and ready to return")
         
         # Convert map data to MapVisualization model if available
         map_visualization = None

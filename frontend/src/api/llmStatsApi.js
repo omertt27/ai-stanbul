@@ -17,11 +17,40 @@ const STATS_API_BASE = `${BASE_URL}/api/v1/llm`;
  */
 export const getGeneralStats = async () => {
   try {
-    const response = await fetch(`${STATS_API_BASE}/stats`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    // Fetch both LLM stats and feedback stats for real data
+    const [llmResponse, feedbackResponse] = await Promise.all([
+      fetch(`${STATS_API_BASE}/stats`).catch(() => null),
+      fetch(`${BASE_URL}/api/feedback/stats`).catch(() => null)
+    ]);
+
+    let stats = {
+      total_queries: 0,
+      cache_hits: 0,
+      cache_misses: 0,
+      llm_calls: 0,
+      cache_hit_rate: 0,
+      unique_users: 0,
+      error_rate: 0
+    };
+
+    // Get LLM stats if available
+    if (llmResponse?.ok) {
+      const llmData = await llmResponse.json();
+      stats = { ...stats, ...llmData };
     }
-    return await response.json();
+
+    // Merge with real feedback stats from database
+    if (feedbackResponse?.ok) {
+      const feedbackData = await feedbackResponse.json();
+      stats.total_queries = feedbackData.total_interactions || stats.total_queries;
+      stats.languages = feedbackData.languages;
+      stats.intents = feedbackData.intents;
+      stats.positive_feedback = feedbackData.positive_feedback;
+      stats.negative_feedback = feedbackData.negative_feedback;
+      stats.feedback_rate = feedbackData.feedback_rate;
+    }
+
+    return stats;
   } catch (error) {
     console.error('Error fetching general stats:', error);
     throw error;

@@ -4,6 +4,7 @@ import { feedbackLogger } from '../utils/feedbackLogger';
 const FeedbackDashboard = ({ isVisible, onClose }) => {
   const [stats, setStats] = useState({});
   const [feedbacks, setFeedbacks] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isVisible) {
@@ -11,9 +12,51 @@ const FeedbackDashboard = ({ isVisible, onClose }) => {
     }
   }, [isVisible]);
 
-  const refreshData = () => {
-    setStats(feedbackLogger.getStatistics());
-    setFeedbacks(feedbackLogger.getAllFeedbacks().reverse()); // Most recent first
+  const refreshData = async () => {
+    setLoading(true);
+    
+    // Fetch real data from backend database
+    try {
+      const API_BASE_URL = process.env.NODE_ENV === 'production'
+        ? 'https://ai-istanbul-backend.render.com'
+        : 'http://localhost:8000';
+      
+      // Fetch feedback stats from database
+      const [statsResponse, feedbacksResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/feedback/stats`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/feedback/recent?limit=50`).catch(() => null)
+      ]);
+
+      if (statsResponse?.ok) {
+        const statsData = await statsResponse.json();
+        setStats({
+          total: statsData.total_interactions || 0,
+          positive: statsData.positive_feedback || 0,
+          negative: statsData.negative_feedback || 0,
+          feedbackRate: statsData.feedback_rate || 0,
+          languages: statsData.languages || {},
+          intents: statsData.intents || {}
+        });
+      } else {
+        // Fallback to localStorage stats
+        setStats(feedbackLogger.getStatistics());
+      }
+
+      if (feedbacksResponse?.ok) {
+        const feedbacksData = await feedbacksResponse.json();
+        setFeedbacks(feedbacksData.feedbacks || []);
+      } else {
+        // Fallback to localStorage feedbacks
+        setFeedbacks(feedbackLogger.getAllFeedbacks().reverse());
+      }
+    } catch (error) {
+      console.error('Error fetching feedback data:', error);
+      // Fallback to localStorage
+      setStats(feedbackLogger.getStatistics());
+      setFeedbacks(feedbackLogger.getAllFeedbacks().reverse());
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExport = () => {

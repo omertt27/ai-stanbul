@@ -308,6 +308,57 @@ async def get_stats():
         raise HTTPException(status_code=500, detail="Failed to get statistics")
 
 
+@router.get("/recent")
+async def get_recent_feedbacks(limit: int = 50):
+    """
+    Get recent feedback entries from the database.
+    Used by the admin dashboard to display feedback history.
+    """
+    try:
+        from database import get_db
+        from sqlalchemy import text
+        
+        db = next(get_db())
+        try:
+            result = db.execute(
+                text("""
+                    SELECT id, user_id, session_id, item_id, item_type, event_type, 
+                           metadata, timestamp, processed
+                    FROM feedback_events 
+                    ORDER BY timestamp DESC 
+                    LIMIT :limit
+                """),
+                {"limit": limit}
+            )
+            
+            feedbacks = []
+            for row in result:
+                metadata = row.metadata if isinstance(row.metadata, dict) else {}
+                feedbacks.append({
+                    "id": row.id,
+                    "interaction_id": row.item_id,
+                    "type": row.event_type,
+                    "timestamp": row.timestamp.isoformat() if row.timestamp else None,
+                    "session_id": row.session_id,
+                    "user_query": metadata.get("user_query", ""),
+                    "thumbs_up": metadata.get("thumbs_up", False),
+                    "thumbs_down": metadata.get("thumbs_down", False),
+                    "dislike_reason": metadata.get("dislike_reason", ""),
+                    "quality_bucket": metadata.get("quality_bucket", ""),
+                    "intent": metadata.get("intent", ""),
+                    "language": metadata.get("language", "")
+                })
+            
+            return {"feedbacks": feedbacks, "total": len(feedbacks)}
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Failed to get recent feedbacks: {e}")
+        # Return empty list on error instead of failing
+        return {"feedbacks": [], "total": 0, "error": str(e)}
+
+
 @router.get("/smart-stats")
 async def get_smart_stats():
     """

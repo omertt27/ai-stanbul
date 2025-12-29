@@ -45,6 +45,29 @@ class ResponseSanitizer:
             # Turkish language slip warnings
             r"Bütün yanıtlarını Türkçe olarak verin\..*?\n",
             r"İçinde bulunduğunuz mahalleyi.*?\n",
+            
+            # NEW: Conversation history leakage patterns
+            r"---\s*User:.*?(?=---|$)",  # --- User: ... pattern
+            r"Response:.*?(?=---|$)",  # Response: ... pattern  
+            r"Turn \d+:.*?(?=Turn \d+:|$)",  # Turn numbering
+            r"\n  User:.*?(?=\n|$)",  # Indented User: labels
+            r"\n  Bot:.*?(?=\n|$)",  # Indented Bot: labels
+            r"Intent:.*?(?=\n|$)",  # Intent: labels
+            r"Locations:.*?(?=\n|$)",  # Locations: labels
+            r"Session Context:.*?(?=\n\n|\Z)",  # Session context
+            r"Last Mentioned.*?(?=\n|$)",  # Last Mentioned metadata
+            r"User's GPS Location.*?(?=\n|$)",  # GPS metadata
+            r"Active Task:.*?(?=\n|$)",  # Task tracking
+            r"User Preferences:.*?(?=\n|$)",  # Preference data
+            r"Conversation Age:.*?(?=\n|$)",  # Conversation stats
+            r"CONVERSATION HISTORY:.*?(?=\n\n|\Z)",  # History section
+            r"CURRENT QUERY:.*?(?=\n\n|\Z)",  # Query markers
+            r"YOUR TASK:.*?(?=\n\n|\Z)",  # Task instructions
+            r"RETURN FORMAT.*?(?=\n\n|\Z)",  # Format instructions
+            r'"has_references".*?(?=\n|$)',  # JSON analysis
+            r'"resolved_references".*?(?=\n|$)',  # Reference resolution
+            r'"implicit_context".*?(?=\n|$)',  # Context analysis
+            r'"needs_clarification".*?(?=\n|$)',  # Clarification flags
         ]
     
     def sanitize(
