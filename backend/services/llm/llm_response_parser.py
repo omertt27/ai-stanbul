@@ -619,6 +619,18 @@ def clean_training_data_leakage(text: str, prompt: Optional[str] = None) -> str:
             "\n**Identify Primary Intent",
             "🚨 CRITICAL:",
             "⚠️ IMPORTANT:",
+            # Multi-turn dialogue patterns (all languages)
+            "\n---\n\n",  # Separator between dialogue turns
+            "\n\nUser:",
+            "\n\nBot:",
+            "\nالمستخدم:",  # Arabic: User
+            "\nالرد:",      # Arabic: Response/Reply
+            "\nПользователь:",  # Russian: User
+            "\nОтвет:",  # Russian: Answer
+            "\nNutzer:",  # German: User
+            "\nAntwort:",  # German: Answer
+            "\nUtilisateur:",  # French: User
+            "\nRéponse:",  # French: Response
         ]
         logger.debug(f"Using minimal leak patterns for {detected_lang}")
     else:
