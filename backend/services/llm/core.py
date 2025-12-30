@@ -759,9 +759,10 @@ Fixed version (max 50 chars):"""
         
         return any(pattern in query_lower for pattern in route_patterns)
     
-    def _detect_ambiguous_query(self, query: str, signals: Dict[str, bool]) -> Dict[str, Any]:
+    def _detect_ambiguous_query(self, query: str, signals: Dict[str, bool], language: str = "en") -> Dict[str, Any]:
         """
         Detect if a query is ambiguous and needs clarification.
+        Supports 5 languages: English (en), Turkish (tr), Russian (ru), German (de), Arabic (ar)
         
         Ambiguity indicators:
         - Multiple conflicting signals detected
@@ -772,6 +773,7 @@ Fixed version (max 50 chars):"""
         Args:
             query: User query
             signals: Detected signals
+            language: Response language for clarification questions
             
         Returns:
             {
@@ -790,6 +792,168 @@ Fixed version (max 50 chars):"""
             'clarification_questions': [],
             'confidence': 1.0
         }
+        
+        # Multilingual clarification questions
+        clarification_questions = {
+            'multi_intent_restaurant_transport': {
+                'en': [
+                    "Are you looking for restaurant recommendations, or do you need directions to a restaurant?",
+                    "Would you like me to suggest restaurants nearby, or help you get to a specific place?"
+                ],
+                'tr': [
+                    "Restoran önerisi mi arıyorsunuz yoksa bir restorana nasıl gideceğinizi mi öğrenmek istiyorsunuz?",
+                    "Size yakındaki restoranları önermemi mi yoksa belirli bir yere ulaşmanıza yardım etmemi mi istersiniz?"
+                ],
+                'ru': [
+                    "Вы ищете рекомендации по ресторанам или вам нужны указания, как добраться до ресторана?",
+                    "Хотите, чтобы я предложил рестораны поблизости, или помочь вам добраться до определенного места?"
+                ],
+                'de': [
+                    "Suchen Sie Restaurantempfehlungen oder brauchen Sie eine Wegbeschreibung zu einem Restaurant?",
+                    "Möchten Sie Restaurants in der Nähe vorgeschlagen bekommen oder Hilfe, um zu einem bestimmten Ort zu gelangen?"
+                ],
+                'ar': [
+                    "هل تبحث عن توصيات للمطاعم أم تحتاج إلى الاتجاهات للوصول إلى مطعم؟",
+                    "هل تريد أن أقترح عليك مطاعم قريبة أو مساعدتك للوصول إلى مكان محدد؟"
+                ]
+            },
+            'multi_intent_attraction_restaurant': {
+                'en': [
+                    "Are you looking for attractions to visit, or restaurants to eat at?",
+                    "Would you like sightseeing recommendations or dining options?"
+                ],
+                'tr': [
+                    "Ziyaret edilecek mekanlar mı arıyorsunuz yoksa yemek yiyecek restoranlar mı?",
+                    "Gezi önerileri mi yoksa yemek seçenekleri mi istersiniz?"
+                ],
+                'ru': [
+                    "Вы ищете достопримечательности или рестораны?",
+                    "Хотите рекомендации по осмотру достопримечательностей или варианты питания?"
+                ],
+                'de': [
+                    "Suchen Sie Sehenswürdigkeiten zum Besichtigen oder Restaurants zum Essen?",
+                    "Möchten Sie Empfehlungen für Besichtigungen oder Essensoptionen?"
+                ],
+                'ar': [
+                    "هل تبحث عن معالم سياحية لزيارتها أو مطاعم للأكل؟",
+                    "هل تريد توصيات لمشاهدة المعالم أو خيارات لتناول الطعام؟"
+                ]
+            },
+            'too_short': {
+                'en': [
+                    "Could you tell me more about what you're looking for?",
+                    "I can help with restaurants, attractions, transportation, and more. What interests you?"
+                ],
+                'tr': [
+                    "Ne aradığınız hakkında biraz daha bilgi verebilir misiniz?",
+                    "Restoranlar, turistik yerler, ulaşım ve daha fazlası konusunda yardımcı olabilirim. Sizi ne ilgilendiriyor?"
+                ],
+                'ru': [
+                    "Не могли бы вы рассказать больше о том, что вы ищете?",
+                    "Я могу помочь с ресторанами, достопримечательностями, транспортом и многим другим. Что вас интересует?"
+                ],
+                'de': [
+                    "Könnten Sie mir mehr darüber erzählen, wonach Sie suchen?",
+                    "Ich kann bei Restaurants, Sehenswürdigkeiten, Transport und mehr helfen. Was interessiert Sie?"
+                ],
+                'ar': [
+                    "هل يمكنك إخباري المزيد عما تبحث عنه؟",
+                    "يمكنني المساعدة في المطاعم والمعالم السياحية والمواصلات والمزيد. ما الذي يهمك؟"
+                ]
+            },
+            'generic_restaurant': {
+                'en': [
+                    "What type of cuisine are you in the mood for? (Turkish, seafood, kebab, etc.)",
+                    "Any preferred area or neighborhood in Istanbul?"
+                ],
+                'tr': [
+                    "Ne tür bir mutfak istiyorsunuz? (Türk, deniz ürünleri, kebap, vb.)",
+                    "İstanbul'da tercih ettiğiniz bir bölge veya semt var mı?"
+                ],
+                'ru': [
+                    "Какой тип кухни вы предпочитаете? (Турецкая, морепродукты, кебаб и т.д.)",
+                    "Есть ли предпочтительный район в Стамбуле?"
+                ],
+                'de': [
+                    "Welche Art von Küche bevorzugen Sie? (Türkisch, Meeresfrüchte, Kebab, usw.)",
+                    "Haben Sie einen bevorzugten Bereich oder Stadtteil in Istanbul?"
+                ],
+                'ar': [
+                    "ما نوع المطبخ الذي تفضله؟ (تركي، مأكولات بحرية، كباب، إلخ)",
+                    "هل لديك منطقة مفضلة في إسطنبول؟"
+                ]
+            },
+            'generic_sightseeing': {
+                'en': [
+                    "Are you interested in historical sites, museums, markets, or nature?",
+                    "How much time do you have for sightseeing?"
+                ],
+                'tr': [
+                    "Tarihi mekanlar, müzeler, pazarlar veya doğa ile mi ilgileniyorsunuz?",
+                    "Gezi için ne kadar zamanınız var?"
+                ],
+                'ru': [
+                    "Вас интересуют исторические места, музеи, рынки или природа?",
+                    "Сколько времени у вас есть на осмотр достопримечательностей?"
+                ],
+                'de': [
+                    "Interessieren Sie sich für historische Stätten, Museen, Märkte oder Natur?",
+                    "Wie viel Zeit haben Sie für Besichtigungen?"
+                ],
+                'ar': [
+                    "هل أنت مهتم بالمواقع التاريخية أم المتاحف أم الأسواق أم الطبيعة؟",
+                    "كم من الوقت لديك للتجول؟"
+                ]
+            },
+            'generic_default': {
+                'en': [
+                    "Could you be more specific about what you're looking for?",
+                    "Are you interested in food, sightseeing, transportation, or something else?"
+                ],
+                'tr': [
+                    "Ne aradığınız konusunda daha spesifik olabilir misiniz?",
+                    "Yemek, gezi, ulaşım veya başka bir şeyle mi ilgileniyorsunuz?"
+                ],
+                'ru': [
+                    "Не могли бы вы быть более конкретны в том, что вы ищете?",
+                    "Вас интересует еда, достопримечательности, транспорт или что-то другое?"
+                ],
+                'de': [
+                    "Könnten Sie genauer sagen, wonach Sie suchen?",
+                    "Interessieren Sie sich für Essen, Besichtigungen, Transport oder etwas anderes?"
+                ],
+                'ar': [
+                    "هل يمكنك أن تكون أكثر تحديداً بشأن ما تبحث عنه؟",
+                    "هل أنت مهتم بالطعام أو مشاهدة المعالم أو المواصلات أو شيء آخر؟"
+                ]
+            },
+            'unclear_intent': {
+                'en': [
+                    "I'm not sure I understand. Could you rephrase your question?",
+                    "I can help with restaurants, attractions, transportation, weather, and events in Istanbul."
+                ],
+                'tr': [
+                    "Tam anlayamadım. Sorunuzu farklı şekilde sorabilir misiniz?",
+                    "İstanbul'da restoranlar, turistik yerler, ulaşım, hava durumu ve etkinlikler konusunda yardımcı olabilirim."
+                ],
+                'ru': [
+                    "Я не уверен, что понял. Не могли бы вы перефразировать свой вопрос?",
+                    "Я могу помочь с ресторанами, достопримечательностями, транспортом, погодой и мероприятиями в Стамбуле."
+                ],
+                'de': [
+                    "Ich bin mir nicht sicher, ob ich verstehe. Könnten Sie Ihre Frage umformulieren?",
+                    "Ich kann bei Restaurants, Sehenswürdigkeiten, Transport, Wetter und Veranstaltungen in Istanbul helfen."
+                ],
+                'ar': [
+                    "لست متأكداً من فهمي. هل يمكنك إعادة صياغة سؤالك؟",
+                    "يمكنني المساعدة في المطاعم والمعالم السياحية والمواصلات والطقس والفعاليات في إسطنبول."
+                ]
+            }
+        }
+        
+        def get_questions(key: str) -> list:
+            """Helper to get language-specific questions"""
+            return clarification_questions.get(key, {}).get(language, clarification_questions.get(key, {}).get('en', []))
         
         # Count active signals
         active_signals = [k for k, v in signals.items() if v]
@@ -813,25 +977,16 @@ Fixed version (max 50 chars):"""
             result['confidence'] = 0.6
             
             if signals.get('needs_restaurant') and signals.get('needs_transportation'):
-                result['clarification_questions'] = [
-                    "Are you looking for restaurant recommendations, or do you need directions to a restaurant?",
-                    "Would you like me to suggest restaurants nearby, or help you get to a specific place?"
-                ]
+                result['clarification_questions'] = get_questions('multi_intent_restaurant_transport')
             elif signals.get('needs_attraction') and signals.get('needs_restaurant'):
-                result['clarification_questions'] = [
-                    "Are you looking for attractions to visit, or restaurants to eat at?",
-                    "Would you like sightseeing recommendations or dining options?"
-                ]
+                result['clarification_questions'] = get_questions('multi_intent_attraction_restaurant')
         
         # Type 2: Very short query without clear intent
         if word_count <= 2 and signal_count == 0:
             result['is_ambiguous'] = True
             result['ambiguity_type'] = 'too_short'
             result['confidence'] = 0.4
-            result['clarification_questions'] = [
-                f"Could you tell me more about what you're looking for?",
-                "I can help with restaurants, attractions, transportation, and more. What interests you?"
-            ]
+            result['clarification_questions'] = get_questions('too_short')
         
         # Type 3: Generic location query
         generic_patterns = [
@@ -857,30 +1012,25 @@ Fixed version (max 50 chars):"""
             result['confidence'] = 0.5
             
             if 'restaurant' in query_lower or 'food' in query_lower or 'eat' in query_lower:
-                result['clarification_questions'] = [
-                    "What type of cuisine are you in the mood for? (Turkish, seafood, kebab, etc.)",
-                    "Any preferred area or neighborhood in Istanbul?"
-                ]
+                result['clarification_questions'] = get_questions('generic_restaurant')
             elif 'see' in query_lower or 'visit' in query_lower or 'do' in query_lower:
-                result['clarification_questions'] = [
-                    "Are you interested in historical sites, museums, markets, or nature?",
-                    "How much time do you have for sightseeing?"
-                ]
+                result['clarification_questions'] = get_questions('generic_sightseeing')
             else:
-                result['clarification_questions'] = [
-                    "Could you be more specific about what you're looking for?",
-                    "Are you interested in food, sightseeing, transportation, or something else?"
-                ]
+                result['clarification_questions'] = get_questions('generic_default')
         
         # Type 4: No signals detected at all
-        if signal_count == 0 and word_count > 2:
+        # CRITICAL FIX: Only mark as ambiguous if query is VERY vague (< 3 words)
+        # Otherwise, let it proceed to LLM fallback which can handle it
+        if signal_count == 0 and word_count <= 3:
             result['is_ambiguous'] = True
             result['ambiguity_type'] = 'unclear_intent'
             result['confidence'] = 0.3
-            result['clarification_questions'] = [
-                "I'm not sure I understand. Could you rephrase your question?",
-                "I can help with restaurants, attractions, transportation, weather, and events in Istanbul."
-            ]
+            result['clarification_questions'] = get_questions('unclear_intent')
+        elif signal_count == 0 and word_count > 3:
+            # Don't mark as ambiguous - let LLM handle it as fallback
+            # LLM can understand queries even if regex patterns don't match
+            result['is_ambiguous'] = False
+            result['confidence'] = 0.7  # Medium confidence - proceed to LLM
         
         return result
     
@@ -892,11 +1042,12 @@ Fixed version (max 50 chars):"""
     ) -> str:
         """
         Generate a clarification response for ambiguous queries.
+        Supports 5 languages: English (en), Turkish (tr), Russian (ru), German (de), Arabic (ar)
         
         Args:
             query: Original query
             ambiguity_info: Result from _detect_ambiguous_query
-            language: Response language
+            language: Response language (en/tr/ru/de/ar)
             
         Returns:
             Clarification response string
@@ -904,32 +1055,65 @@ Fixed version (max 50 chars):"""
         questions = ambiguity_info.get('clarification_questions', [])
         ambiguity_type = ambiguity_info.get('ambiguity_type', 'unknown')
         
-        if language == 'tr':
-            intro_phrases = {
-                'multi_intent': "Birkaç şekilde yardımcı olabilirim:",
-                'too_short': "Size daha iyi yardımcı olmak için biraz daha bilgiye ihtiyacım var:",
-                'generic': "Daha iyi öneriler sunabilmem için:",
-                'unclear_intent': "Sorunuzu tam anlayamadım:",
-            }
-            intro = intro_phrases.get(ambiguity_type, "Daha fazla bilgiye ihtiyacım var:")
-        else:
-            intro_phrases = {
+        # Intro phrases for each language
+        intro_phrases_by_lang = {
+            'en': {
                 'multi_intent': "I can help with several things here:",
                 'too_short': "I'd love to help! To give you the best answer:",
                 'generic': "To give you better recommendations:",
                 'unclear_intent': "I want to make sure I understand correctly:",
+                'default': "I'd like to clarify:"
+            },
+            'tr': {
+                'multi_intent': "Birkaç şekilde yardımcı olabilirim:",
+                'too_short': "Size daha iyi yardımcı olmak için biraz daha bilgiye ihtiyacım var:",
+                'generic': "Daha iyi öneriler sunabilmem için:",
+                'unclear_intent': "Sorunuzu tam anlayamadım:",
+                'default': "Daha fazla bilgiye ihtiyacım var:"
+            },
+            'ru': {
+                'multi_intent': "Я могу помочь с несколькими вещами:",
+                'too_short': "Я бы хотел помочь! Чтобы дать вам лучший ответ:",
+                'generic': "Чтобы дать вам лучшие рекомендации:",
+                'unclear_intent': "Я хочу убедиться, что правильно понимаю:",
+                'default': "Позвольте уточнить:"
+            },
+            'de': {
+                'multi_intent': "Ich kann bei mehreren Dingen helfen:",
+                'too_short': "Ich helfe gerne! Um Ihnen die beste Antwort zu geben:",
+                'generic': "Um Ihnen bessere Empfehlungen zu geben:",
+                'unclear_intent': "Ich möchte sicherstellen, dass ich Sie richtig verstehe:",
+                'default': "Lassen Sie mich nachfragen:"
+            },
+            'ar': {
+                'multi_intent': "يمكنني المساعدة في عدة أمور:",
+                'too_short': "يسعدني المساعدة! لإعطائك أفضل إجابة:",
+                'generic': "لتقديم توصيات أفضل:",
+                'unclear_intent': "أريد التأكد من أنني أفهم بشكل صحيح:",
+                'default': "اسمحوا لي بالتوضيح:"
             }
-            intro = intro_phrases.get(ambiguity_type, "I'd like to clarify:")
+        }
+        
+        # Closing messages for each language
+        closing_messages = {
+            'en': "💡 I'm your Istanbul guide and can help with restaurants, attractions, transportation, and more!",
+            'tr': "💡 İstanbul hakkında restoranlar, turistik yerler, ulaşım ve daha fazlası konusunda yardımcı olabilirim!",
+            'ru': "💡 Я ваш гид по Стамбулу и могу помочь с ресторанами, достопримечательностями, транспортом и многим другим!",
+            'de': "💡 Ich bin Ihr Istanbul-Führer und kann bei Restaurants, Sehenswürdigkeiten, Transport und mehr helfen!",
+            'ar': "💡 أنا دليلك في إسطنبول ويمكنني المساعدة في المطاعم والمعالم السياحية والمواصلات والمزيد!"
+        }
+        
+        # Get phrases for the language (fallback to English)
+        intro_phrases = intro_phrases_by_lang.get(language, intro_phrases_by_lang['en'])
+        intro = intro_phrases.get(ambiguity_type, intro_phrases['default'])
         
         response = f"{intro}\n\n"
         
         for i, question in enumerate(questions[:2], 1):
             response += f"{i}. {question}\n"
         
-        if language == 'tr':
-            response += "\n💡 İstanbul hakkında restoranlar, turistik yerler, ulaşım ve daha fazlası konusunda yardımcı olabilirim!"
-        else:
-            response += "\n💡 I'm your Istanbul guide and can help with restaurants, attractions, transportation, and more!"
+        closing = closing_messages.get(language, closing_messages['en'])
+        response += f"\n{closing}"
         
         return response
 
@@ -1077,7 +1261,7 @@ Fixed version (max 50 chars):"""
         
         # STEP 3.5: Ambiguity Detection and Clarification Flow
         if self.config.get('enable_clarification_flow', True):
-            ambiguity_info = self._detect_ambiguous_query(query, signals['signals'])
+            ambiguity_info = self._detect_ambiguous_query(query, signals['signals'], language=language)
             
             if ambiguity_info['is_ambiguous'] and ambiguity_info['confidence'] < 0.5:
                 logger.info(f"❓ Ambiguous query detected: {ambiguity_info['ambiguity_type']} (confidence: {ambiguity_info['confidence']:.2f})")
@@ -2172,21 +2356,41 @@ Fixed version (max 50 chars):"""
             # The LLM hallucinated the temperature - we need to fix this
             logger.warning(f"🚨 LLM response does not contain correct weather data, prepending real data")
             
-            # Create a weather summary header
-            if language == 'tr':
-                weather_header = f"""🌤️ **Güncel İstanbul Havası** (Gerçek Zamanlı)
-📍 Şu anda: {real_condition or 'Açık'}, {real_temp}°C
-
----
-
-"""
-            else:
-                weather_header = f"""🌤️ **Current Istanbul Weather** (Real-Time Data)
+            # Create a weather summary header with multilingual support
+            weather_headers = {
+                'en': f"""🌤️ **Current Istanbul Weather** (Real-Time Data)
 📍 Right now: {real_condition or 'Clear'}, {real_temp}°C
 
 ---
 
+""",
+                'tr': f"""🌤️ **Güncel İstanbul Havası** (Gerçek Zamanlı)
+📍 Şu anda: {real_condition or 'Açık'}, {real_temp}°C
+
+---
+
+""",
+                'ru': f"""🌤️ **Текущая погода в Стамбуле** (В реальном времени)
+📍 Сейчас: {real_condition or 'Ясно'}, {real_temp}°C
+
+---
+
+""",
+                'de': f"""🌤️ **Aktuelles Istanbul-Wetter** (Echtzeit-Daten)
+📍 Gerade jetzt: {real_condition or 'Klar'}, {real_temp}°C
+
+---
+
+""",
+                'ar': f"""🌤️ **طقس إسطنبول الحالي** (بيانات في الوقت الفعلي)
+📍 الآن: {real_condition or 'صافي'}, {real_temp}°C
+
+---
+
 """
+            }
+            
+            weather_header = weather_headers.get(language, weather_headers['en'])
             
             # Prepend the verified weather header to the response
             corrected_response = weather_header + response
@@ -2517,10 +2721,12 @@ Fixed version (max 50 chars):"""
         - No LLM generation = zero hallucination risk
         - Fact-locked template with structured route information
         
+        Supports 5 languages: English (en), Turkish (tr), Russian (ru), German (de), Arabic (ar)
+        
         Args:
             route_data: Verified route data from Transportation RAG (ground truth)
             query: Original user query
-            language: Response language ('en' or 'tr')
+            language: Response language ('en', 'tr', 'ru', 'de', 'ar')
             
         Returns:
             Template-based response text with verified facts only
@@ -2530,77 +2736,134 @@ Fixed version (max 50 chars):"""
             origin = route_data.get('origin', 'Starting point')
             destination = route_data.get('destination', 'Destination')
             total_time = route_data.get('total_time', 0)
-            total_distance = route_data.get('total_distance', 0)  # Use 'total_distance' not 'total_distance_km'
+            total_distance = route_data.get('total_distance', 0)
             transfers = route_data.get('transfers', 0)
             lines_used = route_data.get('lines_used', [])
             steps = route_data.get('steps', [])
             
-            # Build response based on language
-            if language == 'tr':
-                # Turkish template
-                response = f"**{origin} → {destination} Güzergahı**\n\n"
-                response += f"⏱️ **Süre:** {total_time} dakika\n"
-                response += f"📏 **Mesafe:** {total_distance:.1f} km\n"
-                response += f"🔄 **Aktarma:** {transfers} aktarma\n"
-                response += f"🚇 **Hatlar:** {', '.join(lines_used)}\n\n"
-                
-                if steps:
-                    response += "**📍 Adım Adım:**\n\n"
-                    step_num = 1
-                    for step in steps:
-                        step_type = step.get('type', 'transit')  # Use 'type' not 'mode'
-                        line = step.get('line', '')
-                        from_loc = step.get('from', '')  # Use 'from' not 'from_station'
-                        to_loc = step.get('to', '')  # Use 'to' not 'to_station'
-                        duration = step.get('duration', 0)
-                        instruction = step.get('instruction', '')  # Use the pre-formatted instruction
-                        
-                        if step_type == 'transfer':
-                            response += f"{step_num}. � **{instruction}** ({duration:.0f} dk)\n"
-                        elif step_type == 'walk':
-                            response += f"{step_num}. � **{instruction}** ({duration:.0f} dk)\n"
-                        else:
-                            response += f"{step_num}. 🚇 **{instruction}** ({duration:.0f} dk)\n"
-                        step_num += 1
-                
-                response += f"\n✅ Bu güzergah İstanbul ulaşım veritabanından doğrulanmıştır."
-                
-            else:
-                # English template
-                response = f"**Route: {origin} → {destination}**\n\n"
-                response += f"⏱️ **Duration:** {total_time} minutes\n"
-                response += f"📏 **Distance:** {total_distance:.1f} km\n"
-                response += f"🔄 **Transfers:** {transfers}\n"
-                response += f"🚇 **Lines:** {', '.join(lines_used)}\n\n"
-                
-                if steps:
-                    response += "**📍 Step-by-Step:**\n\n"
-                    step_num = 1
-                    for step in steps:
-                        step_type = step.get('type', 'transit')  # Use 'type' not 'mode'
-                        line = step.get('line', '')
-                        from_loc = step.get('from', '')  # Use 'from' not 'from_station'
-                        to_loc = step.get('to', '')  # Use 'to' not 'to_station'
-                        duration = step.get('duration', 0)
-                        instruction = step.get('instruction', '')  # Use the pre-formatted instruction
-                        
-                        if step_type == 'transfer':
-                            response += f"{step_num}. � **{instruction}** ({duration:.0f} min)\n"
-                        elif step_type == 'walk':
-                            response += f"{step_num}. � **{instruction}** ({duration:.0f} min)\n"
-                        else:
-                            response += f"{step_num}. 🚇 **{instruction}** ({duration:.0f} min)\n"
-                        step_num += 1
-                
-                response += f"\n✅ This route has been verified in Istanbul's transportation database."
+            # =================================================================
+            # MULTILINGUAL TEMPLATES
+            # =================================================================
+            templates = {
+                'en': {
+                    'header': f"**Route: {origin} → {destination}**",
+                    'duration': f"⏱️ **Duration:** {total_time} minutes",
+                    'distance': f"📏 **Distance:** {total_distance:.1f} km",
+                    'transfers': f"🔄 **Transfers:** {transfers}",
+                    'lines': f"🚇 **Lines:** {', '.join(lines_used)}",
+                    'step_header': "**📍 Step-by-Step:**",
+                    'verified': "✅ This route has been verified in Istanbul's transportation database.",
+                    'fallback': "Route information is available but could not be displayed. Please try again.",
+                    'time_unit': 'min',
+                    'transit': lambda l, f, t: f"Take {l} from {f} to {t}",
+                    'transfer': lambda l, s: f"Transfer to {l} at {s}",
+                    'walk': lambda s: f"Walk to {s}",
+                },
+                'tr': {
+                    'header': f"**{origin} → {destination} Güzergahı**",
+                    'duration': f"⏱️ **Süre:** {total_time} dakika",
+                    'distance': f"📏 **Mesafe:** {total_distance:.1f} km",
+                    'transfers': f"🔄 **Aktarma:** {transfers} aktarma",
+                    'lines': f"🚇 **Hatlar:** {', '.join(lines_used)}",
+                    'step_header': "**📍 Adım Adım:**",
+                    'verified': "✅ Bu güzergah İstanbul ulaşım veritabanından doğrulanmıştır.",
+                    'fallback': "Güzergah bilgisi mevcut ancak görüntülenemiyor. Lütfen tekrar deneyin.",
+                    'time_unit': 'dk',
+                    'transit': lambda l, f, t: f"{l} ile {f}'dan {t}'a gidin",
+                    'transfer': lambda l, s: f"{s}'da {l} hattına aktarma yapın",
+                    'walk': lambda s: f"{s}'a yürüyün",
+                },
+                'ru': {
+                    'header': f"**Маршрут: {origin} → {destination}**",
+                    'duration': f"⏱️ **Время:** {total_time} минут",
+                    'distance': f"📏 **Расстояние:** {total_distance:.1f} км",
+                    'transfers': f"🔄 **Пересадки:** {transfers}",
+                    'lines': f"🚇 **Линии:** {', '.join(lines_used)}",
+                    'step_header': "**📍 Пошагово:**",
+                    'verified': "✅ Этот маршрут проверен в транспортной базе данных Стамбула.",
+                    'fallback': "Информация о маршруте доступна, но не может быть отображена. Попробуйте снова.",
+                    'time_unit': 'мин',
+                    'transit': lambda l, f, t: f"Сядьте на {l} от {f} до {t}",
+                    'transfer': lambda l, s: f"Пересядьте на {l} на станции {s}",
+                    'walk': lambda s: f"Идите до {s}",
+                },
+                'de': {
+                    'header': f"**Route: {origin} → {destination}**",
+                    'duration': f"⏱️ **Dauer:** {total_time} Minuten",
+                    'distance': f"📏 **Entfernung:** {total_distance:.1f} km",
+                    'transfers': f"� **Umstiege:** {transfers}",
+                    'lines': f"🚇 **Linien:** {', '.join(lines_used)}",
+                    'step_header': "**📍 Schritt für Schritt:**",
+                    'verified': "✅ Diese Route wurde in der Istanbuler Verkehrsdatenbank verifiziert.",
+                    'fallback': "Routeninformationen sind verfügbar, können aber nicht angezeigt werden. Bitte versuchen Sie es erneut.",
+                    'time_unit': 'Min',
+                    'transit': lambda l, f, t: f"Nehmen Sie {l} von {f} nach {t}",
+                    'transfer': lambda l, s: f"Umsteigen auf {l} bei {s}",
+                    'walk': lambda s: f"Gehen Sie zu {s}",
+                },
+                'ar': {
+                    'header': f"**المسار: {origin} → {destination}**",
+                    'duration': f"⏱️ **المدة:** {total_time} دقائق",
+                    'distance': f"📏 **المسافة:** {total_distance:.1f} كم",
+                    'transfers': f"🔄 **التحويلات:** {transfers}",
+                    'lines': f"🚇 **الخطوط:** {', '.join(lines_used)}",
+                    'step_header': "**📍 خطوة بخطوة:**",
+                    'verified': "✅ تم التحقق من هذا المسار في قاعدة بيانات النقل في اسطنبول.",
+                    'fallback': "معلومات المسار متاحة ولكن لا يمكن عرضها. حاول مرة أخرى.",
+                    'time_unit': 'د',
+                    'transit': lambda l, f, t: f"استقل {l} من {f} إلى {t}",
+                    'transfer': lambda l, s: f"انتقل إلى {l} في {s}",
+                    'walk': lambda s: f"امشِ إلى {s}",
+                },
+            }
             
-            logger.info(f"✅ Generated template-based transportation response (fact-locked, no LLM)")
+            # Default to English if language not supported
+            if language not in templates:
+                language = 'en'
+            
+            t = templates[language]
+            
+            # Build response
+            response = f"{t['header']}\n\n"
+            response += f"{t['duration']}\n"
+            response += f"{t['distance']}\n"
+            response += f"{t['transfers']}\n"
+            response += f"{t['lines']}\n\n"
+            
+            if steps:
+                response += f"{t['step_header']}\n\n"
+                step_num = 1
+                for step in steps:
+                    step_type = step.get('type', 'transit')
+                    line = step.get('line', '')
+                    from_loc = step.get('from', '')
+                    to_loc = step.get('to', '')
+                    duration = step.get('duration', 0)
+                    
+                    if step_type == 'transfer':
+                        instruction = t['transfer'](line, from_loc)
+                        response += f"{step_num}. 🔄 **{instruction}** ({duration:.0f} {t['time_unit']})\n"
+                    elif step_type == 'walk':
+                        instruction = t['walk'](to_loc)
+                        response += f"{step_num}. 🚶 **{instruction}** ({duration:.0f} {t['time_unit']})\n"
+                    else:
+                        instruction = t['transit'](line, from_loc, to_loc)
+                        response += f"{step_num}. 🚇 **{instruction}** ({duration:.0f} {t['time_unit']})\n"
+                    step_num += 1
+            
+            response += f"\n{t['verified']}"
+            
+            logger.info(f"✅ Generated template-based transportation response (fact-locked, no LLM, lang={language})")
             return response
             
         except Exception as e:
             logger.error(f"❌ Failed to generate template response: {e}")
             # Ultra-minimal fallback
-            if language == 'tr':
-                return f"Güzergah bilgisi mevcut ancak görüntülenemiyor. Lütfen tekrar deneyin."
-            else:
-                return f"Route information is available but could not be displayed. Please try again."
+            fallback_msgs = {
+                'en': "Route information is available but could not be displayed. Please try again.",
+                'tr': "Güzergah bilgisi mevcut ancak görüntülenemiyor. Lütfen tekrar deneyin.",
+                'ru': "Информация о маршруте доступна, но не может быть отображена. Попробуйте снова.",
+                'de': "Routeninformationen sind verfügbar, können aber nicht angezeigt werden. Bitte versuchen Sie es erneut.",
+                'ar': "معلومات المسار متاحة ولكن لا يمكن عرضها. حاول مرة أخرى.",
+            }
+            return fallback_msgs.get(language, fallback_msgs['en'])

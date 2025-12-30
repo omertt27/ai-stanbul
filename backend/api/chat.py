@@ -359,10 +359,11 @@ async def pure_llm_chat(
         from services.multilingual_intent_keywords import detect_intent_multilingual
         
         # Detect intent and language together (fast, ~10ms)
-        intent_result, confidence, language, _ = detect_intent_multilingual(request.message)
+        # Returns: (intent, confidence, matched_keywords, detected_language)
+        intent_result, confidence, matched_keywords, lang_detected = detect_intent_multilingual(request.message)
         
-        if language and language != "en":
-            detected_language = language
+        if lang_detected and lang_detected != "en":
+            detected_language = lang_detected
             logger.info(f"🌍 LLM detected language: {detected_language} from query")
         
     except Exception as e:
@@ -1167,7 +1168,7 @@ def _format_hidden_gems_response(gems: List[Dict], user_location: Optional[Dict]
         description = gem.get('description', '')
         distance = gem.get('distance')
         
-        response += f"{i}. **{name}**"
+        response += f"{i}. {name}"
         
         # Add category emoji
         if 'cafe' in category.lower() or 'coffee' in category.lower():

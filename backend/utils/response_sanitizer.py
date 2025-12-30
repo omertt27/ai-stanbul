@@ -95,6 +95,13 @@ class ResponseSanitizer:
         for pattern in self.system_prompt_patterns:
             cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE | re.MULTILINE)
         
+        # Remove markdown bold formatting (**text**)
+        cleaned = re.sub(r'\*\*([^*]+)\*\*', r'\1', cleaned)
+        
+        # Remove markdown italic formatting (*text* or _text_)
+        cleaned = re.sub(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)', r'\1', cleaned)
+        cleaned = re.sub(r'_([^_]+)_', r'\1', cleaned)
+        
         # Remove excessive whitespace
         cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)  # Max 2 consecutive newlines
         cleaned = re.sub(r'[ \t]+', ' ', cleaned)  # Single spaces only
@@ -102,12 +109,15 @@ class ResponseSanitizer:
         # Trim
         cleaned = cleaned.strip()
         
-        # Language validation (if strict)
+        # Language consistency check (fix mixed language issues)
         if strict_language_check:
-            is_valid, _ = self._validate_language(cleaned, expected_language)
-            if not is_valid and expected_language == "en":
-                # If response is in wrong language, prepend a note
-                cleaned = f"[Note: Response provided in English]\n\n{cleaned}"
+            original_length = len(cleaned)
+            cleaned = self._enforce_language_consistency(cleaned, expected_language)
+            if len(cleaned) != original_length:
+                # Log language fixes applied
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"🌍 Language consistency enforced: {expected_language} ({original_length} → {len(cleaned)} chars)")
         
         return cleaned
     
@@ -152,8 +162,158 @@ class ResponseSanitizer:
                 return False, f"Artifact detected: {pattern}"
         
         return True, None
-
-
+    
+    def _enforce_language_consistency(self, text: str, expected_lang: str) -> str:
+        """
+        Enforce language consistency by translating common mixed-language phrases.
+        Supports 5 languages: English (en), Turkish (tr), Russian (ru), German (de), Arabic (ar)
+        
+        Args:
+            text: Text to check
+            expected_lang: Expected language code (en/tr/ru/de/ar)
+            
+        Returns:
+            Text with consistent language
+        """
+        # Base translations (English as pivot language)
+        translations = {
+            # Time units
+            'min': {
+                'en': 'min', 'tr': 'dk', 'ru': 'мин', 'de': 'Min', 'ar': 'د'
+            },
+            'minutes': {
+                'en': 'minutes', 'tr': 'dakika', 'ru': 'минут', 'de': 'Minuten', 'ar': 'دقائق'
+            },
+            'hours': {
+                'en': 'hours', 'tr': 'saat', 'ru': 'часов', 'de': 'Stunden', 'ar': 'ساعات'
+            },
+            # Labels
+            'Duration:': {
+                'en': 'Duration:', 'tr': 'Süre:', 'ru': 'Время:', 'de': 'Dauer:', 'ar': 'المدة:'
+            },
+            'Distance:': {
+                'en': 'Distance:', 'tr': 'Mesafe:', 'ru': 'Расстояние:', 'de': 'Entfernung:', 'ar': 'المسافة:'
+            },
+            'Transfers:': {
+                'en': 'Transfers:', 'tr': 'Aktarma:', 'ru': 'Пересадки:', 'de': 'Umstiege:', 'ar': 'التحويلات:'
+            },
+            'Lines:': {
+                'en': 'Lines:', 'tr': 'Hatlar:', 'ru': 'Линии:', 'de': 'Linien:', 'ar': 'الخطوط:'
+            },
+            'Step by Step:': {
+                'en': 'Step by Step:', 'tr': 'Adım Adım:', 'ru': 'Пошагово:', 'de': 'Schritt für Schritt:', 'ar': 'خطوة بخطوة:'
+            },
+            'Route:': {
+                'en': 'Route:', 'tr': 'Güzergah:', 'ru': 'Маршрут:', 'de': 'Route:', 'ar': 'المسار:'
+            },
+            'Route': {
+                'en': 'Route', 'tr': 'Güzergah', 'ru': 'Маршрут', 'de': 'Route', 'ar': 'المسار'
+            },
+            # Common phrases
+            'transfer': {
+                'en': 'transfer', 'tr': 'aktarma', 'ru': 'пересадка', 'de': 'Umstieg', 'ar': 'تحويل'
+            },
+            'transfers': {
+                'en': 'transfers', 'tr': 'aktarma', 'ru': 'пересадок', 'de': 'Umstiege', 'ar': 'تحويلات'
+            },
+            'This route is verified from Istanbul transportation database': {
+                'en': 'This route is verified from Istanbul transportation database',
+                'tr': 'Bu güzergah İstanbul ulaşım veritabanından doğrulanmıştır',
+                'ru': 'Этот маршрут проверен по базе данных транспорта Стамбула',
+                'de': 'Diese Route wurde aus der Istanbuler Verkehrsdatenbank verifiziert',
+                'ar': 'تم التحقق من هذا المسار من قاعدة بيانات النقل في إسطنبول'
+            },
+            # Action words
+            'Take': {
+                'en': 'Take', 'tr': 'Binin', 'ru': 'Сядьте на', 'de': 'Nehmen Sie', 'ar': 'خذ'
+            },
+            'Walk to': {
+                'en': 'Walk to', 'tr': 'Yürüyün', 'ru': 'Идите к', 'de': 'Gehen Sie zu', 'ar': 'امشِ إلى'
+            },
+            'Transfer to': {
+                'en': 'Transfer to', 'tr': 'Aktarma yapın', 'ru': 'Пересядьте на', 'de': 'Umsteigen auf', 'ar': 'انتقل إلى'
+            },
+            'from': {
+                'en': 'from', 'tr': "'dan", 'ru': 'от', 'de': 'von', 'ar': 'من'
+            },
+            'to': {
+                'en': 'to', 'tr': "'a", 'ru': 'до', 'de': 'nach', 'ar': 'إلى'
+            },
+            'at': {
+                'en': 'at', 'tr': "'da", 'ru': 'на', 'de': 'bei', 'ar': 'عند'
+            },
+        }
+        
+        # Language-specific patterns to detect
+        lang_patterns = {
+            'tr': [' dk', 'dakika', 'Süre:', 'Mesafe:', 'Aktarma:', 'Hatlar:', 'Adım Adım:', 'Güzergah'],
+            'ru': [' мин', 'минут', 'Время:', 'Расстояние:', 'Пересадки:', 'Линии:', 'Пошагово:', 'Маршрут'],
+            'de': [' Min', 'Minuten', 'Dauer:', 'Entfernung:', 'Umstiege:', 'Linien:', 'Schritt für Schritt:'],
+            'ar': [' د', 'دقائق', 'المدة:', 'المسافة:', 'التحويلات:', 'الخطوط:', 'خطوة بخطوة:', 'المسار'],
+            'en': [' min', 'minutes', 'Duration:', 'Distance:', 'Transfers:', 'Lines:', 'Step by Step:', 'Route:'],
+        }
+        
+        # Build reverse lookup: for each phrase in any language, map to the expected language version
+        for key, lang_map in translations.items():
+            for source_lang, source_phrase in lang_map.items():
+                if source_lang != expected_lang and source_phrase in text:
+                    target_phrase = lang_map.get(expected_lang, lang_map['en'])
+                    text = text.replace(source_phrase, target_phrase)
+        
+        # Regex-based time unit conversions
+        if expected_lang == "en":
+            # Convert Turkish dk to min
+            text = re.sub(r'\((\d+)\s*dk\)', r'(\1 min)', text)
+            text = re.sub(r'(\d+)\s*dk([,.\s\n])', r'\1 min\2', text)
+            text = re.sub(r'(\d+)\s*dk$', r'\1 min', text)
+            # Convert Russian мин to min
+            text = re.sub(r'\((\d+)\s*мин\)', r'(\1 min)', text)
+            text = re.sub(r'(\d+)\s*мин([,.\s\n])', r'\1 min\2', text)
+            # Convert German Min to min (case sensitive)
+            text = re.sub(r'\((\d+)\s*Min\)', r'(\1 min)', text)
+            text = re.sub(r'(\d+)\s*Min([,.\s\n])', r'\1 min\2', text)
+            # Convert Arabic د to min
+            text = re.sub(r'\((\d+)\s*د\)', r'(\1 min)', text)
+            text = re.sub(r'(\d+)\s*د([,.\s\n])', r'\1 min\2', text)
+            
+        elif expected_lang == "tr":
+            # Convert English min to dk
+            text = re.sub(r'\((\d+)\s*min\)', r'(\1 dk)', text)
+            text = re.sub(r'(\d+)\s*min([,.\s\n])', r'\1 dk\2', text)
+            text = re.sub(r'(\d+)\s*min$', r'\1 dk', text)
+            # Convert Russian мин to dk
+            text = re.sub(r'\((\d+)\s*мин\)', r'(\1 dk)', text)
+            text = re.sub(r'(\d+)\s*мин([,.\s\n])', r'\1 dk\2', text)
+            
+        elif expected_lang == "ru":
+            # Convert English min to мин
+            text = re.sub(r'\((\d+)\s*min\)', r'(\1 мин)', text)
+            text = re.sub(r'(\d+)\s*min([,.\s\n])', r'\1 мин\2', text)
+            text = re.sub(r'(\d+)\s*min$', r'\1 мин', text)
+            # Convert Turkish dk to мин
+            text = re.sub(r'\((\d+)\s*dk\)', r'(\1 мин)', text)
+            text = re.sub(r'(\d+)\s*dk([,.\s\n])', r'\1 мин\2', text)
+            
+        elif expected_lang == "de":
+            # Convert English min to Min
+            text = re.sub(r'\((\d+)\s*min\)', r'(\1 Min)', text)
+            text = re.sub(r'(\d+)\s*min([,.\s\n])', r'\1 Min\2', text)
+            text = re.sub(r'(\d+)\s*min$', r'\1 Min', text)
+            # Convert Turkish dk to Min
+            text = re.sub(r'\((\d+)\s*dk\)', r'(\1 Min)', text)
+            text = re.sub(r'(\d+)\s*dk([,.\s\n])', r'\1 Min\2', text)
+            
+        elif expected_lang == "ar":
+            # Convert English min to د
+            text = re.sub(r'\((\d+)\s*min\)', r'(\1 د)', text)
+            text = re.sub(r'(\d+)\s*min([,.\s\n])', r'\1 د\2', text)
+            text = re.sub(r'(\d+)\s*min$', r'\1 د', text)
+            # Convert Turkish dk to د
+            text = re.sub(r'\((\d+)\s*dk\)', r'(\1 د)', text)
+            text = re.sub(r'(\d+)\s*dk([,.\s\n])', r'\1 د\2', text)
+        
+        return text
+    
 # Legacy function interface for backward compatibility
 def sanitize_llm_response(response: str) -> str:
     """

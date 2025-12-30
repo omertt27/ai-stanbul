@@ -429,39 +429,85 @@ class SignalDetector:
             'needs_neighborhood': {
                 'en': [
                     r'\b(neighborhood|district|area|quarter|region)\b',
-                    r'\b(beyoglu|sultanahmet|kadikoy|besiktas|taksim)\b',
+                    r'\b(beyoglu|sultanahmet|kadikoy|besiktas|taksim|eminonu|fatih|sisli)\b',
                     r'\b(what.*like|atmosphere|vibe|character)\b'
                 ],
                 'tr': [
                     r'\b(semt|mahalle|bölge|ilçe)\b',
-                    r'\b(beyoğlu|sultanahmet|kadıköy|beşiktaş|taksim)\b',
-                    r'\b(nasıl\s+bir\s+yer|atmosfer)\b'
+                    r'\b(beyoğlu|sultanahmet|kadıköy|beşiktaş|taksim|eminönü|fatih|şişli)\b',
+                    r'\b(nasıl\s+bir\s+yer|atmosfer|hava)\b'
+                ],
+                'ru': [
+                    r'\b(район|квартал|область|регион)\b',
+                    r'\b(бейоглу|султанахмет|кадыкёй|бешикташ|таксим)\b',
+                    r'\b(какой.*район|атмосфера|характер)\b'
+                ],
+                'de': [
+                    r'\b(viertel|stadtteil|bezirk|gegend|region)\b',
+                    r'\b(beyoglu|sultanahmet|kadikoy|besiktas|taksim)\b',
+                    r'\b(wie\s+ist.*viertel|atmosphäre|charakter)\b'
+                ],
+                'ar': [
+                    r'\b(حي|منطقة|ربع|إقليم)\b',
+                    r'\b(بيوغلو|سلطان\s+أحمد|كاديكوي|بشيكتاش|تقسيم)\b',
+                    r'\b(كيف.*منطقة|جو|طابع)\b'
                 ]
             },
             'needs_events': {
                 'en': [
-                    r'\b(event|festival|concert|exhibition|show|performance)\b',
+                    r'\b(event|festival|concert|exhibition|show|performance|happening)\b',
                     r'\b(what.*happening|what.*on|activities)\b',
                     r'\b(tonight|today|weekend|this\s+week)\b',
                     r'\b(nearby|near\s+me|close\s+to\s+me|around\s+me|around\s+here)\b'  # Nearby patterns
                 ],
                 'tr': [
-                    r'\b(etkinlik|festival|konser|sergi|gösteri)\b',
+                    r'\b(etkinlik|festival|konser|sergi|gösteri|sahne)\b',
                     r'\b(ne\s+var|neler\s+oluyor|aktivite)\b',
-                    r'\b(bu\s+gece|bugün|hafta\s+sonu)\b',
+                    r'\b(bu\s+gece|bugün|hafta\s+sonu|bu\s+hafta)\b',
                     r'\b(yakın|yakında|burada|çevrede|yakınımda)\b'  # Turkish nearby
+                ],
+                'ru': [
+                    r'\b(событие|события|концерт|фестиваль|шоу|выставка|мероприятие)\b',
+                    r'\b(что\s+происходит|что\s+есть|мероприятия)\b',
+                    r'\b(сегодня|сегодня\s+вечером|в\s+эти\s+выходные|на\s+этой\s+неделе)\b',
+                    r'\b(рядом|рядом\s+со\s+мной|поблизости|около|близко)\b'
+                ],
+                'de': [
+                    r'\b(veranstaltung|ereignis|konzert|festival|show|ausstellung)\b',
+                    r'\b(was\s+ist\s+los|was\s+gibt\s+es|aktivitäten)\b',
+                    r'\b(heute\s+abend|heute|am\s+wochenende|diese\s+woche)\b',
+                    r'\b(in\s+der\s+nähe|nahe|nah\s+bei\s+mir|um\s+mich\s+herum)\b'
+                ],
+                'ar': [
+                    r'\b(حدث|أحداث|حفل|مهرجان|معرض|عرض|فعالية|فعاليات)\b',
+                    r'\b(ماذا\s+يحدث|ما\s+الموجود|نشاطات|أنشطة)\b',
+                    r'\b(الليلة|اليوم|هذا\s+الأسبوع|نهاية\s+الأسبوع)\b',
+                    r'\b(قريب|قريب\s+مني|بالقرب|حولي|في\s+المنطقة)\b'
                 ]
             },
             'needs_weather': {
                 'en': [
-                    r'\b(weather|rain|sunny|temperature|forecast|cold|hot)\b',
+                    r'\b(weather|rain|sunny|temperature|forecast|cold|hot|warm|humid)\b',
                     r'\b(should\s+i\s+bring|what\s+to\s+wear)\b',
                     r'\b(umbrella|jacket|outdoor|indoor)\b'
                 ],
                 'tr': [
-                    r'\b(hava\s+durumu|yağmur|güneşli|sıcaklık|tahmin)\b',
+                    r'\b(hava\s+durumu|hava|yağmur|güneşli|sıcaklık|tahmin|soğuk|sıcak)\b',
                     r'\b(ne\s+giysem|şemsiye|mont)\b',
                     r'\b(dışarı|içeri|açık\s+hava)\b'
+                ],
+                'ru': [
+                    r'\b(погода|температура|дождь|солнечно|облачно|прогноз|холодно|жарко|тепло)\b',
+                    r'\b(что\s+надеть|зонт|куртка)\b'
+                ],
+                'de': [
+                    r'\b(wetter|temperatur|regen|sonnig|bewölkt|vorhersage|kalt|heiß|warm)\b',
+                    r'\b(was\s+soll\s+ich\s+anziehen|regenschirm|jacke)\b'
+                ],
+                'ar': [
+                    r'\b(طقس|الطقس|درجة\s+الحرارة|حرارة|مطر|مشمس|غائم|توقعات|بارد|حار|دافئ|جو|الجو)\b',
+                    r'\b(ماذا\s+أرتدي|مظلة|سترة)\b',
+                    r'\b(اليوم|غداً|الأسبوع)\b'
                 ]
             },
             'needs_hidden_gems': {

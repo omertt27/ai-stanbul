@@ -77,8 +77,8 @@ RESTAURANT_KEYWORDS: Dict[str, List[str]] = {
 TRANSPORTATION_KEYWORDS: Dict[str, List[str]] = {
     "en": [
         "metro", "bus", "tram", "ferry", "taxi", "uber", "transport",
-        "how to get", "directions", "route", "travel", "commute",
-        "istanbulkart", "public transport", "subway", "train"
+        "how to get", "how do i get", "how can i get", "directions", "route", "travel", "commute",
+        "istanbulkart", "public transport", "subway", "train", "get to", "go to"
     ],
     "tr": [
         "metro", "otobüs", "tramvay", "vapur", "taksi", "ulaşım",
@@ -148,8 +148,8 @@ WEATHER_KEYWORDS: Dict[str, List[str]] = {
         "kalt", "heiß", "warm"
     ],
     "ar": [
-        "طقس", "درجة الحرارة", "مطر", "مشمس", "غائم", "توقعات",
-        "بارد", "حار", "دافئ"
+        "طقس", "الطقس", "درجة الحرارة", "مطر", "مشمس", "غائم", "توقعات",
+        "بارد", "حار", "دافئ", "جو", "الجو"
     ]
 }
 
@@ -334,8 +334,15 @@ def detect_intent_multilingual(query: str, language: str = None) -> tuple:
     """
     Detect intent from query using multilingual keywords.
     
+    Supports 5 languages: English (en), Turkish (tr), Russian (ru), German (de), Arabic (ar)
+    
     ALWAYS checks ALL languages to handle cases like "merhaba" (Turkish word
     with no special characters that would be detected as English).
+    
+    Language detection priority:
+    1. If query contains clear script-specific characters, detect that language
+    2. If query starts with common language-specific patterns, prefer that language
+    3. Otherwise, use keyword-based detection with English as tiebreaker
     
     Args:
         query: User query
@@ -345,6 +352,89 @@ def detect_intent_multilingual(query: str, language: str = None) -> tuple:
         (intent, confidence, matched_keywords, detected_language)
     """
     query_lower = query.lower()
+    
+    # =================================================================
+    # STEP 1: Detect language from script/characters
+    # =================================================================
+    
+    # Turkish special characters
+    turkish_chars = set('çğıİöşüÇĞÖŞÜ')
+    has_turkish_chars = any(c in turkish_chars for c in query)
+    
+    # Russian Cyrillic characters
+    russian_chars = set('абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ')
+    has_russian_chars = any(c in russian_chars for c in query)
+    
+    # German special characters (umlauts and ß)
+    german_chars = set('äöüßÄÖÜ')
+    has_german_chars = any(c in german_chars for c in query)
+    
+    # Arabic script characters
+    arabic_chars = set('ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأإؤئى')
+    has_arabic_chars = any(c in arabic_chars for c in query)
+    
+    # =================================================================
+    # STEP 2: Common sentence patterns by language
+    # =================================================================
+    
+    # English patterns
+    english_patterns = [
+        'how do i', 'how can i', 'how to', 'what is', 'what are', 'where is', 'where are',
+        'can you', 'could you', 'please', 'i want', 'i need', 'show me', 'tell me',
+        'give me', 'find me', 'get me', 'help me', 'which', 'when is', 'when does',
+        'is there', 'are there', 'do you', 'does it', 'will it', 'would you'
+    ]
+    has_english_pattern = any(query_lower.startswith(p) or f' {p}' in query_lower for p in english_patterns)
+    
+    # Turkish patterns
+    turkish_patterns = [
+        'nasıl', 'nerede', 'ne zaman', 'hangi', 'kaç', 'kim', 'neden', 'niçin',
+        'var mı', 'göster', 'bana', 'istiyorum', 'gitmek', 'giderim', 'gidebilirim'
+    ]
+    has_turkish_pattern = any(p in query_lower for p in turkish_patterns)
+    
+    # Russian patterns
+    russian_patterns = [
+        'как', 'где', 'когда', 'какой', 'сколько', 'кто', 'почему', 'зачем',
+        'есть ли', 'покажи', 'мне', 'хочу', 'могу'
+    ]
+    has_russian_pattern = any(p in query_lower for p in russian_patterns)
+    
+    # German patterns
+    german_patterns = [
+        'wie', 'wo', 'wann', 'welche', 'wieviel', 'wer', 'warum', 'weshalb',
+        'gibt es', 'zeig mir', 'ich möchte', 'kann ich', 'ich will'
+    ]
+    has_german_pattern = any(p in query_lower for p in german_patterns)
+    
+    # Arabic patterns (these will be in Arabic script)
+    arabic_patterns = [
+        'كيف', 'أين', 'متى', 'أي', 'كم', 'من', 'لماذا', 'ماذا',
+        'هل يوجد', 'أرني', 'أريد', 'أستطيع'
+    ]
+    has_arabic_pattern = any(p in query for p in arabic_patterns)
+    
+    # =================================================================
+    # STEP 3: Determine default language based on detected patterns
+    # =================================================================
+    
+    # Priority: Script detection > Pattern detection > Hint > English default
+    if has_arabic_chars:
+        default_lang = 'ar'
+    elif has_russian_chars:
+        default_lang = 'ru'
+    elif has_turkish_chars or has_turkish_pattern:
+        default_lang = 'tr'
+    elif has_german_chars or has_german_pattern:
+        default_lang = 'de'
+    elif has_english_pattern:
+        default_lang = 'en'
+    elif has_arabic_pattern:
+        default_lang = 'ar'
+    elif has_russian_pattern:
+        default_lang = 'ru'
+    else:
+        default_lang = language or 'en'
     
     # Define intent priority order
     intents = [
@@ -362,7 +452,10 @@ def detect_intent_multilingual(query: str, language: str = None) -> tuple:
     best_intent = None
     best_score = 0
     best_matches = []
-    detected_lang = language or 'en'
+    detected_lang = default_lang  # Start with default language
+    
+    # Track scores by language
+    lang_scores = {}
     
     for intent_name, keyword_map in intents:
         # ALWAYS check ALL languages - don't filter by detected language
@@ -371,11 +464,45 @@ def detect_intent_multilingual(query: str, language: str = None) -> tuple:
             keywords = keyword_map.get(lang, [])
             matches = [kw for kw in keywords if kw.lower() in query_lower]
             
+            # Track language scores
+            if lang not in lang_scores:
+                lang_scores[lang] = 0
+            lang_scores[lang] += len(matches)
+            
             if len(matches) > best_score:
                 best_score = len(matches)
                 best_intent = intent_name
                 best_matches = matches
                 detected_lang = lang  # Update detected language based on match
+    
+    # POST-PROCESSING: If script/pattern was detected but keyword matched a different language,
+    # prefer the script/pattern-based detection - it's more reliable
+    
+    # Script-based languages are VERY strong signals (Arabic, Russian, Turkish chars)
+    if has_arabic_chars and detected_lang != 'ar':
+        detected_lang = 'ar'
+    elif has_russian_chars and detected_lang != 'ru':
+        detected_lang = 'ru'
+    elif has_turkish_chars and detected_lang != 'tr':
+        detected_lang = 'tr'
+    # Pattern-based detection for Latin script languages
+    elif has_german_pattern and detected_lang not in ['de', 'en']:
+        # German pattern like "wie komme ich" is a strong signal
+        # Only keep non-German if it has 3x more keyword matches
+        de_score = lang_scores.get('de', 0)
+        other_score = lang_scores.get(detected_lang, 0)
+        if other_score < 3 or (de_score > 0 and other_score < de_score * 3):
+            detected_lang = 'de'
+    elif has_english_pattern and detected_lang != 'en':
+        # English sentence pattern is a strong signal - override keyword-based detection
+        # unless the other language has overwhelming evidence (3x or more matches)
+        en_score = lang_scores.get('en', 0)
+        other_score = lang_scores.get(detected_lang, 0)
+        
+        # English patterns like "How do I" are very strong signals
+        # Only keep non-English if it has 3x more keyword matches
+        if other_score < 3 or (en_score > 0 and other_score < en_score * 3):
+            detected_lang = 'en'
     
     # Calculate confidence based on matches
     confidence = min(best_score * 0.3, 1.0) if best_score > 0 else 0.0
