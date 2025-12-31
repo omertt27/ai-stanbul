@@ -327,10 +327,10 @@ class OSRMRoutingService:
     
     def __del__(self):
         """Cleanup on deletion"""
-        if self.session and not self.session.closed:
+        if hasattr(self, 'session') and self.session and not self.session.closed:
             try:
                 asyncio.create_task(self.session.close())
-            except:
+            except Exception:
                 pass
 
 

@@ -278,8 +278,9 @@ class ABTestMetricsCollector:
     def __del__(self):
         """Flush on destruction"""
         try:
-            self.flush()
-        except:
+            if hasattr(self, 'flush'):
+                self.flush()
+        except Exception:
             pass
 
 

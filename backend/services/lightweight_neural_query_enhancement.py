@@ -25,28 +25,38 @@ import hashlib
 logger = logging.getLogger(__name__)
 
 # Lightweight ML imports (all budget-friendly)
+# Singleton pattern for spaCy model to avoid multiple loads
+_spacy_nlp = None
+SPACY_AVAILABLE = False
+
 try:
     import spacy
     try:
-        nlp = spacy.load("en_core_web_sm")  # Only 12MB model
+        _spacy_nlp = spacy.load("en_core_web_sm")  # Only 12MB model
         SPACY_AVAILABLE = True
         logger.info("✅ spaCy NLP with en_core_web_sm model loaded successfully")
     except OSError:
-        SPACY_AVAILABLE = False
-        nlp = None
+        _spacy_nlp = None
         logger.info("ℹ️  spaCy model not found. Install with: python -m spacy download en_core_web_sm")
 except ImportError:
-    SPACY_AVAILABLE = False
-    nlp = None
+    _spacy_nlp = None
     logger.info("ℹ️  spaCy not installed - using rule-based NLP fallback")
 
+# Singleton for TextBlob (lazy import pattern)
+_textblob_class = None
+TEXTBLOB_AVAILABLE = False
+
 try:
-    from textblob import TextBlob  # Lightweight sentiment analysis
+    from textblob import TextBlob as _TextBlobClass
+    _textblob_class = _TextBlobClass
     TEXTBLOB_AVAILABLE = True
     logger.info("✅ TextBlob sentiment analysis loaded successfully")
 except ImportError:
-    TEXTBLOB_AVAILABLE = False
     logger.info("ℹ️  TextBlob not installed - using basic sentiment analysis")
+
+# Alias for backward compatibility
+nlp = _spacy_nlp
+TextBlob = _textblob_class
 
 try:
     from sklearn.feature_extraction.text import TfidfVectorizer
@@ -394,7 +404,7 @@ class LightweightNeuralProcessor:
     
     async def _analyze_sentiment(self, query: str) -> Tuple[str, float]:
         """Analyze sentiment using TextBlob"""
-        if not TEXTBLOB_AVAILABLE:
+        if not TEXTBLOB_AVAILABLE or TextBlob is None:
             return 'neutral', 0.0
         
         try:

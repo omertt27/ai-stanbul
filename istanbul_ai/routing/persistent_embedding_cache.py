@@ -343,9 +343,9 @@ class PersistentEmbeddingCache:
     def __del__(self):
         """Save cache on object destruction"""
         try:
-            if self.auto_save and len(self.cache) > 0:
+            if hasattr(self, 'auto_save') and hasattr(self, 'cache') and self.auto_save and len(self.cache) > 0:
                 self.save_to_disk()
-        except:
+        except Exception:
             pass
 
 

@@ -13,8 +13,21 @@ from enum import Enum
 import asyncio
 import json
 from datetime import datetime, timedelta
-from bs4 import BeautifulSoup
-import aiohttp
+
+# Optional scraper dependencies
+try:
+    from bs4 import BeautifulSoup
+    BS4_AVAILABLE = True
+except ImportError:
+    BS4_AVAILABLE = False
+    BeautifulSoup = None
+
+try:
+    import aiohttp
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    AIOHTTP_AVAILABLE = False
+    aiohttp = None
 
 # Import route maker service to access OpenStreetMap data
 try:
