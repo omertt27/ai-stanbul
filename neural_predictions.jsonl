@@ -2532,3 +2532,4 @@
 {"timestamp": "2025-11-08T23:43:00.759991", "query": "I love art and photography. Where should I go in Istanbul?", "intent": "neighborhoods", "confidence": 0.417, "latency_ms": 23.01, "high_confidence": false}
 {"timestamp": "2025-11-08T23:43:00.784098", "query": "I'm traveling with kids aged 5 and 8. What activities are family-friendly?", "intent": "local_tips", "confidence": 0.3288, "latency_ms": 23.34, "high_confidence": false}
 {"timestamp": "2025-11-08T23:43:00.806529", "query": "What's the best way to spend an evening in Istanbul?", "intent": "weather", "confidence": 0.761, "latency_ms": 21.59, "high_confidence": true}
+{"timestamp": "2025-12-31T23:44:43.397325", "query": "test message", "intent": "local_tips", "confidence": 0.9975, "latency_ms": 377.76, "high_confidence": true}

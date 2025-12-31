@@ -19,7 +19,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' 
 const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
 
 // Pure LLM API endpoints
-const API_URL = `${cleanBaseUrl}/api/chat`;  // Pure LLM chat endpoint
+const API_URL = `${cleanBaseUrl}/api/v1/chat`;  // Pure LLM chat endpoint
 // STREAMING NOT IMPLEMENTED IN BACKEND YET
 // const STREAM_API_URL = `${cleanBaseUrl}/api/stream`;  // Streaming endpoint
 const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/v2/restaurants`; // ✅ Fixed: correct endpoint
@@ -177,9 +177,12 @@ export const fetchUnifiedChat = async (query, options = {}) => {
         user_id: userId
       };
       
-      // Add GPS location if available (backend expects user_location)
+      // Add GPS location if available (backend expects user_location with lat/lon)
       if (gpsLocation) {
-        requestBody.user_location = gpsLocation;
+        requestBody.user_location = {
+          lat: gpsLocation.lat || gpsLocation.latitude,
+          lon: gpsLocation.lon || gpsLocation.lng || gpsLocation.longitude
+        };
       }
       
       const response = await fetchWithRetry(API_URL, {
@@ -586,7 +589,7 @@ export const planJourneyFromGPS = async (gpsLat, gpsLng, destination, options = 
 // Health check utility
 export const checkApiHealth = async () => {
   try {
-    const healthUrl = `${cleanBaseUrl}/api/health`;
+    const healthUrl = `${cleanBaseUrl}/health`;
     const response = await fetchWithRetry(healthUrl, {
       method: 'GET',
       timeout: 5000
@@ -796,7 +799,7 @@ export const fetchUnifiedChatV2 = async (query, options = {}) => {
 // Streaming Chat API (Real-time responses)
 // ============================================
 
-const STREAM_API_URL = `${cleanBaseUrl}/api/stream`;
+const STREAM_API_URL = `${cleanBaseUrl}/api/v1/chat`;  // Fixed: correct endpoint without duplicate /chat
 console.log('🌊 Streaming API URL configured:', STREAM_API_URL);
 
 /**
@@ -856,7 +859,7 @@ export const fetchStreamingChat = async (message, options = {}) => {
       fetchOptions.signal = signal;
     }
 
-    const response = await fetch(`${STREAM_API_URL}/chat`, fetchOptions);
+    const response = await fetch(STREAM_API_URL, fetchOptions);  // Fixed: removed duplicate /chat
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

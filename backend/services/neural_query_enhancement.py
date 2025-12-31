@@ -86,25 +86,28 @@ try:
     # Try to load spacy model
     try:
         nlp = spacy.load("en_core_web_sm")
+        logger.info("✅ spaCy NLP with en_core_web_sm model loaded successfully")
     except OSError:
         try:
             nlp = spacy.load("en_core_web_md")
+            logger.info("✅ spaCy NLP with en_core_web_md model loaded successfully")
         except OSError:
             SPACY_AVAILABLE = False
             nlp = None
-            print("⚠️  No spaCy model available. Install with: python -m spacy download en_core_web_sm")
+            logger.info("ℹ️  No spaCy model available. Install with: python -m spacy download en_core_web_sm")
 except ImportError:
     SPACY_AVAILABLE = False
     nlp = None
-    print("⚠️  spaCy not available")
+    logger.info("ℹ️  spaCy not installed")
 
 try:
     from textblob import TextBlob
     TEXTBLOB_AVAILABLE = True
+    logger.info("✅ TextBlob sentiment analysis loaded successfully")
 except ImportError:
     TEXTBLOB_AVAILABLE = False
     TextBlob = None
-    print("⚠️  TextBlob not available")
+    logger.info("ℹ️  TextBlob not installed")
 
 if not ADVANCED_ML_AVAILABLE and _ml_import_error:
     print(f"⚠️  ML dependencies not available: {_ml_import_error}")

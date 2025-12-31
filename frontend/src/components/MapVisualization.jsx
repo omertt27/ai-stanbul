@@ -159,9 +159,22 @@ const MapVisualization = ({
     }
   }, [selectedRouteIndex]);
 
-  if (!mapData) {
-    return null;
-  }
+  // Wrap rendering in try-catch for better error handling
+  try {
+    if (!mapData) {
+      console.log('MapVisualization: No mapData provided');
+      return null;
+    }
+
+    // Validate mapData structure
+    if (typeof mapData !== 'object') {
+      console.error('MapVisualization: mapData must be an object, received:', typeof mapData);
+      return (
+        <div className="map-error" style={{ padding: '20px', textAlign: 'center', color: '#d32f2f' }}>
+          Invalid map data format
+        </div>
+      );
+    }
 
   // Extract data from mapData
   const {
@@ -427,7 +440,12 @@ const MapVisualization = ({
           )}
 
           {/* Draw markers - Moovit-style minimal design */}
-          {markers && markers.map((marker, idx) => {
+          {markers && Array.isArray(markers) && markers.map((marker, idx) => {
+            // Validate marker object
+            if (!marker || typeof marker !== 'object') {
+              console.warn(`Invalid marker at index ${idx}:`, marker);
+              return null;
+            }
             if (!marker.lat || !marker.lon) return null;
             
             const position = [marker.lat, marker.lon];
@@ -597,6 +615,22 @@ const MapVisualization = ({
       `}</style>
     </div>
   );
+  } catch (err) {
+    console.error('MapVisualization rendering error:', err);
+    setError(err.message);
+    return (
+      <div className="map-error" style={{ 
+        padding: '20px', 
+        textAlign: 'center', 
+        color: '#d32f2f',
+        background: '#ffebee',
+        borderRadius: '8px',
+        margin: '10px'
+      }}>
+        <strong>Map Error:</strong> {err.message || 'Failed to render map'}
+      </div>
+    );
+  }
 };
 
 export default MapVisualization;

@@ -59,10 +59,10 @@ try:
     import geopandas
     import shapely
     GEO_UTILITIES_AVAILABLE = True
-    logger.info("✅ Advanced geo utilities available")
+    logger.info("✅ Advanced geo utilities (GeoPandas, Geopy, Shapely) loaded successfully")
 except ImportError as e:
     GEO_UTILITIES_AVAILABLE = False
-    logger.warning(f"⚠️ Advanced geo utilities not available: {e}")
+    logger.info(f"ℹ️  Advanced geo utilities not installed: {e}")
 
 # Import our enhanced Istanbul AI system with deep learning capabilities
 from istanbul_daily_talk_system import IstanbulDailyTalkAI, ConversationTone, UserProfile
@@ -269,7 +269,17 @@ app = FastAPI(
 # Add middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://istanbul-ai.com"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:3003",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002",
+        "http://127.0.0.1:3003",
+        "https://istanbul-ai.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

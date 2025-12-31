@@ -25,17 +25,19 @@ try:
     import spacy
     from spacy.language import Language
     SPACY_AVAILABLE = True
+    logger.info("✅ spaCy NLP library loaded successfully")
 except ImportError:
     SPACY_AVAILABLE = False
-    logger.warning("⚠️ spaCy not installed. Install with: pip install spacy")
+    logger.info("ℹ️  spaCy not installed. Install with: pip install spacy")
 
 # Try to import language detection
 try:
     from langdetect import detect, detect_langs
     LANGDETECT_AVAILABLE = True
+    logger.info("✅ Language detection loaded successfully")
 except ImportError:
     LANGDETECT_AVAILABLE = False
-    logger.warning("⚠️ langdetect not installed")
+    logger.info("ℹ️  langdetect not installed")
 
 
 class IntentType(str, Enum):

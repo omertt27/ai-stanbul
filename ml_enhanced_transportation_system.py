@@ -83,11 +83,11 @@ try:
     import lightgbm as lgb
     XGBOOST_AVAILABLE = True
     LIGHTGBM_AVAILABLE = True
-    logger.info("✅ XGBoost and LightGBM available for crowding prediction")
-except ImportError:
+    logger.info("✅ XGBoost and LightGBM available for advanced crowding prediction")
+except ImportError as e:
     XGBOOST_AVAILABLE = False
     LIGHTGBM_AVAILABLE = False
-    logger.warning("⚠️ XGBoost/LightGBM not available, using basic crowding prediction")
+    logger.info(f"ℹ️  XGBoost/LightGBM not installed - using basic crowding prediction: {e}")
 
 # Weather integration
 try:

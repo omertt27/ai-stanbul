@@ -39,10 +39,11 @@ try:
     import lightgbm as lgb
     XGBOOST_AVAILABLE = True
     LIGHTGBM_AVAILABLE = True
-except ImportError:
+    logger.info("✅ XGBoost and LightGBM ML libraries loaded successfully")
+except ImportError as e:
     XGBOOST_AVAILABLE = False
     LIGHTGBM_AVAILABLE = False
-    logger.warning("⚠️ XGBoost/LightGBM not available, using pattern-based prediction")
+    logger.info(f"ℹ️  XGBoost/LightGBM not installed - using pattern-based prediction fallback: {e}")
 
 try:
     from sklearn.preprocessing import StandardScaler

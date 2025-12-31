@@ -104,7 +104,7 @@ class IBBRealTimeAPI:
         
         logger.info(f"🌐 İBB Real-Time API initialized (Live APIs: {self.use_live_apis})")
         if not self.api_key or self.api_key == 'your_ibb_api_key_here':
-            logger.warning("⚠️ İBB API key not configured - using fallback mode")
+            logger.info("ℹ️  İBB API key not configured - using fallback mode with simulated data")
     
     async def get_metro_real_time_data(self) -> Dict[str, Any]:
         """Get real-time metro data from İBB Open Data Portal"""
