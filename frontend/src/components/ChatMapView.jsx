@@ -79,7 +79,7 @@ const userLocationIcon = L.divIcon({
 });
 
 // Auto-fit bounds component (updated to include user location and routes)
-const AutoFitBounds = ({ locations, userLocation, routePolyline }) => {
+const AutoFitBounds = ({ locations, userLocation, routePolyline, routes }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -95,16 +95,27 @@ const AutoFitBounds = ({ locations, userLocation, routePolyline }) => {
       allPoints.push([userLocation.lat, userLocation.lng]);
     }
     
-    // Add route polyline points if available
+    // Add route polyline points if available (legacy single route)
     if (routePolyline && routePolyline.length > 0) {
       routePolyline.forEach(point => allPoints.push([point.lat, point.lng]));
+    }
+    
+    // Add all routes if available (new multi-route support)
+    if (routes && routes.length > 0) {
+      routes.forEach(route => {
+        if (route.coordinates && route.coordinates.length > 0) {
+          route.coordinates.forEach(coord => {
+            allPoints.push([coord.lat, coord.lng]);
+          });
+        }
+      });
     }
     
     if (allPoints.length > 0) {
       const leafletBounds = L.latLngBounds(allPoints);
       map.fitBounds(leafletBounds, { padding: [50, 50], maxZoom: 15 });
     }
-  }, [locations, userLocation, routePolyline, map]);
+  }, [locations, userLocation, routePolyline, routes, map]);
 
   return null;
 };
@@ -115,8 +126,20 @@ const ChatMapView = ({ mapData, darkMode = false, showRoute = true, showUserLoca
 
   // Extract data from map_data
   const locations = mapData?.locations || [];
-  const routePolyline = mapData?.route_polyline || null; // Route path for transportation directions
+  const markers = mapData?.markers || []; // NEW: Support for route markers from backend
+  const routePolyline = mapData?.route_polyline || null; // Legacy single route support
+  const routes = mapData?.routes || []; // NEW: Support for multiple routes
   const center = mapData?.center || { lat: 41.0082, lon: 28.9784 }; // Istanbul center as fallback
+  
+  // Combine locations and markers for display
+  const allMarkers = [...locations, ...markers.map(m => ({
+    lat: m.lat,
+    lon: m.lon,
+    type: m.type || 'poi',
+    title: m.title || m.label,
+    description: m.description,
+    metadata: { color: m.color }
+  }))];
   
   // Determine tile layer based on theme
   const tileUrl = darkMode
@@ -136,8 +159,8 @@ const ChatMapView = ({ mapData, darkMode = false, showRoute = true, showUserLoca
     );
   };
 
-  // Get unique location types from current locations
-  const availableTypes = [...new Set(locations.map(loc => loc.type))];
+  // Get unique location types from current locations and markers
+  const availableTypes = [...new Set(allMarkers.map(loc => loc.type))];
   
   // Filter type configurations
   const filterConfig = {
@@ -155,7 +178,7 @@ const ChatMapView = ({ mapData, darkMode = false, showRoute = true, showUserLoca
     destination: { icon: '🏁', label: 'End', color: '#ef4444' }
   };
 
-  if (!locations || locations.length === 0) {
+  if (!allMarkers || allMarkers.length === 0) {
     return (
       <div style={{
         padding: '20px',
@@ -192,13 +215,40 @@ const ChatMapView = ({ mapData, darkMode = false, showRoute = true, showUserLoca
         />
         
         <AutoFitBounds 
-          locations={locations} 
+          locations={allMarkers} 
           userLocation={showUserLocation && hasLocation ? currentLocation : null}
           routePolyline={routePolyline}
+          routes={routes}
         />
         
-        {/* Route Polyline - Transportation directions route */}
-        {routePolyline && routePolyline.length > 0 && (
+        {/* Multiple Routes - NEW: Support for multiple transportation routes */}
+        {routes && routes.length > 0 && routes.map((route, index) => (
+          <Polyline
+            key={`route-${index}`}
+            positions={route.coordinates.map(coord => [coord.lat, coord.lng])}
+            pathOptions={{
+              color: route.color || '#3b82f6',
+              weight: route.weight || 4,
+              opacity: route.opacity || 0.8,
+              dashArray: route.isMain ? undefined : '10, 5',
+              lineJoin: 'round',
+              lineCap: 'round'
+            }}
+          >
+            {route.description && (
+              <Popup>
+                <div style={{ padding: '8px', textAlign: 'center' }}>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '600' }}>
+                    {route.description}
+                  </h4>
+                </div>
+              </Popup>
+            )}
+          </Polyline>
+        ))}
+        
+        {/* Route Polyline - Legacy single route support */}
+        {routePolyline && routePolyline.length > 0 && routes.length === 0 && (
           <Polyline
             positions={routePolyline.map(point => [point.lat, point.lng])}
             pathOptions={{
@@ -213,9 +263,9 @@ const ChatMapView = ({ mapData, darkMode = false, showRoute = true, showUserLoca
         )}
         
         {/* Route Visualization - Simple path between multiple locations (not for transportation) */}
-        {showRoute && !routePolyline && locations.length > 1 && (
+        {showRoute && !routePolyline && routes.length === 0 && allMarkers.length > 1 && (
           <Polyline
-            positions={locations.map(loc => [loc.lat, loc.lon])}
+            positions={allMarkers.map(loc => [loc.lat, loc.lon])}
             pathOptions={{
               color: '#8a2be2',
               weight: 3,
@@ -247,7 +297,7 @@ const ChatMapView = ({ mapData, darkMode = false, showRoute = true, showUserLoca
         )}
         
         {/* Location Markers - Filtered */}
-        {locations
+        {allMarkers
           .filter(loc => activeFilters.includes(loc.type))
           .map((location, idx) => (
           <Marker 
