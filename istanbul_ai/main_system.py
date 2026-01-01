@@ -278,7 +278,13 @@ class IstanbulDailyTalkAI:
             'response_generator': self.response_generator,
             'neural_processor': getattr(self, 'neural_processor', None),
             'ml_context_builder': getattr(self, 'ml_context_builder', None),
-            'bilingual_manager': self.bilingual_manager  # 🌐 Pass bilingual manager to handlers
+            'bilingual_manager': self.bilingual_manager,  # 🌐 Pass bilingual manager to handlers
+            # GPS and transportation services
+            'gps_route_service': getattr(self, 'gps_route_service', None),
+            'gps_location_service': getattr(self, 'gps_location_service', None),
+            'llm_service': getattr(self, 'llm_service', None),
+            'transportation_chat': getattr(self, 'transportation_chat', None),
+            'weather_service': getattr(self, 'weather_client', None)  # Alias for compatibility
         }
         
         handler_initializer = HandlerInitializer()
@@ -754,6 +760,15 @@ class IstanbulDailyTalkAI:
                 session_id = self.user_manager.start_conversation(user_id)
             
             context = self.user_manager.get_conversation_context(session_id)
+            
+            # Add GPS location to context if available (for GPS Route Service)
+            if location_updated and user_profile.current_location:
+                if hasattr(context, '__dict__'):
+                    context.gps_location = {
+                        'latitude': user_profile.current_location[0],
+                        'longitude': user_profile.current_location[1]
+                    }
+                    logger.debug(f"📍 GPS location added to context")
             
             # 🌐 Store detected language in context for handlers
             context.language = detected_language

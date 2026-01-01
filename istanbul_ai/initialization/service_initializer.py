@@ -67,6 +67,7 @@ class ServiceInitializer:
         self.services['museum_route_planner'] = self._init_museum_route_planner()
         self.services['gps_route_planner'] = self._init_gps_route_planner()
         self.services['advanced_route_planner'] = self._init_advanced_route_planner()
+        self.services['gps_route_service'] = self._init_gps_route_service()
         
         # Weather
         self.services['weather_client'] = self._init_weather_client()
@@ -81,6 +82,9 @@ class ServiceInitializer:
         # GPS and LLM integration
         self.services['gps_location_service'] = self._init_gps_location_service()
         self.services['llm_service'] = self._init_llm_service()
+        
+        # Transportation RAG System (for advanced route finding)
+        self.services['transportation_rag'] = self._init_transportation_rag()
         
         logger.info(f"✅ Service initialization complete: {self._get_success_count()}/{len(self.services)} services initialized")
         
@@ -349,6 +353,19 @@ class ServiceInitializer:
             self._record_error('advanced_route_planner', e, warning=True)
             return None
     
+    def _init_gps_route_service(self) -> Optional[Any]:
+        """Initialize GPS Route Service for location-based routing"""
+        try:
+            from istanbul_ai.services.gps_route_service import GPSRouteService
+            # Pass transport processor if available for enhanced routing
+            transport_processor = self.services.get('transport_processor')
+            service = GPSRouteService(transport_processor=transport_processor)
+            self._record_success('gps_route_service', "🗺️ GPS Route Service")
+            return service
+        except ImportError as e:
+            self._record_error('gps_route_service', e, warning=True)
+            return None
+    
     # ============================================================================
     # WEATHER
     # ============================================================================
@@ -503,3 +520,14 @@ class ServiceInitializer:
             True if service is initialized and available
         """
         return self.services.get(service_name) is not None
+    
+    def _init_transportation_rag(self) -> Optional[Any]:
+        """Initialize Transportation RAG System for advanced route finding"""
+        try:
+            from backend.services.transportation_rag_system import get_transportation_rag
+            service = get_transportation_rag()
+            self._record_success('transportation_rag', "🚇 Transportation RAG System")
+            return service
+        except Exception as e:
+            self._record_error('transportation_rag', e, "🚇 Transportation RAG System")
+            return None

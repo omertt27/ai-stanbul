@@ -36,6 +36,8 @@ class GPSRouteService:
         """
         self.transport_processor = transport_processor
         self.location_service = self._load_location_service()
+        self.entity_extractor = self._load_entity_extractor()
+        self.transportation_rag = self._load_transportation_rag()
         logger.info("✅ GPS Route Service initialized")
     
     def _load_location_service(self):
@@ -49,6 +51,17 @@ class GPSRouteService:
             logger.warning(f"⚠️ Location Database Service not available: {e}")
             return None
     
+    def _load_entity_extractor(self):
+        """Load the comprehensive entity extractor for Istanbul locations."""
+        try:
+            from backend.services.entity_extractor import get_entity_extractor
+            extractor = get_entity_extractor()
+            logger.info("✅ Comprehensive Entity Extractor loaded in GPS Route Service")
+            return extractor
+        except Exception as e:
+            logger.warning(f"⚠️ Entity Extractor not available: {e}")
+            return None
+    
     def generate_route_response(
         self,
         message: str,
@@ -58,6 +71,7 @@ class GPSRouteService:
     ) -> str:
         """
         Generate a GPS-aware route response based on user location.
+        Now integrates with Transportation RAG system for comprehensive routing.
         
         Args:
             message: User's query message
@@ -69,11 +83,11 @@ class GPSRouteService:
             Formatted route response with GPS-aware directions
         """
         try:
-            logger.info("🗺️ Generating GPS-aware route response")
+            logger.info("🗺️ Generating GPS-aware route response with RAG Transportation")
             
             # Extract GPS coordinates
             user_gps = self._extract_user_gps(user_profile, context)
-            destination = self._extract_destination(entities, context)
+            destination = self._extract_destination(entities, context, message)
             
             # Check if we have GPS data
             if not user_gps:
@@ -83,7 +97,14 @@ class GPSRouteService:
             if not destination:
                 return self._generate_no_destination_response(user_gps)
             
-            # Generate route with GPS awareness
+            # Try to use Transportation RAG system first
+            rag_route = self._get_rag_route(user_gps, destination, message)
+            if rag_route:
+                logger.info("✅ Using Transportation RAG system for route")
+                return rag_route
+            
+            # Fallback to traditional GPS route
+            logger.info("⚠️ RAG route not available, using traditional GPS route")
             return self._generate_detailed_route(user_gps, destination, user_profile, context)
             
         except Exception as e:
@@ -101,7 +122,7 @@ class GPSRouteService:
             lat = context.gps_location.get('latitude')
             lon = context.gps_location.get('longitude')
             if lat and lon:
-                logger.info(f"📍 Using GPS from context: {format_gps_coordinates(lat, lon)}")
+                logger.info(f"📍 Using GPS from context: {format_gps_coordinates((lat, lon))}")
                 return (lat, lon)
         
         # Try user profile
@@ -109,7 +130,7 @@ class GPSRouteService:
             lat = user_profile.gps_location.get('latitude')
             lon = user_profile.gps_location.get('longitude')
             if lat and lon:
-                logger.info(f"📍 Using GPS from profile: {format_gps_coordinates(lat, lon)}")
+                logger.info(f"📍 Using GPS from profile: {format_gps_coordinates((lat, lon))}")
                 return (lat, lon)
         
         logger.warning("⚠️ No GPS coordinates found in context or profile")
@@ -118,18 +139,72 @@ class GPSRouteService:
     def _extract_destination(
         self,
         entities: Dict[str, Any],
-        context: ConversationContext
+        context: ConversationContext,
+        message: Optional[str] = None
     ) -> Optional[str]:
-        """Extract destination from entities or context."""
-        # Try entities first
+        """
+        Extract destination from entities, context, or using comprehensive entity extractor.
+        This ensures we catch destinations even when patterns don't match.
+        """
+        destination = None
+        
+        # Try various entity keys
+        # First check for direct destination/location
         destination = entities.get('destination') or entities.get('location')
         
-        # Try context
+        # If not found, check to_location (from entity extractor)
+        if not destination:
+            destination = entities.get('to_location')
+            if destination:
+                logger.info(f"🎯 Destination from to_location: {destination}")
+        
+        # If not found, check districts (common for Istanbul queries)
+        if not destination:
+            districts = entities.get('districts', [])
+            if districts and len(districts) > 0:
+                # Use the last district mentioned (usually the destination in "from X to Y" queries)
+                destination = districts[-1] if len(districts) > 1 else districts[0]
+                logger.info(f"🎯 Destination from districts: {destination}")
+        
+        # If not found, check attractions
+        if not destination:
+            attractions = entities.get('attractions', [])
+            if attractions and len(attractions) > 0:
+                destination = attractions[-1] if len(attractions) > 1 else attractions[0]
+                logger.info(f"🎯 Destination from attractions: {destination}")
+        
+        # If not found, check locations list
+        if not destination:
+            locations = entities.get('locations', [])
+            if locations and len(locations) > 0:
+                destination = locations[-1] if len(locations) > 1 else locations[0]
+                logger.info(f"🎯 Destination from locations: {destination}")
+        
+        # If still not found and we have the message, use comprehensive entity extractor
+        if not destination and message and self.entity_extractor:
+            try:
+                logger.info("🔍 Using comprehensive entity extractor as fallback...")
+                extracted = self.entity_extractor.extract_entities(message, intent='transportation')
+                
+                # Check to_location first
+                if extracted.get('to_location'):
+                    destination = extracted['to_location']
+                    logger.info(f"✅ Entity extractor found to_location: {destination}")
+                # Then check locations
+                elif extracted.get('locations') and len(extracted['locations']) > 0:
+                    destination = extracted['locations'][-1]
+                    logger.info(f"✅ Entity extractor found location: {destination}")
+            except Exception as e:
+                logger.warning(f"⚠️ Entity extractor fallback failed: {e}")
+        
+        # Try context as last resort
         if not destination and hasattr(context, 'last_location'):
             destination = context.last_location
         
         if destination:
-            logger.info(f"🎯 Destination extracted: {destination}")
+            logger.info(f"🎯 Final destination extracted: {destination}")
+        else:
+            logger.warning("⚠️ No destination found in entities, context, or entity extractor")
         
         return destination
     

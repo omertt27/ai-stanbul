@@ -371,7 +371,7 @@ const MapVisualization = ({
       {/* Leaflet Map */}
       <div style={{ height, width: '100%', borderRadius: routes?.length > 0 || transport_lines?.length > 0 ? '0' : '8px 8px 0 0', overflow: 'hidden' }}>
         <MapContainer
-          center={defaultCenter}
+          center={[center.lat, center.lon || center.lng || 28.9784]}
           zoom={zoom}
           style={{ height: '100%', width: '100%' }}
           zoomControl={true}

@@ -433,18 +433,12 @@ class HandlerInitializer:
             except Exception as e:
                 logger.warning(f"💎 Hidden Gems Context Service not available: {e}")
             
-            # Initialize RAG Vector Service
-            rag_service = None
-            try:
-                from ml_systems.rag_vector_service import get_rag_service
-                rag_service = get_rag_service(rebuild=False)
-                if rag_service and rag_service.available:
-                    logger.info("🤖 RAG Vector Service initialized for transportation")
-                else:
-                    logger.warning("🤖 RAG Vector Service not available")
-                    rag_service = None
-            except Exception as e:
-                logger.warning(f"🤖 RAG Vector Service initialization failed: {e}")
+            # Initialize Transportation RAG System (for route finding)
+            rag_service = services.get('transportation_rag')
+            if rag_service:
+                logger.info("🚇 Transportation RAG System initialized for transportation handler")
+            else:
+                logger.warning("🚇 Transportation RAG System not available")
                 rag_service = None
             
             # Get feature flags

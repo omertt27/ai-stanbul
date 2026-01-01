@@ -2533,3 +2533,18 @@
 {"timestamp": "2025-11-08T23:43:00.784098", "query": "I'm traveling with kids aged 5 and 8. What activities are family-friendly?", "intent": "local_tips", "confidence": 0.3288, "latency_ms": 23.34, "high_confidence": false}
 {"timestamp": "2025-11-08T23:43:00.806529", "query": "What's the best way to spend an evening in Istanbul?", "intent": "weather", "confidence": 0.761, "latency_ms": 21.59, "high_confidence": true}
 {"timestamp": "2025-12-31T23:44:43.397325", "query": "test message", "intent": "local_tips", "confidence": 0.9975, "latency_ms": 377.76, "high_confidence": true}
+{"timestamp": "2026-01-01T14:45:40.114797", "query": "show me the best attractions and landmarks in istanbul", "intent": "events", "confidence": 0.9269, "latency_ms": 309.83, "high_confidence": true}
+{"timestamp": "2026-01-01T14:45:44.738211", "query": "more options", "intent": "local_tips", "confidence": 0.7404, "latency_ms": 27.81, "high_confidence": false}
+{"timestamp": "2026-01-01T14:45:47.677583", "query": "show on map", "intent": "local_tips", "confidence": 0.9969, "latency_ms": 22.21, "high_confidence": true}
+{"timestamp": "2026-01-01T14:47:49.738220", "query": "how can i go to taksim from my location", "intent": "local_tips", "confidence": 0.9946, "latency_ms": 70.25, "high_confidence": true}
+{"timestamp": "2026-01-01T14:49:39.512463", "query": "show me route from kadikoy to taksim", "intent": "local_tips", "confidence": 0.9981, "latency_ms": 31.14, "high_confidence": true}
+{"timestamp": "2026-01-01T15:32:00.820453", "query": "how can I go to Kadıköy from my location", "intent": "neighborhoods", "confidence": 0.8903, "latency_ms": 1011.81, "high_confidence": true}
+{"timestamp": "2026-01-01T15:53:51.061185", "query": "how can I go to Kadıköy from my location", "intent": "neighborhoods", "confidence": 0.8903, "latency_ms": 686.44, "high_confidence": true}
+{"timestamp": "2026-01-01T16:14:34.084708", "query": "how can I go to Kadıköy from Sultanahmet", "intent": "transportation", "confidence": 0.6425, "latency_ms": 338.5, "high_confidence": false}
+{"timestamp": "2026-01-01T16:21:39.135419", "query": "how can I go to Kadıköy from Sultanahmet", "intent": "transportation", "confidence": 0.6425, "latency_ms": 227.54, "high_confidence": false}
+{"timestamp": "2026-01-01T16:26:23.839815", "query": "how can I go to Kadıköy from Sultanahmet", "intent": "transportation", "confidence": 0.6425, "latency_ms": 260.41, "high_confidence": false}
+{"timestamp": "2026-01-01T16:33:40.817337", "query": "how can I go to Kadıköy from Sultanahmet", "intent": "transportation", "confidence": 0.6425, "latency_ms": 294.72, "high_confidence": false}
+{"timestamp": "2026-01-01T16:36:31.197582", "query": "how can I go to Kadıköy from Sultanahmet", "intent": "transportation", "confidence": 0.6425, "latency_ms": 134.44, "high_confidence": false}
+{"timestamp": "2026-01-01T16:49:36.160605", "query": "how can I go to Kadıköy from Sultanahmet", "intent": "transportation", "confidence": 0.6425, "latency_ms": 223.21, "high_confidence": false}
+{"timestamp": "2026-01-01T16:51:38.101966", "query": "how can I go to Kadıköy from Sultanahmet", "intent": "transportation", "confidence": 0.6425, "latency_ms": 219.8, "high_confidence": false}
+{"timestamp": "2026-01-01T16:53:21.236833", "query": "how can I go to Kadikoy from Sultanahmet", "intent": "attraction", "confidence": 0.5137, "latency_ms": 131.71, "high_confidence": false}

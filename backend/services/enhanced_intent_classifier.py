@@ -160,11 +160,18 @@ class EnhancedIntentClassifier:
         return {
             IntentType.TRANSPORTATION: {
                 'primary': [
-                    (r'\b(how to get|how do i get|way to get|directions to)\b', 0.9),
+                    (r'\b(how to get|how do i get|how can i get|way to get|directions to)\b', 0.9),
                     (r'\b(metro|subway|tram|bus|ferry|taxi|uber|dolmus)\b', 0.8),
                     (r'\b(transport|transportation|travel to|go to)\b', 0.8),
                     (r'\b(from .* to|between .* and)\b', 0.7),
-                    (r'\b(M1|M2|M3|M4|T1|T2|Line)\b', 0.9)
+                    (r'\b(M1|M2|M3|M4|T1|T2|Line)\b', 0.9),
+                    # Route planning patterns (GPS + destination)
+                    (r'\b(from (my location|here|current location))\b', 0.85),
+                    (r'\b(to .*(from my location|from here))\b', 0.85),
+                    (r'\b(how (can|do) i (get|go) to)\b', 0.85),
+                    (r'\b(route to|navigate to|take me to)\b', 0.9),
+                    # Istanbul destinations (high confidence for route planning)
+                    (r'\b(kadıköy|kadikoy|taksim|sultanahmet|beşiktaş|besiktas|beyoğlu|beyoglu|üsküdar|uskudar|ortaköy|ortakoy)\b', 0.75)
                 ],
                 'secondary': [
                     (r'\b(distance|duration|time|cost|price)\b', 0.4),

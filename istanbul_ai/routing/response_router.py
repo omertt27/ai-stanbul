@@ -848,15 +848,38 @@ class ResponseRouter:
         ml_handler = handlers.get('ml_route_planning_handler')
         if ml_handler:
             try:
-                response = ml_handler.handle_route_query(
-                    message, entities, user_profile, context
-                )
-                return response
+                # Import asyncio to run async handler
+                import asyncio
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If event loop is running, we need to create a task
+                    # For now, skip ML handler in async context
+                    logger.debug("Skipping ML handler in running event loop")
+                else:
+                    response = loop.run_until_complete(
+                        ml_handler.handle_route_query(message, user_profile, context)
+                    )
+                    return response
             except Exception as e:
                 logger.warning(f"ML Route Planning Handler failed: {e}")
         
         # Route to specific planning handler based on intent
         if intent == 'gps_route_planning':
+            # Use transportation handler for GPS/navigation queries
+            transportation_handler = handlers.get('transportation_handler')
+            if transportation_handler:
+                try:
+                    logger.info("📍 Routing GPS query to Transportation Handler")
+                    response = transportation_handler.handle(
+                        message, entities, user_profile, context, neural_insights
+                    )
+                    return response
+                except Exception as e:
+                    logger.warning(f"Transportation handler failed: {e}")
+                    import traceback
+                    logger.debug(traceback.format_exc())
+            
+            # Fallback to legacy GPS handler if available
             gps_handler = handlers.get('gps_route_response_handler')
             if gps_handler:
                 return gps_handler(message, entities, user_profile, context, neural_insights)

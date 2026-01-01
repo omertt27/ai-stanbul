@@ -46,7 +46,7 @@ os.environ['SENTENCE_TRANSFORMERS_HOME'] = os.path.expanduser('~/.cache/sentence
 # =============================================================================
 # Now import the modular app
 # =============================================================================
-from main_modular import app
+from backend.main_modular import app
 
 # Export for uvicorn (main:app)
 __all__ = ['app']
