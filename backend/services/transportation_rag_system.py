@@ -271,6 +271,12 @@ class TransitRoute:
     lines_used: List[str]
     alternatives: List['TransitRoute']  # Alternative routes
     time_confidence: str = "medium"  # 'high', 'medium', 'low' - data quality indicator
+    ranking_scores: Dict[str, float] = None  # Ranking scores (fastest, scenic, etc.)
+    
+    def __post_init__(self):
+        """Initialize ranking_scores if not provided"""
+        if self.ranking_scores is None:
+            self.ranking_scores = {}
     
 class IstanbulTransportationRAG:
     """
@@ -286,21 +292,29 @@ class IstanbulTransportationRAG:
     def __init__(self, redis_client=None):
         """Initialize the transportation knowledge base"""
         self.stations = self._build_station_graph()
+        self.station_graph = self.stations  # Alias for backward compatibility
         self.routes = self._build_route_patterns()
         self.neighborhoods = self._build_neighborhood_stations()
         self.station_aliases = self._build_station_aliases()
         self.last_route = None  # Store last computed route for mapData extraction
         
         # Initialize travel time database for weighted routing
-        from services.transportation_travel_times import get_travel_time_database
+        try:
+            from services.transportation_travel_times import get_travel_time_database
+        except ImportError:
+            from backend.services.transportation_travel_times import get_travel_time_database
         self.travel_time_db = get_travel_time_database()
         
         # Week 2 Improvement: Station/Line ID normalization
-        from services.transportation_station_normalization import get_station_normalizer
+        try:
+            from services.transportation_station_normalization import get_station_normalizer
+        except ImportError:
+            from backend.services.transportation_station_normalization import get_station_normalizer
         self.station_normalizer = get_station_normalizer()
         
         # Week 1 Improvement #3: Route caching
         self.redis = redis_client
+        self.redis_client = redis_client  # Alias for backward compatibility
         self.route_cache_ttl = 86400  # 24 hours
         self.cache_hits = 0
         self.cache_misses = 0
@@ -383,10 +397,12 @@ class IstanbulTransportationRAG:
             "taksim square": ["M2-Taksim"],
             "taksim meydani": ["M2-Taksim"],
             
-            # Kadıköy area - includes Ayrılık Çeşmesi for Marmaray transfer
-            "kadikoy": ["M4-Kadıköy", "M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
-            "kadıköy": ["M4-Kadıköy", "M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
-            "kadıkoy": ["M4-Kadıköy", "M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
+            # Kadıköy area - PRIMARY destination is M4-Kadıköy station
+            # Only include the actual Kadıköy station, not intermediate transfer points
+            "kadikoy": ["M4-Kadıköy"],
+            "kadıköy": ["M4-Kadıköy"],
+            "kadıkoy": ["M4-Kadıköy"],
+            # Ayrılık Çeşmesi is a separate transfer station, not Kadıköy
             "ayrilik cesmesi": ["M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
             "ayrılık çeşmesi": ["M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
             
@@ -592,7 +608,10 @@ class IstanbulTransportationRAG:
         stations = {}
         
         # Import the canonical station normalizer
-        from services.transportation_station_normalization import get_station_normalizer
+        try:
+            from services.transportation_station_normalization import get_station_normalizer
+        except ImportError:
+            from backend.services.transportation_station_normalization import get_station_normalizer
         normalizer = get_station_normalizer()
         
         # Build station graph from canonical data
@@ -757,6 +776,15 @@ class IstanbulTransportationRAG:
         destination_normalized = destination.lower().strip()
         
         # =================================================================
+        # CHECK FOR DEPRECATED STATIONS (e.g., Atatürk Airport)
+        # =================================================================
+        deprecated_check = self._check_deprecated_stations(origin_normalized, destination_normalized)
+        if deprecated_check:
+            logger.warning(f"⚠️ Deprecated station detected: {deprecated_check}")
+            # Return a special route with deprecation message
+            return self._create_deprecation_route(origin, destination, deprecated_check)
+        
+        # =================================================================
         # WEEK 3 FIX #1: Destination Type Detection
         # =================================================================
         dest_info = get_destination_type(destination_normalized)
@@ -854,20 +882,29 @@ class IstanbulTransportationRAG:
             logger.warning(f"Could not find stations for {origin} or {destination}")
             return None
         
-        # Find best route - prioritize by time (like Google Maps), not just transfers
-        best_route = None
-        best_time = float('inf')
+        # Find best route - collect alternatives for ranking
+        all_routes = []
         
         for orig_station in origin_stations:
             for dest_station in dest_stations:
                 route = self._find_path(orig_station, dest_station, max_transfers)
                 if route:
-                    # Compare by total time (fastest route wins)
-                    # Dijkstra already optimizes for time, so this should give us the best route
-                    if route.total_time < best_time:
-                        best_route = route
-                        best_time = route.total_time
-                        logger.debug(f"Found better route: {orig_station} → {dest_station} in {route.total_time:.0f} min")
+                    all_routes.append(route)
+                    logger.debug(f"Found route: {orig_station} → {dest_station} in {route.total_time:.0f} min")
+        
+        if not all_routes:
+            logger.warning(f"No routes found between {origin} and {destination}")
+            return None
+        
+        # Rank routes by different criteria (fastest, scenic, etc.)
+        ranked_routes = self._rank_routes(all_routes, origin_gps)
+        
+        # Best route is the fastest (first in ranked list)
+        best_route = ranked_routes[0]
+        
+        # Add alternatives (top 3 routes)
+        if len(ranked_routes) > 1:
+            best_route.alternatives = ranked_routes[1:min(4, len(ranked_routes))]
         
         # Week 1 Improvement #3: Store in cache
         if use_cache and self.redis and best_route:
@@ -1252,13 +1289,18 @@ class IstanbulTransportationRAG:
     
     def _get_same_line_neighbors(self, station_id: str) -> List[str]:
         """
-        Get ADJACENT stations on the same line.
+        Get ONLY the physically adjacent stations on the same line.
         
-        CRITICAL FIX: Only return adjacent stations, not ALL stations on the line.
-        This prevents BFS from exploding exponentially.
+        CRITICAL: Returns only the immediate neighbors (1 stop before, 1 stop after),
+        NOT all stations on the line. This fixes the phantom stations issue.
         
-        IMPORTANT: Stations must be ordered by their physical position on the line,
-        not alphabetically! The canonical station normalizer provides this ordering.
+        SPECIAL HANDLING FOR FERRIES:
+        - Ferries are point-to-point connections, not linear routes
+        - Returns all ferry terminals on the same ferry network (direct connections)
+        - This allows ferry routes to be computed correctly
+        
+        The station normalizer provides stations in their correct physical sequence.
+        We use that ordering to find true adjacent stations.
         """
         if station_id not in self.stations:
             return []
@@ -1266,28 +1308,47 @@ class IstanbulTransportationRAG:
         current_line = self.stations[station_id].line
         neighbors = []
         
-        # Get stations in physical order from the station normalizer
-        # The normalizer stores stations in the correct physical sequence
-        line_station_ids = self.station_normalizer.get_stations_on_line_in_order(current_line)
+        # SPECIAL CASE: Ferry connections
+        if current_line.upper() == "FERRY":
+            # For ferries, return all other ferry terminals as direct neighbors
+            # This is because ferries are point-to-point, not sequential
+            for other_id, other_station in self.stations.items():
+                if (other_station.line.upper() == "FERRY" and 
+                    other_id != station_id):
+                    neighbors.append(other_id)
+            logger.debug(f"🛳️ Ferry {station_id} has {len(neighbors)} direct connections")
+            return neighbors
         
-        if not line_station_ids:
-            # Fallback: try using geographical proximity (longitude for east-west lines)
-            line_stations = [(sid, st) for sid, st in self.stations.items() if st.line == current_line]
-            # Sort by longitude (west to east) - this is a reasonable approximation
-            line_stations.sort(key=lambda x: x[1].lon)
-            line_station_ids = [sid for sid, _ in line_stations]
-        
-        # Find current station's index
         try:
-            current_idx = line_station_ids.index(station_id)
-        except ValueError:
-            return []
-        
-        # Add adjacent stations (prev and next on the line)
-        if current_idx > 0:
-            neighbors.append(line_station_ids[current_idx - 1])
-        if current_idx < len(line_station_ids) - 1:
-            neighbors.append(line_station_ids[current_idx + 1])
+            # Get stations on this line from the canonical normalizer
+            # The normalizer stores stations in the correct physical sequence
+            line_station_ids = self.station_normalizer.get_stations_on_line_in_order(current_line)
+            
+            if not line_station_ids:
+                # Fallback: get all stations on this line (shouldn't happen)
+                logger.warning(f"No ordered stations found for line {current_line}, using fallback")
+                line_stations = [(sid, st) for sid, st in self.stations.items() if st.line == current_line]
+                # Sort by longitude (west to east) - this is a reasonable approximation
+                line_stations.sort(key=lambda x: x[1].gps[1] if x[1].gps else 0)
+                line_station_ids = [sid for sid, _ in line_stations]
+            
+            # Find current station's position in the ordered list
+            try:
+                current_idx = line_station_ids.index(station_id)
+                
+                # Add previous station (if exists)
+                if current_idx > 0:
+                    neighbors.append(line_station_ids[current_idx - 1])
+                
+                # Add next station (if exists)
+                if current_idx < len(line_station_ids) - 1:
+                    neighbors.append(line_station_ids[current_idx + 1])
+                    
+            except ValueError:
+                logger.warning(f"Station {station_id} not found in ordered list for line {current_line}")
+                
+        except Exception as e:
+            logger.error(f"Error getting same-line neighbors for {station_id}: {e}")
         
         return neighbors
     
@@ -1341,6 +1402,13 @@ class IstanbulTransportationRAG:
         if not path or len(path) < 2:
             return None
         
+        # Debug: Log the path for ferry routes
+        origin_station = self.stations[path[0]]
+        dest_station = self.stations[path[-1]]
+        if any(self.stations[sid].line.upper() == "FERRY" for sid in path):
+            logger.info(f"🛳️ Building ferry route: {origin_station.name} → {dest_station.name}")
+            logger.info(f"   Path ({len(path)} stations): {' → '.join([self.stations[sid].name for sid in path])}")
+        
         steps = []
         current_line = self.stations[path[0]].line
         segment_start = 0
@@ -1370,6 +1438,10 @@ class IstanbulTransportationRAG:
                 start_station = self.stations[path[segment_start]]
                 end_station = self.stations[path[i-1]]
                 
+                # Calculate stops (don't count origin, no stops for ferry)
+                stops_count = i - segment_start - 1
+                is_ferry = current_line.upper() == "FERRY"
+                
                 steps.append({
                     "instruction": f"Take {current_line} from {start_station.name} to {end_station.name}",
                     "line": current_line,
@@ -1377,7 +1449,8 @@ class IstanbulTransportationRAG:
                     "to": end_station.name,
                     "duration": round(segment_time, 1),
                     "type": "transit",
-                    "stops": i - segment_start
+                    "stops": None if is_ferry else stops_count,
+                    "ferry_crossing": is_ferry
                 })
                 
                 # Add transfer step with transfer penalty
@@ -1397,7 +1470,7 @@ class IstanbulTransportationRAG:
                 
                 # Start new segment
                 current_line = station.line
-                segment_start = i - 1
+                segment_start = i  # Start from the CURRENT station (new line), not the previous one
                 segment_time = 0.0
             else:
                 # Continue on same line
@@ -1407,6 +1480,10 @@ class IstanbulTransportationRAG:
         start_station = self.stations[path[segment_start]]
         end_station = self.stations[path[-1]]
         
+        # Calculate stops (don't count origin, no stops for ferry)
+        final_stops_count = len(path) - segment_start - 1
+        is_ferry_final = current_line.upper() == "FERRY"
+        
         steps.append({
             "instruction": f"Take {current_line} from {start_station.name} to {end_station.name}",
             "line": current_line,
@@ -1414,11 +1491,48 @@ class IstanbulTransportationRAG:
             "to": end_station.name,
             "duration": round(segment_time, 1),
             "type": "transit",
-            "stops": len(path) - segment_start
+            "stops": None if is_ferry_final else final_stops_count,
+            "ferry_crossing": is_ferry_final
         })
         
-        # Estimate distance based on actual travel time (1.5 km per 10 min avg)
-        total_distance = (total_time / 10.0) * 1.5
+        # IMPROVED: Calculate actual geographic distance by summing GPS distances
+        # SPECIAL HANDLING FOR FERRIES: use direct distance for single-segment ferry routes
+        total_distance = 0.0
+        
+        # Check if this is a single-segment ferry route
+        is_single_ferry_route = (
+            len(steps) == 1 and 
+            steps[0].get('ferry_crossing') and
+            len(path) >= 2
+        )
+        
+        if is_single_ferry_route:
+            # Use direct Haversine distance for ferry (not summed through intermediate stops)
+            station1 = self.stations.get(path[0])
+            station2 = self.stations.get(path[-1])
+            if station1 and station2:
+                total_distance = self._haversine_distance(
+                    station1.lat, station1.lon,
+                    station2.lat, station2.lon
+                )
+                logger.info(f"🛳️ Ferry direct distance: {total_distance:.2f} km "
+                           f"({station1.name} → {station2.name})")
+        else:
+            # Sum distances between consecutive stations for normal routes
+            for i in range(len(path) - 1):
+                station1 = self.stations.get(path[i])
+                station2 = self.stations.get(path[i + 1])
+                
+                if station1 and station2:
+                    segment_distance = self._haversine_distance(
+                        station1.lat, station1.lon,
+                        station2.lat, station2.lon
+                    )
+                    total_distance += segment_distance
+        
+        # Fallback if GPS calculation fails
+        if total_distance == 0:
+            total_distance = (total_time / 10.0) * 1.5
         
         # Determine overall confidence based on segment confidences
         if not overall_confidences:
@@ -1533,11 +1647,74 @@ class IstanbulTransportationRAG:
         start: TransitStation,
         end: TransitStation
     ) -> TransitRoute:
-        """Create route for direct connection (no transfers) on same line"""
-        # Calculate estimated time: ~2 minutes per station
-        # This is industry-standard estimation
-        estimated_stops = 5  # Rough estimate
-        duration = estimated_stops * 2
+        """
+        Create route for direct connection (no transfers) on same line.
+        Uses actual station ordering to calculate correct stop count.
+        NOW WITH TRANSPORT-TYPE-SPECIFIC TIMING!
+        """
+        # Get the canonical ordering of stations on this line
+        line_stations = self.station_normalizer.get_stations_on_line_in_order(start.line)
+        
+        # Find indices of start and end stations
+        start_idx = None
+        end_idx = None
+        
+        for idx, station_id in enumerate(line_stations):
+            station = self.stations.get(station_id)
+            if station:
+                if station.name == start.name:
+                    start_idx = idx
+                if station.name == end.name:
+                    end_idx = idx
+        
+        # Calculate stop count (don't count origin)
+        if start_idx is not None and end_idx is not None:
+            stops = abs(end_idx - start_idx)
+        else:
+            # Fallback if we can't find the stations (shouldn't happen)
+            stops = 5
+        
+        # Get actual travel time from database
+        travel_time, confidence = self.travel_time_db.get_travel_time(
+            f"{start.line}-{start.name}",
+            f"{end.line}-{end.name}",
+            default=0.0  # Return 0 if no data, don't use fallback
+        )
+        
+        # If no data, estimate based on stops AND transport type
+        if travel_time == 0 or confidence == "low":
+            # Transport-type-specific timing rules
+            line = start.line.upper()
+            
+            if line == "FERRY":
+                # Ferry: Fixed schedules, typically 15-20 min per route
+                # Ferries don't have "stops" in the traditional sense
+                travel_time = max(15, stops * 3.0)  # Minimum 15 min, ~3 min between piers
+                confidence = "medium"
+            elif line == "MARMARAY":
+                # Marmaray: High-speed rail, ~2.5-3 min per stop
+                travel_time = stops * 2.8
+                confidence = "medium"
+            elif line.startswith("M"):  # Metro lines
+                # Metro: ~2-2.5 min per stop
+                travel_time = stops * 2.3
+                confidence = "medium"
+            elif line.startswith("T"):  # Tram lines
+                # Tram: Slower due to street traffic, ~2.5-3 min per stop
+                travel_time = stops * 2.7
+                confidence = "medium"
+            elif line == "F":  # Funicular
+                # Funicular: Usually short, fast trips
+                travel_time = max(2, stops * 1.5)
+                confidence = "medium"
+            else:
+                # Default fallback
+                travel_time = stops * 2.5
+                confidence = "low"
+            
+            # Add minimum time constraint (no route under 2 min unless same station)
+            if stops > 0:
+                travel_time = max(2, travel_time)
         
         steps = [
             {
@@ -1545,25 +1722,131 @@ class IstanbulTransportationRAG:
                 "line": start.line,
                 "from": start.name,
                 "to": end.name,
-                "duration": duration,
+                "duration": round(travel_time, 1),
                 "type": "transit",
-                "stops": estimated_stops
+                "stops": stops if start.line.upper() != "FERRY" else None,  # Ferry: no stop count
+                "ferry_crossing": True if start.line.upper() == "FERRY" else False
             }
         ]
         
-        # Distance estimation: ~1.5 km per 10 minutes
-        distance = (duration / 10.0) * 1.5
+        # IMPROVED: Calculate actual geographic distance using GPS coordinates
+        # This gives much more accurate distance estimates
+        distance = self._calculate_route_distance(start, end, start_idx, end_idx, line_stations)
+        
+        # Ferry distance validation: Flag if ferry distance > 10km (likely a bug)
+        if start.line.upper() == "FERRY" and distance > 10.0:
+            logger.warning(f"⚠️ FERRY DISTANCE ANOMALY: {start.name} → {end.name} = {distance:.2f}km (>10km threshold)")
+            logger.warning(f"   This may indicate a polyline/Haversine calculation bug. Please review ferry route data.")
+        
+        # Fallback if GPS calculation fails
+        if distance == 0:
+            # Distance estimation based on transport type (fallback)
+            line = start.line.upper()
+            if line == "FERRY":
+                distance = max(2.0, stops * 0.8)
+            elif line == "MARMARAY":
+                distance = stops * 1.5
+            elif line.startswith("M"):
+                distance = stops * 1.1
+            elif line.startswith("T"):
+                distance = stops * 0.8
+            else:
+                distance = (travel_time / 10.0) * 1.5
         
         return TransitRoute(
             origin=start.name,
             destination=end.name,
-            total_time=duration,
-            total_distance=distance,
+            total_time=round(travel_time),
+            total_distance=round(distance, 2),
             steps=steps,
             transfers=0,
             lines_used=[start.line],
-            alternatives=[]
+            alternatives=[],
+            time_confidence=confidence
         )
+    
+    def _calculate_route_distance(
+        self,
+        start_station: TransitStation,
+        end_station: TransitStation,
+        start_idx: Optional[int],
+        end_idx: Optional[int],
+        line_stations: List[str]
+    ) -> float:
+        """
+        Calculate actual route distance by summing GPS distances between consecutive stations.
+        This gives accurate distance instead of time-based estimates.
+        
+        SPECIAL HANDLING FOR FERRIES:
+        - Ferries are point-to-point, not linear routes
+        - Use direct Haversine distance instead of summing through intermediate stations
+        
+        Returns:
+            Distance in kilometers
+        """
+        # Special case for ferries: use direct distance
+        if start_station.line.upper() == "FERRY":
+            return self._haversine_distance(
+                start_station.lat, start_station.lon,
+                end_station.lat, end_station.lon
+            )
+        
+        if start_idx is None or end_idx is None:
+            return 0.0
+        
+        # Ensure start_idx < end_idx
+        if start_idx > end_idx:
+            start_idx, end_idx = end_idx, start_idx
+        
+        total_distance = 0.0
+        
+        # Sum up distances between consecutive stations (for linear routes)
+        for i in range(start_idx, end_idx):
+            station1_id = line_stations[i]
+            station2_id = line_stations[i + 1]
+            
+            station1 = self.stations.get(station1_id)
+            station2 = self.stations.get(station2_id)
+            
+            if station1 and station2:
+                # Use Haversine formula to calculate distance
+                segment_distance = self._haversine_distance(
+                    station1.lat, station1.lon,
+                    station2.lat, station2.lon
+                )
+                total_distance += segment_distance
+        
+        return total_distance
+    
+    def _haversine_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """
+        Calculate distance between two GPS coordinates using Haversine formula.
+        
+        Args:
+            lat1, lon1: First point coordinates
+            lat2, lon2: Second point coordinates
+            
+        Returns:
+            Distance in kilometers
+        """
+        import math
+        
+        R = 6371  # Earth radius in km
+        
+        # Convert to radians
+        lat1_rad = math.radians(lat1)
+        lat2_rad = math.radians(lat2)
+        delta_lat = math.radians(lat2 - lat1)
+        delta_lon = math.radians(lon2 - lon1)
+        
+        # Haversine formula
+        a = math.sin(delta_lat / 2) ** 2 + \
+            math.cos(lat1_rad) * math.cos(lat2_rad) * \
+            math.sin(delta_lon / 2) ** 2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        
+        distance = R * c
+        return distance
     
     def _create_arrival_route(self, station: TransitStation) -> TransitRoute:
         """Create route for when origin and destination are the same"""
@@ -2202,6 +2485,135 @@ class IstanbulTransportationRAG:
             
         except Exception as e:
             logger.error(f"Cache invalidation error: {e}")
+    
+    def _rank_routes(self, routes: List[TransitRoute], origin_gps: Optional[Dict] = None) -> List[TransitRoute]:
+        """
+        Rank and sort routes by different criteria.
+        
+        Ranking heuristics:
+        1. Fastest: Lowest total_time
+        2. Least transfers: Fewest transfers, then by time
+        3. Scenic: Prefer ferry routes if time difference < 5 min
+        4. Cheapest: (For future: all routes cost same for now)
+        
+        Args:
+            routes: List of alternative routes
+            origin_gps: Optional GPS for distance-based ranking
+            
+        Returns:
+            Sorted list of routes with ranking metadata
+        """
+        if not routes:
+            return []
+        
+        # Make a copy to avoid modifying original
+        ranked_routes = routes.copy()
+        
+        # Add ranking scores
+        for route in ranked_routes:
+            # Default ranking criteria
+            route.ranking_scores = {
+                "fastest": route.total_time,  # Lower is better
+                "least_transfers": route.transfers * 100 + route.total_time,  # Penalize transfers heavily
+                "scenic": self._calculate_scenic_score(route),  # Higher is better (ferry bonus)
+            }
+        
+        # Sort by fastest (default)
+        ranked_routes.sort(key=lambda r: r.ranking_scores["fastest"])
+        
+        # Apply scenic heuristic: If a ferry route exists and is only 5 min slower, rank it higher
+        fastest_time = ranked_routes[0].total_time if ranked_routes else 0
+        for route in ranked_routes:
+            if self._has_ferry(route):
+                time_difference = route.total_time - fastest_time
+                if time_difference <= 5:
+                    # Boost this route in scenic ranking
+                    route.ranking_scores["scenic"] += 100
+                    logger.info(f"🌊 Scenic bonus applied to ferry route: {route.origin} → {route.destination} (only {time_difference} min slower)")
+        
+        return ranked_routes
+    
+    def _calculate_scenic_score(self, route: TransitRoute) -> float:
+        """
+        Calculate scenic score for a route.
+        
+        Scenic routes include:
+        - Ferry crossings (+50 points)
+        - Bosphorus views (+30 points)
+        - Historic tram T1 (+20 points)
+        - Funicular F1 (+10 points)
+        """
+        score = 0.0
+        
+        for step in route.steps:
+            line = step.get("line", "").upper()
+            if line == "FERRY":
+                score += 50
+            elif line == "T1":
+                score += 20
+            elif line == "F1":
+                score += 10
+        
+        # Penalize long routes (scenic routes should be reasonable)
+        if route.total_time > 60:
+            score -= (route.total_time - 60) * 0.5
+        
+        return score
+    
+    def _has_ferry(self, route: TransitRoute) -> bool:
+        """Check if route includes a ferry segment."""
+        return any(step.get("line", "").upper() == "FERRY" for step in route.steps)
+    
+    def _check_deprecated_stations(self, origin: str, destination: str) -> Optional[str]:
+        """
+        Check if origin or destination is a deprecated station (e.g., Atatürk Airport).
+        
+        Returns deprecation message if found, None otherwise.
+        """
+        # Check both origin and destination against canonical stations
+        for location_name in [origin, destination]:
+            # Try to find this location in the station normalizer
+            canonical_station = None
+            
+            # Check via station lookup
+            for station in self.station_normalizer.stations:
+                if (station.name_tr.lower() == location_name or 
+                    station.name_en.lower() == location_name or
+                    location_name in [v.lower() for v in station.name_variants]):
+                    canonical_station = station
+                    break
+            
+            # If found and deprecated, return the message
+            if canonical_station and canonical_station.deprecated:
+                return canonical_station.deprecation_message or f"⚠️ {canonical_station.name_en} is no longer in service."
+        
+        return None
+    
+    def _create_deprecation_route(self, origin: str, destination: str, message: str) -> TransitRoute:
+        """
+        Create a special route indicating a deprecated station.
+        
+        This provides helpful user-facing guidance instead of failing silently.
+        """
+        return TransitRoute(
+            origin=origin,
+            destination=destination,
+            total_time=0,
+            total_distance=0.0,
+            steps=[{
+                "instruction": message,
+                "line": "INFO",
+                "from": origin,
+                "to": destination,
+                "duration": 0,
+                "type": "info"
+            }],
+            transfers=0,
+            lines_used=[],
+            alternatives=[],
+            time_confidence="high"
+        )
+    
 
 # ==========================================
 # Singleton Pattern with Redis Integration
@@ -2226,7 +2638,10 @@ def get_transportation_rag():
     if _transportation_rag_singleton is None:
         import os
         import redis
-        from config.settings import settings
+        try:
+            from config.settings import settings
+        except ImportError:
+            from backend.config.settings import settings
         
         # Initialize Redis client for route caching
         redis_client = None

@@ -35,6 +35,8 @@ class CanonicalStation:
     lat: float
     lon: float
     transfers: List[str]  # List of line IDs for transfers
+    deprecated: bool = False  # True if station is closed/deprecated
+    deprecation_message: Optional[str] = None  # User-facing message for deprecated stations
 
 
 @dataclass
@@ -127,7 +129,7 @@ class StationNormalizer:
         lines["M1B"] = CanonicalLine("M1B", "M1B", "M1B Metro", "metro", "#B4277E", "Yenikapı-Kirazlı", "Yenikapı-Kirazlı")
         lines["M2"] = CanonicalLine("M2", "M2", "M2 Metro", "metro", "#00A650", "Yenikapı-Hacıosman", "Yenikapı-Hacıosman")
         lines["M3"] = CanonicalLine("M3", "M3", "M3 Metro", "metro", "#EF4136", "Kirazlı-Başakşehir", "Kirazlı-Başakşehir")
-        lines["M4"] = CanonicalLine("M4", "M4", "M4 Metro", "metro", "#FF6E1E", "Kadıköy-Tavşantepe", "Kadıköy-Tavşantepe")
+        lines["M4"] = CanonicalLine("M4", "M4", "M4 Metro", "metro", "#FF6E1E", "Kadıköy-Sabiha Gökçen", "Kadıköy-Sabiha Gökçen Airport")
         lines["M5"] = CanonicalLine("M5", "M5", "M5 Metro", "metro", "#8E3994", "Üsküdar-Çekmeköy", "Üsküdar-Çekmeköy")
         lines["M6"] = CanonicalLine("M6", "M6", "M6 Metro", "metro", "#D3A029", "Levent-Boğaziçi Üniversitesi", "Levent-Boğaziçi University")
         lines["M7"] = CanonicalLine("M7", "M7", "M7 Metro", "metro", "#E91E8C", "Mecidiyeköy-Mahmutbey", "Mecidiyeköy-Mahmutbey")
@@ -180,10 +182,18 @@ class StationNormalizer:
             ("Şirinevler", "Sirinevler", "sirinevler", ["sirinevler"], 41.0167, 28.8364, []),
             ("DTM-İstanbul Fuar Merkezi", "DTM-Istanbul Fair Center", "dtm", ["dtm", "fuar merkezi"], 40.9833, 28.8167, []),
             ("Yenibosna", "Yenibosna", "yenibosna", ["yenibosna"], 40.9756, 28.8278, []),
-            ("Atatürk Havalimanı", "Ataturk Airport", "ataturk_airport", ["ataturk airport", "atatürk airport", "airport", "havalimani", "havalimanı"], 40.9767, 28.8092, []),
+            ("Atatürk Havalimanı", "Ataturk Airport", "ataturk_airport", ["ataturk airport", "atatürk airport", "airport", "havalimani", "havalimanı"], 40.9767, 28.8092, [], True, "⚠️ Atatürk Airport is permanently closed. Please use Istanbul Airport (via M11 line) or Sabiha Gökçen Airport (via M4 line) instead."),
         ]
         
-        for name_tr, name_en, short_id, variants, lat, lon, transfers in m1a_stations:
+        for station_data in m1a_stations:
+            # Handle both old format (7 fields) and new format (9 fields with deprecation)
+            if len(station_data) == 9:
+                name_tr, name_en, short_id, variants, lat, lon, transfers, deprecated, deprecation_msg = station_data
+            else:
+                name_tr, name_en, short_id, variants, lat, lon, transfers = station_data
+                deprecated = False
+                deprecation_msg = None
+            
             stations.append(CanonicalStation(
                 canonical_id=f"M1A-{name_tr}",
                 station_id=short_id,
@@ -193,7 +203,9 @@ class StationNormalizer:
                 name_variants=variants,
                 lat=lat,
                 lon=lon,
-                transfers=transfers
+                transfers=transfers,
+                deprecated=deprecated,
+                deprecation_message=deprecation_msg
             ))
         
         # ==========================================
@@ -414,7 +426,7 @@ class StationNormalizer:
             ))
         
         # ==========================================
-        # M4 LINE (Kadıköy - Tavşantepe) - 23 stations
+        # M4 LINE (Kadıköy - Sabiha Gökçen Airport) - 24 stations
         # ==========================================
         m4_stations = [
             ("Kadıköy", "Kadikoy", "kadikoy", ["kadikoy"], 40.9903, 29.0275, ["FERRY"]),  # FIXED: Added FERRY transfer
@@ -440,6 +452,7 @@ class StationNormalizer:
             ("Fevzi Çakmak", "Fevzi Cakmak", "fevzi_cakmak", ["fevzi cakmak"], 40.8639, 29.2883, []),
             ("Güzelyalı", "Guzelyali", "guzelyali_m4", ["guzelyali"], 40.8600, 29.3019, []),
             ("Tavşantepe", "Tavsantepe", "tavsantepe", ["tavsantepe"], 40.8644, 29.3136, []),
+            ("Sabiha Gökçen Havalimanı", "Sabiha Gokcen Airport", "sabiha_gokcen", ["sabiha", "sabiha gokcen", "sabiha gökçen", "saw", "sabiha gokcen airport", "sabiha gökçen airport"], 40.8989, 29.3092, []),
         ]
         
         for name_tr, name_en, short_id, variants, lat, lon, transfers in m4_stations:

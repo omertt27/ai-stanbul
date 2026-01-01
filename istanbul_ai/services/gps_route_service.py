@@ -62,6 +62,231 @@ class GPSRouteService:
             logger.warning(f"⚠️ Entity Extractor not available: {e}")
             return None
     
+    def _load_transportation_rag(self):
+        """Load the Transportation RAG system for advanced routing."""
+        try:
+            from backend.services.transportation_rag_system import get_transportation_rag
+            rag = get_transportation_rag()
+            logger.info("✅ Transportation RAG System loaded in GPS Route Service")
+            return rag
+        except Exception as e:
+            logger.warning(f"⚠️ Transportation RAG not available: {e}")
+            return None
+    
+    def _get_rag_route(self, user_gps: tuple, destination: str, message: str) -> Optional[str]:
+        """
+        Get route using Transportation RAG system with LLM fallback.
+        This ensures we handle queries even when patterns don't match.
+        
+        Args:
+            user_gps: User's GPS coordinates (lat, lon)
+            destination: Destination name
+            message: Original user message for context
+            
+        Returns:
+            Formatted route response or None if RAG not available
+        """
+        try:
+            if not self.transportation_rag:
+                logger.info("⚠️ Transportation RAG not available")
+                return None
+            
+            lat, lon = user_gps
+            logger.info(f"🚇 Using Transportation RAG: ({lat}, {lon}) → {destination}")
+            
+            # Find nearest station to user
+            from_station = self.transportation_rag.find_nearest_station(lat, lon)
+            if not from_station:
+                logger.warning(f"⚠️ No nearby station found for GPS: ({lat}, {lon})")
+                return None
+            
+            logger.info(f"📍 Nearest station to user: {from_station}")
+            
+            # Use RAG's built-in route finding (it handles destination resolution internally)
+            logger.info(f"🚇 Finding route: {from_station} → {destination}")
+            route = self.transportation_rag.find_route(from_station, destination)
+            
+            if not route:
+                logger.warning(f"⚠️ No route found from {from_station} to {destination}")
+                return None
+            
+            logger.info(f"✅ Route found! {route.total_time} min, {route.transfers} transfers")
+            
+            # Format the route response
+            return self._format_rag_route_response(route, user_gps, from_station, destination)
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting RAG route: {e}", exc_info=True)
+            return None
+    
+    def _resolve_destination_with_rag(self, destination: str) -> Optional[str]:
+        """
+        Resolve unclear destination names to valid station names using RAG.
+        This handles cases where the user mentions a neighborhood or landmark.
+        
+        Args:
+            destination: User's destination query
+            
+        Returns:
+            Resolved station name or None
+        """
+        try:
+            if not self.transportation_rag:
+                return None
+            
+            # Normalize the destination
+            normalized_dest = self.transportation_rag._normalize_station_name(destination)
+            
+            # Search in station aliases (comprehensive list)
+            for alias, station in self.transportation_rag.station_aliases.items():
+                if normalized_dest in alias or alias in normalized_dest:
+                    logger.info(f"✅ Found destination via alias: {alias} → {station}")
+                    return station
+            
+            # Search in station names directly (partial match)
+            for station in self.transportation_rag.station_graph.keys():
+                normalized_station = self.transportation_rag._normalize_station_name(station)
+                if normalized_dest in normalized_station or normalized_station in normalized_dest:
+                    logger.info(f"✅ Found destination via partial match: {station}")
+                    return station
+            
+            logger.warning(f"❌ Could not resolve destination '{destination}' to any station")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error resolving destination: {e}")
+            return None
+    
+    def _format_rag_route_response(
+        self,
+        route: Any,
+        user_gps: tuple,
+        from_station: str,
+        destination: str
+    ) -> str:
+        """
+        Format Transportation RAG route into user-friendly response.
+        
+        Args:
+            route: Route object from Transportation RAG
+            user_gps: User's GPS coordinates
+            from_station: Nearest station to user
+            destination: Original destination name
+            
+        Returns:
+            Formatted route response with step-by-step directions
+        """
+        try:
+            lat, lon = user_gps
+            response_parts = []
+            
+            # Header
+            response_parts.append(f"🗺️ **Your Route to {destination}**")
+            response_parts.append(f"📍 From your location: {format_gps_coordinates((lat, lon))}\n")
+            
+            # Step 1: Get to nearest station
+            if self.transportation_rag and hasattr(self.transportation_rag, 'station_normalizer'):
+                try:
+                    station_info = self.transportation_rag.station_normalizer.stations.get(from_station, {})
+                    station_lat = station_info.get('lat')
+                    station_lon = station_info.get('lon')
+                    
+                    if station_lat and station_lon:
+                        # Calculate distance to station
+                        distance_to_station = calculate_distance(lat, lon, station_lat, station_lon)
+                        walk_time = estimate_walking_time(distance_to_station * 1000)
+                        
+                        response_parts.append(f"**Step 1: Get to {from_station}**")
+                        if distance_to_station <= 0.01:  # Very close (< 10m)
+                            response_parts.append(f"🎯 You're already at the station!")
+                        elif distance_to_station <= 1.5:  # Walkable
+                            response_parts.append(f"🚶 Walking distance: {distance_to_station:.2f} km (~{walk_time} min)")
+                        else:
+                            response_parts.append(f"🚕 Distance: {distance_to_station:.2f} km (consider taxi or bus)")
+                        response_parts.append("")
+                except Exception as e:
+                    logger.warning(f"Could not calculate distance to station: {e}")
+                    response_parts.append(f"**Step 1: Get to {from_station}**\n")
+            else:
+                response_parts.append(f"**Step 1: Get to {from_station}**\n")
+            
+            # Step 2: Transit route
+            response_parts.append(f"**Step 2: Public Transit Route**")
+            response_parts.append(f"🚇 **From**: {route.origin}")
+            response_parts.append(f"🎯 **To**: {route.destination}")
+            response_parts.append(f"⏱️ **Total time**: {route.total_time} minutes")
+            response_parts.append(f"📏 **Distance**: {route.total_distance:.1f} km")
+            
+            if route.transfers > 0:
+                response_parts.append(f"🔄 **Transfers**: {route.transfers}")
+            
+            # Lines used
+            if route.lines_used:
+                lines_str = ", ".join(route.lines_used)
+                response_parts.append(f"🚊 **Lines**: {lines_str}")
+            
+            response_parts.append("")
+            
+            # Step-by-step directions
+            if route.steps:
+                response_parts.append("**📋 Step-by-Step Directions:**")
+                for i, step in enumerate(route.steps, 1):
+                    step_type = step.get('type', 'transit')
+                    
+                    if step_type == 'transit':
+                        line = step.get('line', 'Unknown')
+                        from_stop = step.get('from', 'Start')
+                        to_stop = step.get('to', 'End')
+                        stops = step.get('stops', 0)
+                        duration = step.get('duration', 0)
+                        
+                        response_parts.append(f"\n{i}. 🚇 Take **{line}**")
+                        response_parts.append(f"   • Board at: {from_stop}")
+                        response_parts.append(f"   • Exit at: {to_stop}")
+                        response_parts.append(f"   • Stops: {stops} • Duration: {duration} min")
+                    
+                    elif step_type == 'transfer':
+                        from_line = step.get('from_line', 'line')
+                        to_line = step.get('to_line', 'next line')
+                        station = step.get('station', 'transfer station')
+                        duration = step.get('duration', 3)
+                        
+                        response_parts.append(f"\n{i}. 🔄 Transfer at **{station}**")
+                        response_parts.append(f"   • From {from_line} to {to_line}")
+                        response_parts.append(f"   • Transfer time: ~{duration} min")
+                    
+                    elif step_type == 'walk':
+                        distance = step.get('distance', 0)
+                        duration = step.get('duration', 0)
+                        
+                        response_parts.append(f"\n{i}. 🚶 Walk")
+                        response_parts.append(f"   • Distance: {distance:.2f} km")
+                        response_parts.append(f"   • Duration: ~{duration} min")
+            
+            # Travel tips
+            response_parts.append("\n\n💡 **Travel Tips:**")
+            response_parts.append("• Get an İstanbulkart for seamless travel across all transit")
+            response_parts.append("• Download Citymapper or Moovit for real-time updates")
+            response_parts.append(f"• Current time: {datetime.now().strftime('%H:%M')}")
+            
+            # Calculate estimated arrival
+            from datetime import timedelta
+            arrival_time = datetime.now() + timedelta(minutes=route.total_time)
+            response_parts.append(f"• Estimated arrival: {arrival_time.strftime('%H:%M')}")
+            
+            return "\n".join(response_parts)
+            
+        except Exception as e:
+            logger.error(f"Error formatting RAG route: {e}", exc_info=True)
+            # Fallback to simple format
+            return (
+                f"🗺️ **Route to {destination}**\n\n"
+                f"From {route.origin} to {route.destination}\n"
+                f"⏱️ Duration: {route.total_time} minutes\n"
+                f"🔄 Transfers: {route.transfers}\n"
+                f"🚊 Lines: {', '.join(route.lines_used)}"
+            )
+    
     def generate_route_response(
         self,
         message: str,
