@@ -138,17 +138,8 @@ except ImportError as e:
     GEOCODER_AVAILABLE = False
     logger.warning(f"⚠️ Istanbul Geocoder not available: {e}")
 
-# Import Route Cache System
-try:
-    try:
-        from .route_cache import RouteCacheManager
-    except ImportError:
-        from services.route_cache import RouteCacheManager
-    ROUTE_CACHE_AVAILABLE = True
-    logger.info("✅ Route Cache System available")
-except ImportError as e:
-    ROUTE_CACHE_AVAILABLE = False
-    logger.warning(f"⚠️ Route Cache System not available: {e}")
+# Note: Using general LLM system Redis cache - no specialized route cache needed
+ROUTE_CACHE_AVAILABLE = False
 
 
 def normalize_turkish(text: str) -> str:
@@ -555,8 +546,7 @@ class AIChatRouteHandler:
                     
                     return self._format_route_response(
                         cached_route,
-                        route_preferences,
-                        from_cache=True
+                        single=True
                     )
             except Exception as e:
                 logger.warning(f"Cache lookup error: {e}")
@@ -569,11 +559,14 @@ class AIChatRouteHandler:
         
         try:
             # Plan route using intelligent route integration
+            # Package routing_params into user_context for the route planner
+            context = dict(routing_params) if routing_params else {}
+            
             route = self.route_integration.plan_intelligent_route(
-                start_coords=start_coords,
-                end_coords=end_coords,
-                mode=transport_mode,
-                **routing_params
+                start=start_coords,
+                end=end_coords,
+                transport_mode=transport_mode,
+                user_context=context
             )
             
             if not route:
@@ -611,7 +604,7 @@ class AIChatRouteHandler:
                     logger.warning(f"Failed to cache route: {e}")
             
             # ========== STEP 4: FORMAT AND RETURN ==========
-            return self._format_route_response(route, route_preferences, from_cache=False)
+            return self._format_route_response(route, single=True)
             
         except Exception as e:
             logger.error(f"Route planning failed: {e}", exc_info=True)
