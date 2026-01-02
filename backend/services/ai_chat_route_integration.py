@@ -100,6 +100,40 @@ except ImportError as e:
     logger.warning(f"⚠️ GPS turn-by-turn navigation not available: {e}")
 
 
+def normalize_turkish(text: str) -> str:
+    """
+    Normalize Turkish characters to ASCII equivalents for better matching.
+    
+    Turkish special characters:
+    - ç → c
+    - ğ → g
+    - ı → i
+    - İ → i  
+    - ö → o
+    - ş → s
+    - ü → u
+    
+    Args:
+        text: Text with potentially Turkish characters
+        
+    Returns:
+        Normalized ASCII text
+    """
+    replacements = {
+        'ç': 'c', 'Ç': 'C',
+        'ğ': 'g', 'Ğ': 'G',
+        'ı': 'i', 'İ': 'I',
+        'ö': 'o', 'Ö': 'O',
+        'ş': 's', 'Ş': 'S',
+        'ü': 'u', 'Ü': 'U',
+    }
+    
+    for turkish_char, ascii_char in replacements.items():
+        text = text.replace(turkish_char, ascii_char)
+    
+    return text
+
+
 class AIChatRouteHandler:
     """
     AI Chat Route Handler
@@ -177,7 +211,7 @@ class AIChatRouteHandler:
                 logger.warning(f"⚠️ Could not initialize multi-stop planner: {e}")
                 MULTI_STOP_AVAILABLE = False
     
-    def handle_route_request(
+    async def handle_route_request(
         self,
         message: str,
         user_context: Optional[Dict[str, Any]] = None
@@ -201,7 +235,7 @@ class AIChatRouteHandler:
             logger.info(f"❌ [ROUTE HANDLER] Not a route request, returning None")
             return None
         
-        logger.info(f"✅ [ROUTE HANDLER] Detected as route request!")
+        logger.info(f"✅ [ROUTE HANDLER] Detected as route request! Proceeding with location extraction...")
         
         # Check if it's a multi-stop request
         is_multi_stop = self._is_multi_stop_request(message)
@@ -249,15 +283,15 @@ class AIChatRouteHandler:
         route_preferences = None
         if LLM_PREFERENCES_AVAILABLE:
             try:
-                import asyncio
-                route_preferences = asyncio.run(detect_route_preferences(
+                # FIXED: Use await instead of asyncio.run() since we're already in async context
+                route_preferences = await detect_route_preferences(
                     query=message,
                     user_profile=user_context.get('preferences') if user_context else None,
                     route_context={
                         'locations': locations,
                         'transport_mode': self._detect_transport_mode(message)
                     }
-                ))
+                )
                 logger.info(f"🎯 Detected route preferences: {route_preferences.get_summary()}")
             except Exception as e:
                 logger.warning(f"⚠️ Could not extract route preferences: {e}")
@@ -473,8 +507,9 @@ class AIChatRouteHandler:
         Returns:
             List of coordinate tuples in journey order
         """
-        message_lower = message.lower().strip()
-        logger.info(f"🔍 Starting location extraction from: '{message_lower}'")
+        # Normalize Turkish characters before processing
+        message_normalized = normalize_turkish(message.lower().strip())
+        logger.info(f"🔍 Starting location extraction from: '{message_normalized}'")
         
         # PATTERN 1: "to Y from X" - destination before origin
         # Examples: "to taksim from kadikoy", "go to galata from sultanahmet", "how can I go to X from Y"
@@ -486,16 +521,17 @@ class AIChatRouteHandler:
         ]
         
         for pattern in to_from_patterns:
-            match = re.search(pattern, message_lower, re.IGNORECASE)
+            match = re.search(pattern, message_normalized, re.IGNORECASE)
             if match:
                 logger.info(f"✅ Matched to-from pattern: {pattern}")
                 dest_str = match.group(1).strip()
                 origin_str = match.group(2).strip()
-                logger.info(f"   Raw: origin='{origin_str}', dest='{dest_str}'")
+                logger.info(f"   Raw extracted: origin='{origin_str}', dest='{dest_str}'")
                 
                 # Clean up common noise words
                 origin_str = self._clean_location_string(origin_str)
                 dest_str = self._clean_location_string(dest_str)
+                logger.info(f"   After cleaning: origin='{origin_str}', dest='{dest_str}'")
                 
                 origin_coords = self._find_best_location_match(origin_str)
                 dest_coords = self._find_best_location_match(dest_str)
@@ -503,6 +539,8 @@ class AIChatRouteHandler:
                 if origin_coords and dest_coords:
                     logger.info(f"✅ Extracted route (to-from): {origin_str} → {dest_str}")
                     return [origin_coords, dest_coords]
+                else:
+                    logger.warning(f"⚠️ Failed to find coords: origin={origin_coords}, dest={dest_coords}")
         
         # PATTERN 2: "from X to Y" - traditional direction pattern
         # Examples: "from sultanahmet to galata", "route from X to Y", "directions from A to B"
@@ -514,7 +552,7 @@ class AIChatRouteHandler:
         ]
         
         for pattern in from_to_patterns:
-            match = re.search(pattern, message_lower, re.IGNORECASE)
+            match = re.search(pattern, message_normalized, re.IGNORECASE)
             if match:
                 origin_str = match.group(1).strip()
                 dest_str = match.group(2).strip()
@@ -532,7 +570,7 @@ class AIChatRouteHandler:
         # PATTERN 3: "between X and Y" - bidirectional query
         # Examples: "distance between X and Y", "route between A and B"
         between_pattern = r'between\s+([^and]+?)\s+and\s+(.+?)(?:\s*[?.!]|$)'
-        match = re.search(between_pattern, message_lower, re.IGNORECASE)
+        match = re.search(between_pattern, message_normalized, re.IGNORECASE)
         if match:
             loc1_str = self._clean_location_string(match.group(1).strip())
             loc2_str = self._clean_location_string(match.group(2).strip())
@@ -552,7 +590,7 @@ class AIChatRouteHandler:
         ]
         
         for pattern in simple_patterns:
-            match = re.search(pattern, message_lower, re.IGNORECASE)
+            match = re.search(pattern, message_normalized, re.IGNORECASE)
             if match:
                 origin_str = self._clean_location_string(match.group(1).strip())
                 dest_str = self._clean_location_string(match.group(2).strip())
@@ -566,8 +604,8 @@ class AIChatRouteHandler:
         
         # PATTERN 5: Comma-separated list for multi-stop routes
         # Examples: "visit taksim, galata, and sultanahmet", "tour of X, Y, Z"
-        if ',' in message_lower:
-            locations = self._extract_comma_separated_locations(message_lower)
+        if ',' in message_normalized:
+            locations = self._extract_comma_separated_locations(message_normalized)
             if len(locations) >= 2:
                 logger.info(f"✅ Extracted multi-stop route: {len(locations)} locations")
                 return locations
@@ -579,7 +617,7 @@ class AIChatRouteHandler:
         for location_name, coords in self.KNOWN_LOCATIONS.items():
             # Use word boundary matching for better accuracy
             pattern = r'\b' + re.escape(location_name) + r'\b'
-            match = re.search(pattern, message_lower)
+            match = re.search(pattern, message_normalized)
             if match:
                 location_positions.append((match.start(), location_name, coords))
         
@@ -643,6 +681,7 @@ class AIChatRouteHandler:
             Coordinate tuple if found, None otherwise
         """
         query = query.lower().strip()
+        logger.info(f"🔍 Looking for location match for: '{query}'")
         
         if not query:
             return None
@@ -847,11 +886,11 @@ class AIChatRouteHandler:
             
             # Create readable message
             distance_km = route.visualization.total_distance / 1000
-            time_minutes = route.visualization.total_time_minutes
+            time_minutes = route.visualization.total_duration / 60  # Convert seconds to minutes
             
             message = f"🚶‍♂️ **Route Found!**\n\n"
             message += f"📏 Distance: {distance_km:.1f} km\n"
-            message += f"⏱️ Time: {time_minutes} minutes\n\n"
+            message += f"⏱️ Time: {int(time_minutes)} minutes\n\n"
             
             if hasattr(route, 'recommendations') and route.recommendations:
                 message += "**Recommendations:**\n"
@@ -871,8 +910,12 @@ class AIChatRouteHandler:
                     'visualization': visualization_data,
                     'start': route.start_location,
                     'end': route.end_location,
+                    'origin': route.start_location,  # Alias for frontend compatibility
+                    'destination': route.end_location,  # Alias for frontend compatibility
                     'distance': route.visualization.total_distance,
                     'duration': route.visualization.total_duration,
+                    'total_distance': route.visualization.total_distance,  # Total fields for API consistency
+                    'total_time': route.visualization.total_duration,  # Total fields for API consistency
                     'waypoints': route.visualization.waypoints,
                     'steps': route.visualization.steps,
                     'geojson': route.visualization.geojson
@@ -921,8 +964,11 @@ class AIChatRouteHandler:
                 'route_data': {
                     'single': False,
                     'routes': routes_data,
+                    'origin': routes[0].start_location if routes else None,  # First route origin
+                    'destination': routes[-1].end_location if routes else None,  # Last route destination
                     'total_distance': total_distance * 1000,
                     'total_duration': total_duration * 60,
+                    'total_time': total_duration * 60,  # Alias for consistency
                     'segments': len(routes)
                 }
             }

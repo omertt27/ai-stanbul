@@ -78,24 +78,29 @@ TRANSPORTATION_KEYWORDS: Dict[str, List[str]] = {
     "en": [
         "metro", "bus", "tram", "ferry", "taxi", "uber", "transport",
         "how to get", "how do i get", "how can i get", "directions", "route", "travel", "commute",
-        "istanbulkart", "public transport", "subway", "train", "get to", "go to"
+        "istanbulkart", "public transport", "subway", "train", "get to", "go to",
+        " to ", "from", "between"  # Simple route patterns: "X to Y", "from X to Y", "between X and Y"
     ],
     "tr": [
         "metro", "otobüs", "tramvay", "vapur", "taksi", "ulaşım",
         "nasıl giderim", "yol tarifi", "rota", "toplu taşıma",
-        "istanbulkart", "marmaray", "metrobüs"
+        "istanbulkart", "marmaray", "metrobüs",
+        " -e ", " -a ", "den", "dan", "arası"  # Turkish route patterns
     ],
     "ru": [
         "метро", "автобус", "трамвай", "паром", "такси", "транспорт",
-        "как добраться", "маршрут", "направления"
+        "как добраться", "маршрут", "направления",
+        " до ", " от ", "между"  # Russian route patterns
     ],
     "de": [
         "metro", "bus", "straßenbahn", "fähre", "taxi", "transport",
-        "wie komme ich", "wegbeschreibung", "route", "öffentliche verkehrsmittel"
+        "wie komme ich", "wegbeschreibung", "route", "öffentliche verkehrsmittel",
+        " nach ", " von ", "zwischen"  # German route patterns
     ],
     "ar": [
         "مترو", "حافلة", "ترام", "عبارة", "تاكسي", "مواصلات",
-        "كيف أصل", "الاتجاهات", "طريق"
+        "كيف أصل", "الاتجاهات", "طريق",
+        " إلى ", " من ", "بين"  # Arabic route patterns
     ]
 }
 

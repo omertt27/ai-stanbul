@@ -406,8 +406,41 @@ async def pure_llm_chat(
             # 🌍 Priority #3: Translate response to user's language
             final_response = translate_if_needed(enhanced_response, effective_language)
             
+            # Return unified router result
             return ChatResponse(
                 response=final_response,
+                session_id=session_id,
+                llm_mode="general",
+                intent=router_result.intent,
+                confidence=0.85,  # Default confidence for unified router results
+                suggestions=router_result.suggestions or [],
+                map_data=router_result.map_data,
+                route_data=router_result.data,
+                navigation_active=router_result.navigation_data is not None,
+                navigation_data=router_result.navigation_data
+            )
+    except Exception as e:
+        logger.warning(f"Unified router failed: {e}", exc_info=True)
+        # Fall through to legacy handlers
+    
+    # === LEGACY HANDLERS (Fallback if unified router doesn't handle) ===
+    try:
+        # Hidden Gems GPS Navigation Check
+        from services.hidden_gems_gps import hidden_gems_handler
+        
+        gems_result = hidden_gems_handler.handle_chat_message(
+            message=request.message,
+            user_location=request.user_location,
+            session_id=request.session_id or 'new'
+        )
+        
+        if gems_result and gems_result.get('type') != 'not_handled':
+            # This was a hidden gems request
+            if gems_result.get('type') == 'error':
+                return ChatResponse(
+                    response=gems_result.get('message', ''),
+                    session_id=request.session_id or 'new',
+                    llm_mode="general",
                     intent='hidden_gems',
                     confidence=0.8,
                     suggestions=["Show me restaurants", "What are popular attractions?"]
@@ -497,71 +530,11 @@ async def pure_llm_chat(
                     navigation_data=nav_result.get('navigation_data')
                 )
             
-            # Try to handle as route request (e.g., "how can I go to Taksim")
-            logger.info(f"🔍 Checking if message is a route request: '{request.message}'")
-            
-            try:
-                route_result = handler.handle_route_request(
-                    message=request.message,
-                    user_context=user_context
-                )
-                
-                if route_result:
-                    logger.info(f"✅ Route request detected! Result type: {route_result.get('type', 'unknown')}")
-                    # This was a route request
-                    response_type = route_result.get('type', '')
+            # REMOVED: Duplicate route handler call - unified router handles this now
+            # The code below was causing double execution of route planning
+            # If unified router fails, Pure LLM will handle the query
+            logger.info(f"ℹ️ Skipping legacy route handler - unified router handles this")
                     
-                    # Check for errors
-                    if response_type == 'error':
-                        error_msg = route_result.get('message', 'Route planning error')
-                        logger.error(f"❌ Route planning error: {error_msg}")
-                        # Don't return error, fall through to Pure LLM for better UX
-                    
-                    # Check if GPS permission is needed
-                    elif response_type == 'gps_permission_required':
-                        return ChatResponse(
-                            response=route_result.get('message', ''),
-                            session_id=request.session_id or 'new',
-                            llm_mode="general",  # Default mode
-                            intent='route_planning',
-                            confidence=1.0,
-                            suggestions=[
-                                "Enable GPS and try again",
-                                "Specify start location manually",
-                                "Show me restaurants nearby"
-                            ],
-                            map_data={'request_gps': True, 'destination': route_result.get('destination')}
-                        )
-                    
-                    # Success - return route response with enhancement
-                    elif response_type in ['route', 'multi_stop_itinerary']:
-                        # Phase 3: Enhance route response with contextual tips
-                        enhanced_msg = await enhance_chat_response(
-                            base_response=route_result.get('message', ''),
-                            original_query=request.message,
-                            user_context=user_context,
-                            route_data=route_result.get('route_data'),
-                            response_type="route"
-                        )
-                        
-                        return ChatResponse(
-                            response=enhanced_msg,
-                            session_id=request.session_id or 'new',
-                            llm_mode="general",  # Default mode
-                            intent='route_planning',
-                            confidence=route_result.get('confidence', 1.0),
-                            suggestions=route_result.get('suggestions', []),
-                            map_data=route_result.get('route_data'),  # Fixed: use route_data, not map_data
-                            route_data=route_result.get('route_data'),  # Also populate route_data for TransportationRouteCard
-                            navigation_active=False
-                        )
-                else:
-                    logger.info(f"❌ Not detected as a route request, will use Pure LLM")
-                    
-            except Exception as route_error:
-                logger.error(f"Route handler error: {route_error}", exc_info=True)
-                # Fall through to Pure LLM on error
-                
         except Exception as e:
             logger.warning(f"Route/Navigation check failed: {e}", exc_info=True)
     

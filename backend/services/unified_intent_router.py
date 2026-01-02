@@ -355,23 +355,38 @@ class UnifiedIntentRouter:
             from services.ai_chat_route_integration import get_chat_route_handler
             
             handler = get_chat_route_handler()
-            result = handler.handle_route_request(
+            # FIXED: Await the async function
+            result = await handler.handle_route_request(
                 message=query,
                 user_context=user_context or {}
             )
             
             if result:
+                # Extract route_data for processing
+                route_data = result.get('route_data', {})
+                
+                # Build proper map_data with route information at top level
+                map_data = {
+                    'type': result.get('type', 'route'),
+                    'route_data': route_data,
+                    # Extract origin/destination to top level for frontend compatibility
+                    'origin': route_data.get('origin') or route_data.get('start'),
+                    'destination': route_data.get('destination') or route_data.get('end'),
+                    'total_time': route_data.get('total_time') or route_data.get('duration'),
+                    'total_distance': route_data.get('total_distance') or route_data.get('distance'),
+                }
+                
                 return HandlerResult(
                     success=result.get('type') != 'error',
                     response=result.get('message', ''),
                     intent='transportation',
-                    data=result.get('route_data'),
+                    data=route_data,
                     suggestions=result.get('suggestions', [
                         "Show alternative routes",
                         "How long by taxi?",
                         "Show walking directions"
                     ]),
-                    map_data=result.get('map_data'),
+                    map_data=map_data,  # Now includes origin/destination at top level
                     navigation_data=result.get('navigation_data')
                 )
         except ImportError:
