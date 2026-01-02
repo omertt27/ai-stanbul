@@ -1633,6 +1633,8 @@ Fixed version (max 50 chars):"""
                 
                 logger.info(f"🚇 Route data found: {bool(route_data)}, has steps: {bool(route_data and route_data.get('steps'))}")
                 logger.info(f"🚇 RAG has route: {rag_has_route}")
+                logger.info(f"🚇 DEBUG: route_data = {route_data}")
+                logger.info(f"🚇 DEBUG: route_data.get('steps') if route_data else None = {route_data.get('steps') if route_data else None}")
                 
                 # WEEK 3 CRITICAL RULE:
                 # If RAG has a route OR we have route_data with steps -> ALWAYS use template

@@ -435,6 +435,9 @@ class HandlerInitializer:
             
             # Initialize Transportation RAG System (for route finding)
             rag_service = services.get('transportation_rag')
+            logger.info(f"🔍 DEBUG: services keys = {list(services.keys())}")
+            logger.info(f"🔍 DEBUG: transportation_rag value = {rag_service}")
+            logger.info(f"🔍 DEBUG: transportation_rag type = {type(rag_service)}")
             if rag_service:
                 logger.info("🚇 Transportation RAG System initialized for transportation handler")
             else:

@@ -64,7 +64,15 @@ except ImportError as e:
     response_cache = None
     rate_limiter = None
 
-# Import AI system
+# Import LLM Core from startup manager (already initialized with all dependencies)
+try:
+    from core.startup_fixed import fast_startup_manager
+    LLM_CORE_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"⚠️ Startup manager not available: {e}")
+    LLM_CORE_AVAILABLE = False
+
+# Import AI system (legacy - only used if LLM Core not ready)
 try:
     from istanbul_ai.main_system import IstanbulDailyTalkAI
     AI_SYSTEM_AVAILABLE = True
@@ -75,16 +83,6 @@ except ImportError as e:
 # Initialize router
 router = APIRouter(prefix="/api", tags=["Chat"])
 logger = logging.getLogger(__name__)
-
-# Initialize AI system
-ai_system = None
-if AI_SYSTEM_AVAILABLE:
-    try:
-        ai_system = IstanbulDailyTalkAI()
-        logger.info("✅ IstanbulDailyTalkAI initialized successfully")
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize IstanbulDailyTalkAI: {e}")
-        ai_system = None
 
 # Request/Response models
 class ChatRequest(BaseModel):
@@ -228,35 +226,91 @@ async def unified_chat(request: ChatRequest):
             logger.info("⚠️ ML systems not available, using AI system directly")
             method = 'ai_direct'
         
-        # 4. ROUTE TO ISTANBULDAILYTALK AI
-        if not ai_system:
-            raise HTTPException(
-                status_code=503,
-                detail="AI system not available. Please try again later."
+        # 4. ROUTE TO LLM CORE (preferred) or ISTANBULDAILYTALK AI (fallback)
+        llm_core = None
+        if LLM_CORE_AVAILABLE:
+            # Get LLM Core from startup manager (already initialized with all dependencies)
+            llm_core = fast_startup_manager.get_pure_llm_core()
+            if llm_core:
+                logger.info("✅ Using LLM Core from startup manager (with Transportation RAG)")
+            else:
+                logger.warning("⚠️ LLM Core not ready yet, using fallback")
+        
+        if llm_core:
+            logger.info("🎯 Using LLM Core for response generation (with Transportation RAG)")
+            
+            # Convert GPS location format if provided
+            user_location_dict = None
+            if request.gps_location and isinstance(request.gps_location, dict):
+                # Support both 'lat'/'lon' and 'latitude'/'longitude' formats
+                lat = request.gps_location.get('lat') or request.gps_location.get('latitude')
+                lon = request.gps_location.get('lon') or request.gps_location.get('longitude')
+                if lat and lon:
+                    user_location_dict = {'lat': lat, 'lon': lon}
+                    logger.info(f"📍 GPS location provided: {lat:.4f}, {lon:.4f}")
+            
+            # Process with LLM Core
+            llm_result = await llm_core.process_query(
+                query=request.message,
+                user_id=user_id,
+                session_id=session_id,
+                user_location=user_location_dict,
+                language='en',  # TODO: detect language from query
+                max_tokens=500,
+                enable_conversation=True
             )
-        
-        # Process message with IstanbulDailyTalkAI
-        # For transportation and route planning, request structured response with map data
-        detected_intent = intent_result.get('intent', 'unknown') if intent_result else 'unknown'
-        needs_map_data = detected_intent in [
-            'transportation', 'route_planning', 'gps_route_planning', 
-            'museum_route_planning', 'airport_transport', 'neighborhood'
-        ]
-        
-        ai_result = ai_system.process_message(
-            user_input=request.message,
-            user_id=user_id,
-            gps_location=request.gps_location,
-            return_structured=needs_map_data
-        )
-        
-        # Extract response and map data
-        if isinstance(ai_result, dict):
-            ai_response = ai_result.get('response', str(ai_result))
-            raw_map_data = ai_result.get('map_data', {})
+            
+            # Extract response and map data from LLM Core result
+            ai_response = llm_result.get('response', str(llm_result))
+            raw_map_data = llm_result.get('map_data', {})
+            detected_intent = llm_result.get('signals', {}).get('needs_transportation', False)
+            if detected_intent:
+                detected_intent = 'transportation'
+            else:
+                detected_intent = intent_result.get('intent', 'unknown') if intent_result else 'unknown'
+            
+            logger.info(f"✅ LLM Core generated response ({len(ai_response)} chars)")
+            
         else:
-            ai_response = str(ai_result)
-            raw_map_data = {}
+            # Fallback to legacy AI system
+            ai_system = None
+            if AI_SYSTEM_AVAILABLE:
+                try:
+                    ai_system = IstanbulDailyTalkAI()
+                    logger.info("✅ IstanbulDailyTalkAI initialized as fallback")
+                except Exception as e:
+                    logger.error(f"❌ Failed to initialize IstanbulDailyTalkAI: {e}")
+                    ai_system = None
+            
+            if ai_system:
+                logger.info("🎯 Using IstanbulDailyTalkAI for response generation (fallback mode)")
+                # Process message with IstanbulDailyTalkAI
+                # For transportation and route planning, request structured response with map data
+                detected_intent = intent_result.get('intent', 'unknown') if intent_result else 'unknown'
+                needs_map_data = detected_intent in [
+                    'transportation', 'route_planning', 'gps_route_planning', 
+                    'museum_route_planning', 'airport_transport', 'neighborhood'
+                ]
+                
+                ai_result = ai_system.process_message(
+                    user_input=request.message,
+                    user_id=user_id,
+                    gps_location=request.gps_location,
+                    return_structured=needs_map_data
+                )
+                
+                # Extract response and map data
+                if isinstance(ai_result, dict):
+                    ai_response = ai_result.get('response', str(ai_result))
+                    raw_map_data = ai_result.get('map_data', {})
+                else:
+                    ai_response = str(ai_result)
+                    raw_map_data = {}
+            else:
+                raise HTTPException(
+                    status_code=503,
+                    detail="No AI system available. Please try again later."
+                )
         
         # 🔒 SANITIZE RESPONSE to prevent data leakage
         ai_response = sanitize_response(ai_response)
@@ -336,7 +390,6 @@ async def unified_chat(request: ChatRequest):
             detail=f"Internal server error: {str(e)}"
         )
 
-# Health check endpoint
 @router.get("/chat/health")
 async def chat_health():
     """
@@ -344,17 +397,25 @@ async def chat_health():
     
     Returns system status and available features
     """
+    # Check if LLM Core is available from startup manager
+    llm_core_ready = False
+    if LLM_CORE_AVAILABLE:
+        llm_core = fast_startup_manager.get_pure_llm_core()
+        llm_core_ready = llm_core is not None
+    
     return {
-        "status": "healthy" if ai_system else "degraded",
+        "status": "healthy" if llm_core_ready else "degraded",
         "features": {
-            "ai_system": AI_SYSTEM_AVAILABLE and ai_system is not None,
+            "llm_core": llm_core_ready,
+            "ai_system": AI_SYSTEM_AVAILABLE,
             "ml_systems": ML_SYSTEMS_AVAILABLE,
             "intent_classification": INTENT_CLASSIFIER_AVAILABLE,
             "enhanced_understanding": ENHANCED_QUERY_UNDERSTANDING_ENABLED,
             "infrastructure": INFRASTRUCTURE_AVAILABLE,
             "caching": INFRASTRUCTURE_AVAILABLE and response_cache is not None,
             "rate_limiting": INFRASTRUCTURE_AVAILABLE and rate_limiter is not None,
-            "monitoring": INFRASTRUCTURE_AVAILABLE and system_monitor is not None
+            "monitoring": INFRASTRUCTURE_AVAILABLE and system_monitor is not None,
+            "transportation_rag": llm_core_ready  # LLM Core includes Transportation RAG
         },
         "timestamp": datetime.now().isoformat()
     }

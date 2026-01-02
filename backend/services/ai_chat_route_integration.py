@@ -228,11 +228,24 @@ class AIChatRouteHandler:
     def __init__(self, redis_url: str = "redis://localhost:6379/0"):
         """Initialize chat route handler
         
+        REFACTORED (Option 3): Now uses Transportation RAG System for all routing
+        Only keeps NLP detection and response formatting.
+        
         Args:
             redis_url: Redis connection URL for route caching (optional)
         """
         global MULTI_STOP_AVAILABLE
         
+        # NEW: Use Transportation RAG System for actual routing
+        try:
+            from services.transportation_rag_system import get_transportation_rag
+            self.transport_rag = get_transportation_rag()
+            logger.info("✅ Using Transportation RAG System for route planning")
+        except ImportError as e:
+            logger.error(f"❌ Failed to import Transportation RAG: {e}")
+            self.transport_rag = None
+        
+        # DEPRECATED: Old routing systems (kept for backwards compatibility)
         self.route_integration = None
         self.multi_stop_planner = None
         self.geocoder = None
@@ -240,14 +253,7 @@ class AIChatRouteHandler:
         self.active_navigators: Dict[str, GPSTurnByTurnNavigator] = {}  # session_id -> navigator
         self.navigation_sessions: Dict[str, Dict[str, Any]] = {}  # session_id -> navigation state
         
-        if ROUTE_INTEGRATION_AVAILABLE:
-            self.route_integration = create_intelligent_route_integration(
-                enable_osrm=True,
-                enable_ml=True,
-                enable_gps=True,
-                osrm_profile='foot'
-            )
-            logger.info("✅ AI Chat Route Handler initialized")
+        logger.info("✅ AI Chat Route Handler initialized (RAG-powered)")
         else:
             logger.warning("⚠️ Route integration not available")
         
@@ -554,45 +560,54 @@ class AIChatRouteHandler:
         # ========== STEP 2: COMPUTE ROUTE (Cache miss) ==========
         logger.info(f"💾 CACHE MISS: Computing new route from {start_coords} to {end_coords}")
         
-        if not self.route_integration:
-            raise ServiceUnavailableError("Route planning service is not available")
+        # REFACTORED: Use Transportation RAG System instead of intelligent_route_integration
+        if not self.transport_rag:
+            raise ServiceUnavailableError("Transportation RAG System is not available")
         
         try:
-            # Plan route using intelligent route integration
-            # Package routing_params into user_context for the route planner
-            context = dict(routing_params) if routing_params else {}
+            # Extract location names from coordinates for RAG query
+            origin_name = self._get_location_name_from_coords(start_coords)
+            dest_name = self._get_location_name_from_coords(end_coords)
             
-            route = self.route_integration.plan_intelligent_route(
-                start=start_coords,
-                end=end_coords,
-                transport_mode=transport_mode,
-                user_context=context
+            logger.info(f"🚇 Using Transportation RAG: {origin_name} → {dest_name}")
+            
+            # Use Transportation RAG to find route
+            rag_route = self.transport_rag.find_route(
+                origin=origin_name,
+                destination=dest_name,
+                max_transfers=3
             )
             
-            if not route:
+            if not rag_route:
                 raise NavigationError(
-                    "No route found between these locations. "
+                    f"No route found between {origin_name} and {dest_name}. "
                     "Please try different locations or check if they are reachable."
                 )
+            
+            logger.info(f"✅ Transportation RAG found route: {rag_route.total_duration} min, {len(rag_route.segments)} segments")
+            
+            # Convert RAG route to our format
+            route_data = {
+                'distance': rag_route.total_distance,
+                'duration': rag_route.total_duration,
+                'polyline': None,  # RAG doesn't provide polyline
+                'steps': rag_route.steps,
+                'segments': rag_route.segments,
+                'origin': rag_route.origin,
+                'destination': rag_route.destination,
+                'waypoints': rag_route.waypoints if hasattr(rag_route, 'waypoints') else [],
+                'metadata': {
+                    'routing_method': 'transportation_rag',
+                    'confidence': rag_route.confidence if hasattr(rag_route, 'confidence') else 0.95,
+                    'warnings': rag_route.warnings if hasattr(rag_route, 'warnings') else [],
+                    'from_cache': False,
+                    'lines_used': [seg.line for seg in rag_route.segments] if rag_route.segments else []
+                }
+            }
             
             # ========== STEP 3: STORE IN CACHE ==========
             if self.route_cache and cache_key:
                 try:
-                    # Prepare cacheable route data
-                    route_data = {
-                        'distance': route.distance,
-                        'duration': route.duration,
-                        'polyline': route.polyline,
-                        'steps': route.steps if hasattr(route, 'steps') else [],
-                        'metadata': {
-                            'routing_method': self._determine_routing_method(route),
-                            'confidence': self._calculate_confidence(route),
-                            'warnings': self._generate_warnings(route),
-                            'tips': self._generate_tips(route),
-                            'from_cache': False
-                        }
-                    }
-                    
                     # Cache for 24 hours (popular routes) or 6 hours (less popular)
                     is_popular = self._is_popular_route(start_coords, end_coords)
                     ttl_hours = 24 if is_popular else 6
@@ -604,7 +619,7 @@ class AIChatRouteHandler:
                     logger.warning(f"Failed to cache route: {e}")
             
             # ========== STEP 4: FORMAT AND RETURN ==========
-            return self._format_route_response(route, single=True)
+            return self._format_route_response(route_data, single=True)
             
         except Exception as e:
             logger.error(f"Route planning failed: {e}", exc_info=True)
