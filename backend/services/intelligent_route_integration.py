@@ -198,6 +198,14 @@ class IntelligentRouteIntegration:
         """
         logger.info(f"🗺️ Planning intelligent route from {start} to {end}")
         
+        # Store route context for fallback calculations
+        self._last_route_context = {
+            'start': start,
+            'end': end,
+            'waypoints': waypoints,
+            'transport_mode': transport_mode
+        }
+        
         # Step 1: Get realistic route from OSRM
         osrm_route = None
         if self.enable_osrm and transport_mode == 'walking':
@@ -415,18 +423,49 @@ class IntelligentRouteIntegration:
                 }
                 for step in osrm_route.steps
             ]
-        elif gps_route_data:
+        elif gps_route_data and gps_route_data.get('distance', 0) > 0:
             # Use GPS route data
             waypoints = []
             total_distance = gps_route_data.get('distance', 0)
             total_duration = gps_route_data.get('duration', 0)
             steps = gps_route_data.get('segments', [])
         else:
-            # Fallback: straight line
+            # FALLBACK: Calculate straight-line distance using Haversine formula
+            # This happens when both OSRM and GPS services are unavailable
             waypoints = []
             total_distance = 0
             total_duration = 0
             steps = []
+            
+            # If we have start and end from the route context, calculate distance
+            if hasattr(self, '_last_route_context'):
+                start = self._last_route_context.get('start')
+                end = self._last_route_context.get('end')
+                if start and end:
+                    from math import radians, sin, cos, sqrt, atan2
+                    
+                    # Haversine formula for distance
+                    R = 6371000  # Earth radius in meters
+                    lat1, lon1 = radians(start[0]), radians(start[1])
+                    lat2, lon2 = radians(end[0]), radians(end[1])
+                    
+                    dlat = lat2 - lat1
+                    dlon = lon2 - lon1
+                    
+                    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                    c = 2 * atan2(sqrt(a), sqrt(1-a))
+                    
+                    total_distance = R * c  # Distance in meters
+                    
+                    # Estimate duration based on mode
+                    # Walking: ~5 km/h, Transit: ~20 km/h
+                    speed_mps = 1.4 if transport_mode == 'walking' else 5.6  # meters per second
+                    total_duration = total_distance / speed_mps  # Duration in seconds
+                    
+                    # Add simple waypoints
+                    waypoints = [start, end]
+                    
+                    logger.info(f"⚠️ Using fallback Haversine calculation: {total_distance:.0f}m, {total_duration:.0f}s")
         
         # Create GeoJSON
         geojson = {

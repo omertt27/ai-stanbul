@@ -17,8 +17,34 @@ Usage in chat:
 
 import logging
 import re
+import json
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
+
+# Import custom exceptions
+try:
+    from .route_exceptions import (
+        RouteServiceError,
+        LocationExtractionError,
+        InsufficientLocationsError,
+        ServiceUnavailableError,
+        GeocodingError,
+        GPSPermissionRequiredError,
+        NavigationError,
+        FallbackRoutingUsedWarning
+    )
+    EXCEPTIONS_AVAILABLE = True
+except ImportError:
+    # Fallback to generic exceptions
+    RouteServiceError = Exception
+    LocationExtractionError = Exception
+    InsufficientLocationsError = Exception
+    ServiceUnavailableError = Exception
+    GeocodingError = Exception
+    GPSPermissionRequiredError = Exception
+    NavigationError = Exception
+    FallbackRoutingUsedWarning = UserWarning
+    EXCEPTIONS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +124,31 @@ try:
 except ImportError as e:
     GPS_NAVIGATION_AVAILABLE = False
     logger.warning(f"⚠️ GPS turn-by-turn navigation not available: {e}")
+
+# Import Istanbul Geocoder for location fallback
+try:
+    import sys
+    import os
+    # Add parent directory to path for geocoder import
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+    from services.istanbul_geocoder import IstanbulGeocoder, GeocodedLocation
+    GEOCODER_AVAILABLE = True
+    logger.info("✅ Istanbul Geocoder available for location fallback")
+except ImportError as e:
+    GEOCODER_AVAILABLE = False
+    logger.warning(f"⚠️ Istanbul Geocoder not available: {e}")
+
+# Import Route Cache System
+try:
+    try:
+        from .route_cache import RouteCacheManager
+    except ImportError:
+        from services.route_cache import RouteCacheManager
+    ROUTE_CACHE_AVAILABLE = True
+    logger.info("✅ Route Cache System available")
+except ImportError as e:
+    ROUTE_CACHE_AVAILABLE = False
+    logger.warning(f"⚠️ Route Cache System not available: {e}")
 
 
 def normalize_turkish(text: str) -> str:
@@ -183,12 +234,18 @@ class AIChatRouteHandler:
         'balat': (41.0297, 28.9489),
     }
     
-    def __init__(self):
-        """Initialize chat route handler"""
+    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
+        """Initialize chat route handler
+        
+        Args:
+            redis_url: Redis connection URL for route caching (optional)
+        """
         global MULTI_STOP_AVAILABLE
         
         self.route_integration = None
         self.multi_stop_planner = None
+        self.geocoder = None
+        self.route_cache = None
         self.active_navigators: Dict[str, GPSTurnByTurnNavigator] = {}  # session_id -> navigator
         self.navigation_sessions: Dict[str, Dict[str, Any]] = {}  # session_id -> navigation state
         
@@ -210,6 +267,24 @@ class AIChatRouteHandler:
             except Exception as e:
                 logger.warning(f"⚠️ Could not initialize multi-stop planner: {e}")
                 MULTI_STOP_AVAILABLE = False
+        
+        # Initialize Istanbul Geocoder for location fallback
+        if GEOCODER_AVAILABLE:
+            try:
+                self.geocoder = IstanbulGeocoder(use_external_geocoding=True)
+                logger.info("✅ Istanbul Geocoder initialized with external fallback enabled")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not initialize geocoder: {e}")
+                self.geocoder = None
+        
+        # Initialize Route Cache System
+        if ROUTE_CACHE_AVAILABLE:
+            try:
+                self.route_cache = RouteCacheManager(redis_url=redis_url)
+                logger.info("✅ Route Cache System initialized")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not initialize route cache: {e}")
+                self.route_cache = None
     
     async def handle_route_request(
         self,
@@ -237,127 +312,422 @@ class AIChatRouteHandler:
         
         logger.info(f"✅ [ROUTE HANDLER] Detected as route request! Proceeding with location extraction...")
         
-        # Check if it's a multi-stop request
+        # Check if it's a multi-stop request (uses different planner)
         is_multi_stop = self._is_multi_stop_request(message)
         logger.info(f"🔍 [ROUTE HANDLER] Is multi-stop: {is_multi_stop}")
         
         if is_multi_stop and MULTI_STOP_AVAILABLE and self.multi_stop_planner:
-            # Handle multi-stop itinerary
             return self._handle_multi_stop_request(message, user_context)
         
-        # Extract locations from message
-        logger.info(f"🔍 [ROUTE HANDLER] Extracting locations from: '{message}'")
-        locations = self._extract_locations(message)
-        logger.info(f"📍 [ROUTE HANDLER] Extracted {len(locations)} location(s): {locations}")
-        
-        # Check if user is asking "how to get to X" without specifying start
-        # In this case, use their GPS location as start point
-        if len(locations) == 1:
-            logger.info(f"⚠️ [ROUTE HANDLER] Only 1 location found, checking for GPS...")
-            user_location = self._get_user_gps_location(user_context)
-            logger.info(f"📍 [ROUTE HANDLER] GPS location from context: {user_location}")
-            if user_location:
-                # User asked "how can I go to Taksim" - use GPS as start
-                locations.insert(0, user_location)
-                logger.info(f"🎯 [ROUTE HANDLER] Using user GPS location as start point: {user_location}")
-            else:
-                # Request GPS permission
-                logger.warning(f"⚠️ [ROUTE HANDLER] No GPS, requesting permission")
-                return {
-                    'type': 'gps_permission_required',
-                    'message': "To show you directions, I need your current location. Please enable GPS/location services.",
-                    'destination': locations[0],
-                    'request_gps': True
-                }
-        
-        if not locations or len(locations) < 2:
-            logger.error(f"❌ [ROUTE HANDLER] Insufficient locations: {len(locations)}")
-            return {
-                'type': 'error',
-                'message': "I couldn't identify the locations. Please specify at least a start and end point, like 'route from Sultanahmet to Galata Tower', or enable GPS and ask 'how do I get to Taksim?'"
-            }
-        
-        logger.info(f"✅ [ROUTE HANDLER] Have {len(locations)} locations, proceeding with route planning")
-        
-        # 🆕 PHASE 4.1: Extract route preferences using LLM
-        route_preferences = None
-        if LLM_PREFERENCES_AVAILABLE:
-            try:
-                # FIXED: Use await instead of asyncio.run() since we're already in async context
-                route_preferences = await detect_route_preferences(
-                    query=message,
-                    user_profile=user_context.get('preferences') if user_context else None,
-                    route_context={
-                        'locations': locations,
-                        'transport_mode': self._detect_transport_mode(message)
-                    }
-                )
-                logger.info(f"🎯 Detected route preferences: {route_preferences.get_summary()}")
-            except Exception as e:
-                logger.warning(f"⚠️ Could not extract route preferences: {e}")
-        
-        # Determine transport mode (may be overridden by preferences)
-        transport_mode = self._detect_transport_mode(message)
-        
-        # Override transport mode if preferences specify it
-        if route_preferences and route_preferences.transport_modes:
-            transport_mode = route_preferences.transport_modes[0]
-            logger.info(f"🔄 Using transport mode from preferences: {transport_mode}")
-        
-        # Plan route
+        # Main route planning flow with comprehensive error handling
         try:
+            # Step 1: Validate and prepare locations
+            locations, _ = await self._validate_and_prepare_locations(message, user_context)
+            
+            # Step 2: Extract route preferences using LLM
+            route_preferences = await self._extract_route_preferences(message, locations, user_context)
+            
+            # Step 3: Determine transport mode
+            transport_mode = self._determine_transport_mode(message, route_preferences)
+            
+            # Step 4: Build routing parameters
+            routing_params = self._build_routing_params(route_preferences, user_context)
+            
+            # Step 5: Plan route (single or multi-location)
             if len(locations) == 2:
-                # Build routing params from preferences
-                routing_params = {}
-                if route_preferences:
-                    routing_params = route_preferences.to_routing_params()
-                    logger.info(f"📋 Using routing params: {routing_params}")
-                
-                # Merge with user context
-                if user_context:
-                    routing_params.update(user_context)
-                
-                # Single route
-                route = self.route_integration.plan_intelligent_route(
-                    start=locations[0],
-                    end=locations[1],
-                    transport_mode=transport_mode,
-                    user_context=routing_params if routing_params else user_context
+                response = await self._plan_single_route(
+                    locations, transport_mode, routing_params, route_preferences
                 )
-                
-                response = self._format_route_response(route, single=True)
-                
-                # Add preference info to response
-                if route_preferences:
-                    response['preferences'] = {
-                        'summary': route_preferences.get_summary(),
-                        'optimize_for': route_preferences.optimize_for,
-                        'accessibility': route_preferences.accessibility,
-                        'source': route_preferences.source
-                    }
-                
             else:
-                # Multi-location route (legacy handling)
-                districts = self._detect_districts(message)
-                routes = self.route_integration.plan_multi_district_route(
-                    locations=locations,
-                    districts=districts,
-                    transport_mode=transport_mode,
-                    user_context=user_context
+                response = await self._plan_multi_location_route(
+                    message, locations, transport_mode, user_context
                 )
-                
-                response = self._format_route_response(routes, single=False)
             
             return response
             
+        except (GPSPermissionRequiredError, InsufficientLocationsError, 
+                LocationExtractionError, NavigationError, ServiceUnavailableError) as e:
+            # Handle expected custom exceptions
+            return self._handle_route_planning_error(e)
+        
         except Exception as e:
-            logger.error(f"Error planning route: {e}")
+            # Handle unexpected errors
+            logger.error(f"Unexpected error in route planning: {e}", exc_info=True)
+            return self._handle_route_planning_error(e)
+
+    # ========== Route Planning Helper Methods ==========
+    
+    async def _validate_and_prepare_locations(
+        self,
+        message: str,
+        user_context: Optional[Dict[str, Any]] = None
+    ) -> Tuple[List[Tuple[float, float]], Dict[str, Any]]:
+        """
+        Validate and prepare locations from message
+        
+        Returns:
+            Tuple of (locations list, extraction metadata)
+        
+        Raises:
+            InsufficientLocationsError: If less than 2 locations found
+            LocationExtractionError: If extraction fails
+        """
+        # Extract locations using existing _extract_locations method
+        locations = await self._extract_locations(message)
+        
+        user_gps = None
+        if len(locations) < 2:
+            # Check if user has GPS location for single-location queries
+            user_gps = self._get_user_gps_location(user_context)
+            if user_gps and len(locations) == 1:
+                locations.insert(0, user_gps)  # Add as starting point
+            else:
+                raise InsufficientLocationsError(
+                    "I need at least 2 locations to plan a route. "
+                    "Please specify both a starting point and destination, "
+                    "or enable GPS location to use your current location."
+                )
+        
+        metadata = {
+            'total_locations': len(locations),
+            'extraction_method': 'nlp_pattern_matching',
+            'has_gps_fallback': user_gps is not None
+        }
+        
+        return locations, metadata
+    
+    async def _extract_route_preferences(
+        self,
+        message: str,
+        locations: List[Tuple[float, float]],
+        user_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Extract route preferences from message using LLM or patterns
+        
+        Returns:
+            Dict with preferences: {
+                'avoid_hills': bool,
+                'prefer_scenic': bool,
+                'accessible': bool,
+                'fastest': bool,
+                'time_limit': Optional[int]
+            }
+        """
+        preferences = {}
+        
+        if LLM_PREFERENCES_AVAILABLE:
+            # Use LLM to detect preferences
+            try:
+                llm_prefs = await detect_route_preferences(message)
+                preferences.update(llm_prefs)
+            except Exception as e:
+                logger.warning(f"LLM preference detection failed: {e}")
+        
+        # Pattern-based fallback
+        message_lower = message.lower()
+        
+        preferences['avoid_hills'] = any(word in message_lower for word in ['flat', 'avoid hills', 'no hills'])
+        preferences['prefer_scenic'] = any(word in message_lower for word in ['scenic', 'beautiful', 'nice views'])
+        preferences['accessible'] = any(word in message_lower for word in ['accessible', 'wheelchair'])
+        preferences['fastest'] = any(word in message_lower for word in ['fastest', 'quickest', 'hurry'])
+        
+        # Extract time limit
+        time_match = re.search(r'(\d+)\s*(min|minute|hour)', message_lower)
+        if time_match:
+            value = int(time_match.group(1))
+            unit = time_match.group(2)
+            preferences['time_limit'] = value * 60 if 'hour' in unit else value
+        
+        # Merge with user context preferences
+        if user_context and user_context.get('preferences'):
+            preferences.update(user_context['preferences'])
+        
+        return preferences
+    
+    def _determine_transport_mode(
+        self,
+        message: str,
+        route_preferences: Dict[str, Any]
+    ) -> str:
+        """
+        Determine transport mode from message and preferences
+        
+        Returns:
+            'foot' | 'bicycle' | 'car' | 'transit'
+        """
+        message_lower = message.lower()
+        
+        # Check for explicit mode keywords
+        if any(word in message_lower for word in ['walk', 'walking', 'on foot', 'pedestrian']):
+            return 'foot'
+        elif any(word in message_lower for word in ['bike', 'bicycle', 'cycling', 'cycle']):
+            return 'bicycle'
+        elif any(word in message_lower for word in ['drive', 'driving', 'car']):
+            return 'car'
+        elif any(word in message_lower for word in ['bus', 'metro', 'transit', 'public transport']):
+            return 'transit'
+        
+        # Default based on preferences
+        if route_preferences.get('fastest'):
+            return 'car'
+        elif route_preferences.get('prefer_scenic'):
+            return 'foot'
+        
+        # Default to walking
+        return 'foot'
+    
+    def _build_routing_params(
+        self,
+        route_preferences: Dict[str, Any],
+        user_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Build routing parameters from preferences
+        
+        Returns:
+            Dict of routing parameters for route integration
+        """
+        params = {
+            'avoid_highways': route_preferences.get('avoid_highways', False),
+            'avoid_tolls': route_preferences.get('avoid_tolls', False),
+            'avoid_ferries': route_preferences.get('avoid_ferries', False),
+            'prefer_scenic': route_preferences.get('prefer_scenic', False),
+            'accessible': route_preferences.get('accessible', False)
+        }
+        
+        # Add time constraint if specified
+        if 'time_limit' in route_preferences:
+            params['max_duration_seconds'] = route_preferences['time_limit'] * 60
+        
+        # Add user context settings
+        if user_context:
+            if user_context.get('language'):
+                params['language'] = user_context['language']
+        
+        return params
+    
+    async def _plan_single_route(
+        self,
+        locations: List[Tuple[float, float]],
+        transport_mode: str,
+        routing_params: Dict[str, Any],
+        route_preferences: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Plan a single route between two locations WITH CACHING
+        
+        This is the primary route planning method with full cache integration.
+        
+        Args:
+            locations: List of 2 coordinate tuples [(lat1, lon1), (lat2, lon2)]
+            transport_mode: 'foot' | 'bicycle' | 'car' | 'transit'
+            routing_params: Additional routing parameters
+            route_preferences: User preferences
+            
+        Returns:
+            Formatted route response with metadata
+        """
+        start_coords, end_coords = locations[0], locations[1]
+        
+        # ========== STEP 1: CHECK CACHE ==========
+        cached_route = None
+        cache_key = None
+        
+        if self.route_cache:
+            try:
+                cache_key = self.route_cache._generate_cache_key('route', {
+                    'start': start_coords,
+                    'end': end_coords,
+                    'mode': transport_mode,
+                    'params': json.dumps(routing_params, sort_keys=True)
+                })
+                
+                # Try to get from cache
+                cached_route = self.route_cache.get_cached_route(cache_key)
+                if cached_route:
+                    logger.info(f"🚀 CACHE HIT: Route from {start_coords} to {end_coords}")
+                    
+                    # Add cache metadata
+                    cached_route['metadata'] = cached_route.get('metadata', {})
+                    cached_route['metadata']['from_cache'] = True
+                    cached_route['metadata']['cache_key'] = cache_key[:16] + '...'
+                    
+                    return self._format_route_response(
+                        cached_route,
+                        route_preferences,
+                        from_cache=True
+                    )
+            except Exception as e:
+                logger.warning(f"Cache lookup error: {e}")
+        
+        # ========== STEP 2: COMPUTE ROUTE (Cache miss) ==========
+        logger.info(f"💾 CACHE MISS: Computing new route from {start_coords} to {end_coords}")
+        
+        if not self.route_integration:
+            raise ServiceUnavailableError("Route planning service is not available")
+        
+        try:
+            # Plan route using intelligent route integration
+            route = self.route_integration.plan_intelligent_route(
+                start_coords=start_coords,
+                end_coords=end_coords,
+                mode=transport_mode,
+                **routing_params
+            )
+            
+            if not route:
+                raise NavigationError(
+                    "No route found between these locations. "
+                    "Please try different locations or check if they are reachable."
+                )
+            
+            # ========== STEP 3: STORE IN CACHE ==========
+            if self.route_cache and cache_key:
+                try:
+                    # Prepare cacheable route data
+                    route_data = {
+                        'distance': route.distance,
+                        'duration': route.duration,
+                        'polyline': route.polyline,
+                        'steps': route.steps if hasattr(route, 'steps') else [],
+                        'metadata': {
+                            'routing_method': self._determine_routing_method(route),
+                            'confidence': self._calculate_confidence(route),
+                            'warnings': self._generate_warnings(route),
+                            'tips': self._generate_tips(route),
+                            'from_cache': False
+                        }
+                    }
+                    
+                    # Cache for 24 hours (popular routes) or 6 hours (less popular)
+                    is_popular = self._is_popular_route(start_coords, end_coords)
+                    ttl_hours = 24 if is_popular else 6
+                    
+                    self.route_cache.cache_route(cache_key, route_data, ttl_hours=ttl_hours)
+                    logger.info(f"💾 Cached route {cache_key[:16]}... (TTL: {ttl_hours}h)")
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to cache route: {e}")
+            
+            # ========== STEP 4: FORMAT AND RETURN ==========
+            return self._format_route_response(route, route_preferences, from_cache=False)
+            
+        except Exception as e:
+            logger.error(f"Route planning failed: {e}", exc_info=True)
+            raise NavigationError(f"Route planning failed: {str(e)}")
+    
+    async def _plan_multi_location_route(
+        self,
+        message: str,
+        locations: List[Tuple[float, float]],
+        transport_mode: str,
+        user_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Plan route visiting multiple locations (3+)
+        
+        Falls back to multi-stop planner if available
+        """
+        if MULTI_STOP_AVAILABLE and self.multi_stop_planner:
+            # Delegate to multi-stop handler
+            return self._handle_multi_stop_request(message, user_context)
+        else:
+            # Simple multi-waypoint routing
+            if not self.route_integration:
+                raise ServiceUnavailableError("Route planning service is not available")
+            
+            try:
+                # Plan route through all waypoints
+                route = self.route_integration.plan_waypoint_route(
+                    waypoints=locations,
+                    mode=transport_mode
+                )
+                
+                return self._format_route_response(route, {})
+                
+            except Exception as e:
+                raise NavigationError(f"Multi-location routing failed: {str(e)}")
+    
+    def _handle_route_planning_error(self, error: Exception) -> Dict[str, Any]:
+        """
+        Handle route planning errors with user-friendly messages
+        
+        Args:
+            error: The exception that occurred
+            
+        Returns:
+            Error response dict
+        """
+        # Check if error has custom error_response method (from custom exceptions)
+        if EXCEPTIONS_AVAILABLE and hasattr(error, 'error_response'):
+            return error.error_response()
+        
+        # Fallback error handling
+        error_msg = str(error)
+        
+        # Make error messages more user-friendly
+        if "location" in error_msg.lower():
             return {
                 'type': 'error',
-                'message': f"Sorry, I encountered an error planning your route: {str(e)}"
+                'message': f"❌ Location Error\n\n{error_msg}\n\n"
+                          "**Tip:** Try using well-known landmarks like 'Sultanahmet' or 'Taksim Square'.",
+                'error_code': 'LOCATION_ERROR'
+            }
+        elif "network" in error_msg.lower() or "unavailable" in error_msg.lower():
+            return {
+                'type': 'error',
+                'message': f"🔌 Service Temporarily Unavailable\n\n"
+                          "The routing service is currently unavailable. Please try again in a moment.",
+                'error_code': 'SERVICE_UNAVAILABLE'
+            }
+        else:
+            return {
+                'type': 'error',
+                'message': f"⚠️ Route Planning Error\n\n{error_msg}",
+                'error_code': 'ROUTE_PLANNING_ERROR'
             }
     
-    def handle_gps_navigation_command(
+    def _is_popular_route(self, start: Tuple[float, float], end: Tuple[float, float]) -> bool:
+        """
+        Determine if a route is between popular tourist locations
+        
+        Popular routes get longer cache TTL
+        """
+        # Check if start and end are both in KNOWN_LOCATIONS
+        start_is_known = any(
+            abs(start[0] - coords[0]) < 0.001 and abs(start[1] - coords[1]) < 0.001
+            for coords in self.KNOWN_LOCATIONS.values()
+        )
+        
+        end_is_known = any(
+            abs(end[0] - coords[0]) < 0.001 and abs(end[1] - coords[1]) < 0.001
+            for coords in self.KNOWN_LOCATIONS.values()
+        )
+        
+        return start_is_known and end_is_known
+    
+    def get_cache_statistics(self) -> Dict[str, Any]:
+        """Get route cache performance statistics"""
+        if not self.route_cache:
+            return {
+                'cache_enabled': False,
+                'message': 'Route caching is not available'
+            }
+        
+        stats = self.route_cache.get_cache_stats()
+        
+        return {
+            'cache_enabled': True,
+            'total_requests': stats['total_requests'],
+            'cache_hits': stats['cache_hits'],
+            'cache_misses': stats['cache_misses'],
+            'hit_rate': stats.get('cache_hit_rate', 0),
+            'cache_size': self.route_cache.get_cache_size(),
+            'memory_usage_mb': stats.get('memory_usage_bytes', 0) / (1024 * 1024)
+        }
+
+    async def handle_gps_navigation_command(
         self,
         message: str,
         session_id: str,
@@ -389,7 +759,7 @@ class AIChatRouteHandler:
         
         # Check for navigation commands
         if self._is_start_navigation_command(message_lower):
-            return self._handle_start_navigation(message, session_id, user_location)
+            return await self._handle_start_navigation(message, session_id, user_location)
         
         elif any(cmd in message_lower for cmd in ['stop navigation', 'end navigation', 'cancel navigation', 'exit navigation']):
             return self._handle_stop_navigation(session_id)
@@ -407,7 +777,7 @@ class AIChatRouteHandler:
             return self._handle_navigation_status(session_id)
         
         elif any(cmd in message_lower for cmd in ['reroute', 'recalculate', 'new route']):
-            return self._handle_reroute(session_id, user_location)
+            return await self._handle_reroute(session_id, user_location)
         
         # Auto-update if navigation is active and location provided
         if session_id in self.active_navigators and user_location:
@@ -489,7 +859,7 @@ class AIChatRouteHandler:
                has_comma_list or \
                (has_multi_location_pattern and location_count >= 2)
     
-    def _extract_locations(self, message: str) -> List[Tuple[float, float]]:
+    async def _extract_locations(self, message: str) -> List[Tuple[float, float]]:
         """
         Industry-level location extraction from natural language queries.
         
@@ -533,8 +903,8 @@ class AIChatRouteHandler:
                 dest_str = self._clean_location_string(dest_str)
                 logger.info(f"   After cleaning: origin='{origin_str}', dest='{dest_str}'")
                 
-                origin_coords = self._find_best_location_match(origin_str)
-                dest_coords = self._find_best_location_match(dest_str)
+                origin_coords = await self._find_best_location_match(origin_str)
+                dest_coords = await self._find_best_location_match(dest_str)
                 
                 if origin_coords and dest_coords:
                     logger.info(f"✅ Extracted route (to-from): {origin_str} → {dest_str}")
@@ -560,8 +930,8 @@ class AIChatRouteHandler:
                 origin_str = self._clean_location_string(origin_str)
                 dest_str = self._clean_location_string(dest_str)
                 
-                origin_coords = self._find_best_location_match(origin_str)
-                dest_coords = self._find_best_location_match(dest_str)
+                origin_coords = await self._find_best_location_match(origin_str)
+                dest_coords = await self._find_best_location_match(dest_str)
                 
                 if origin_coords and dest_coords:
                     logger.info(f"✅ Extracted route (from-to): {origin_str} → {dest_str}")
@@ -575,8 +945,8 @@ class AIChatRouteHandler:
             loc1_str = self._clean_location_string(match.group(1).strip())
             loc2_str = self._clean_location_string(match.group(2).strip())
             
-            loc1_coords = self._find_best_location_match(loc1_str)
-            loc2_coords = self._find_best_location_match(loc2_str)
+            loc1_coords = await self._find_best_location_match(loc1_str)
+            loc2_coords = await self._find_best_location_match(loc2_str)
             
             if loc1_coords and loc2_coords:
                 logger.info(f"✅ Extracted route (between): {loc1_str} ↔ {loc2_str}")
@@ -595,8 +965,8 @@ class AIChatRouteHandler:
                 origin_str = self._clean_location_string(match.group(1).strip())
                 dest_str = self._clean_location_string(match.group(2).strip())
                 
-                origin_coords = self._find_best_location_match(origin_str)
-                dest_coords = self._find_best_location_match(dest_str)
+                origin_coords = await self._find_best_location_match(origin_str)
+                dest_coords = await self._find_best_location_match(dest_str)
                 
                 if origin_coords and dest_coords:
                     logger.info(f"✅ Extracted route (simple): {origin_str} → {dest_str}")
@@ -605,7 +975,7 @@ class AIChatRouteHandler:
         # PATTERN 5: Comma-separated list for multi-stop routes
         # Examples: "visit taksim, galata, and sultanahmet", "tour of X, Y, Z"
         if ',' in message_normalized:
-            locations = self._extract_comma_separated_locations(message_normalized)
+            locations = await self._extract_comma_separated_locations(message_normalized)
             if len(locations) >= 2:
                 logger.info(f"✅ Extracted multi-stop route: {len(locations)} locations")
                 return locations
@@ -665,7 +1035,7 @@ class AIChatRouteHandler:
         
         return cleaned
     
-    def _find_best_location_match(self, query: str) -> Optional[Tuple[float, float]]:
+    async def _find_best_location_match(self, query: str) -> Optional[Tuple[float, float]]:
         """
         Find best matching location from KNOWN_LOCATIONS using fuzzy matching.
         
@@ -673,6 +1043,7 @@ class AIChatRouteHandler:
         1. Exact match (case-insensitive)
         2. Substring match (location name contains query or vice versa)
         3. Word-based partial match (all query words appear in location name)
+        4. Geocoder fallback (100+ landmarks + Nominatim API)
         
         Args:
             query: Location query string (cleaned)
@@ -688,18 +1059,21 @@ class AIChatRouteHandler:
         
         # Strategy 1: Exact match
         if query in self.KNOWN_LOCATIONS:
+            logger.info(f"✅ Found exact match in KNOWN_LOCATIONS for: '{query}'")
             return self.KNOWN_LOCATIONS[query]
         
         # Strategy 2: Check if query is substring of any location name
         for location_name, coords in self.KNOWN_LOCATIONS.items():
             if query in location_name or location_name in query:
                 # Prefer shorter matches (more specific)
+                logger.info(f"✅ Found substring match in KNOWN_LOCATIONS: '{query}' -> '{location_name}'")
                 return coords
         
         # Strategy 3: Word-based partial matching
         query_words = set(query.split())
         best_match = None
         best_match_score = 0
+        best_match_name = None
         
         for location_name, coords in self.KNOWN_LOCATIONS.items():
             location_words = set(location_name.split())
@@ -712,15 +1086,30 @@ class AIChatRouteHandler:
             if match_score > 0 and match_score > best_match_score:
                 best_match = coords
                 best_match_score = match_score
+                best_match_name = location_name
         
         if best_match:
+            logger.info(f"✅ Found word-based match in KNOWN_LOCATIONS: '{query}' -> '{best_match_name}'")
             return best_match
         
+        # Strategy 4: Geocoder fallback (100+ landmarks + external geocoding)
+        if self.geocoder:
+            logger.info(f"🔍 No match in KNOWN_LOCATIONS, trying geocoder fallback for: '{query}'")
+            try:
+                geocoded = await self.geocoder.geocode_async(query)
+                if geocoded:
+                    logger.info(f"✅ Geocoder found location: '{query}' -> {geocoded.name} at ({geocoded.lat}, {geocoded.lon}) [source: {geocoded.source}, confidence: {geocoded.confidence}]")
+                    return geocoded.to_tuple()
+                else:
+                    logger.info(f"⚠️ Geocoder could not find location: '{query}'")
+            except Exception as e:
+                logger.warning(f"⚠️ Error using geocoder for '{query}': {e}")
+        
         # No match found
-        logger.debug(f"⚠️ Could not find location match for: '{query}'")
+        logger.warning(f"❌ Could not find location match for: '{query}' (tried KNOWN_LOCATIONS and geocoder)")
         return None
     
-    def _extract_comma_separated_locations(self, message: str) -> List[Tuple[float, float]]:
+    async def _extract_comma_separated_locations(self, message: str) -> List[Tuple[float, float]]:
         """
         Extract locations from comma-separated list.
         
@@ -742,7 +1131,7 @@ class AIChatRouteHandler:
         for part in parts:
             part = self._clean_location_string(part.strip())
             if part:
-                coords = self._find_best_location_match(part)
+                coords = await self._find_best_location_match(part)
                 if coords and coords not in locations:
                     locations.append(coords)
         
@@ -874,35 +1263,207 @@ class AIChatRouteHandler:
                 'message': f"Sorry, I couldn't plan your itinerary: {str(e)}"
             }
     
+    def _determine_routing_method(self, route: Any) -> str:
+        """
+        Determine which routing method was used
+        
+        Returns:
+            'precise' - OSRM realistic routing
+            'estimated' - GPS-based routing
+            'approximate' - Fallback Haversine calculation
+        """
+        # Check if route has metadata about routing method
+        if hasattr(route, 'gps_route_data') and route.gps_route_data:
+            osrm_data = route.gps_route_data.get('osrm_route')
+            if osrm_data:
+                return 'precise'  # OSRM was used
+        
+        # Check for GPS planner data
+        if hasattr(route, 'gps_route_data') and route.gps_route_data:
+            return 'estimated'
+        
+        # Otherwise, likely fallback Haversine
+        return 'approximate'
+    
+    def _calculate_confidence(self, route: Any) -> float:
+        """
+        Calculate confidence score for route accuracy
+        
+        Returns:
+            Confidence score from 0.0 to 1.0
+        """
+        score = 0.5  # Base score
+        
+        routing_method = self._determine_routing_method(route)
+        
+        if routing_method == 'precise':
+            score += 0.4  # OSRM is highly accurate
+        elif routing_method == 'estimated':
+            score += 0.3  # GPS routing is good
+        else:
+            score += 0.1  # Haversine is rough estimate
+        
+        # Add bonus for ML predictions
+        if hasattr(route, 'ml_predictions') and route.ml_predictions:
+            score += 0.1
+        
+        return min(score, 1.0)
+    
+    def _generate_warnings(self, route: Any) -> List[str]:
+        """
+        Generate helpful warnings for users
+        
+        Returns:
+            List of warning messages
+        """
+        warnings = []
+        
+        routing_method = self._determine_routing_method(route)
+        total_distance = route.visualization.total_distance
+        
+        if routing_method == 'approximate':
+            warnings.append(
+                "⚠️ Route shown is approximate (straight-line). "
+                "Actual walking route may be longer."
+            )
+        
+        if total_distance > 5000:  # More than 5km
+            warnings.append(
+                "ℹ️ This is a long walk (>5km). Consider using public transit or taxi."
+            )
+        
+        if total_distance > 10000:  # More than 10km
+            warnings.append(
+                "⚠️ Very long distance! Walking not recommended. "
+                "Use metro, bus, or taxi instead."
+            )
+        
+        # Check ML predictions for crowding
+        if hasattr(route, 'ml_predictions') and route.ml_predictions:
+            crowding = route.ml_predictions.get('crowding', {})
+            max_crowding = crowding.get('max', 0)
+            if max_crowding > 0.8:
+                warnings.append(
+                    "👥 Route may be crowded at this time."
+                )
+        
+        return warnings
+    
+    def _generate_tips(self, route: Any) -> List[str]:
+        """
+        Generate helpful tips for users
+        
+        Returns:
+            List of tip messages
+        """
+        tips = []
+        
+        # Use route recommendations if available
+        if hasattr(route, 'recommendations') and route.recommendations:
+            return route.recommendations[:3]  # Top 3 recommendations
+        
+        # Generate generic tips based on route
+        total_distance = route.visualization.total_distance
+        
+        if total_distance > 3000:
+            tips.append("💡 Consider stopping for breaks along the way")
+        
+        if total_distance < 2000:
+            tips.append("💡 This is a pleasant walking distance")
+        
+        # Add district-specific tips
+        if hasattr(route.visualization, 'districts') and route.visualization.districts:
+            districts = route.visualization.districts
+            if 'Sultanahmet' in districts:
+                tips.append("📸 Great area for photos!")
+            if 'Beyoğlu' in districts:
+                tips.append("☕ Many cafes along the way")
+        
+        return tips
+    
+    def _create_natural_response(self, route: Any, preferences: Optional[Dict] = None) -> str:
+        """
+        Create natural language response with routing method awareness
+        
+        Args:
+            route: Route object
+            preferences: Optional user preferences
+            
+        Returns:
+            Natural language message
+        """
+        distance_km = route.visualization.total_distance / 1000
+        duration_min = route.visualization.total_duration / 60
+        
+        routing_method = self._determine_routing_method(route)
+        
+        # Start with routing method-aware greeting
+        if routing_method == 'precise':
+            response = f"🚶‍♂️ I found a walking route for you! "
+        elif routing_method == 'estimated':
+            response = f"🗺️ Here's an estimated route for you. "
+        else:
+            response = f"📍 Here's an approximate route (straight-line distance). "
+        
+        response += f"It's about **{distance_km:.1f} km** and will take "
+        response += f"approximately **{duration_min:.0f} minutes** on foot.\n\n"
+        
+        # Add warnings
+        warnings = self._generate_warnings(route)
+        if warnings:
+            for warning in warnings:
+                response += f"{warning}\n"
+            response += "\n"
+        
+        # Add tips
+        tips = self._generate_tips(route)
+        if tips:
+            response += "**💡 Tips:**\n"
+            for tip in tips:
+                response += f"• {tip}\n"
+        
+        return response.strip()
+    
     def _format_route_response(
         self,
         route_or_routes: Any,
         single: bool = True
     ) -> Dict[str, Any]:
-        """Format route response for chat"""
+        """Format route response for chat with enhanced metadata"""
         
         if single:
             route = route_or_routes
             
-            # Create readable message
-            distance_km = route.visualization.total_distance / 1000
-            time_minutes = route.visualization.total_duration / 60  # Convert seconds to minutes
+            # FALLBACK: If visualization engine is not available, extract from OSRM route
+            # This happens when the Map Visualization Engine module is missing
+            total_distance = route.visualization.total_distance
+            total_duration = route.visualization.total_duration
             
-            message = f"🚶‍♂️ **Route Found!**\n\n"
-            message += f"📏 Distance: {distance_km:.1f} km\n"
-            message += f"⏱️ Time: {int(time_minutes)} minutes\n\n"
+            # If visualization values are 0, try to get from GPS route data (OSRM)
+            if total_distance == 0 and hasattr(route, 'gps_route_data') and route.gps_route_data:
+                osrm_data = route.gps_route_data.get('osrm_route', {})
+                if isinstance(osrm_data, dict):
+                    total_distance = osrm_data.get('total_distance', 0)
+                    total_duration = osrm_data.get('total_duration', 0)
+                elif hasattr(osrm_data, 'total_distance'):  # OSRMRoute object
+                    total_distance = osrm_data.total_distance
+                    total_duration = osrm_data.total_duration
             
-            if hasattr(route, 'recommendations') and route.recommendations:
-                message += "**Recommendations:**\n"
-                for rec in route.recommendations:
-                    message += f"  • {rec}\n"
+                if total_distance > 0:
+                    logger.info(f"✅ Using OSRM fallback: {total_distance}m, {total_duration}s")
             
-            message += "\n📍 The route is displayed on the map above."
+            # Create natural language message with routing method awareness
+            message = self._create_natural_response(route)
+            
+            # Determine routing method and confidence
+            routing_method = self._determine_routing_method(route)
+            confidence = self._calculate_confidence(route)
             
             # Export visualization data
             visualization_data = self.route_integration.export_for_frontend(route, format='leaflet')
             
-            return {
+            # Build response with enhanced metadata
+            response = {
                 'type': 'route',
                 'message': message,
                 'route_data': {
@@ -912,22 +1473,58 @@ class AIChatRouteHandler:
                     'end': route.end_location,
                     'origin': route.start_location,  # Alias for frontend compatibility
                     'destination': route.end_location,  # Alias for frontend compatibility
-                    'distance': route.visualization.total_distance,
-                    'duration': route.visualization.total_duration,
-                    'total_distance': route.visualization.total_distance,  # Total fields for API consistency
-                    'total_time': route.visualization.total_duration,  # Total fields for API consistency
+                    'distance': total_distance,
+                    'duration': total_duration,
+                    'total_distance': total_distance,
+                    'total_time': total_duration,
                     'waypoints': route.visualization.waypoints,
                     'steps': route.visualization.steps,
-                    'geojson': route.visualization.geojson
+                    'geojson': route.visualization.geojson,
+                    'routing_method': routing_method,
+                    'confidence': confidence
+                },
+                'metadata': {
+                    'routing_method': routing_method,
+                    'routing_method_description': {
+                        'precise': 'Realistic walking route via OpenStreetMap',
+                        'estimated': 'GPS-based route estimation',
+                        'approximate': 'Straight-line distance approximation'
+                    }.get(routing_method, 'Unknown'),
+                    'confidence': confidence,
+                    'warnings': self._generate_warnings(route),
+                    'tips': self._generate_tips(route)
                 }
             }
+            
+            return response
         
         else:
             routes = route_or_routes
             
-            # Calculate totals
-            total_distance = sum(r.visualization.total_distance for r in routes) / 1000
-            total_duration = sum(r.visualization.total_duration for r in routes) / 60
+            # Calculate totals with fallback for missing visualization data
+            total_distance = 0
+            total_duration = 0
+            
+            for r in routes:
+                route_distance = r.visualization.total_distance
+                route_duration = r.visualization.total_duration
+                
+                # Fallback to OSRM data if visualization is 0
+                if route_distance == 0 and hasattr(r, 'gps_route_data') and r.gps_route_data:
+                    osrm_data = r.gps_route_data.get('osrm_route', {})
+                    if isinstance(osrm_data, dict):
+                        route_distance = osrm_data.get('total_distance', 0)
+                        route_duration = osrm_data.get('total_duration', 0)
+                    elif hasattr(osrm_data, 'total_distance'):
+                        route_distance = osrm_data.total_distance
+                        route_duration = osrm_data.total_duration
+                
+                total_distance += route_distance
+                total_duration += route_duration
+            
+            # Convert to km and minutes
+            total_distance = total_distance / 1000
+            total_duration = total_duration / 60
             
             # Collect all districts
             all_districts = set()
@@ -957,6 +1554,16 @@ class AIChatRouteHandler:
                 }
                 for r in routes
             ]
+            
+            # Add metadata for each route
+            for i, r in enumerate(routes):
+                r.routing_method = self._determine_routing_method(r)
+                r.confidence = self._calculate_confidence(r)
+                
+                # Add warnings and tips to the first route only (summary route)
+                if i == 0:
+                    r.warnings = self._generate_warnings(r)
+                    r.tips = self._generate_tips(r)
             
             return {
                 'type': 'route',
@@ -1374,6 +1981,8 @@ class AIChatRouteHandler:
         
         navigator = self.active_navigators[session_id]
         
+
+        
         return {
             'type': 'navigation_status',
             'active': navigator.is_navigating,
@@ -1394,7 +2003,7 @@ class AIChatRouteHandler:
         ]
         return any(keyword in message_lower for keyword in start_keywords)
     
-    def _handle_start_navigation(
+    async def _handle_start_navigation(
         self,
         message: str,
         session_id: str,
@@ -1419,7 +2028,7 @@ class AIChatRouteHandler:
             }
         
         # Extract destination
-        locations = self._extract_locations(message)
+        locations = await self._extract_locations(message)
         if not locations or len(locations) == 0:
             return {
                 'type': 'navigation_error',
@@ -1771,6 +2380,8 @@ Say 'reroute' to calculate a new route."""
             'type': 'navigation_status',
             'message': f"""✅ **Navigation Active**
 
+
+
 🎯 **Destination:** {destination_name}
 📏 **Remaining:** {distance_km:.2f} km
 ⏱️ **ETA:** {time_min} minutes
@@ -1783,7 +2394,7 @@ Say 'what's next' for updates or 'stop navigation' to end.""",
             'navigation_active': True
         }
     
-    def _handle_reroute(
+    async def _handle_reroute(
         self,
         session_id: str,
         user_location: Optional[Dict[str, float]]
@@ -1810,7 +2421,7 @@ Say 'what's next' for updates or 'stop navigation' to end.""",
         
         # Start new navigation from current location
         fake_message = f"navigate to {self._get_location_name(destination)}"
-        return self._handle_start_navigation(fake_message, session_id, user_location)
+        return await self._handle_start_navigation(fake_message, session_id, user_location)
     
     def _handle_auto_update(
         self,
