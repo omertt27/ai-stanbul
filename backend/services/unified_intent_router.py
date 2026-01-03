@@ -354,11 +354,17 @@ class UnifiedIntentRouter:
         try:
             from services.ai_chat_route_integration import get_chat_route_handler
             
+            # Add user_location to user_context if available
+            context = user_context or {}
+            if user_location:
+                context['gps'] = user_location
+                context['location'] = user_location
+            
             handler = get_chat_route_handler()
-            # FIXED: Await the async function
+            # FIXED: Await the async function and pass user_location via context
             result = await handler.handle_route_request(
                 message=query,
-                user_context=user_context or {}
+                user_context=context
             )
             
             if result:

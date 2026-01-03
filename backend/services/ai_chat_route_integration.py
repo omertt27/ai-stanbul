@@ -254,8 +254,6 @@ class AIChatRouteHandler:
         self.navigation_sessions: Dict[str, Dict[str, Any]] = {}  # session_id -> navigation state
         
         logger.info("✅ AI Chat Route Handler initialized (RAG-powered)")
-        else:
-            logger.warning("⚠️ Route integration not available")
         
         if MULTI_STOP_AVAILABLE:
             try:
@@ -566,16 +564,29 @@ class AIChatRouteHandler:
         
         try:
             # Extract location names from coordinates for RAG query
-            origin_name = self._get_location_name_from_coords(start_coords)
-            dest_name = self._get_location_name_from_coords(end_coords)
+            origin_name = self._get_location_name(start_coords)
+            dest_name = self._get_location_name(end_coords)
             
             logger.info(f"🚇 Using Transportation RAG: {origin_name} → {dest_name}")
+            logger.info(f"📍 GPS coordinates - Origin: {start_coords}, Destination: {end_coords}")
             
-            # Use Transportation RAG to find route
+            # Prepare GPS coordinates for RAG (convert from tuple to dict)
+            origin_gps_dict = {
+                'lat': start_coords[0],
+                'lon': start_coords[1]
+            }
+            dest_gps_dict = {
+                'lat': end_coords[0],
+                'lon': end_coords[1]
+            }
+            
+            # Use Transportation RAG to find route with GPS coordinates
             rag_route = self.transport_rag.find_route(
                 origin=origin_name,
                 destination=dest_name,
-                max_transfers=3
+                max_transfers=3,
+                origin_gps=origin_gps_dict,
+                destination_gps=dest_gps_dict
             )
             
             if not rag_route:

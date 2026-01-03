@@ -502,7 +502,7 @@ async def pure_llm_chat(
             handler = get_chat_route_handler()
             
             # Try to handle as GPS navigation command
-            nav_result = handler.handle_gps_navigation_command(
+            nav_result = await handler.handle_gps_navigation_command(
                 message=request.message,
                 session_id=request.session_id or 'new',
                 user_location=request.user_location
@@ -1050,7 +1050,7 @@ async def chat(
         handler = get_chat_route_handler()
         
         # Try to handle as GPS navigation command
-        nav_result = handler.handle_gps_navigation_command(
+        nav_result = await handler.handle_gps_navigation_command(
             message=request.message,
             session_id=request.session_id or 'new',
             user_location=request.user_location

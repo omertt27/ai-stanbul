@@ -1997,13 +1997,31 @@ class IstanbulTransportationRAG:
             return self._get_generic_transport_info()
         
         # Prepare GPS data if origin or destination is GPS-based
+        # Normalize GPS data format ('latitude'/'longitude' → 'lat'/'lon')
         origin_gps = None
         destination_gps = None
         
         if origin == "Your Location" and user_location:
-            origin_gps = user_location
+            # Normalize GPS format
+            if 'latitude' in user_location and 'longitude' in user_location:
+                origin_gps = {
+                    'lat': user_location['latitude'],
+                    'lon': user_location['longitude']
+                }
+            elif 'lat' in user_location and 'lon' in user_location:
+                origin_gps = user_location
+            logger.info(f"📍 Normalized origin GPS: {origin_gps}")
+                
         if destination == "Your Location" and user_location:
-            destination_gps = user_location
+            # Normalize GPS format
+            if 'latitude' in user_location and 'longitude' in user_location:
+                destination_gps = {
+                    'lat': user_location['latitude'],
+                    'lon': user_location['longitude']
+                }
+            elif 'lat' in user_location and 'lon' in user_location:
+                destination_gps = user_location
+            logger.info(f"📍 Normalized destination GPS: {destination_gps}")
         
         # Find route
         route = self.find_route(origin, destination, origin_gps=origin_gps, destination_gps=destination_gps)
