@@ -5,7 +5,7 @@ Llama 3.1 8B vLLM Inference Server for RunPod
 High-performance inference server using vLLM for optimized serving.
 vLLM provides PagedAttention, continuous batching, and much faster inference.
 
-Access via RunPod proxy: https://yst9iajrc1rc7w-8000.proxy.runpod.net/
+Access via RunPod proxy: https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6/
 
 Author: AI Istanbul Team
 Date: December 2024
@@ -283,11 +283,11 @@ if __name__ == "__main__":
     print("=" * 80)
     print("📡 Server will be available at:")
     print("   - Local: http://0.0.0.0:8000")
-    print("   - RunPod: https://yst9iajrc1rc7w-8000.proxy.runpod.net/")
+    print("   - RunPod: https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6/")
     print("=" * 80)
     print("\n📚 API Documentation:")
-    print("   - Interactive docs: https://yst9iajrc1rc7w-8000.proxy.runpod.net/docs")
-    print("   - ReDoc: https://yst9iajrc1rc7w-8000.proxy.runpod.net/redoc")
+    print("   - Interactive docs: https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6/docs")
+    print("   - ReDoc: https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6/redoc")
     print("=" * 80)
     print("\n⚡ Using vLLM for high-performance inference!")
     print("=" * 80)

@@ -538,11 +538,11 @@ class TransportService:
         if not routes:
             return "No transportation routes found. Please check your locations."
         
-        response_parts = [f"🚌 **Transportation Options from {routes[0].origin} to {routes[0].destination}:**\n"]
+        response_parts = [f"🚌 Transportation Options from {routes[0].origin} to {routes[0].destination}:\n"]
         
         for i, route in enumerate(routes, 1):
             route_info = [
-                f"**Option {i}: {route.transport_type}**",
+                f"Option {i}: {route.transport_type}",
                 f"⏱️ Duration: ~{route.duration_minutes} minutes",
                 f"💰 Cost: {route.cost}",
                 f"📏 Distance: {route.distance_km} km"
@@ -600,22 +600,22 @@ class TransportService:
             else:
                 schedule = self.get_schedule_info("bus")
             
-            return f"🕒 **{schedule.route_name} Schedule:**\n" \
+            return f"🕒 {schedule.route_name} Schedule:\n" \
                    f"⏰ Operating hours: {schedule.operating_hours}\n" \
                    f"🔄 Frequency: Every {schedule.frequency_minutes} minutes\n" \
                    f"🚌 Transport type: {schedule.transport_type}"
         
         # General transport info
         else:
-            return """🚌 **Istanbul Public Transportation:**
+            return """🚌 Istanbul Public Transportation:
 
-🎫 **Payment:** Use Istanbul Card (Istanbulkart) for all public transport
-🚇 **Metro:** Fast, air-conditioned, connects major districts
-🚌 **Bus:** Extensive network, includes Metrobüs (BRT system)
-⛴️ **Ferry:** Scenic Bosphorus routes, connects European & Asian sides
-🚋 **Tram:** Historic tram in Beyoğlu, modern tram to Sultanahmet
+🎫 Payment: Use Istanbul Card (Istanbulkart) for all public transport
+🚇 Metro: Fast, air-conditioned, connects major districts
+🚌 Bus: Extensive network, includes Metrobüs (BRT system)
+⛴️ Ferry: Scenic Bosphorus routes, connects European & Asian sides
+🚋 Tram: Historic tram in Beyoğlu, modern tram to Sultanahmet
 
-💡 **Tips:**
+💡 Tips:
 • Download BiTaksi or Uber for taxis
 • Use Moovit or Citymapper for real-time transit info
 • Rush hours: 07:00-09:00 and 17:00-19:00
@@ -934,17 +934,17 @@ class TransportService:
         if not schedules:
             return f"No real-time schedule information available for {location}."
         
-        response_parts = [f"🚌 **Next Departures from {location.title()}:**\n"]
+        response_parts = [f"🚌 Next Departures from {location.title()}:\n"]
         
         for schedule in schedules[:6]:  # Show up to 6 next departures
             walking_info = f" ({schedule['walking_time']} min walk)" if schedule['walking_time'] > 2 else ""
             response_parts.append(
-                f"🚇 **{schedule['transport_type']} {schedule['route_name']}** → {schedule['destination']}\n"
+                f"🚇 {schedule['transport_type']} {schedule['route_name']} → {schedule['destination']}\n"
                 f"   📍 From: {schedule['stop_name']}{walking_info}\n"
                 f"   ⏰ Departure: {schedule['departure_time']}\n"
             )
         
-        response_parts.append("\n💡 **Tips:**")
+        response_parts.append("\n💡 Tips:")
         response_parts.append("• Times are estimated based on GTFS data")
         response_parts.append("• Check mobile apps for real-time updates")
         response_parts.append("• Have your Istanbul Card ready")
@@ -961,13 +961,13 @@ class TransportService:
         if not metro_routes:
             return self._get_basic_metro_info()
         
-        response_parts = ["🚇 **Istanbul Metro System:**\n"]
+        response_parts = ["🚇 Istanbul Metro System:\n"]
         
         for route in metro_routes[:5]:  # Show up to 5 metro lines
             route_info = self.gtfs_service.get_route_info(route.route_id)
             if route_info:
                 response_parts.append(
-                    f"**{route.route_short_name}** - {route.route_long_name}\n"
+                    f"{route.route_short_name} - {route.route_long_name}\n"
                     f"   🚉 Stops: {route_info['total_stops']}\n"
                     f"   ⏱️ Journey time: ~{route_info['estimated_duration_minutes']} minutes\n"
                 )

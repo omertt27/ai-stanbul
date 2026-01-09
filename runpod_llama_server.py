@@ -3,7 +3,7 @@
 Llama 3.1 8B Inference Server for RunPod
 
 Serves the downloaded Llama 3.1 8B 4-bit model via FastAPI.
-Access via RunPod proxy: https://yst9iajrc1rc7w-8000.proxy.runpod.net/
+Access via RunPod proxy: https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6/
 
 Author: AI Istanbul Team
 Date: December 2024
@@ -288,11 +288,11 @@ if __name__ == "__main__":
     print("=" * 80)
     print("📡 Server will be available at:")
     print("   - Local: http://0.0.0.0:8000")
-    print("   - RunPod: https://yst9iajrc1rc7w-8000.proxy.runpod.net/")
+    print("   - RunPod: https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6/")
     print("=" * 80)
     print("\n📚 API Documentation:")
-    print("   - Interactive docs: https://yst9iajrc1rc7w-8000.proxy.runpod.net/docs")
-    print("   - ReDoc: https://yst9iajrc1rc7w-8000.proxy.runpod.net/redoc")
+    print("   - Interactive docs: https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6/docs")
+    print("   - ReDoc: https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6/redoc")
     print("=" * 80)
     
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")

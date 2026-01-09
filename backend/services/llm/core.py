@@ -2744,16 +2744,16 @@ Fixed version (max 50 chars):"""
             steps = route_data.get('steps', [])
             
             # =================================================================
-            # MULTILINGUAL TEMPLATES
+            # MULTILINGUAL TEMPLATES (Clean format without Markdown)
             # =================================================================
             templates = {
                 'en': {
-                    'header': f"**Route: {origin} → {destination}**",
-                    'duration': f"⏱️ **Duration:** {total_time} minutes",
-                    'distance': f"📏 **Distance:** {total_distance:.1f} km",
-                    'transfers': f"🔄 **Transfers:** {transfers}",
-                    'lines': f"🚇 **Lines:** {', '.join(lines_used)}",
-                    'step_header': "**📍 Step-by-Step:**",
+                    'header': f"🚇 Route: {origin} → {destination}",
+                    'duration': f"⏱️ Duration: {total_time} minutes",
+                    'distance': f"📏 Distance: {total_distance:.1f} km",
+                    'transfers': f"🔄 Transfers: {transfers}",
+                    'lines': f"🚇 Lines: {', '.join(lines_used)}",
+                    'step_header': "📍 Step-by-Step:",
                     'verified': "✅ This route has been verified in Istanbul's transportation database.",
                     'fallback': "Route information is available but could not be displayed. Please try again.",
                     'time_unit': 'min',
@@ -2762,12 +2762,12 @@ Fixed version (max 50 chars):"""
                     'walk': lambda s: f"Walk to {s}",
                 },
                 'tr': {
-                    'header': f"**{origin} → {destination} Güzergahı**",
-                    'duration': f"⏱️ **Süre:** {total_time} dakika",
-                    'distance': f"📏 **Mesafe:** {total_distance:.1f} km",
-                    'transfers': f"🔄 **Aktarma:** {transfers} aktarma",
-                    'lines': f"🚇 **Hatlar:** {', '.join(lines_used)}",
-                    'step_header': "**📍 Adım Adım:**",
+                    'header': f"🚇 Güzergah: {origin} → {destination}",
+                    'duration': f"⏱️ Süre: {total_time} dakika",
+                    'distance': f"📏 Mesafe: {total_distance:.1f} km",
+                    'transfers': f"🔄 Aktarma: {transfers} aktarma",
+                    'lines': f"🚇 Hatlar: {', '.join(lines_used)}",
+                    'step_header': "📍 Adım Adım:",
                     'verified': "✅ Bu güzergah İstanbul ulaşım veritabanından doğrulanmıştır.",
                     'fallback': "Güzergah bilgisi mevcut ancak görüntülenemiyor. Lütfen tekrar deneyin.",
                     'time_unit': 'dk',
@@ -2776,8 +2776,8 @@ Fixed version (max 50 chars):"""
                     'walk': lambda s: f"{s}'a yürüyün",
                 },
                 'ru': {
-                    'header': f"**Маршрут: {origin} → {destination}**",
-                    'duration': f"⏱️ **Время:** {total_time} минут",
+                    'header': f"🚇 Маршрут: {origin} → {destination}",
+                    'duration': f"⏱️ Время: {total_time} минут",
                     'distance': f"📏 **Расстояние:** {total_distance:.1f} км",
                     'transfers': f"🔄 **Пересадки:** {transfers}",
                     'lines': f"🚇 **Линии:** {', '.join(lines_used)}",

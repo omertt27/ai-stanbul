@@ -353,6 +353,7 @@ class UnifiedIntentRouter:
         """Handle transportation queries"""
         try:
             from services.ai_chat_route_integration import get_chat_route_handler
+            from services.transportation_rag_system import get_transportation_rag
             
             # Add user_location to user_context if available
             context = user_context or {}
@@ -371,16 +372,30 @@ class UnifiedIntentRouter:
                 # Extract route_data for processing
                 route_data = result.get('route_data', {})
                 
-                # Build proper map_data with route information at top level
-                map_data = {
-                    'type': result.get('type', 'route'),
-                    'route_data': route_data,
-                    # Extract origin/destination to top level for frontend compatibility
-                    'origin': route_data.get('origin') or route_data.get('start'),
-                    'destination': route_data.get('destination') or route_data.get('end'),
-                    'total_time': route_data.get('total_time') or route_data.get('duration'),
-                    'total_distance': route_data.get('total_distance') or route_data.get('distance'),
-                }
+                # Get map data from route handler result first (it includes full visualization)
+                map_data = result.get('map_data')
+                
+                # If route handler didn't provide map_data, try to get it from Transportation RAG
+                if not map_data:
+                    try:
+                        transport_rag = get_transportation_rag()
+                        if transport_rag and transport_rag.last_route:
+                            map_data = transport_rag.get_map_data_for_last_route()
+                            logger.info(f"✅ Got full map_data from Transportation RAG for unified router")
+                    except Exception as e:
+                        logger.warning(f"Could not get map_data from Transportation RAG: {e}")
+                
+                # Fallback: Build basic map_data if still not available
+                if not map_data:
+                    map_data = {
+                        'type': result.get('type', 'route'),
+                        'route_data': route_data,
+                        # Extract origin/destination to top level for frontend compatibility
+                        'origin': route_data.get('origin') or route_data.get('start'),
+                        'destination': route_data.get('destination') or route_data.get('end'),
+                        'total_time': route_data.get('total_time') or route_data.get('duration'),
+                        'total_distance': route_data.get('total_distance') or route_data.get('distance'),
+                    }
                 
                 return HandlerResult(
                     success=result.get('type') != 'error',
@@ -392,7 +407,7 @@ class UnifiedIntentRouter:
                         "How long by taxi?",
                         "Show walking directions"
                     ]),
-                    map_data=map_data,  # Now includes origin/destination at top level
+                    map_data=map_data,  # Full map data with markers, routes, coordinates
                     navigation_data=result.get('navigation_data')
                 )
         except ImportError:
@@ -697,7 +712,7 @@ Just ask me anything about Istanbul!""",
         
         lines = [f"🏛️ Found {len(attractions)} attractions:\n"]
         for i, attr in enumerate(attractions[:5], 1):
-            lines.append(f"{i}. **{attr.get('name', 'Unknown')}** - {attr.get('description', '')[:100]}...")
+            lines.append(f"{i}. {attr.get('name', 'Unknown')} - {attr.get('description', '')[:100]}...")
         
         return "\n".join(lines)
     
@@ -723,7 +738,7 @@ Just ask me anything about Istanbul!""",
         
         lines = [f"🎭 Found {len(events)} upcoming events:\n"]
         for event in events[:5]:
-            lines.append(f"• **{event.get('name', 'Unknown')}** - {event.get('date', 'TBA')}")
+            lines.append(f"• {event.get('name', 'Unknown')} - {event.get('date', 'TBA')}")
         
         return "\n".join(lines)
     

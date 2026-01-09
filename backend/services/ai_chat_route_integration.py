@@ -595,15 +595,15 @@ class AIChatRouteHandler:
                     "Please try different locations or check if they are reachable."
                 )
             
-            logger.info(f"✅ Transportation RAG found route: {rag_route.total_duration} min, {len(rag_route.segments)} segments")
+            logger.info(f"✅ Transportation RAG found route: {rag_route.total_time} min, {len(rag_route.steps)} steps")
             
             # Convert RAG route to our format
             route_data = {
                 'distance': rag_route.total_distance,
-                'duration': rag_route.total_duration,
+                'duration': rag_route.total_time,
                 'polyline': None,  # RAG doesn't provide polyline
                 'steps': rag_route.steps,
-                'segments': rag_route.segments,
+                'segments': rag_route.steps,  # Use steps as segments for compatibility
                 'origin': rag_route.origin,
                 'destination': rag_route.destination,
                 'waypoints': rag_route.waypoints if hasattr(rag_route, 'waypoints') else [],
@@ -612,7 +612,7 @@ class AIChatRouteHandler:
                     'confidence': rag_route.confidence if hasattr(rag_route, 'confidence') else 0.95,
                     'warnings': rag_route.warnings if hasattr(rag_route, 'warnings') else [],
                     'from_cache': False,
-                    'lines_used': [seg.line for seg in rag_route.segments] if rag_route.segments else []
+                    'lines_used': rag_route.lines_used
                 }
             }
             
@@ -690,7 +690,7 @@ class AIChatRouteHandler:
             return {
                 'type': 'error',
                 'message': f"❌ Location Error\n\n{error_msg}\n\n"
-                          "**Tip:** Try using well-known landmarks like 'Sultanahmet' or 'Taksim Square'.",
+                          "Tip: Try using well-known landmarks like 'Sultanahmet' or 'Taksim Square'.",
                 'error_code': 'LOCATION_ERROR'
             }
         elif "network" in error_msg.lower() or "unavailable" in error_msg.lower():
@@ -1424,8 +1424,8 @@ class AIChatRouteHandler:
         else:
             response = f"📍 Here's an approximate route (straight-line distance). "
         
-        response += f"It's about **{distance_km:.1f} km** and will take "
-        response += f"approximately **{duration_min:.0f} minutes** on foot.\n\n"
+        response += f"It's about {distance_km:.1f} km and will take "
+        response += f"approximately {duration_min:.0f} minutes on foot.\n\n"
         
         # Add warnings
         warnings = self._generate_warnings(route)
@@ -1437,7 +1437,7 @@ class AIChatRouteHandler:
         # Add tips
         tips = self._generate_tips(route)
         if tips:
-            response += "**💡 Tips:**\n"
+            response += "💡 Tips:\n"
             for tip in tips:
                 response += f"• {tip}\n"
         
@@ -1452,6 +1452,65 @@ class AIChatRouteHandler:
         
         if single:
             route = route_or_routes
+            
+            # NEW: Check if route is a dict (from Transportation RAG) or object (from old integration)
+            if isinstance(route, dict):
+                # Route is a dict from Transportation RAG - need to generate natural language response
+                logger.info("✅ Route is dict format (Transportation RAG), generating explanation")
+                
+                # Extract route details
+                origin = route.get('origin', 'Starting point')
+                destination = route.get('destination', 'Destination')
+                duration = route.get('duration', 0)  # in minutes
+                distance = route.get('distance', 0)  # in km
+                steps = route.get('steps', [])
+                segments = route.get('segments', steps)  # Fallback to steps
+                
+                # Generate natural language message (without Markdown formatting)
+                message = f"🚇 Route: {origin} → {destination}\n\n"
+                message += f"⏱️ Duration: {duration} minutes\n"
+                message += f"📏 Distance: {distance:.1f} km\n"
+                
+                if route.get('metadata', {}).get('lines_used'):
+                    lines = route['metadata']['lines_used']
+                    message += f"🚇 Lines: {', '.join(lines)}\n"
+                
+                # Add step-by-step if available
+                if steps:
+                    message += f"\n📍 Step-by-Step:\n\n"
+                    for i, step in enumerate(steps, 1):
+                        instruction = step.get('instruction', '')
+                        if instruction:
+                            message += f"{i}. {instruction}\n"
+                
+                message += "\n✅ This route has been verified in Istanbul's transportation database."
+                
+                # Get full map visualization data from Transportation RAG
+                map_data = None
+                try:
+                    logger.info(f"🔍 Attempting to get map_data from Transportation RAG...")
+                    logger.info(f"   self.transport_rag exists: {self.transport_rag is not None}")
+                    if self.transport_rag:
+                        logger.info(f"   self.transport_rag.last_route exists: {self.transport_rag.last_route is not None}")
+                        if self.transport_rag.last_route:
+                            map_data = self.transport_rag.get_map_data_for_last_route()
+                            logger.info(f"✅ Got full map_data from Transportation RAG in route formatter")
+                            logger.info(f"   map_data type: {type(map_data)}, has keys: {list(map_data.keys()) if isinstance(map_data, dict) else 'N/A'}")
+                        else:
+                            logger.warning("⚠️ Transport RAG has no last_route")
+                    else:
+                        logger.warning("⚠️ Transport RAG not initialized")
+                except Exception as e:
+                    logger.error(f"❌ Failed to get map_data from Transportation RAG: {e}", exc_info=True)
+                
+                # Return formatted response with full map data
+                return {
+                    'type': 'route',
+                    'message': message,
+                    'route_data': route,
+                    'map_data': map_data,  # Include full map visualization data
+                    'metadata': route.get('metadata', {})
+                }
             
             # FALLBACK: If visualization engine is not available, extract from OSRM route
             # This happens when the Map Visualization Engine module is missing
@@ -1550,13 +1609,13 @@ class AIChatRouteHandler:
             for route in routes:
                 all_districts.update(route.visualization.districts)
             
-            message = f"🗺️ **Multi-Stop Route Planned!**\n\n"
-            message += f"📏 **Total Distance:** {total_distance:.2f} km\n"
-            message += f"⏱️ **Total Duration:** {total_duration:.0f} minutes\n"
-            message += f"🛑 **Stops:** {len(routes) + 1}\n"
-            message += f"🏛️ **Districts:** {', '.join(all_districts)}\n"
+            message = f"🗺️ Multi-Stop Route Planned!\n\n"
+            message += f"📏 Total Distance: {total_distance:.2f} km\n"
+            message += f"⏱️ Total Duration: {total_duration:.0f} minutes\n"
+            message += f"🛑 Stops: {len(routes) + 1}\n"
+            message += f"🏛️ Districts: {', '.join(all_districts)}\n"
             
-            message += f"\n**Route Segments:**\n"
+            message += f"\nRoute Segments:\n"
             for i, route in enumerate(routes, 1):
                 seg_distance = route.visualization.total_distance / 1000
                 seg_duration = route.visualization.total_duration / 60
@@ -1607,50 +1666,50 @@ class AIChatRouteHandler:
         """Format multi-stop itinerary response for chat"""
         
         # Build response message
-        message = "🗺️ **Multi-Stop Itinerary Planned!**\n\n"
+        message = "🗺️ Multi-Stop Itinerary Planned!\n\n"
         
         # Summary
-        message += f"📍 **Stops:** {len(itinerary.stops)}\n"
-        message += f"📏 **Total Distance:** {itinerary.total_distance_km:.2f} km\n"
-        message += f"🚶 **Travel Time:** {itinerary.total_travel_time_minutes} min\n"
-        message += f"⏱️ **Visit Time:** {itinerary.total_visit_time_minutes} min\n"
-        message += f"⏰ **Total Time:** {itinerary.total_time_minutes} min (~{itinerary.total_time_minutes/60:.1f} hours)\n"
-        message += f"💰 **Estimated Cost:** {itinerary.total_cost_tl:.2f} TL\n"
+        message += f"📍 Stops: {len(itinerary.stops)}\n"
+        message += f"📏 Total Distance: {itinerary.total_distance_km:.2f} km\n"
+        message += f"🚶 Travel Time: {itinerary.total_travel_time_minutes} min\n"
+        message += f"⏱️ Visit Time: {itinerary.total_visit_time_minutes} min\n"
+        message += f"⏰ Total Time: {itinerary.total_time_minutes} min (~{itinerary.total_time_minutes/60:.1f} hours)\n"
+        message += f"💰 Estimated Cost: {itinerary.total_cost_tl:.2f} TL\n"
         
         if itinerary.optimization_strategy:
             strategy_name = itinerary.optimization_strategy.value.replace('_', ' ').title()
-            message += f"🎯 **Strategy:** {strategy_name}\n"
+            message += f"🎯 Strategy: {strategy_name}\n"
         
         # Timeline
-        message += "\n**📅 Itinerary Timeline:**\n"
+        message += "\n📅 Itinerary Timeline:\n"
         timeline = itinerary.get_timeline()
         for item in timeline[:10]:  # Show first 10 items to avoid too long message
             if item['type'] == 'arrival':
-                message += f"  🏛️ **{item['time']}** - Arrive at {item['location']}\n"
+                message += f"  🏛️ {item['time']} - Arrive at {item['location']}\n"
             elif item['type'] == 'visit':
                 message += f"     ⏱️ Visit for {item['duration']} min\n"
             elif item['type'] == 'travel':
                 modes = ', '.join(item['modes'][:2])
-                message += f"  🚶 **{item['time']}** - Travel to {item['to']} ({modes})\n"
+                message += f"  🚶 {item['time']} - Travel to {item['to']} ({modes})\n"
         
         if len(timeline) > 10:
             message += f"\n  ... and {len(timeline) - 10} more steps\n"
         
         # Highlights
         if itinerary.highlights:
-            message += "\n**✨ Highlights:**\n"
+            message += "\n✨ Highlights:\n"
             for highlight in itinerary.highlights[:5]:
                 message += f"  • {highlight}\n"
         
         # Warnings
         if itinerary.warnings:
-            message += "\n**⚠️ Important Notes:**\n"
+            message += "\n⚠️ Important Notes:\n"
             for warning in itinerary.warnings[:3]:
                 message += f"  • {warning}\n"
         
         # Accessibility
         if itinerary.accessibility_friendly:
-            message += "\n♿ **Accessibility:** This route includes accessible options\n"
+            message += "\n♿ Accessibility: This route includes accessible options\n"
         
         message += "\n📍 The complete itinerary is displayed on the map above."
         
@@ -1779,7 +1838,7 @@ class AIChatRouteHandler:
             
             return {
                 'type': 'navigation_started',
-                'message': '🧭 **Turn-by-turn navigation started!**\n\nFollow the instructions below.',
+                'message': '🧭 Turn-by-turn navigation started!\n\nFollow the instructions below.',
                 'session_id': session_id,
                 'navigation_state': state.to_dict(),
                 'route_overview': navigator.get_route_overview()
@@ -1843,7 +1902,7 @@ class AIChatRouteHandler:
                 
                 return {
                     'type': 'navigation_completed',
-                    'message': '🎯 **You have arrived at your destination!**\n\nNavigation completed successfully.',
+                    'message': '🎯 You have arrived at your destination!\n\nNavigation completed successfully.',
                     'navigation_state': state.to_dict()
                 }
             
@@ -1851,7 +1910,7 @@ class AIChatRouteHandler:
             if state.off_route and len(state.warnings) > 0:
                 return {
                     'type': 'navigation_update',
-                    'message': '⚠️ **Off Route**\n\nYou are off the planned route. Would you like to recalculate?',
+                    'message': '⚠️ Off Route\n\nYou are off the planned route. Would you like to recalculate?',
                     'navigation_state': state.to_dict(),
                     'rerouting_suggested': True
                 }
@@ -1942,7 +2001,7 @@ class AIChatRouteHandler:
             
             return {
                 'type': 'reroute_success',
-                'message': '🔄 **Route Recalculated!**\n\nNew route calculated from your current location.',
+                'message': '🔄 Route Recalculated!\n\nNew route calculated from your current location.',
                 'navigation_state': state.to_dict(),
                 'route_overview': navigator.get_route_overview()
             }
@@ -2122,13 +2181,13 @@ class AIChatRouteHandler:
                 distance_km = len(route_geometry) * 0.1  # Rough estimate
                 duration_min = distance_km * 12  # ~5 km/h walking speed
             
-            response_message = f"""🧭 **Navigation Started!**
+            response_message = f"""🧭 Navigation Started!
 
-📍 **Destination:** {self._get_location_name(destination)}
-📏 **Total Distance:** {distance_km:.2f} km
-⏱️ **Estimated Time:** {int(duration_min)} minutes
+📍 Destination: {self._get_location_name(destination)}
+📏 Total Distance: {distance_km:.2f} km
+⏱️ Estimated Time: {int(duration_min)} minutes
 
-**First Instruction:**
+First Instruction:
 ➡️ {current_instruction.text}
 📍 In {current_instruction.distance:.0f} meters
 
@@ -2199,7 +2258,7 @@ Say "what's next" for updates or "stop navigation" to end."""
         
         return {
             'type': 'navigation_stopped',
-            'message': f"✅ **Navigation Ended**\n\nYou were navigating to **{destination_name}** for {duration_text}.\n\nSafe travels! 🚶‍♂️",
+            'message': f"✅ Navigation Ended\n\nYou were navigating to {destination_name} for {duration_text}.\n\nSafe travels! 🚶‍♂️",
             'navigation_active': False
         }
     
@@ -2230,13 +2289,13 @@ Say "what's next" for updates or "stop navigation" to end."""
             
             return {
                 'type': 'location_with_navigation',
-                'message': f"""📍 **Your Location:** {lat:.6f}, {lon:.6f}
+                'message': f"""📍 Your Location: {lat:.6f}, {lon:.6f}
 
-🧭 **Navigating to:** {destination_name}
-📏 **Distance Remaining:** {distance_km:.2f} km
-⏱️ **Time Remaining:** {time_min} minutes
+🧭 Navigating to: {destination_name}
+📏 Distance Remaining: {distance_km:.2f} km
+⏱️ Time Remaining: {time_min} minutes
 
-**Current Instruction:**
+Current Instruction:
 ➡️ {nav_state.current_instruction.text}
 """,
                 'location': {'lat': lat, 'lon': lon},
@@ -2248,14 +2307,14 @@ Say "what's next" for updates or "stop navigation" to end."""
             
             if nearby:
                 nearby_text = "\n".join([f"• {name} ({dist:.0f}m away)" for name, dist in nearby[:3]])
-                message = f"""📍 **Your Location:** {lat:.6f}, {lon:.6f}
+                message = f"""📍 Your Location: {lat:.6f}, {lon:.6f}
 
-**Nearby Landmarks:**
+Nearby Landmarks:
 {nearby_text}
 
 Say 'navigate to [location]' to start turn-by-turn directions!"""
             else:
-                message = f"""📍 **Your Location:** {lat:.6f}, {lon:.6f}
+                message = f"""📍 Your Location: {lat:.6f}, {lon:.6f}
 
 Say 'navigate to [location]' to start turn-by-turn directions!"""
             

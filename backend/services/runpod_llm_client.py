@@ -152,10 +152,10 @@ class RunPodLLMClient:
         
         if "huggingface.co" in url_lower or "hf.co" in url_lower:
             return "huggingface"
-        elif "runpod" in url_lower:
-            return "runpod"
         elif "/v1" in url_lower or "openai" in url_lower:
             return "openai-compatible"
+        elif "runpod" in url_lower:
+            return "runpod"
         else:
             return "generic"
     
@@ -397,10 +397,10 @@ class RunPodLLMClient:
         Prompt building is handled upstream by PromptBuilder (prompts.py).
         """
         
-        # Use standard completions format for vLLM
+        # Use chat/completions format for vLLM (OpenAI-compatible)
         payload = {
             "model": self.model_name,
-            "prompt": prompt,
+            "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": temperature,
             "top_p": top_p,
@@ -411,13 +411,13 @@ class RunPodLLMClient:
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         
-        # Use /completions endpoint (vLLM standard)
+        # Use /chat/completions endpoint (vLLM OpenAI-compatible)
         url = self.api_url
-        if not url.endswith('/completions'):
+        if not url.endswith('/chat/completions'):
             if '/v1' in url:
-                url = url.rstrip('/') + '/completions'
+                url = url.rstrip('/') + '/chat/completions'
             else:
-                url = url.rstrip('/') + '/v1/completions'
+                url = url.rstrip('/') + '/v1/chat/completions'
         
         logger.info(f"[{req_id}] 🔄 Calling LLM at: {url}")
         logger.debug(f"[{req_id}]    Prompt length: {len(prompt)} chars")
@@ -430,13 +430,18 @@ class RunPodLLMClient:
         response.raise_for_status()
         result = response.json()
         
-        # Handle multiple response formats
+        # Handle OpenAI chat/completions response format
         generated_text = None
         
         if 'choices' in result:
             choices = result['choices']
             if isinstance(choices, list) and len(choices) > 0:
-                generated_text = choices[0].get('text', '')
+                # Chat completion format: choices[0].message.content
+                if 'message' in choices[0]:
+                    generated_text = choices[0]['message'].get('content', '')
+                # Fallback to text format (legacy)
+                elif 'text' in choices[0]:
+                    generated_text = choices[0].get('text', '')
         elif 'text' in result:
             generated_text = result['text']
         elif 'generated_text' in result:

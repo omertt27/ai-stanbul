@@ -3,6 +3,50 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useRef } from 'react';
 import React from 'react';
+
+/**
+ * CHATBOT.JSX - Istanbul AI City Intelligence Assistant
+ * 
+ * CANONICAL COMPONENT HIERARCHY (Production):
+ * ============================================
+ * 
+ * CHAT CORE:
+ * - Chatbot.jsx (THIS FILE) - Main chat interface, message handling, routing
+ * - ChatHeader.jsx - Top header with FAB menu (home, sessions, new chat, dark mode)
+ * - ChatSessionsPanel.jsx - Session history sidebar
+ * 
+ * INPUT COMPONENTS:
+ * - SimpleChatInput.jsx - Desktop input (primary)
+ * - SmartChatInput.jsx - Mobile input with voice (primary mobile)
+ * 
+ * MESSAGE DISPLAY:
+ * - StreamingMessage.jsx - Streaming response display
+ * - ChatMessage.jsx - Sidebar message display (legacy but referenced)
+ * - SwipeableMessage.jsx - Mobile message with swipe actions
+ * 
+ * ROUTE/MAP VISUALIZATION (PRIORITY ORDER):
+ * 1. RouteCard.jsx - PRIMARY route display with map + functional CTAs
+ * 2. TransportationRouteCard.jsx - Alternative route card (fallback)
+ * 3. MultiRouteComparison.jsx - Multi-route comparison view
+ * 4. MapVisualization.jsx - General map component
+ * 
+ * SPECIALIZED CARDS:
+ * - TripPlanCard.jsx - Trip itinerary display
+ * - RestaurantCard.jsx - Restaurant recommendation display
+ * 
+ * MOBILE COMPONENTS:
+ * - MobileTypingIndicator.jsx - Mobile typing animation
+ * - JumpToBottomFAB.jsx - Scroll to bottom FAB
+ * - QuickReplies.jsx - Smart quick reply suggestions
+ * - SkeletonMessage.jsx - Loading skeleton
+ * - MobileErrorNotification.jsx - Mobile error UI
+ * 
+ * LEGACY/ARCHIVED:
+ * - See /frontend/src/_archive_legacy/README.md for archived components
+ * - Variants: Chatbot-*.jsx, SimpleChatbot.jsx, etc. (moved to archive)
+ * - Experimental: ChatRouteIntegration, LocationAwareChatEnhancer, etc.
+ */
+
 import { 
   fetchUnifiedChat,
   fetchUnifiedChatV2,
@@ -33,6 +77,7 @@ import MapVisualization from './components/MapVisualization';
 import TripPlanCard from './components/TripPlanCard';
 import SimpleChatInput from './components/SimpleChatInput';
 import RestaurantCard from './components/RestaurantCard';
+import RouteCard from './components/RouteCard';
 import TransportationRouteCard from './components/TransportationRouteCard';
 import MultiRouteComparison from './components/MultiRouteComparison';
 import MinimizedGPSBanner from './components/MinimizedGPSBanner';
@@ -2010,20 +2055,24 @@ function Chatbot({ userLocation: propUserLocation }) {
                 <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
               </svg>
             </div>
-            <h2 className={`text-2xl md:text-3xl font-bold mb-4 transition-colors duration-200 ${
+            <h2 className={`text-2xl md:text-3xl font-bold mb-2 transition-colors duration-200 ${
               darkMode ? 'text-white' : 'text-gray-900'
-            }`}>How can I help you today?</h2>
+            }`}>Your Istanbul City Intelligence Assistant</h2>
+            <p className={`text-center max-w-2xl text-sm md:text-base leading-relaxed mb-6 transition-colors duration-200 ${
+              darkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              Real-time transit, local insights, and personalized recommendations
+            </p>
             <p className={`text-center max-w-2xl text-base md:text-lg leading-relaxed mb-8 transition-colors duration-200 ${
               darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              I'm your KAM assistant for exploring Istanbul. Ask me about restaurants, attractions, 
-              neighborhoods, culture, history, or anything else about this amazing city!
+              Ask me about routes, restaurants, attractions, neighborhoods, culture, or anything about Istanbul
             </p>
             
             {/* Enhanced Sample Cards with Better Mobile Layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl w-full px-4">
               <div 
-                onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
+                onClick={() => handleSampleClick('How do I get from Taksim to Sultanahmet by metro?')}
                 className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
@@ -2032,10 +2081,10 @@ function Chatbot({ userLocation: propUserLocation }) {
               >
                 <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🏛️ Top Attractions</div>
+                }`}>🚇 Transit Routes</div>
                 <div className={`text-xs md:text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>Show me the best attractions and landmarks in Istanbul</div>
+                }`}>How do I get from Taksim to Sultanahmet by metro?</div>
               </div>
               
               <div 
@@ -2048,14 +2097,14 @@ function Chatbot({ userLocation: propUserLocation }) {
               >
                 <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🍽️ Restaurants</div>
+                }`}>🍽️ Local Food</div>
                 <div className={`text-xs md:text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-700'
                 }`}>Give me restaurant advice - recommend 4 good restaurants</div>
               </div>
               
               <div 
-                onClick={() => handleSampleClick('Tell me about Istanbul neighborhoods and districts to visit')}
+                onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
                 className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
@@ -2064,14 +2113,14 @@ function Chatbot({ userLocation: propUserLocation }) {
               >
                 <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🏘️ Neighborhoods</div>
+                }`}>�️ Attractions</div>
                 <div className={`text-xs md:text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>Tell me about Istanbul neighborhoods and districts to visit</div>
+                }`}>Show me the best attractions and landmarks in Istanbul</div>
               </div>
               
               <div 
-                onClick={() => handleSampleClick('What are the best cultural experiences and activities in Istanbul?')}
+                onClick={() => handleSampleClick('What\'s the weather like today and should I bring an umbrella?')}
                 className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
@@ -2080,10 +2129,10 @@ function Chatbot({ userLocation: propUserLocation }) {
               >
                 <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🎭 Culture & Activities</div>
+                }`}>�️ Weather & Alerts</div>
                 <div className={`text-xs md:text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>What are the best cultural experiences and activities in Istanbul?</div>
+                }`}>What's the weather like today and should I bring an umbrella?</div>
               </div>
             </div>
           </div>
@@ -2254,8 +2303,18 @@ function Chatbot({ userLocation: propUserLocation }) {
                             </div>
                           )}
                           
-                          {/* Transportation Route Card - Show for routing queries */}
-                          {(msg.routeData || (msg.mapData && msg.mapData.route_data && msg.mapData.type !== 'trip_plan')) && (
+                          {/* PRIORITY 1: Enhanced Route Card with Map - Mobile-style visualization */}
+                          {/* Shows when backend provides route_info + map_data (new route system) */}
+                          {(msg.route_info || msg.map_data || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
+                            <div className="mt-4">
+                              <RouteCard routeData={msg.data || msg} />
+                            </div>
+                          )}
+                          
+                          {/* PRIORITY 2: FALLBACK - Transportation Route Card (Legacy) */}
+                          {/* Only show if RouteCard data is NOT present */}
+                          {!(msg.route_info || msg.map_data || (msg.data && (msg.data.route_info || msg.data.map_data))) && 
+                           (msg.routeData || (msg.mapData && msg.mapData.route_data && msg.mapData.type !== 'trip_plan')) && (
                             <TransportationRouteCard 
                               routeData={msg.routeData || msg.mapData?.route_data}
                               darkMode={darkMode}
@@ -2263,7 +2322,9 @@ function Chatbot({ userLocation: propUserLocation }) {
                           )}
                           
                           {/* Multi-Route Comparison - Show when multiple route alternatives available */}
-                          {msg.mapData && (msg.mapData.multi_routes || msg.mapData.alternatives) && (
+                          {/* Only if NOT showing single route cards above */}
+                          {!(msg.route_info || msg.map_data) &&
+                           msg.mapData && (msg.mapData.multi_routes || msg.mapData.alternatives) && (
                             msg.mapData.multi_routes?.length > 0 || msg.mapData.alternatives?.length > 0
                           ) && (
                             <MultiRouteComparison
@@ -2286,8 +2347,12 @@ function Chatbot({ userLocation: propUserLocation }) {
                             />
                           )}
                           
-                          {/* Map Visualization - Show for route queries (not trip plans, they have their own map) */}
-                          {msg.mapData && msg.mapData.type !== 'trip_plan' && (msg.mapData.markers || msg.mapData.coordinates || msg.mapData.route_data) && (
+                          {/* Map Visualization - ONLY show if NO route cards are displayed */}
+                          {/* Prevents double-map display (RouteCard already has a map) */}
+                          {!(msg.route_info || msg.map_data || msg.routeData) &&
+                           msg.mapData && msg.mapData.type !== 'trip_plan' && 
+                           (msg.mapData.markers || msg.mapData.coordinates) && 
+                           !(msg.mapData.multi_routes || msg.mapData.alternatives) && (
                             <div className="mt-4">
                               <div className={`text-sm font-medium mb-3 ${
                                 darkMode ? 'text-gray-300' : 'text-gray-700'
@@ -2304,7 +2369,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                               <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
                                 darkMode ? 'text-gray-500' : 'text-gray-600'
                               }`}>
-                                📍 {msg.mapData.markers?.length || 0} locations • {msg.mapData.coordinates || msg.mapData.route_data?.coordinates ? `🗺️ Route displayed` : ''}
+                                📍 {msg.mapData.markers?.length || 0} locations
                               </div>
                             </div>
                           )}
@@ -2488,6 +2553,14 @@ function Chatbot({ userLocation: propUserLocation }) {
                           </div>
                         )}
                         
+                        {/* PRIORITY 1: Enhanced Route Card with Map - Mobile-style visualization */}
+                        {/* Shows when backend provides route_info + map_data (new route system) */}
+                        {(msg.route_info || msg.map_data || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
+                          <div className="mt-4">
+                            <RouteCard routeData={msg.data || msg} />
+                          </div>
+                        )}
+                        
                         {/* Trip Plan Card - Show for multi-day trip planning queries */}
                         {(msg.tripPlan || (msg.mapData && msg.mapData.type === 'trip_plan')) && (
                           <TripPlanCard 
@@ -2495,8 +2568,9 @@ function Chatbot({ userLocation: propUserLocation }) {
                           />
                         )}
                         
-                        {/* Multi-Route Comparison - Show when multiple route alternatives available */}
-                        {msg.mapData && (msg.mapData.multi_routes || msg.mapData.alternatives) && (
+                        {/* Multi-Route Comparison - ONLY if NOT showing single route card */}
+                        {!(msg.route_info || msg.map_data) &&
+                         msg.mapData && (msg.mapData.multi_routes || msg.mapData.alternatives) && (
                           msg.mapData.multi_routes?.length > 0 || msg.mapData.alternatives?.length > 0
                         ) && (
                           <MultiRouteComparison
@@ -2512,8 +2586,11 @@ function Chatbot({ userLocation: propUserLocation }) {
                           />
                         )}
                         
-                        {/* Map Visualization - Display when message has map data (not trip plans) */}
-                        {msg.mapData && msg.mapData.type !== 'trip_plan' && (msg.mapData.markers || msg.mapData.coordinates || msg.mapData.route_data) && (
+                        {/* Map Visualization - ONLY show if NO route cards/comparison displayed */}
+                        {!(msg.route_info || msg.map_data) &&
+                         msg.mapData && msg.mapData.type !== 'trip_plan' && 
+                         (msg.mapData.markers || msg.mapData.coordinates) &&
+                         !(msg.mapData.multi_routes || msg.mapData.alternatives) && (
                           <div className="mt-4">
                             <div className={`text-sm font-medium mb-3 ${
                               darkMode ? 'text-gray-300' : 'text-gray-700'
@@ -2660,7 +2737,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                   }`}>
                     <svg className="w-4 h-4 md:w-5 md:h-5 text-white animate-pulse" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                    </svg>
+                  </svg>
                   </div>
                   
                   {/* Streaming message content */}
@@ -2794,26 +2871,40 @@ function Chatbot({ userLocation: propUserLocation }) {
         <div className="max-w-5xl mx-auto">
           {/* Use SmartChatInput on mobile, SimpleChatInput on desktop */}
           {isMobile ? (
-            <SmartChatInput
-              value={input}
-              onChange={setInput}
-              onSend={() => handleSend(input)}
-              loading={loading}
-              placeholder="Ask anything about Istanbul..."
-              darkMode={darkMode}
-              enableVoice={true}
-              showCharCounter={false}
-              minimal={true}
-            />
+            <>
+              <SmartChatInput
+                value={input}
+                onChange={setInput}
+                onSend={() => handleSend(input)}
+                loading={loading}
+                placeholder="Ask about routes, places, or local tips..."
+                darkMode={darkMode}
+                enableVoice={true}
+                showCharCounter={false}
+                minimal={true}
+              />
+              <p className={`text-xs text-center mt-2 transition-colors duration-200 ${
+                darkMode ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+                💡 Try: "Metro from Taksim to Sultanahmet" or "Best kebab restaurants"
+              </p>
+            </>
           ) : (
-            <SimpleChatInput
-              value={input}
-              onChange={setInput}
-              onSend={handleSend}
-              loading={loading}
-              placeholder="Ask about Istanbul..."
-              darkMode={darkMode}
-            />
+            <>
+              <SimpleChatInput
+                value={input}
+                onChange={setInput}
+                onSend={handleSend}
+                loading={loading}
+                placeholder="Ask about routes, places, or local tips..."
+                darkMode={darkMode}
+              />
+              <p className={`text-xs text-center mt-2 transition-colors duration-200 ${
+                darkMode ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+                💡 Try: "Metro from Taksim to Sultanahmet" or "Best kebab restaurants"
+              </p>
+            </>
           )}
           {/* Removed "AI-powered Istanbul travel assistant" text for cleaner mobile UI */}
         </div>
