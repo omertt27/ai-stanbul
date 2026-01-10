@@ -882,13 +882,24 @@ def _extract_transportation_locations(query: str, user_location: Optional[Dict[s
     
     # Pattern 2: "how to get to X" (implies GPS origin if available)
     # Handles: "how can i go to X", "how to get to X", "how do i reach X", etc.
-    match = re.search(r'(?:how|way)\s+(?:do i |can i |to )?(?:get|go|reach)(?:\s+to)?\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
+    # Also handles typos like "ow can i go" (missing 'h')
+    match = re.search(r'(?:h?ow|way)\s+(?:do i |can i |to )?(?:get|go|reach)(?:\s+to)?\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
     
     if match and user_location:
         destination = match.group(1).strip()
         # Remove "to" from destination if it was captured
         if destination.startswith('to '):
             destination = destination[3:]
+        return {
+            'origin': 'Current Location',
+            'origin_gps': user_location,
+            'destination': destination.strip().title()
+        }
+    
+    # Pattern 3: Just "go to X" or "to X" with GPS
+    match = re.search(r'(?:go\s+to|to)\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
+    if match and user_location:
+        destination = match.group(1).strip()
         return {
             'origin': 'Current Location',
             'origin_gps': user_location,

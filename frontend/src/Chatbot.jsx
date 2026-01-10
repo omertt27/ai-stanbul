@@ -2333,7 +2333,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                             onClick={() => {
                               const textToCopy = msg.text || msg.content || '';
                               navigator.clipboard.writeText(textToCopy).then(() => {
-                                const btn = document.getElementById(`copy-btn-${msg.id || idx}`);
+                                const btn = document.getElementById(`copy-btn-${msg.id || index}`);
                                 if (btn) {
                                   btn.textContent = '✓ Copied!';
                                   setTimeout(() => {
@@ -2342,7 +2342,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 }
                               }).catch(err => console.error('Copy failed:', err));
                             }}
-                            id={`copy-btn-${msg.id || idx}`}
+                            id={`copy-btn-${msg.id || index}`}
                             className={`mt-2 px-2 py-1 text-xs rounded transition-all duration-200 ${
                               darkMode 
                                 ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
