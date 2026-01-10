@@ -19,7 +19,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' 
 const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
 
 // Pure LLM API endpoints
-const API_URL = `${cleanBaseUrl}/api/v1/chat`;  // Pure LLM chat endpoint
+const API_URL = `${cleanBaseUrl}/api/chat`;  // Pure LLM chat endpoint (fixed to match backend)
 // STREAMING NOT IMPLEMENTED IN BACKEND YET
 // const STREAM_API_URL = `${cleanBaseUrl}/api/stream`;  // Streaming endpoint
 const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/v2/restaurants`; // ✅ Fixed: correct endpoint
@@ -589,7 +589,7 @@ export const planJourneyFromGPS = async (gpsLat, gpsLng, destination, options = 
 // Health check utility
 export const checkApiHealth = async () => {
   try {
-    const healthUrl = `${cleanBaseUrl}/health`;
+    const healthUrl = `${cleanBaseUrl}/api/health`;
     const response = await fetchWithRetry(healthUrl, {
       method: 'GET',
       timeout: 5000
@@ -633,7 +633,7 @@ export const subscribeToNetworkStatus = (callback) => {
 
 const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8002';
 const PURE_LLM_CHAT_URL = `${PURE_LLM_BASE_URL}/api/chat`;
-const PURE_LLM_HEALTH_URL = `${PURE_LLM_BASE_URL}/health`;
+const PURE_LLM_HEALTH_URL = `${PURE_LLM_BASE_URL}/api/health`;
 
 /**
  * Send message to Pure LLM backend (Llama 3.1 8B)
@@ -799,7 +799,7 @@ export const fetchUnifiedChatV2 = async (query, options = {}) => {
 // Streaming Chat API (Real-time responses)
 // ============================================
 
-const STREAM_API_URL = `${cleanBaseUrl}/api/v1/chat`;  // Fixed: correct endpoint without duplicate /chat
+const STREAM_API_URL = `${cleanBaseUrl}/api/stream/chat`;  // Fixed: use streaming endpoint
 console.log('🌊 Streaming API URL configured:', STREAM_API_URL);
 
 /**
@@ -830,6 +830,14 @@ export const fetchStreamingChat = async (message, options = {}) => {
 
   try {
     console.log('🌊 Starting streaming chat request');
+    console.log('📍 GPS Location being sent:', gpsLocation);
+    if (gpsLocation) {
+      console.log('📍 GPS Coordinates:', {
+        lat: gpsLocation.lat || gpsLocation.latitude,
+        lon: gpsLocation.lon || gpsLocation.lng || gpsLocation.longitude
+      });
+    }
+    console.log('📝 Message:', message);
 
     const requestBody = {
       message: message.trim(),
@@ -843,6 +851,9 @@ export const fetchStreamingChat = async (message, options = {}) => {
         lat: gpsLocation.lat || gpsLocation.latitude,
         lon: gpsLocation.lon || gpsLocation.lng || gpsLocation.longitude
       };
+      console.log('✅ GPS added to request:', requestBody.user_location);
+    } else {
+      console.warn('⚠️ NO GPS LOCATION PROVIDED TO STREAMING API');
     }
 
     const fetchOptions = {
@@ -869,6 +880,7 @@ export const fetchStreamingChat = async (message, options = {}) => {
     const decoder = new TextDecoder();
     let fullResponse = '';
     let metadata = null;
+    let currentEvent = null;
 
     try {
       while (true) {
@@ -879,41 +891,72 @@ export const fetchStreamingChat = async (message, options = {}) => {
         const lines = chunk.split('\n');
 
         for (const line of lines) {
+          // Parse SSE event type
           if (line.startsWith('event: ')) {
-            const eventType = line.slice(7).trim();
+            currentEvent = line.slice(7).trim();
             continue;
           }
 
+          // Parse SSE data
           if (line.startsWith('data: ')) {
-            const data = line.slice(6);
+            const data = line.slice(6).trim();
+            
+            // Skip empty data
+            if (!data) continue;
             
             try {
               const parsed = JSON.parse(data);
 
-              if (parsed.timestamp && !parsed.content && onStart) {
-                // Start event
+              // Handle different event types
+              if (currentEvent === 'start' && onStart) {
+                console.log('🚀 Stream started:', parsed);
                 onStart(parsed);
-              } else if (parsed.content !== undefined && !parsed.metadata) {
-                // Token event
+              } 
+              else if (currentEvent === 'token' && parsed.content !== undefined) {
+                // Accumulate tokens
                 fullResponse += parsed.content;
                 if (onToken) {
                   onToken(parsed.content, fullResponse);
                 }
-              } else if (parsed.metadata) {
-                // Complete event
-                metadata = parsed.metadata;
-                if (onComplete) {
-                  onComplete(parsed.content || fullResponse, metadata);
+              } 
+              else if (currentEvent === 'complete') {
+                // Use content from complete event, fallback to accumulated
+                const finalContent = parsed.content || fullResponse;
+                metadata = parsed.metadata || {};
+                
+                console.log('✅ Stream complete:', {
+                  contentLength: finalContent?.length || 0,
+                  hasMetadata: !!metadata,
+                  metadataKeys: Object.keys(metadata),
+                  hasMapData: !!metadata?.map_data,
+                  hasRouteData: !!metadata?.route_data,
+                  hasTripPlan: !!metadata?.trip_plan,
+                  hasTransportAlternatives: !!metadata?.transport_alternatives,
+                  intent: metadata?.intent
+                });
+                
+                if (metadata?.map_data) {
+                  console.log('🗺️ MAP DATA RECEIVED:', metadata.map_data);
                 }
-              } else if (parsed.error) {
-                // Error event
+                
+                if (onComplete) {
+                  onComplete(finalContent, metadata);
+                }
+              } 
+              else if (currentEvent === 'error' && parsed.error) {
+                console.error('❌ Stream error:', parsed.error);
                 if (onError) {
                   onError(new Error(parsed.error));
                 }
               }
+              
+              // Reset event type after processing
+              currentEvent = null;
+              
             } catch (e) {
-              // Non-JSON data, treat as raw token
-              if (data.trim()) {
+              console.warn('Failed to parse SSE data:', data, e);
+              // Non-JSON data, treat as raw token if we're in a token event
+              if (currentEvent === 'token' && data.trim()) {
                 fullResponse += data;
                 if (onToken) {
                   onToken(data, fullResponse);
@@ -925,8 +968,9 @@ export const fetchStreamingChat = async (message, options = {}) => {
       }
 
       // If no complete event was received, call onComplete with accumulated response
-      if (!metadata && onComplete) {
-        onComplete(fullResponse, { streaming: true });
+      if (!metadata && fullResponse && onComplete) {
+        console.log('⚠️ Stream ended without complete event, using accumulated response');
+        onComplete(fullResponse, { streaming: true, incomplete: true });
       }
 
       return { response: fullResponse, metadata };

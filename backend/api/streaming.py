@@ -881,14 +881,18 @@ def _extract_transportation_locations(query: str, user_location: Optional[Dict[s
         return result
     
     # Pattern 2: "how to get to X" (implies GPS origin if available)
-    match = re.search(r'(?:how|way)\s+(?:do i |can i |to )?(?:get|go|reach)\s+to\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
+    # Handles: "how can i go to X", "how to get to X", "how do i reach X", etc.
+    match = re.search(r'(?:how|way)\s+(?:do i |can i |to )?(?:get|go|reach)(?:\s+to)?\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
     
     if match and user_location:
         destination = match.group(1).strip()
+        # Remove "to" from destination if it was captured
+        if destination.startswith('to '):
+            destination = destination[3:]
         return {
             'origin': 'Current Location',
             'origin_gps': user_location,
-            'destination': destination.title()
+            'destination': destination.strip().title()
         }
     
     return None

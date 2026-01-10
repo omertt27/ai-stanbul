@@ -463,12 +463,49 @@ class StreamingLLMService:
     
     async def _stream_from_api(self, prompt: str) -> AsyncGenerator[str, None]:
         """
-        Stream from LLM API with SSE support.
+        Stream from LLM API - uses non-streaming endpoint and simulates streaming.
         
-        Handles different streaming formats:
-        - OpenAI-compatible streaming
-        - Hugging Face TGI streaming
-        - Custom RunPod streaming
+        RunPod serverless endpoints don't support true streaming, so we:
+        1. Call the /generate endpoint
+        2. Get the full response
+        3. Yield it word-by-word to simulate streaming
+        """
+        # Use RunPodLLMClient for generation
+        from services.runpod_llm_client import RunPodLLMClient
+        
+        logger.info("📝 Using RunPod /generate endpoint with simulated streaming")
+        
+        try:
+            client = RunPodLLMClient()
+            result = await client.generate(
+                prompt=prompt,
+                max_tokens=self.config.max_tokens,
+                temperature=self.config.temperature
+            )
+            
+            if result and "generated_text" in result:
+                text = result["generated_text"]
+                
+                # Simulate streaming by yielding words
+                words = text.split()
+                for i, word in enumerate(words):
+                    # Add space before word (except first)
+                    if i > 0:
+                        yield " "
+                    yield word
+                    await asyncio.sleep(self.config.chunk_delay_ms / 1000)
+            else:
+                yield "I apologize, but I couldn't generate a response. Please try again."
+                
+        except Exception as e:
+            logger.error(f"Generation failed: {e}")
+            yield f"Sorry, I encountered an error: {str(e)}"
+    
+    async def _stream_from_api_OLD_BROKEN(self, prompt: str) -> AsyncGenerator[str, None]:
+        """
+        OLD BROKEN CODE - Kept for reference
+        
+        This tried to use streaming endpoints that don't exist on RunPod serverless.
         """
         headers = {"Content-Type": "application/json"}
         if self.api_key:
@@ -546,7 +583,7 @@ class StreamingLLMService:
                 logger.debug(f"Streaming endpoint {endpoint} failed: {e}")
                 continue
         
-        # If no streaming endpoint worked, fall back
+        # All streaming endpoints failed - this code should never run now
         raise Exception("No streaming endpoint available")
     
     async def _fallback_generate(self, prompt: str) -> AsyncGenerator[str, None]:

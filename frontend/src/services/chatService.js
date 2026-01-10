@@ -9,7 +9,7 @@ import { processApiResponse, sanitizeResponse } from '../utils/responseSanitizer
 // API Configuration
 const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8002';
 const CHAT_ENDPOINT = `${PURE_LLM_BASE_URL}/api/chat`;
-const HEALTH_ENDPOINT = `${PURE_LLM_BASE_URL}/health`;
+const HEALTH_ENDPOINT = `${PURE_LLM_BASE_URL}/api/health`;
 
 // Session Management
 export const generateSessionId = () => {

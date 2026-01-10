@@ -534,7 +534,7 @@ const parseScheduleResponse = (data) => {
  */
 export const checkTransportationServiceHealth = async () => {
   try {
-    const response = await fetchWithRetry(`${BASE_URL}/health`, {
+    const response = await fetchWithRetry(`${BASE_URL}/api/health`, {
       method: 'GET',
       timeout: 5000
     });

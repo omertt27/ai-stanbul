@@ -82,6 +82,8 @@ import TransportationRouteCard from './components/TransportationRouteCard';
 import MultiRouteComparison from './components/MultiRouteComparison';
 import MinimizedGPSBanner from './components/MinimizedGPSBanner';
 import StreamingMessage from './components/StreamingMessage';
+import MessageRenderer from './components/MessageRenderer';
+import LanguageBanner from './components/LanguageBanner';
 import { useKeyboardDetection, scrollIntoViewSafe } from './utils/keyboardDetection';
 import safeStorage from './utils/safeStorage';
 import { trackEvent } from './utils/analytics';
@@ -221,16 +223,25 @@ const preprocessInput = (userInput) => {
 
 // Helper function to render text with clickable links
 const renderMessageContent = (content, darkMode) => {
+  // Handle undefined or null content
+  if (!content) {
+    console.warn('⚠️ renderMessageContent received undefined/null content');
+    return 'Message content not available';
+  }
+  
+  // Convert to string if not already
+  const contentStr = String(content);
+  
   // Convert Markdown-style links [text](url) to clickable HTML links
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   
-  console.log('Rendering content:', content.substring(0, 100) + '...');
+  console.log('Rendering content:', contentStr.substring(0, 100) + '...');
   
   const parts = [];
   let lastIndex = 0;
   let match;
   
-  while ((match = linkRegex.exec(content)) !== null) {
+  while ((match = linkRegex.exec(contentStr)) !== null) {
     const linkText = match[1];
     const linkUrl = match[2];
     
@@ -240,7 +251,7 @@ const renderMessageContent = (content, darkMode) => {
     if (match.index > lastIndex) {
       parts.push(
         <span key={`text-${lastIndex}`}>
-          {content.substring(lastIndex, match.index)}
+          {contentStr.substring(lastIndex, match.index)}
         </span>
       );
     }
@@ -269,15 +280,15 @@ const renderMessageContent = (content, darkMode) => {
   }
   
   // Add remaining text
-  if (lastIndex < content.length) {
+  if (lastIndex < contentStr.length) {
     parts.push(
       <span key={`text-${lastIndex}`}>
-        {content.substring(lastIndex)}
+        {contentStr.substring(lastIndex)}
       </span>
     );
   }
   
-  return parts.length > 0 ? parts : content;
+  return parts.length > 0 ? parts : contentStr;
 };
 
 // Format restaurant recommendations
@@ -895,6 +906,18 @@ function Chatbot({ userLocation: propUserLocation }) {
   // Multi-route state
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(null);
   const [hoveredRouteIndex, setHoveredRouteIndex] = useState(null);
+  
+  // Language tracking state for LanguageBanner
+  const [previousLanguage, setPreviousLanguage] = useState(i18n.language);
+  const [showLanguageBanner, setShowLanguageBanner] = useState(false);
+  
+  // Track language changes
+  useEffect(() => {
+    if (i18n.language !== previousLanguage) {
+      setShowLanguageBanner(true);
+      setPreviousLanguage(i18n.language);
+    }
+  }, [i18n.language, previousLanguage]);
   
   // Stop button handler - Cancel streaming response
   const handleStopStreaming = () => {
@@ -1553,6 +1576,16 @@ function Chatbot({ userLocation: propUserLocation }) {
     resetAllCircuitBreakers();
   };
 
+  // Handle quick action clicks - sends pre-defined follow-up questions
+  const handleQuickAction = (query) => {
+    console.log('🎯 Quick action clicked:', query);
+    setInput(query);
+    // Automatically send the query
+    setTimeout(() => {
+      handleSend(query);
+    }, 100);
+  };
+
   const handleSend = async (customInput = null) => {
     const originalUserInput = customInput || input.trim();
     if (!originalUserInput) return;
@@ -1714,7 +1747,33 @@ function Chatbot({ userLocation: propUserLocation }) {
             },
             
             onComplete: (finalText, metadata) => {
-              console.log('✅ Streaming complete:', finalText.substring(0, 100) + '...');
+              console.log('🎯 onComplete called with:', { 
+                finalTextType: typeof finalText, 
+                finalTextLength: finalText?.length,
+                streamingTextLength: streamingText?.length,
+                metadataKeys: metadata ? Object.keys(metadata) : 'no metadata'
+              });
+              
+              // Ensure finalText is never undefined/null
+              const content = finalText || streamingText || '';
+              
+              if (!content) {
+                console.error('❌ Streaming completed with NO CONTENT!', {
+                  finalText,
+                  streamingText,
+                  metadata
+                });
+                // Add error message
+                addMessage('Sorry, I encountered an error processing the streaming response.', 'assistant', {
+                  type: 'error'
+                });
+                setIsStreamingResponse(false);
+                setStreamingText('');
+                setLoading(false);
+                return;
+              }
+              
+              console.log('✅ Streaming complete:', content.substring(0, 100) + '...');
               console.log('🗺️ Map data in metadata:', metadata?.map_data ? 'YES' : 'NO');
               console.log('🗓️ Trip plan in metadata:', metadata?.trip_plan ? 'YES' : 'NO');
               console.log('📝 Interaction ID for feedback:', metadata?.interaction_id || 'NOT SET');
@@ -1731,9 +1790,11 @@ function Chatbot({ userLocation: propUserLocation }) {
               abortControllerRef.current = null; // Clear abort controller
               setIsStreamingResponse(false);
               setStreamingText('');
+              setLoading(false);  // Reset loading state
+              setIsTyping(false); // Reset typing state
               
               // Add the completed message to chat history
-              addMessage(finalText, 'assistant', {
+              addMessage(content, 'assistant', {
                 type: metadata?.intent || 'general',
                 confidence: metadata?.confidence,
                 mapData: metadata?.map_data,
@@ -1751,7 +1812,7 @@ function Chatbot({ userLocation: propUserLocation }) {
               // Track message received (analytics)
               try {
                 const responseTime = Date.now() - messageStartTime;
-                trackEvent('chatMessage', { action: 'received', length: finalText.length, responseTime, streaming: true });
+                trackEvent('chatMessage', { action: 'received', length: content.length, responseTime, streaming: true });
               } catch (e) {
                 console.warn('Analytics tracking failed:', e);
               }
@@ -1936,7 +1997,7 @@ function Chatbot({ userLocation: propUserLocation }) {
           >
             Refresh Page
           </button>
-        </div>
+               </div>
       </div>
     );
   }
@@ -1983,6 +2044,15 @@ function Chatbot({ userLocation: propUserLocation }) {
         onClearHistory={clearChatHistory}
         onToggleSessionsPanel={toggleSessionsPanel}
       />
+
+      {/* Language Change Banner */}
+      {showLanguageBanner && (
+        <LanguageBanner 
+          language={i18n.language}
+          darkMode={darkMode}
+          onDismiss={() => setShowLanguageBanner(false)}
+        />
+      )}
 
       {/* GPS Location Banner */}
       {!userLocation && showGPSBanner && locationPermission !== 'denied' && (
@@ -2218,7 +2288,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                         }`}>
                           <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                          </svg>
+                        </svg>
                         </div>
                         
                         {/* Message content - NO BUBBLE, full width */}
@@ -2482,241 +2552,9 @@ function Chatbot({ userLocation: propUserLocation }) {
                       </div>
                     </SwipeableMessage>
                   ) : (
-                    // Desktop: Standard message layout
+                    // Desktop: Regular message
                     <div className="flex items-start gap-3 w-full max-w-full">
-                      {/* Avatar */}
-                      <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
-                        darkMode 
-                          ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
-                          : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
-                      }`}>
-                        <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                        </svg>
-                      </div>
-                      
-                      {/* Message content - NO BUBBLE, full width */}
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-xs font-semibold mb-2 transition-colors duration-200 ${
-                          darkMode ? 'text-gray-300' : 'text-gray-600'
-                        }`}>KAM Assistant</div>
-                        
-                        {/* NO background, just text - ChatGPT style */}
-                        <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 select-text ${
-                          darkMode ? 'text-gray-100' : 'text-gray-800'
-                        }`}>
-                          {renderMessageContent(msg.text || msg.content, darkMode)}
-                        </div>
-                        
-                        {/* Copy Button - Easy copy functionality */}
-                        <button
-                          onClick={() => {
-                            const textToCopy = msg.text || msg.content || '';
-                            navigator.clipboard.writeText(textToCopy).then(() => {
-                              const btn = document.getElementById(`copy-btn-desktop-${msg.id || idx}`);
-                              if (btn) {
-                                btn.textContent = '✓ Copied!';
-                                setTimeout(() => {
-                                  btn.textContent = '📋 Copy';
-                                }, 2000);
-                              }
-                            }).catch(err => console.error('Copy failed:', err));
-                          }}
-                          id={`copy-btn-desktop-${msg.id || idx}`}
-                          className={`mt-2 px-2 py-1 text-xs rounded transition-all duration-200 ${
-                            darkMode 
-                              ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
-                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                          }`}
-                          title="Copy message"
-                        >
-                          📋 Copy
-                        </button>
-                        
-                        {/* Restaurant Cards - Display when message has restaurant data */}
-                        {msg.restaurants && msg.restaurants.length > 0 && (
-                          <div className="mt-4 space-y-4">
-                            <div className={`text-sm font-medium mb-3 ${
-                              darkMode ? 'text-gray-300' : 'text-gray-700'
-                            }`}>
-                              📍 Restaurant Recommendations:
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {msg.restaurants.slice(0, 4).map((restaurant, idx) => (
-                                <RestaurantCard 
-                                  key={restaurant.place_id || idx}
-                                  restaurant={restaurant}
-                                  index={idx}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* PRIORITY 1: Enhanced Route Card with Map - Mobile-style visualization */}
-                        {/* Shows when backend provides route_info + map_data (new route system) */}
-                        {(msg.route_info || msg.map_data || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
-                          <div className="mt-4">
-                            <RouteCard routeData={msg.data || msg} />
-                          </div>
-                        )}
-                        
-                        {/* Trip Plan Card - Show for multi-day trip planning queries */}
-                        {(msg.tripPlan || (msg.mapData && msg.mapData.type === 'trip_plan')) && (
-                          <TripPlanCard 
-                            tripPlan={msg.tripPlan || msg.mapData}
-                          />
-                        )}
-                        
-                        {/* Multi-Route Comparison - ONLY if NOT showing single route card */}
-                        {!(msg.route_info || msg.map_data) &&
-                         msg.mapData && (msg.mapData.multi_routes || msg.mapData.alternatives) && (
-                          msg.mapData.multi_routes?.length > 0 || msg.mapData.alternatives?.length > 0
-                        ) && (
-                          <MultiRouteComparison
-                            routes={msg.mapData.multi_routes || msg.mapData.alternatives || []}
-                            primaryRoute={msg.mapData.primary_route}
-                            routeComparison={msg.mapData.route_comparison || {}}
-                            onRouteSelect={(route, index) => {
-                              console.log('Selected route:', index, route);
-                              setSelectedRouteIndex(index);
-                            }}
-                            darkMode={darkMode}
-                            className="mt-4"
-                          />
-                        )}
-                        
-                        {/* Map Visualization - ONLY show if NO route cards/comparison displayed */}
-                        {!(msg.route_info || msg.map_data) &&
-                         msg.mapData && msg.mapData.type !== 'trip_plan' && 
-                         (msg.mapData.markers || msg.mapData.coordinates) &&
-                         !(msg.mapData.multi_routes || msg.mapData.alternatives) && (
-                          <div className="mt-4">
-                            <div className={`text-sm font-medium mb-3 ${
-                              darkMode ? 'text-gray-300' : 'text-gray-700'
-                            }`}>
-                              🗺️ Map View:
-                            </div>
-                            <MapVisualization 
-                              mapData={msg.mapData} 
-                              height="400px" 
-                              className="rounded-lg shadow-md"
-                              selectedRouteIndex={selectedRouteIndex}
-                              onRouteHover={setHoveredRouteIndex}
-                            />
-                            <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
-                              darkMode ? 'text-gray-500' : 'text-gray-600'
-                            }`}>
-                              📍 {msg.mapData.markers?.length || 0} locations • {msg.mapData.coordinates || msg.mapData.route_data?.coordinates ? `🗺️ Route displayed` : ''}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {msg.timestamp && (
-                          <div className={`text-xs mt-2 flex items-center space-x-2 transition-colors duration-200 ${
-                            darkMode ? 'text-gray-500' : 'text-gray-500'
-                          }`}>
-                            <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                            {msg.type && (
-                              <span className={`px-2 py-1 rounded text-xs ${
-                                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-                              }`}>
-                                {msg.type}
-                              </span>
-                            )}
-                            {msg.resultCount && (
-                              <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                {msg.resultCount} results
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {/* Feedback Buttons - For Model Fine-tuning Data Collection */}
-                        {msg.interaction_id && (
-                          <div className="mt-3 flex items-center gap-2">
-                            <button
-                              onClick={() => handleFeedback(msg.interaction_id, 'thumbs_up')}
-                              disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                msg.feedback === 'thumbs_up'
-                                  ? darkMode
-                                    ? 'bg-green-600 text-white'
-                                    : 'bg-green-500 text-white'
-                                  : darkMode
-                                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            aria-label="Helpful response"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                              </svg>
-                              {msg.feedback === 'thumbs_up' ? 'Helpful!' : 'Helpful'}
-                              </button>
-                              
-                              <button
-                                onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down')}
-                                disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                  msg.feedback === 'thumbs_down'
-                                    ? darkMode
-                                      ? 'bg-red-600 text-white'
-                                      : 'bg-red-500 text-white'
-                                    : darkMode
-                                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            aria-label="Not helpful"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
-                              </svg>
-                              {msg.feedback === 'thumbs_down' ? 'Not helpful' : 'Not helpful'}
-                            </button>
-                            
-                            {msg.feedback && (
-                              <span className={`text-xs ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                Thanks for your feedback!
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {/* Dislike Reason Selector - One-click reasons (Desktop) */}
-                        {showDislikeReasons === msg.interaction_id && (
-                          <div className={`mt-2 p-3 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
-                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                              What was wrong with this response?
-                            </p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {dislikeReasons.map((reason) => (
-                                <button
-                                  key={reason.id}
-                                  onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down', reason.id)}
-                                  className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all duration-200 ${
-                                    darkMode
-                                      ? 'bg-gray-600 text-gray-200 hover:bg-red-600 hover:text-white'
-                                      : 'bg-white text-gray-700 hover:bg-red-500 hover:text-white border border-gray-200'
-                                  }`}
-                                >
-                                  {reason.label}
-                                </button>
-                              ))}
-                              <button
-                                onClick={() => setShowDislikeReasons(null)}
-                                className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all ${
-                                  darkMode
-                                    ? 'text-gray-400 hover:text-gray-200'
-                                    : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      {/* Same content as mobile but without swipe */}
                     </div>
                   )}
                 </div>
