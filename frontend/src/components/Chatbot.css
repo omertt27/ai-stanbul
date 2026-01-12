@@ -170,12 +170,17 @@
   font-size: 15px;
   margin: 0;
   padding: 0;
+  color: inherit; /* Ensure color is inherited */
+  display: block; /* Ensure it's visible */
+  visibility: visible; /* Explicitly visible */
 }
 
 .simple-message {
   color: inherit;
   margin: 0;
   padding: 0;
+  display: block;
+  visibility: visible;
 }
 
 /* AI Response Sections */

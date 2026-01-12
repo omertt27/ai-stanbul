@@ -2516,11 +2516,25 @@ class IstanbulTransportationRAG:
                 min_distance = distance
                 nearest_station = station_id
         
+        # If no station found within max_distance_km, try expanding search radius
+        if not nearest_station and max_distance_km < 10.0:
+            logger.warning(f"⚠️ No station within {max_distance_km}km, expanding search to 10km...")
+            for station_id, station in self.stations.items():
+                distance = haversine_distance(lat, lon, station.lat, station.lon)
+                if distance < min_distance and distance <= 10.0:  # Expand to 10km
+                    min_distance = distance
+                    nearest_station = station_id
+        
         if nearest_station:
             station = self.stations[nearest_station]
-            logger.info(f"📍 Found nearest station: {station.name} ({station.line}) - {min_distance:.2f}km away")
+            if min_distance > 2.0:
+                logger.warning(f"📍 Nearest station is FAR: {station.name} ({station.line}) - {min_distance:.2f}km away")
+                logger.warning(f"   ⚠️ User may need taxi/bus to reach station")
+            else:
+                logger.info(f"📍 Found nearest station: {station.name} ({station.line}) - {min_distance:.2f}km away")
         else:
-            logger.warning(f"❌ No station found within {max_distance_km}km of GPS location")
+            logger.error(f"❌ No station found even within 10km of GPS location")
+            logger.error(f"   GPS: lat={lat}, lon={lon}")
         
         return nearest_station
     

@@ -139,6 +139,39 @@ async def stream_chat_sse(request: StreamChatRequest):
     data: {"content": "Hello there!", "metadata": {...}}
     ```
     """
+    # ==========================================
+    # 🔥 ENHANCED DEBUG LOGGING - START
+    # ==========================================
+    logger.info("=" * 80)
+    logger.info("🚀 NEW STREAMING CHAT REQUEST RECEIVED")
+    logger.info("=" * 80)
+    logger.info(f"📝 Query: '{request.message}'")
+    logger.info(f"🌍 Language: {request.language}")
+    logger.info(f"🆔 Session ID: {request.session_id}")
+    logger.info(f"📍 GPS Location Received: {request.user_location is not None}")
+    
+    if request.user_location:
+        logger.info(f"   📍 GPS Data: {request.user_location}")
+        lat = request.user_location.get('latitude') or request.user_location.get('lat')
+        lon = request.user_location.get('longitude') or request.user_location.get('lon')
+        logger.info(f"   🗺️ Coordinates: lat={lat}, lon={lon}")
+    else:
+        logger.warning("   ⚠️ NO GPS LOCATION PROVIDED IN REQUEST")
+    
+    # Analyze query type
+    query_lower = request.message.lower()
+    logger.info(f"🔍 Query Analysis:")
+    logger.info(f"   - Contains 'how': {'how' in query_lower}")
+    logger.info(f"   - Contains 'get to': {'get to' in query_lower}")
+    logger.info(f"   - Contains 'go to': {'go to' in query_lower}")
+    logger.info(f"   - Contains 'taksim': {'taksim' in query_lower}")
+    logger.info(f"   - Contains 'route': {'route' in query_lower}")
+    logger.info(f"   - Contains 'metro': {'metro' in query_lower}")
+    logger.info("=" * 80)
+    # ==========================================
+    # 🔥 ENHANCED DEBUG LOGGING - END
+    # ==========================================
+    
     async def generate_stream():
         try:
             # Import services
@@ -275,9 +308,25 @@ async def stream_chat_sse(request: StreamChatRequest):
                                     'lat': request.user_location.get('latitude') or request.user_location.get('lat'),
                                     'lon': request.user_location.get('longitude') or request.user_location.get('lon')
                                 }
+                                logger.info(f"📍 GPS RECEIVED FROM REQUEST: {user_loc}")
+                            else:
+                                logger.warning("⚠️ NO GPS LOCATION IN REQUEST - user_location is None")
                             
                             # Parse origin and destination
+                            logger.info(f"🔍 EXTRACTING LOCATIONS FROM QUERY: '{request.message}'")
                             locations = _extract_transportation_locations(request.message, user_loc)
+                            
+                            # DEBUG: Log extraction result
+                            if locations:
+                                logger.info(f"✅ LOCATIONS EXTRACTED SUCCESSFULLY:")
+                                logger.info(f"   📍 Origin: {locations.get('origin')}")
+                                logger.info(f"   🎯 Destination: {locations.get('destination')}")
+                                logger.info(f"   🗺️ Origin GPS: {locations.get('origin_gps')}")
+                                logger.info(f"   🗺️ Destination GPS: {locations.get('destination_gps')}")
+                            else:
+                                logger.error("❌ LOCATION EXTRACTION FAILED - locations is None")
+                                logger.error(f"   Query was: '{request.message}'")
+                                logger.error(f"   GPS available: {user_loc is not None}")
                             
                             if locations and locations.get('origin') and locations.get('destination'):
                                 route_integration = get_route_integration()
@@ -295,6 +344,10 @@ async def stream_chat_sse(request: StreamChatRequest):
                                 
                                 if result['success']:
                                     logger.info(f"✅ Got {len(result.get('alternatives', []))} route alternatives with comfort scores")
+                                    
+                                    # Log each route alternative
+                                    for i, alt in enumerate(result.get('alternatives', [])):
+                                        logger.info(f"   Route {i+1}: {alt.get('duration_minutes')}min, {alt.get('num_transfers')} transfers, comfort: {alt.get('comfort_score', {}).get('overall_comfort', 0):.0f}/100")
                                     
                                     # Store multi-route data
                                     transport_alternatives = {
@@ -486,13 +539,48 @@ async def stream_chat_sse(request: StreamChatRequest):
                     }
                     if map_data:
                         metadata['map_data'] = map_data
+                        logger.info(f"📍 Including map_data in response: {len(str(map_data))} bytes")
                     if route_data:
                         metadata['route_data'] = route_data
+                        logger.info(f"🚇 Including route_data in response: {route_data.get('origin')} → {route_data.get('destination')}")
                     if trip_plan_data:
                         metadata['trip_plan'] = trip_plan_data
+                        logger.info(f"🗓️ Including trip_plan in response")
                     if transport_alternatives:
                         # Include multi-route data for frontend
                         metadata['transport_alternatives'] = transport_alternatives
+                        logger.info(f"🗺️ Including transport_alternatives with {len(transport_alternatives.get('alternatives', []))} routes")
+                    
+                    # ==========================================
+                    # 🔥 FINAL RESPONSE DEBUG LOGGING
+                    # ==========================================
+                    logger.info("=" * 80)
+                    logger.info("✅ RESPONSE READY TO SEND")
+                    logger.info("=" * 80)
+                    logger.info(f"📝 Response length: {len(cleaned_response)} chars")
+                    logger.info(f"🎯 Intent: {intent_value}")
+                    logger.info(f"🌍 Language: {nlp_result.language}")
+                    logger.info(f"📍 Has map_data: {bool(map_data)}")
+                    logger.info(f"🚇 Has route_data: {bool(route_data)}")
+                    logger.info(f"🗺️ Has transport_alternatives: {bool(transport_alternatives)}")
+                    logger.info(f"🗓️ Has trip_plan: {bool(trip_plan_data)}")
+                    
+                    if map_data:
+                        logger.info(f"   Map type: {map_data.get('type')}")
+                        logger.info(f"   Markers: {len(map_data.get('markers', []))}")
+                    
+                    if route_data:
+                        logger.info(f"   Route: {route_data.get('origin')} → {route_data.get('destination')}")
+                        logger.info(f"   Duration: {route_data.get('total_time')}")
+                    
+                    if transport_alternatives:
+                        alts = transport_alternatives.get('alternatives', [])
+                        logger.info(f"   Alternatives count: {len(alts)}")
+                        if alts:
+                            logger.info(f"   Best route: {alts[0].get('duration_minutes')}min, {alts[0].get('num_transfers')} transfers")
+                    
+                    logger.info("=" * 80)
+                    # ==========================================
                     
                     # Send completion event with cleaned response
                     yield f"event: complete\ndata: {json.dumps({'content': cleaned_response, 'metadata': metadata})}\n\n"
@@ -836,6 +924,16 @@ def _extract_transportation_locations(query: str, user_location: Optional[Dict[s
     """
     import re
     
+    # ==========================================
+    # 🔥 ENHANCED DEBUG LOGGING - LOCATION EXTRACTION
+    # ==========================================
+    logger.info("🔍 LOCATION EXTRACTION STARTED")
+    logger.info(f"   Query: '{query}'")
+    logger.info(f"   GPS Available: {user_location is not None}")
+    if user_location:
+        logger.info(f"   GPS Data: {user_location}")
+    # ==========================================
+    
     query_lower = query.lower()
     
     # Check for GPS patterns
@@ -849,13 +947,21 @@ def _extract_transportation_locations(query: str, user_location: Optional[Dict[s
         'to where i am', 'back here'
     ])
     
+    logger.info(f"   GPS Pattern Detection:")
+    logger.info(f"      - Uses GPS origin: {uses_gps_origin}")
+    logger.info(f"      - Uses GPS destination: {uses_gps_dest}")
+    
     # Extract locations using patterns
     # Pattern 1: "from X to Y" or "X to Y"
+    logger.info(f"   Testing Pattern 1: 'from X to Y'")
     match = re.search(r'(?:from\s+)?([a-zğüşöçıİ\s]+?)\s+to\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
     
     if match:
         origin = match.group(1).strip()
         destination = match.group(2).strip()
+        logger.info(f"   ✅ Pattern 1 MATCHED:")
+        logger.info(f"      - Raw origin: '{origin}'")
+        logger.info(f"      - Raw destination: '{destination}'")
         
         # Replace GPS placeholders with actual location
         result = {}
@@ -864,25 +970,33 @@ def _extract_transportation_locations(query: str, user_location: Optional[Dict[s
             if user_location:
                 result['origin'] = 'Current Location'
                 result['origin_gps'] = user_location
+                logger.info(f"      - Origin set to GPS: {user_location}")
             else:
+                logger.warning(f"      ❌ GPS origin requested but no location available")
                 return None  # GPS origin but no location available
         else:
             result['origin'] = origin.title()
+            logger.info(f"      - Origin set to: '{result['origin']}'")
             
         if 'my location' in destination or 'here' in destination or 'current location' in destination:
             if user_location:
                 result['destination'] = 'Current Location'
                 result['destination_gps'] = user_location
+                logger.info(f"      - Destination set to GPS: {user_location}")
             else:
+                logger.warning(f"      ❌ GPS destination requested but no location available")
                 return None  # GPS destination but no location available
         else:
             result['destination'] = destination.title()
+            logger.info(f"      - Destination set to: '{result['destination']}'")
         
+        logger.info(f"   ✅ LOCATION EXTRACTION SUCCESS (Pattern 1): {result}")
         return result
     
     # Pattern 2: "how to get to X" (implies GPS origin if available)
     # Handles: "how can i go to X", "how to get to X", "how do i reach X", etc.
     # Also handles typos like "ow can i go" (missing 'h')
+    logger.info(f"   Testing Pattern 2: 'how to get to X'")
     match = re.search(r'(?:h?ow|way)\s+(?:do i |can i |to )?(?:get|go|reach)(?:\s+to)?\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
     
     if match and user_location:
@@ -890,22 +1004,41 @@ def _extract_transportation_locations(query: str, user_location: Optional[Dict[s
         # Remove "to" from destination if it was captured
         if destination.startswith('to '):
             destination = destination[3:]
-        return {
+        
+        result = {
             'origin': 'Current Location',
             'origin_gps': user_location,
             'destination': destination.strip().title()
         }
+        logger.info(f"   ✅ Pattern 2 MATCHED:")
+        logger.info(f"      - Origin: GPS (Current Location)")
+        logger.info(f"      - Destination: '{result['destination']}'")
+        logger.info(f"   ✅ LOCATION EXTRACTION SUCCESS (Pattern 2): {result}")
+        return result
+    elif match and not user_location:
+        logger.warning(f"   ⚠️ Pattern 2 matched but NO GPS available - cannot use Current Location")
     
     # Pattern 3: Just "go to X" or "to X" with GPS
+    logger.info(f"   Testing Pattern 3: 'go to X' or 'to X'")
     match = re.search(r'(?:go\s+to|to)\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)
     if match and user_location:
         destination = match.group(1).strip()
-        return {
+        result = {
             'origin': 'Current Location',
             'origin_gps': user_location,
             'destination': destination.strip().title()
         }
+        logger.info(f"   ✅ Pattern 3 MATCHED:")
+        logger.info(f"      - Origin: GPS (Current Location)")
+        logger.info(f"      - Destination: '{result['destination']}'")
+        logger.info(f"   ✅ LOCATION EXTRACTION SUCCESS (Pattern 3): {result}")
+        return result
+    elif match and not user_location:
+        logger.warning(f"   ⚠️ Pattern 3 matched but NO GPS available - cannot use Current Location")
     
+    logger.error(f"   ❌ LOCATION EXTRACTION FAILED - No patterns matched")
+    logger.error(f"      Query was: '{query}'")
+    logger.error(f"      GPS available: {user_location is not None}")
     return None
 
 

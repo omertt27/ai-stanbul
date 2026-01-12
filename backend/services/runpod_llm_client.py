@@ -360,12 +360,18 @@ class RunPodLLMClient:
         result = response.json()
         
         # Handle RunPod custom response format
+        # Support both 'response' and 'text' fields (different RunPod versions)
         generated_text = None
         
         if 'response' in result:
             generated_text = result['response']
             logger.info(f"[{req_id}] ✅ RunPod generated {len(generated_text)} chars in {result.get('generation_time', 0):.2f}s")
             logger.info(f"[{req_id}]    Tokens: {result.get('tokens_generated', 0)}, Speed: {result.get('tokens_per_second', 0):.1f} t/s")
+        elif 'text' in result:
+            generated_text = result['text']
+            usage = result.get('usage', {})
+            logger.info(f"[{req_id}] ✅ RunPod generated {len(generated_text)} chars")
+            logger.info(f"[{req_id}]    Tokens: {usage.get('completion_tokens', 0)} completion, {usage.get('total_tokens', 0)} total")
         else:
             logger.error(f"[{req_id}] ❌ Invalid response format from RunPod: {result.keys() if isinstance(result, dict) else type(result)}")
             return None

@@ -16,23 +16,47 @@ L.Icon.Default.mergeOptions({
  * Similar to mobile app route cards with functional CTAs
  */
 const RouteCard = ({ routeData }) => {
+  // 🔍 DEBUG: Log what we're receiving
+  console.log('🗺️ RouteCard received routeData:', routeData);
+  console.log('🗺️ RouteCard keys:', routeData ? Object.keys(routeData) : 'NO DATA');
+  if (routeData) {
+    console.log('🗺️ Has map_data:', !!routeData.map_data);
+    console.log('🗺️ Has mapData:', !!routeData.mapData);
+    console.log('🗺️ Has route_info:', !!routeData.route_info);
+    console.log('🗺️ Has routeData:', !!routeData.routeData);
+    console.log('🗺️ Has route_data:', !!routeData.route_data);
+    console.log('🗺️ Has data:', !!routeData.data);
+  }
+  
   if (!routeData) return null;
 
-  const { map_data, route_info, message } = routeData;
+  // Handle both camelCase (frontend) and snake_case (backend) field names
+  const map_data = routeData.map_data || routeData.mapData;
+  const route_info = routeData.route_info || routeData.routeData || routeData.route_data;
+  const message = routeData.message || routeData.text;
+  
+  // 🔍 DEBUG: Log what we extracted
+  console.log('🗺️ Extracted map_data:', map_data ? Object.keys(map_data) : 'NO MAP_DATA');
+  console.log('🗺️ Extracted route_info:', route_info ? Object.keys(route_info) : 'NO ROUTE_INFO');
 
-  // Extract route information
-  const origin = route_info?.start_location || 'Starting point';
-  const destination = route_info?.end_location || 'Destination';
-  const distance = route_info?.total_distance 
-    ? (route_info.total_distance / 1000).toFixed(1) 
+  // If map_data contains route_data, use that for route_info
+  const actualRouteInfo = route_info || map_data?.route_data || map_data?.metadata?.route_data;
+  
+  console.log('🗺️ Final route info:', actualRouteInfo ? Object.keys(actualRouteInfo) : 'NO ROUTE INFO');
+
+  // Extract route information - handle different field name variations
+  const origin = actualRouteInfo?.start_location || actualRouteInfo?.origin || 'Starting point';
+  const destination = actualRouteInfo?.end_location || actualRouteInfo?.destination || 'Destination';
+  const distance = actualRouteInfo?.total_distance 
+    ? (actualRouteInfo.total_distance / 1000).toFixed(1) 
     : '0.0';
-  const duration = route_info?.total_time 
-    ? Math.round(route_info.total_time / 60) 
+  const duration = actualRouteInfo?.total_time 
+    ? Math.round(actualRouteInfo.total_time / 60) 
     : 0;
-  const transfers = route_info?.transfer_count || 0;
-  const confidence = route_info?.confidence || 'Medium';
-  const lines = route_info?.transit_lines || [];
-  const steps = route_info?.steps || [];
+  const transfers = actualRouteInfo?.transfer_count || actualRouteInfo?.transfers || 0;
+  const confidence = actualRouteInfo?.confidence || 'Medium';
+  const lines = actualRouteInfo?.transit_lines || actualRouteInfo?.lines_used || [];
+  const steps = actualRouteInfo?.steps || [];
 
   // Map visualization data
   const hasMapData = map_data && (map_data.routes || map_data.markers);

@@ -120,7 +120,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: t('homepage.districts.fatih.specialty'),
       population: '430,000',
       sideNote: t('homepage.districts.fatih.sideNote'),
-      backgroundImage: 'https://images.unsplash.com/photo-1589395937172-99d0d6174d0f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      backgroundImage: 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' // Sultanahmet Square
     },
     {
       id: 'galata',
@@ -132,7 +132,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: t('homepage.districts.galata.specialty'),
       population: '180,000',
       sideNote: t('homepage.districts.galata.sideNote'),
-      backgroundImage: 'https://images.unsplash.com/photo-1605519170108-a66deb961e84?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      backgroundImage: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' // Galata Tower
     },
     {
       id: 'ortakoy',
@@ -144,7 +144,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: t('homepage.districts.ortakoy.specialty'),
       population: '45,000',
       sideNote: t('homepage.districts.ortakoy.sideNote'),
-      backgroundImage: 'https://images.unsplash.com/photo-1609396726676-1890e6b48e89?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      backgroundImage: 'https://images.unsplash.com/photo-1570939274717-7eda259b50ed?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' // Bosphorus view
     },
     {
       id: 'balat',

@@ -235,7 +235,7 @@ const renderMessageContent = (content, darkMode) => {
   // Convert Markdown-style links [text](url) to clickable HTML links
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   
-  console.log('Rendering content:', contentStr.substring(0, 100) + '...');
+  // Removed excessive logging that was causing console spam
   
   const parts = [];
   let lastIndex = 0;
@@ -244,8 +244,6 @@ const renderMessageContent = (content, darkMode) => {
   while ((match = linkRegex.exec(contentStr)) !== null) {
     const linkText = match[1];
     const linkUrl = match[2];
-    
-    console.log('Found link:', linkText, '->', linkUrl);
     
     // Add text before the link
     if (match.index > lastIndex) {
@@ -2322,9 +2320,19 @@ function Chatbot({ userLocation: propUserLocation }) {
                           </div>
                           
                           {/* NO background, just text - ChatGPT style */}
-                          <div className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 select-text ${
-                            darkMode ? 'text-gray-100' : 'text-gray-800'
-                          }`}>
+                          <div 
+                            className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 select-text ${
+                              darkMode ? 'text-gray-100' : 'text-gray-800'
+                            }`}
+                            style={{ 
+                              display: 'block',
+                              visibility: 'visible',
+                              opacity: 1,
+                              maxWidth: '100%',
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word'
+                            }}
+                          >
                             {renderMessageContent(msg.text || msg.content, darkMode)}
                           </div>
                           
@@ -2552,9 +2560,287 @@ function Chatbot({ userLocation: propUserLocation }) {
                       </div>
                     </SwipeableMessage>
                   ) : (
-                    // Desktop: Regular message
+                    // Desktop: Regular message (same as mobile but without swipe wrapper)
                     <div className="flex items-start gap-3 w-full max-w-full">
-                      {/* Same content as mobile but without swipe */}
+                      {/* Avatar */}
+                      <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                        darkMode 
+                          ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
+                          : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
+                      }`}>
+                        <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                        </svg>
+                      </div>
+                      
+                      {/* Message content - NO BUBBLE, full width */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`text-xs font-semibold transition-colors duration-200 ${
+                            darkMode ? 'text-gray-300' : 'text-gray-600'
+                          }`}>KAM Assistant</div>
+                          
+                          {/* 🔥 WEEK 2: LLM Mode Indicator */}
+                          {msg.llmMode && msg.llmMode !== 'general' && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              msg.llmMode === 'explain' 
+                                ? darkMode ? 'bg-blue-900/50 text-blue-200' : 'bg-blue-100 text-blue-700'
+                                : msg.llmMode === 'clarify'
+                                ? darkMode ? 'bg-yellow-900/50 text-yellow-200' : 'bg-yellow-100 text-yellow-700'
+                                : darkMode ? 'bg-red-900/50 text-red-200' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {msg.llmMode === 'explain' ? '🚇 Route' : msg.llmMode === 'clarify' ? '❓ Clarifying' : '⚠️ Error'}
+                            </span>
+                          )}
+                          
+                          {/* Cache indicator */}
+                          {msg.cached && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              darkMode ? 'bg-green-900/50 text-green-200' : 'bg-green-100 text-green-700'
+                            }`}>
+                              ⚡ Cached
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* NO background, just text - ChatGPT style */}
+                        <div 
+                          className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 select-text ${
+                            darkMode ? 'text-gray-100' : 'text-gray-800'
+                          }`}
+                          style={{ 
+                            display: 'block',
+                            visibility: 'visible',
+                            opacity: 1,
+                            maxWidth: '100%',
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word'
+                          }}
+                        >
+                          {renderMessageContent(msg.text || msg.content, darkMode)}
+                        </div>
+                        
+                        {/* Copy Button - Easy copy functionality */}
+                        <button
+                          onClick={() => {
+                            const textToCopy = msg.text || msg.content || '';
+                            navigator.clipboard.writeText(textToCopy).then(() => {
+                              const btn = document.getElementById(`copy-btn-${msg.id || index}`);
+                              if (btn) {
+                                btn.textContent = '✓ Copied!';
+                                setTimeout(() => {
+                                  btn.textContent = '📋 Copy';
+                                }, 2000);
+                              }
+                            }).catch(err => console.error('Copy failed:', err));
+                          }}
+                          id={`copy-btn-${msg.id || index}`}
+                          className={`mt-2 px-2 py-1 text-xs rounded transition-all duration-200 ${
+                            darkMode 
+                              ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
+                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                          }`}
+                          title="Copy message"
+                        >
+                          📋 Copy
+                        </button>
+                        
+                        {/* Restaurant Cards */}
+                        {msg.restaurants && msg.restaurants.length > 0 && (
+                          <div className="mt-4 space-y-4">
+                            <div className={`text-sm font-medium mb-3 ${
+                              darkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              📍 Restaurant Recommendations:
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {msg.restaurants.slice(0, 4).map((restaurant, idx) => (
+                                <RestaurantCard 
+                                  key={restaurant.place_id || idx}
+                                  restaurant={restaurant}
+                                  index={idx}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* PRIORITY 1: Enhanced Route Card with Map - Mobile-style visualization */}
+                        {/* Shows when backend provides route_info + map_data (new route system) */}
+                        {(msg.route_info || msg.map_data || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
+                          <div className="mt-4">
+                            <RouteCard routeData={msg.data || msg} />
+                          </div>
+                        )}
+                        
+                        {/* PRIORITY 2: FALLBACK - Transportation Route Card (Legacy) */}
+                        {/* Only show if RouteCard data is NOT present */}
+                        {!(msg.route_info || msg.map_data || (msg.data && (msg.data.route_info || msg.data.map_data))) && 
+                         (msg.routeData || (msg.mapData && msg.mapData.route_data && msg.mapData.type !== 'trip_plan')) && (
+                          <TransportationRouteCard 
+                            routeData={msg.routeData || msg.mapData?.route_data}
+                            darkMode={darkMode}
+                          />
+                        )}
+                        
+                        {/* Multi-Route Comparison - Show when multiple route alternatives available */}
+                        {/* Only if NOT showing single route cards above */}
+                        {!(msg.route_info || msg.map_data) &&
+                         msg.mapData && (msg.mapData.multi_routes || msg.mapData.alternatives) && (
+                          msg.mapData.multi_routes?.length > 0 || msg.mapData.alternatives?.length > 0
+                        ) && (
+                          <MultiRouteComparison
+                            routes={msg.mapData.multi_routes || msg.mapData.alternatives || []}
+                            primaryRoute={msg.mapData.primary_route}
+                            routeComparison={msg.mapData.route_comparison || {}}
+                            onRouteSelect={(route, index) => {
+                              console.log('Selected route:', index, route);
+                              setSelectedRouteIndex(index);
+                            }}
+                            darkMode={darkMode}
+                            className="mt-4"
+                          />
+                        )}
+                        
+                        {/* Trip Plan Card - Show for multi-day trip planning queries */}
+                        {(msg.tripPlan || (msg.mapData && msg.mapData.type === 'trip_plan')) && (
+                          <TripPlanCard 
+                            tripPlan={msg.tripPlan || msg.mapData}
+                          />
+                        )}
+                        
+                        {/* Map Visualization - ONLY show if NO route cards are displayed */}
+                        {/* Prevents double-map display (RouteCard already has a map) */}
+                        {!(msg.route_info || msg.map_data || msg.routeData) &&
+                         msg.mapData && msg.mapData.type !== 'trip_plan' && 
+                         (msg.mapData.markers || msg.mapData.coordinates) && 
+                         !(msg.mapData.multi_routes || msg.mapData.alternatives) && (
+                          <div className="mt-4">
+                            <div className={`text-sm font-medium mb-3 ${
+                              darkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              🗺️ Map View:
+                            </div>
+                            <MapVisualization 
+                              mapData={msg.mapData} 
+                              height="400px" 
+                              className="rounded-lg shadow-md"
+                              selectedRouteIndex={selectedRouteIndex}
+                              onRouteHover={setHoveredRouteIndex}
+                            />
+                            <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
+                              darkMode ? 'text-gray-500' : 'text-gray-600'
+                            }`}>
+                              📍 {msg.mapData.markers?.length || 0} locations
+                            </div>
+                          </div>
+                        )}
+                        
+                        {msg.timestamp && (
+                          <div className={`text-xs mt-2 flex items-center space-x-2 transition-colors duration-200 ${
+                            darkMode ? 'text-gray-500' : 'text-gray-500'
+                          }`}>
+                            <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            {msg.type && (
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                              }`}>
+                                {msg.type}
+                              </span>
+                            )}
+                            {msg.resultCount && (
+                              <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {msg.resultCount} results
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Feedback Buttons - For Model Fine-tuning Data Collection */}
+                        {msg.interaction_id && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              onClick={() => handleFeedback(msg.interaction_id, 'thumbs_up')}
+                              disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                msg.feedback === 'thumbs_up'
+                                  ? darkMode
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-green-500 text-white'
+                                  : darkMode
+                                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              aria-label="Helpful response"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                            </svg>
+                            {msg.feedback === 'thumbs_up' ? 'Helpful!' : 'Helpful'}
+                            </button>
+                            
+                            <button
+                              onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down')}
+                              disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                msg.feedback === 'thumbs_down'
+                                  ? darkMode
+                                    ? 'bg-red-600 text-white'
+                                    : 'bg-red-500 text-white'
+                                  : darkMode
+                                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              aria-label="Not helpful"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                              </svg>
+                              {msg.feedback === 'thumbs_down' ? 'Not helpful' : 'Not helpful'}
+                            </button>
+                            
+                            {msg.feedback && (
+                              <span className={`text-xs ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                Thanks for your feedback!
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Dislike Reason Selector - One-click reasons */}
+                        {showDislikeReasons === msg.interaction_id && (
+                          <div className={`mt-2 p-3 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                              What was wrong with this response?
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {dislikeReasons.map((reason) => (
+                                <button
+                                  key={reason.id}
+                                  onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down', reason.id)}
+                                  className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all duration-200 ${
+                                    darkMode
+                                      ? 'bg-gray-600 text-gray-200 hover:bg-red-600 hover:text-white'
+                                      : 'bg-white text-gray-700 hover:bg-red-500 hover:text-white border border-gray-200'
+                                  }`}
+                                >
+                                  {reason.label}
+                                </button>
+                              ))}
+                              <button
+                                onClick={() => setShowDislikeReasons(null)}
+                                className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all ${
+                                  darkMode
+                                    ? 'text-gray-400 hover:text-gray-200'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
