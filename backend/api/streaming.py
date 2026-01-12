@@ -20,7 +20,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 # Import data collection for feedback loop
-from services.data_collection import log_chat_interaction
+try:
+    from backend.services.data_collection import log_chat_interaction
+except ImportError:
+    from services.data_collection import log_chat_interaction
 
 logger = logging.getLogger(__name__)
 

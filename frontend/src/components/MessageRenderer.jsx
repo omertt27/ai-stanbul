@@ -12,12 +12,15 @@
  */
 
 import React from 'react';
-import RouteCard from './RouteCard';
+import UnifiedRouteCard from './UnifiedRouteCard';
 import RestaurantCard from './RestaurantCard';
-import MapVisualization from './MapVisualization';
-import MultiRouteComparison from './MultiRouteComparison';
-import TransportationRouteCard from './TransportationRouteCard';
 import QuickActions from './QuickActions';
+
+// Legacy imports (for backwards compatibility if needed)
+// import RouteCard from './RouteCard';
+// import MapVisualization from './MapVisualization';
+// import MultiRouteComparison from './MultiRouteComparison';
+// import TransportationRouteCard from './TransportationRouteCard';
 
 /**
  * Render clickable links in message text
@@ -108,20 +111,19 @@ const MessageRenderer = ({
   const msg = message;
   
   /**
-   * PRIORITY RENDERING LOGIC (Phase 1.1)
-   * Prevents duplicate route/map visualizations
+   * UNIFIED RENDERING LOGIC (Phase 2.0)
+   * Single UnifiedRouteCard handles all map/route visualizations
+   * Auto-detects mode based on data structure
    * 
-   * Priority 1: RouteCard (if route_info + map_data exist)
-   * Priority 2: TransportationRouteCard (fallback)
-   * Priority 3: MultiRouteComparison (only if no single route)
-   * Priority 4: MapVisualization (only if no route cards)
+   * Replaces:
+   * - RouteCard (full-route mode)
+   * - TransportationRouteCard (simple-route mode)
+   * - MultiRouteComparison (multi-route mode)
+   * - MapVisualization (map-poi and map-only modes)
    */
   
-  // Check what visualizations are available
-  const hasRouteCard = !!(msg.mapData?.route_info && msg.mapData);
-  const hasTransportationCard = !!(msg.routeData && !hasRouteCard);
-  const hasMultiRoute = !!(msg.mapData?.routes && msg.mapData.routes.length > 1 && !hasRouteCard && !hasTransportationCard);
-  const hasMapVisualization = !!(msg.mapData && !hasRouteCard && !hasTransportationCard && !hasMultiRoute);
+  // Check if we have any map or route data
+  const hasMapOrRouteData = !!(msg.mapData || msg.routeData);
   
   return (
     <div className="space-y-4">
@@ -134,46 +136,17 @@ const MessageRenderer = ({
         </div>
       )}
       
-      {/* Priority 1: RouteCard (if available) */}
-      {hasRouteCard && (
+      {/* Unified Map/Route Visualization */}
+      {hasMapOrRouteData && (
         <div className="mt-4">
-          <RouteCard
-            routeInfo={msg.mapData.route_info}
-            mapData={msg.mapData}
+          <UnifiedRouteCard
+            data={msg.mapData || msg.routeData}
+            mode="auto"
             darkMode={darkMode}
             onCopy={onCopyRoute}
             onShare={onShareRoute}
             onStartNavigation={onStartNavigation}
-          />
-        </div>
-      )}
-      
-      {/* Priority 2: TransportationRouteCard (fallback) */}
-      {hasTransportationCard && (
-        <div className="mt-4">
-          <TransportationRouteCard
-            routeData={msg.routeData}
-            darkMode={darkMode}
-          />
-        </div>
-      )}
-      
-      {/* Priority 3: MultiRouteComparison (if multiple routes) */}
-      {hasMultiRoute && (
-        <div className="mt-4">
-          <MultiRouteComparison
-            routes={msg.mapData.routes}
-            darkMode={darkMode}
-          />
-        </div>
-      )}
-      
-      {/* Priority 4: MapVisualization (non-route queries) */}
-      {hasMapVisualization && (
-        <div className="mt-4">
-          <MapVisualization
-            mapData={msg.mapData}
-            darkMode={darkMode}
+            showQuickActions={showQuickActions}
           />
         </div>
       )}
