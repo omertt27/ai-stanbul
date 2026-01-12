@@ -1986,6 +1986,11 @@ class IstanbulTransportationRAG:
         Generate RAG context for transportation query.
         
         This is what gets injected into the LLM prompt as "verified knowledge".
+        
+        NOTE: We return MINIMAL context here since:
+        1. Detailed step-by-step directions are in route_data (sent to frontend)
+        2. LLM should give a brief intro, not repeat all the steps
+        3. Full directions appear in the RouteCard UI component
         """
         query_lower = query.lower()
         
@@ -2033,9 +2038,16 @@ class IstanbulTransportationRAG:
         # Store route for mapData extraction
         self.last_route = route
         
-        # Generate simple route context - just the directions
+        # Return MINIMAL context - just the high-level summary
+        # The detailed step-by-step is in route_data (for UI display)
         context_lines = [
-            self.get_directions_text(route, language="en"),
+            f"🚇 **Route Found: {route.origin} → {route.destination}**",
+            f"⏱️ Duration: {route.total_time} minutes",
+            f"🔄 Transfers: {route.transfers}",
+            f"🚉 Lines: {', '.join(route.lines_used)}",
+            "",
+            "💡 NOTE: Step-by-step directions with map are shown in the route card below your response.",
+            "Your job: Give a brief, friendly introduction (1-2 sentences). Don't repeat all the steps."
         ]
         
         return "\n".join(context_lines)

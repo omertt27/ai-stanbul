@@ -62,9 +62,20 @@ const RouteCard = ({ routeData }) => {
   const hasMapData = map_data && (map_data.routes || map_data.markers);
   const routes = map_data?.routes || [];
   const markers = map_data?.markers || [];
-  const center = markers.length > 0 
-    ? [markers[0].lat, markers[0].lon] 
-    : [41.0082, 28.9784];
+  
+  // Calculate center - handle both 'lon' and 'lng' field names
+  const firstMarker = markers.length > 0 ? markers[0] : null;
+  const center = firstMarker
+    ? [
+        firstMarker.lat || firstMarker.latitude, 
+        firstMarker.lon || firstMarker.lng || firstMarker.longitude
+      ]
+    : [41.0082, 28.9784]; // Default to Istanbul center
+  
+  console.log('🗺️ Map center:', center);
+  console.log('🗺️ Has map data:', hasMapData);
+  console.log('🗺️ Routes count:', routes.length);
+  console.log('🗺️ Markers count:', markers.length);
 
   // CTA Handlers
   const handleStartNavigation = () => {
@@ -211,30 +222,53 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
             />
             
             {/* Route Lines */}
-            {routes.map((route, idx) => (
-              <Polyline
-                key={`route-${idx}`}
-                positions={route.coordinates?.map(coord => [coord.lat, coord.lon]) || []}
-                color={route.color || '#4F46E5'}
-                weight={4}
-                opacity={0.7}
-              />
-            ))}
+            {routes.map((route, idx) => {
+              // Handle both 'lon' and 'lng' field names
+              const positions = route.coordinates?.map(coord => [
+                coord.lat, 
+                coord.lon || coord.lng
+              ]).filter(pos => pos[0] !== undefined && pos[1] !== undefined) || [];
+              
+              console.log(`🗺️ Route ${idx} positions:`, positions.length, positions.slice(0, 2));
+              
+              if (positions.length === 0) return null;
+              
+              return (
+                <Polyline
+                  key={`route-${idx}`}
+                  positions={positions}
+                  color={route.color || '#4F46E5'}
+                  weight={4}
+                  opacity={0.7}
+                />
+              );
+            })}
             
             {/* Markers */}
-            {markers.map((marker, idx) => (
-              <Marker 
-                key={`marker-${idx}`} 
-                position={[marker.lat, marker.lon]}
-              >
-                <Popup>
-                  <div>
-                    <strong>{marker.label || marker.name}</strong>
-                    {marker.type && <div className="text-sm text-gray-600">{marker.type}</div>}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+            {markers.map((marker, idx) => {
+              // Handle both 'lon' and 'lng' field names
+              const markerLat = marker.lat || marker.latitude;
+              const markerLon = marker.lon || marker.lng || marker.longitude;
+              
+              if (!markerLat || !markerLon) {
+                console.warn(`⚠️ Marker ${idx} missing coordinates:`, marker);
+                return null;
+              }
+              
+              return (
+                <Marker 
+                  key={`marker-${idx}`} 
+                  position={[markerLat, markerLon]}
+                >
+                  <Popup>
+                    <div>
+                      <strong>{marker.label || marker.name}</strong>
+                      {marker.type && <div className="text-sm text-gray-600">{marker.type}</div>}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
           </MapContainer>
         </div>
       )}

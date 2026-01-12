@@ -488,12 +488,17 @@ async def stream_chat_sse(request: StreamChatRequest):
                 start_data['trip_duration'] = trip_duration
             yield f"event: start\ndata: {json.dumps(start_data)}\n\n"
             
+            # Use NLP-detected language (overrides request.language)
+            # This ensures we respond in the same language as the query
+            detected_language = nlp_result.language if hasattr(nlp_result, 'language') else request.language
+            logger.info(f"🌍 Language - Request: {request.language}, Detected: {detected_language}, Using: {detected_language}")
+            
             # Stream response
             full_response = ""
             async for chunk in streaming_service.stream_chat_response(
                 message=request.message,
                 context=context,
-                language=request.language
+                language=detected_language  # Use detected language instead of request.language
             ):
                 if chunk["type"] == "token":
                     full_response += chunk["content"]

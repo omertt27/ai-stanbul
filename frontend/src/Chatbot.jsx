@@ -2383,11 +2383,22 @@ function Chatbot({ userLocation: propUserLocation }) {
                           
                           {/* PRIORITY 1: Enhanced Route Card with Map - Mobile-style visualization */}
                           {/* Shows when backend provides route_info + map_data (new route system) */}
-                          {(msg.route_info || msg.map_data || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
-                            <div className="mt-4">
-                              <RouteCard routeData={msg.data || msg} />
-                            </div>
-                          )}
+                          {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (() => {
+                            console.log('🗺️ RouteCard Debug:', {
+                              hasMapData: !!msg.mapData,
+                              hasRouteData: !!msg.routeData,
+                              hasMap_data: !!msg.map_data,
+                              hasRoute_info: !!msg.route_info,
+                              msgKeys: Object.keys(msg),
+                              mapData: msg.mapData,
+                              routeData: msg.routeData
+                            });
+                            return (
+                              <div className="mt-4">
+                                <RouteCard routeData={msg} />
+                              </div>
+                            );
+                          })()}
                           
                           {/* PRIORITY 2: FALLBACK - Transportation Route Card (Legacy) */}
                           {/* Only show if RouteCard data is NOT present */}
@@ -2667,11 +2678,22 @@ function Chatbot({ userLocation: propUserLocation }) {
                         
                         {/* PRIORITY 1: Enhanced Route Card with Map - Mobile-style visualization */}
                         {/* Shows when backend provides route_info + map_data (new route system) */}
-                        {(msg.route_info || msg.map_data || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
-                          <div className="mt-4">
-                            <RouteCard routeData={msg.data || msg} />
-                          </div>
-                        )}
+                        {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (() => {
+                          console.log('🗺️ RouteCard Debug (Desktop):', {
+                            hasMapData: !!msg.mapData,
+                            hasRouteData: !!msg.routeData,
+                            hasMap_data: !!msg.map_data,
+                            hasRoute_info: !!msg.route_info,
+                            msgKeys: Object.keys(msg),
+                            mapData: msg.mapData,
+                            routeData: msg.routeData
+                          });
+                          return (
+                            <div className="mt-4">
+                              <RouteCard routeData={msg} />
+                            </div>
+                          );
+                        })()}
                         
                         {/* PRIORITY 2: FALLBACK - Transportation Route Card (Legacy) */}
                         {/* Only show if RouteCard data is NOT present */}
@@ -2961,7 +2983,7 @@ function Chatbot({ userLocation: propUserLocation }) {
         containerRef={chatMessagesRef}
         unreadCount={unreadCount}
         darkMode={darkMode}
-        bottomOffset={isMobile ? 85 : 100} // Aligned with compact input bar
+        bottomOffset={isMobile ? 120 : 140} // Raised higher to avoid overlapping with input
       />
 
       {/* Quick Reply Suggestions - Mobile optimized with dynamic suggestions */}
