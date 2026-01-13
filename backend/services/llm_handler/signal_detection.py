@@ -328,12 +328,12 @@ class SignalDetector:
     
     def detect_language(self, query: str) -> str:
         """
-        Automatic language detection from query text
+        Enhanced automatic language detection from query text
         
-        Extracted from pure_llm_handler._detect_language()
-        
-        Uses langdetect library to identify query language.
-        Falls back to 'en' if detection fails or library unavailable.
+        Uses multiple detection methods for accuracy:
+        1. Character set analysis (fast, reliable)
+        2. langdetect library (backup)
+        3. Keyword patterns (fallback)
         
         Supported languages: en, tr, ar, de, ru, fr
         
@@ -343,22 +343,77 @@ class SignalDetector:
         Returns:
             ISO 639-1 language code (e.g., 'en', 'tr')
         """
-        if not LANGDETECT_AVAILABLE:
-            return "en"  # Default fallback
+        # Method 1: Character set analysis (most reliable)
+        char_lang = self._detect_by_charset(query)
+        if char_lang:
+            logger.info(f"   🌍 Language detected (charset): {char_lang}")
+            return char_lang
         
-        try:
-            detected_lang = detect(query)
-            
-            # Map to supported languages
-            supported_langs = {"en", "tr", "ar", "de", "ru", "fr"}
-            
-            if detected_lang in supported_langs:
-                logger.info(f"   🌍 Language detected: {detected_lang}")
-                return detected_lang
-            else:
-                logger.debug(f"   🌍 Language detected as {detected_lang}, not in supported set, using 'en'")
-                return "en"
+        # Method 2: langdetect library
+        if LANGDETECT_AVAILABLE:
+            try:
+                detected_lang = detect(query)
                 
-        except Exception as e:
-            logger.debug(f"   ⚠️  Language detection failed: {e}, defaulting to 'en'")
-            return "en"
+                # Map to supported languages
+                supported_langs = {"en", "tr", "ar", "de", "ru", "fr"}
+                
+                if detected_lang in supported_langs:
+                    logger.info(f"   🌍 Language detected (langdetect): {detected_lang}")
+                    return detected_lang
+                else:
+                    logger.debug(f"   🌍 Language detected as {detected_lang}, not in supported set, trying fallback")
+                    
+            except Exception as e:
+                logger.debug(f"   ⚠️  langdetect failed: {e}, trying fallback")
+        
+        # Method 3: Keyword pattern matching (fallback)
+        keyword_lang = self._detect_by_keywords(query)
+        if keyword_lang:
+            logger.info(f"   🌍 Language detected (keywords): {keyword_lang}")
+            return keyword_lang
+        
+        # Final fallback
+        logger.debug(f"   ⚠️  Could not detect language, defaulting to 'en'")
+        return "en"
+    
+    def _detect_by_charset(self, text: str) -> Optional[str]:
+        """Detect language by character set analysis"""
+        # Count characters in different unicode ranges
+        arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
+        cyrillic_chars = sum(1 for c in text if '\u0400' <= c <= '\u04FF')
+        
+        # Arabic (needs at least 3 Arabic characters)
+        if arabic_chars >= 3:
+            return 'ar'
+        
+        # Russian (needs at least 3 Cyrillic characters)
+        if cyrillic_chars >= 3:
+            return 'ru'
+        
+        # Turkish (check for Turkish-specific characters)
+        turkish_chars = set('ğĞıİöÖüÜşŞçÇ')
+        if any(c in text for c in turkish_chars):
+            return 'tr'
+        
+        return None
+    
+    def _detect_by_keywords(self, text: str) -> Optional[str]:
+        """Detect language by common keywords"""
+        text_lower = text.lower()
+        
+        # German keywords
+        german_words = {'wo', 'wie', 'welche', 'der', 'die', 'das', 'ist', 'sind', 'können', 'gibt'}
+        if any(word in text_lower.split() for word in german_words):
+            return 'de'
+        
+        # French keywords
+        french_words = {'où', 'comment', 'quel', 'quelle', 'le', 'la', 'les', 'est', 'sont', 'puis'}
+        if any(word in text_lower.split() for word in french_words):
+            return 'fr'
+        
+        # Turkish keywords
+        turkish_words = {'nerede', 'nasıl', 'hangi', 'ne', 'var', 'yok', 'mi', 'mı', 'mu', 'mü'}
+        if any(word in text_lower.split() for word in turkish_words):
+            return 'tr'
+        
+        return None
