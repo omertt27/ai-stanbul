@@ -199,12 +199,15 @@ class FastStartupManager:
             logger.info("🔄 Starting background LLM initialization...")
             
             # 1. Preload ML models FIRST (before LLM, to share memory efficiently)
-            try:
-                from services.model_cache import preload_models
-                preload_models(['default', 'multilingual'])
-                logger.info("✅ ML models preloaded")
-            except Exception as e:
-                logger.warning(f"⚠️ Model preload skipped: {e}")
+            # DISABLED FOR CLOUD RUN: We use RunPod LLM, no need to download models
+            # This was causing 40-second startup delays trying to download from HuggingFace
+            # try:
+            #     from services.model_cache import preload_models
+            #     preload_models(['default', 'multilingual'])
+            #     logger.info("✅ ML models preloaded")
+            # except Exception as e:
+            #     logger.warning(f"⚠️ Model preload skipped: {e}")
+            logger.info("⏭️ Model preloading disabled (using RunPod LLM)")
             
             # 2. Wait for database and service manager to be ready (up to 30 seconds)
             max_wait = 30

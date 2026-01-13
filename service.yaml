@@ -21,16 +21,20 @@ spec:
         ports:
         - containerPort: 8080
         env:
+        - name: DATABASE_URL
+          value: "postgresql://postgres:Yeniden.1881@34.38.193.1:5432/postgres"
         - name: REDIS_URL
-          value: redis://ai-istanbul-cache:AiIstanbul2025%21Redis%23Secure%24@3.126.153.140:6379
+          value: "redis://ai-istanbul-cache:AiIstanbul2025%21Redis%23Secure%24@3.126.153.140:6379"
         - name: ENABLE_REDIS_CACHE
           value: "true"
         - name: REDIS_SOCKET_TIMEOUT
-          value: "5"
+          value: "2"
         - name: REDIS_SOCKET_CONNECT_TIMEOUT
-          value: "5"
+          value: "2"
         - name: ENVIRONMENT
-          value: production
+          value: "production"
+        - name: PORT
+          value: "8080"
         - name: LLM_API_URL
           value: "https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6"
         - name: LLM_MODEL_NAME
@@ -39,6 +43,10 @@ spec:
           value: "120"
         - name: LLM_MAX_TOKENS
           value: "768"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: TOKENIZERS_PARALLELISM
+          value: "false"
         resources:
           limits:
             cpu: '2'
@@ -47,10 +55,10 @@ spec:
           httpGet:
             path: /api/health
             port: 8080
-          initialDelaySeconds: 30  # Give app 30s to start before first check
-          timeoutSeconds: 15       # Each probe waits 15s for response
-          periodSeconds: 20        # Check every 20 seconds
-          failureThreshold: 30     # 30 attempts = 10 minutes total (30 * 20s)
+          initialDelaySeconds: 10   # Start checking after 10s
+          timeoutSeconds: 5         # Each probe waits 5s for response
+          periodSeconds: 10         # Check every 10 seconds
+          failureThreshold: 30      # 30 attempts = 5 minutes total (30 * 10s)
         livenessProbe:
           httpGet:
             path: /api/health
