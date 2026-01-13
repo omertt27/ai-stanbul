@@ -17,17 +17,18 @@ router = APIRouter(prefix="/api/health", tags=["System Health"])
 @router.get("")
 async def health_check():
     """
-    Overall system health check
-    Returns health status of all services
+    Simple health check for Cloud Run startup probe
+    
+    CRITICAL: This endpoint MUST respond quickly without dependencies.
+    - NO database checks
+    - NO external API calls  
+    - NO blocking operations
+    
+    For detailed health, use /api/health/detailed
     """
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "services": {
-            "api": "healthy",
-            "database": "healthy",
-            "cache": "healthy"
-        }
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 

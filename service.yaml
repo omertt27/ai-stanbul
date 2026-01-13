@@ -45,10 +45,10 @@ spec:
           httpGet:
             path: /api/health
             port: 8080
-          initialDelaySeconds: 0
-          timeoutSeconds: 10
-          periodSeconds: 15
-          failureThreshold: 20  # 20 * 15 = 300 seconds (5 minutes) total startup time
+          initialDelaySeconds: 30  # Give app 30s to start before first check
+          timeoutSeconds: 15       # Each probe waits 15s for response
+          periodSeconds: 20        # Check every 20 seconds
+          failureThreshold: 30     # 30 attempts = 10 minutes total (30 * 20s)
         livenessProbe:
           httpGet:
             path: /api/health
