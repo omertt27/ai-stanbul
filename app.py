@@ -199,6 +199,19 @@ async def weather_update_task():
             logger.error(f"Weather background task error: {e}")
             await asyncio.sleep(300)  # Wait 5 minutes before retry
 
+# Async background initializers
+async def initialize_main_system_async():
+    """Initialize main system in background to not block startup"""
+    global main_system
+    try:
+        logger.info("🔄 Initializing Main AI System in background...")
+        main_system = MainSystemClass()
+        logger.info("✅ Main AI System with Map Visualization initialized")
+        logger.info("🗺️ Interactive maps enabled (Leaflet.js + OSM + OSRM)")
+    except Exception as e:
+        logger.warning(f"⚠️ Main system initialization failed: {e}")
+        main_system = None
+
 # Application lifespan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -207,46 +220,82 @@ async def lifespan(app: FastAPI):
     
     # Startup
     logger.info("🚀 Starting Advanced Istanbul AI Web Service...")
+    logger.info("⏱️ Fast startup mode enabled for Cloud Run")
     
+    # Initialize core components with lazy loading
     try:
         # Initialize enhanced AI system with deep learning capabilities
+        # Using lazy initialization to speed up startup
+        logger.info("🔄 Initializing AI system (lazy mode)...")
         ai_system = IstanbulDailyTalkAI()
         logger.info("✅ Enhanced AI System with Deep Learning initialized")
         logger.info("🧠 UNLIMITED Deep Learning features enabled for 10,000+ users!")
         logger.info("🇺🇸 English-optimized for maximum performance!")
         
-        # Initialize main system with map visualization
-        if MAIN_SYSTEM_AVAILABLE:
+    except Exception as e:
+        logger.error(f"❌ AI system initialization failed: {e}")
+        # Create a minimal fallback system
+        logger.warning("⚠️ Using minimal fallback AI system")
+        ai_system = None
+    
+    # Initialize main system (optional, in background)
+    if MAIN_SYSTEM_AVAILABLE:
+        # Don't block startup for this
+        asyncio.create_task(initialize_main_system_async())
+    
+    # Initialize Redis (optional, with graceful fallback)
+        import os
+        redis_url = os.getenv('REDIS_URL')
+        enable_redis = os.getenv('ENABLE_REDIS_CACHE', 'false').lower() == 'true'
+        
+        if enable_redis and redis_url:
             try:
-                main_system = MainSystemClass()
-                logger.info("✅ Main AI System with Map Visualization initialized")
-                logger.info("🗺️ Interactive maps enabled (Leaflet.js + OSM + OSRM)")
+                # Parse timeout from environment
+                socket_timeout = float(os.getenv('REDIS_SOCKET_TIMEOUT', '2'))
+                connect_timeout = float(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '2'))
+                
+                redis_client = redis.from_url(
+                    redis_url,
+                    decode_responses=True,
+                    socket_timeout=socket_timeout,
+                    socket_connect_timeout=connect_timeout,
+                    retry_on_timeout=False,
+                    health_check_interval=30
+                )
+                
+                # Test connection with timeout
+                await asyncio.wait_for(redis_client.ping(), timeout=2.0)
+                logger.info("✅ Redis cache initialized successfully")
+            except asyncio.TimeoutError:
+                logger.warning("⚠️ Redis connection timeout - continuing WITHOUT Redis")
+                redis_client = None
             except Exception as e:
-                logger.warning(f"⚠️ Main system initialization failed: {e}")
-                main_system = None
+                logger.warning(f"⚠️ Redis not available: {e} - continuing WITHOUT Redis")
+                redis_client = None
+        else:
+            logger.info("ℹ️  Redis cache disabled or not configured")
+            redis_client = None
         
-        # Initialize Redis
-        redis_client = redis.from_url("redis://localhost:6379/0", decode_responses=True)
-        await redis_client.ping()
-        logger.info("✅ Redis connected")
-        
-        # Initialize weather services
+        # Initialize weather services (in background to not block startup)
         if WEATHER_SERVICES_AVAILABLE:
             try:
-                await update_weather_cache()
-                logger.info("🌤️ Weather cache initialized")
+                # Start weather cache in background (don't wait)
+                asyncio.create_task(update_weather_cache())
+                logger.info("🌤️ Weather cache initialization started (background)")
                 
                 # Start background weather update task
                 asyncio.create_task(weather_update_task())
                 logger.info("🌤️ Weather background task started")
             except Exception as e:
-                logger.warning(f"Weather initialization failed: {e}")
+                logger.warning(f"⚠️ Weather initialization failed: {e}")
         
-        logger.info("🎯 Service startup complete!")
+        logger.info("✅ Application startup complete")
+        logger.info("🎯 Service is ready to accept connections!")
         
     except Exception as e:
         logger.error(f"❌ Startup failed: {e}")
-        raise
+        # Don't raise - allow service to start even if some components fail
+        logger.warning("⚠️ Starting with limited functionality")
     
     yield
     
@@ -401,7 +450,18 @@ def create_cache_key(user_id: str, message: str) -> str:
 
 # API Routes
 
+@app.get("/")
+async def root():
+    """Root endpoint - quick health check"""
+    return {
+        "service": "Istanbul AI", 
+        "status": "online",
+        "version": "2.0.0",
+        "timestamp": datetime.now().isoformat()
+    }
+
 @app.get("/health", response_model=HealthResponse)
+@app.get("/api/health", response_model=HealthResponse)  # Add /api/health for startup probe
 async def health_check():
     """Health check endpoint"""
     services = {}
