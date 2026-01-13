@@ -1,13 +1,14 @@
 steps:
-  # Build the container image from the backend directory
+  # Build the container image using root Dockerfile
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '--no-cache'
       - '-t'
       - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ai-stanbul:$BUILD_ID'
       - '-f'
-      - 'backend/Dockerfile'
-      - 'backend/'
+      - 'Dockerfile'
+      - '.'
     
   # Push the container image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
@@ -15,7 +16,7 @@ steps:
       - 'push'
       - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ai-stanbul:$BUILD_ID'
     
-  # Deploy container image to Cloud Run with Secret Manager and VPC
+  # Deploy container image to Cloud Run with ALL fixes
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -29,22 +30,19 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
-      # VPC Connectivity Configuration
+      # VPC Connectivity Configuration (CRITICAL FOR REDIS/POSTGRES)
       - '--vpc-connector'
-      - 'ai-stanbul-connector'
+      - 'ai-istanbul-connector'
       - '--vpc-egress'
       - 'all-traffic'
-      # Secret Manager Configuration
-      - '--update-secrets'
-      - 'DATABASE_URL=DATABASE_URL:latest,GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY:latest,GOOGLE_PLACES_API_KEY=GOOGLE_PLACES_API_KEY:latest,OPENWEATHER_API_KEY=OPENWEATHER_API_KEY:latest,SECRET_KEY=SECRET_KEY:latest'
-      # Environment Variables
+      # Environment Variables - COMPLETE LIST
       - '--set-env-vars'
-      - 'PURE_LLM_MODE=true,LLM_API_URL=https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6,LLM_MODEL_NAME=/workspace/models/llama-3.1-8b-4bit,ENVIRONMENT=production,DEBUG=false'
+      - 'DATABASE_URL=postgresql://postgres:Yeniden.1881@34.38.193.1:5432/postgres,REDIS_URL=redis://ai-istanbul-cache:AiIstanbul2025%21Redis%23Secure%24@3.126.153.140:6379,ENABLE_REDIS_CACHE=true,REDIS_SOCKET_TIMEOUT=2,REDIS_SOCKET_CONNECT_TIMEOUT=2,ENVIRONMENT=production,LLM_API_URL=https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6,LLM_MODEL_NAME=meta-llama/Meta-Llama-3.1-8B-Instruct,LLM_TIMEOUT=120,LLM_MAX_TOKENS=768,PYTHONUNBUFFERED=1,TOKENIZERS_PARALLELISM=false'
       # Resource Configuration
       - '--timeout'
       - '300'
       - '--memory'
-      - '4Gi'
+      - '2Gi'
       - '--cpu'
       - '2'
       - '--min-instances'
