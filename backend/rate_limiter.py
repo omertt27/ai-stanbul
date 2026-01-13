@@ -256,9 +256,14 @@ def create_slowapi_limiter():
     if redis_url:
         try:
             import redis
+            # Add connection timeout to prevent hanging in Cloud Run
             limiter = Limiter(
                 key_func=get_user_id,
-                storage_uri=redis_url
+                storage_uri=redis_url,
+                storage_options={
+                    "socket_connect_timeout": 2,
+                    "socket_timeout": 2
+                }
             )
             logger.info("✅ SlowAPI limiter created with Redis backend")
         except Exception as e:

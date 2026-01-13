@@ -11,6 +11,8 @@ spec:
         run.googleapis.com/startup-cpu-boost: 'true'
         run.googleapis.com/cpu-throttling: 'true'
         run.googleapis.com/deploy-timestamp: '2025-12-14-15-10'
+        run.googleapis.com/vpc-access-connector: 'ai-istanbul-connector'
+        run.googleapis.com/vpc-access-egress: 'all-traffic'
     spec:
       containerConcurrency: 80
       timeoutSeconds: 300
