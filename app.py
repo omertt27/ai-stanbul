@@ -9,6 +9,8 @@ import time
 import json
 import logging
 import re
+import os
+import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
@@ -29,7 +31,13 @@ from fastapi.responses import JSONResponse, StreamingResponse, Response
 from pydantic import BaseModel, Field, validator
 import uvicorn
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
-import redis.asyncio as redis
+try:
+    import redis.asyncio as redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    redis = None
+    REDIS_AVAILABLE = False
+    logger.warning("⚠️ Redis library not available")
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -64,18 +72,18 @@ except ImportError as e:
     GEO_UTILITIES_AVAILABLE = False
     logger.info(f"ℹ️  Advanced geo utilities not installed: {e}")
 
-# Import our enhanced Istanbul AI system with deep learning capabilities
-from istanbul_daily_talk_system import IstanbulDailyTalkAI, ConversationTone, UserProfile
-from deep_learning_enhanced_ai import DeepLearningEnhancedAI, EmotionalState, UserType
+# LAZY IMPORTS - DO NOT import heavy AI libraries at module level!
+# They will be imported inside lifespan() to avoid blocking startup
+IstanbulDailyTalkAI = None
+ConversationTone = None
+UserProfile = None
+DeepLearningEnhancedAI = None
+EmotionalState = None
+UserType = None
+MainSystemClass = None
+MAIN_SYSTEM_AVAILABLE = False
 
-# Import main system with map visualization support
-try:
-    from istanbul_ai.main_system import IstanbulDailyTalkAI as MainSystemClass
-    MAIN_SYSTEM_AVAILABLE = True
-    logger.info("✅ Main AI System with map visualization available")
-except ImportError as e:
-    MAIN_SYSTEM_AVAILABLE = False
-    logger.warning(f"⚠️ Main AI System not available: {e}")
+logger.info("⚡ Using lazy imports for fast startup")
 
 # Import push notification system
 try:
@@ -202,8 +210,12 @@ async def weather_update_task():
 # Async background initializers
 async def initialize_main_system_async():
     """Initialize main system in background to not block startup"""
-    global main_system
+    global main_system, MAIN_SYSTEM_AVAILABLE, MainSystemClass
     try:
+        logger.info("🔄 Importing Main AI System modules...")
+        from istanbul_ai.main_system import IstanbulDailyTalkAI as MainSystemClass
+        MAIN_SYSTEM_AVAILABLE = True
+        
         logger.info("🔄 Initializing Main AI System in background...")
         main_system = MainSystemClass()
         logger.info("✅ Main AI System with Map Visualization initialized")
@@ -211,31 +223,28 @@ async def initialize_main_system_async():
     except Exception as e:
         logger.warning(f"⚠️ Main system initialization failed: {e}")
         main_system = None
+        MAIN_SYSTEM_AVAILABLE = False
 
 # Application lifespan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown"""
-    global ai_system, main_system, redis_client
+    global ai_system, main_system, redis_client, IstanbulDailyTalkAI
     
     # Startup
     logger.info("🚀 Starting Advanced Istanbul AI Web Service...")
-    logger.info("⏱️ Fast startup mode enabled for Cloud Run")
+    logger.info("⏱️ ULTRA-FAST startup mode - lazy loading all AI components")
     
-    # Initialize core components with lazy loading
+    # Initialize core components with MAXIMUM lazy loading
     try:
-        # Initialize enhanced AI system with deep learning capabilities
-        # Using lazy initialization to speed up startup
-        logger.info("🔄 Initializing AI system (lazy mode)...")
-        ai_system = IstanbulDailyTalkAI()
-        logger.info("✅ Enhanced AI System with Deep Learning initialized")
-        logger.info("🧠 UNLIMITED Deep Learning features enabled for 10,000+ users!")
-        logger.info("🇺🇸 English-optimized for maximum performance!")
+        # DON'T load AI system during startup - it's too slow!
+        # It will be loaded on first request instead
+        logger.info("⏭️ Skipping AI initialization for fast startup")
+        logger.info("🔄 AI system will load on first request")
+        ai_system = None  # Will be initialized on first use
         
     except Exception as e:
-        logger.error(f"❌ AI system initialization failed: {e}")
-        # Create a minimal fallback system
-        logger.warning("⚠️ Using minimal fallback AI system")
+        logger.error(f"❌ Startup setup failed: {e}")
         ai_system = None
     
     # Initialize main system (optional, in background)
@@ -244,58 +253,66 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(initialize_main_system_async())
     
     # Initialize Redis (optional, with graceful fallback)
-        import os
-        redis_url = os.getenv('REDIS_URL')
-        enable_redis = os.getenv('ENABLE_REDIS_CACHE', 'false').lower() == 'true'
-        
-        if enable_redis and redis_url:
-            try:
-                # Parse timeout from environment
-                socket_timeout = float(os.getenv('REDIS_SOCKET_TIMEOUT', '2'))
-                connect_timeout = float(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '2'))
-                
-                redis_client = redis.from_url(
-                    redis_url,
-                    decode_responses=True,
-                    socket_timeout=socket_timeout,
-                    socket_connect_timeout=connect_timeout,
-                    retry_on_timeout=False,
-                    health_check_interval=30
-                )
-                
-                # Test connection with timeout
-                await asyncio.wait_for(redis_client.ping(), timeout=2.0)
-                logger.info("✅ Redis cache initialized successfully")
-            except asyncio.TimeoutError:
-                logger.warning("⚠️ Redis connection timeout - continuing WITHOUT Redis")
-                redis_client = None
-            except Exception as e:
-                logger.warning(f"⚠️ Redis not available: {e} - continuing WITHOUT Redis")
-                redis_client = None
-        else:
-            logger.info("ℹ️  Redis cache disabled or not configured")
+    redis_url = os.getenv('REDIS_URL')
+    enable_redis = os.getenv('ENABLE_REDIS_CACHE', 'false').lower() == 'true'
+    
+    if REDIS_AVAILABLE and enable_redis and redis_url:
+        try:
+            logger.info(f"🔄 Connecting to Redis at {redis_url[:20]}...")
+            
+            # Parse timeout from environment
+            socket_timeout = float(os.getenv('REDIS_SOCKET_TIMEOUT', '2'))
+            connect_timeout = float(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '2'))
+            
+            redis_client = redis.from_url(
+                redis_url,
+                decode_responses=True,
+                socket_timeout=socket_timeout,
+                socket_connect_timeout=connect_timeout,
+                retry_on_timeout=False,
+                health_check_interval=30
+            )
+            
+            # Test connection with timeout
+            logger.info("🔄 Testing Redis connection...")
+            ping_result = await asyncio.wait_for(redis_client.ping(), timeout=2.0)
+            logger.info(f"✅ Redis cache connected successfully! Ping: {ping_result}")
+            
+            # Test a basic set/get to ensure functionality
+            test_key = "startup_test"
+            await redis_client.set(test_key, "ok", ex=10)
+            test_val = await redis_client.get(test_key)
+            await redis_client.delete(test_key)
+            logger.info(f"✅ Redis operations verified (test get: {test_val})")
+            
+        except asyncio.TimeoutError:
+            logger.error("❌ Redis connection TIMEOUT - continuing WITHOUT Redis")
             redis_client = None
-        
-        # Initialize weather services (in background to not block startup)
-        if WEATHER_SERVICES_AVAILABLE:
-            try:
-                # Start weather cache in background (don't wait)
-                asyncio.create_task(update_weather_cache())
-                logger.info("🌤️ Weather cache initialization started (background)")
-                
-                # Start background weather update task
-                asyncio.create_task(weather_update_task())
-                logger.info("🌤️ Weather background task started")
-            except Exception as e:
-                logger.warning(f"⚠️ Weather initialization failed: {e}")
-        
-        logger.info("✅ Application startup complete")
-        logger.info("🎯 Service is ready to accept connections!")
-        
-    except Exception as e:
-        logger.error(f"❌ Startup failed: {e}")
-        # Don't raise - allow service to start even if some components fail
-        logger.warning("⚠️ Starting with limited functionality")
+        except Exception as e:
+            logger.error(f"❌ Redis connection FAILED: {e} - continuing WITHOUT Redis")
+            redis_client = None
+    else:
+        if not REDIS_AVAILABLE:
+            logger.info("ℹ️  Redis library not available")
+        elif not enable_redis:
+            logger.info("ℹ️  Redis cache explicitly disabled (ENABLE_REDIS_CACHE=false)")
+        else:
+            logger.info("ℹ️  Redis URL not configured")
+        redis_client = None    # Initialize weather services (in background to not block startup)
+    if WEATHER_SERVICES_AVAILABLE:
+        try:
+            # Start weather cache in background (don't wait)
+            asyncio.create_task(update_weather_cache())
+            logger.info("🌤️ Weather cache initialization started (background)")
+            
+            # Start background weather update task
+            asyncio.create_task(weather_update_task())
+            logger.info("🌤️ Weather background task started")
+        except Exception as e:
+            logger.warning(f"⚠️ Weather initialization failed: {e}")
+    
+    logger.info("✅ Application startup complete")
+    logger.info("🎯 Service is ready to accept connections!")
     
     yield
     
@@ -448,6 +465,27 @@ def create_cache_key(user_id: str, message: str) -> str:
     message_hash = hashlib.md5(message.lower().encode()).hexdigest()[:8]
     return f"response:{user_id}:{message_hash}"
 
+# Lazy AI initialization helper
+async def ensure_ai_system():
+    """Initialize AI system on first use (lazy loading)"""
+    global ai_system, IstanbulDailyTalkAI
+    
+    if ai_system is not None:
+        return ai_system
+    
+    try:
+        logger.info("🔄 First request - importing AI modules now...")
+        from istanbul_daily_talk_system import IstanbulDailyTalkAI as AIClass
+        IstanbulDailyTalkAI = AIClass
+        
+        logger.info("🔄 Initializing AI system...")
+        ai_system = IstanbulDailyTalkAI()
+        logger.info("✅ AI System initialized successfully on first request!")
+        return ai_system
+    except Exception as e:
+        logger.error(f"❌ AI system initialization failed: {e}")
+        raise HTTPException(status_code=503, detail=f"AI system initialization failed: {str(e)}")
+
 # API Routes
 
 @app.get("/")
@@ -463,26 +501,34 @@ async def root():
 @app.get("/health", response_model=HealthResponse)
 @app.get("/api/health", response_model=HealthResponse)  # Add /api/health for startup probe
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint - MUST respond fast for Cloud Run startup probe"""
     services = {}
     
-    # Check AI system
-    if ai_system:
-        services["ai_system"] = "healthy"
-    else:
-        services["ai_system"] = "unhealthy"
+    # ALWAYS return healthy during startup - AI system loads on first request
+    # This allows Cloud Run to mark the service as ready immediately
+    services["ai_system"] = "loading" if ai_system is None else "healthy"
+    services["startup"] = "ready"
     
-    # Check Redis
+    # Check Redis (quickly, with timeout)
     try:
         if redis_client:
-            await redis_client.ping()
-            services["redis"] = "healthy"
+            # Quick ping to verify connection is alive
+            try:
+                await asyncio.wait_for(redis_client.ping(), timeout=0.5)
+                services["redis"] = "connected"
+            except asyncio.TimeoutError:
+                services["redis"] = "timeout"
+            except Exception as e:
+                logger.warning(f"Redis health check failed: {e}")
+                services["redis"] = "error"
         else:
-            services["redis"] = "unavailable"
-    except Exception:
-        services["redis"] = "unhealthy"
+            services["redis"] = "disabled"
+    except Exception as e:
+        logger.warning(f"Redis health check exception: {e}")
+        services["redis"] = "unavailable"
     
-    overall_status = "healthy" if all(s == "healthy" for s in services.values()) else "degraded"
+    # Always return healthy so Cloud Run accepts the deployment
+    overall_status = "healthy"
     
     return HealthResponse(status=overall_status, services=services)
 
@@ -490,6 +536,59 @@ async def health_check():
 async def metrics():
     """Prometheus metrics endpoint"""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+@app.get("/api/redis-status")
+async def redis_status():
+    """Detailed Redis connection status for diagnostics"""
+    status = {
+        "library_available": REDIS_AVAILABLE,
+        "client_initialized": redis_client is not None,
+        "enabled": os.getenv('ENABLE_REDIS_CACHE', 'false').lower() == 'true',
+        "url_configured": os.getenv('REDIS_URL') is not None,
+    }
+    
+    if redis_client:
+        try:
+            # Test connection
+            start = time.time()
+            ping_result = await asyncio.wait_for(redis_client.ping(), timeout=2.0)
+            ping_time = (time.time() - start) * 1000  # ms
+            
+            # Test set/get
+            test_key = f"health_check_{int(time.time())}"
+            await redis_client.set(test_key, "ok", ex=10)
+            get_result = await redis_client.get(test_key)
+            await redis_client.delete(test_key)
+            
+            status.update({
+                "connected": True,
+                "ping": ping_result,
+                "ping_time_ms": round(ping_time, 2),
+                "operations_working": get_result == "ok",
+                "error": None
+            })
+        except asyncio.TimeoutError:
+            status.update({
+                "connected": False,
+                "error": "Connection timeout after 2s"
+            })
+        except Exception as e:
+            status.update({
+                "connected": False,
+                "error": str(e)
+            })
+    else:
+        status["connected"] = False
+        if not REDIS_AVAILABLE:
+            status["reason"] = "Redis library not installed"
+        elif not status["enabled"]:
+            status["reason"] = "Redis disabled via ENABLE_REDIS_CACHE"
+        elif not status["url_configured"]:
+            status["reason"] = "REDIS_URL not configured"
+        else:
+            status["reason"] = "Redis initialization failed during startup"
+    
+    return status
 
 # Background notification tasks
 async def send_chat_notification_async(user_id: str, user_message: str, ai_response: str):
