@@ -10,7 +10,7 @@ spec:
       annotations:
         run.googleapis.com/startup-cpu-boost: 'true'
         run.googleapis.com/cpu-throttling: 'true'
-        run.googleapis.com/deploy-timestamp: '2025-12-14-15-10'
+        run.googleapis.com/deploy-timestamp: '2025-01-15-redis-tls-fix'
         run.googleapis.com/vpc-access-connector: 'ai-istanbul-connector'
         run.googleapis.com/vpc-access-egress: 'all-traffic'
     spec:
@@ -24,17 +24,15 @@ spec:
         - name: DATABASE_URL
           value: "postgresql://postgres:Yeniden.1881@34.38.193.1:5432/postgres"
         - name: REDIS_URL
-          value: "redis://ai-istanbul-cache:AiIstanbul2025%21Redis%23Secure%24@3.126.153.140:6379"
+          value: "rediss://ai-istanbul-cache:AiIstanbul2025%21Redis%23Secure%24@clustercfg.render-mvp-cluster.zzjhb3.memorydb.us-east-1.amazonaws.com:6379/0?ssl_cert_reqs=required"
         - name: ENABLE_REDIS_CACHE
           value: "true"
         - name: REDIS_SOCKET_TIMEOUT
-          value: "2"
+          value: "5"
         - name: REDIS_SOCKET_CONNECT_TIMEOUT
-          value: "2"
+          value: "5"
         - name: ENVIRONMENT
           value: "production"
-        - name: PORT
-          value: "8080"
         - name: LLM_API_URL
           value: "https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6"
         - name: LLM_MODEL_NAME
@@ -55,10 +53,10 @@ spec:
           httpGet:
             path: /api/health
             port: 8080
-          initialDelaySeconds: 5    # Start checking after 5s (reduced from 10s)
-          timeoutSeconds: 10        # Each probe waits 10s for response (increased from 5s)
-          periodSeconds: 15         # Check every 15 seconds (increased from 10s)
-          failureThreshold: 20      # 20 attempts = 5 minutes total (20 * 15s = 300s)
+          initialDelaySeconds: 5
+          timeoutSeconds: 10
+          periodSeconds: 15
+          failureThreshold: 20
         livenessProbe:
           httpGet:
             path: /api/health

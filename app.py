@@ -264,14 +264,50 @@ async def lifespan(app: FastAPI):
             socket_timeout = float(os.getenv('REDIS_SOCKET_TIMEOUT', '2'))
             connect_timeout = float(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '2'))
             
-            redis_client = redis.from_url(
-                redis_url,
-                decode_responses=True,
-                socket_timeout=socket_timeout,
-                socket_connect_timeout=connect_timeout,
-                retry_on_timeout=False,
-                health_check_interval=30
-            )
+            # Check if TLS is required (rediss:// protocol)
+            if redis_url.startswith('rediss://'):
+                from urllib.parse import urlparse, parse_qs
+                
+                logger.info("🔐 Using TLS/SSL for Redis connection")
+                parsed = urlparse(redis_url)
+                query_params = parse_qs(parsed.query) if parsed.query else {}
+                
+                # Extract SSL cert requirements from URL params (default to 'required')
+                ssl_cert_reqs_param = query_params.get('ssl_cert_reqs', ['required'])[0]
+                
+                # Map string to ssl module constant
+                import ssl
+                ssl_cert_reqs_map = {
+                    'required': ssl.CERT_REQUIRED,
+                    'optional': ssl.CERT_OPTIONAL,
+                    'none': ssl.CERT_NONE
+                }
+                ssl_cert_reqs = ssl_cert_reqs_map.get(ssl_cert_reqs_param.lower(), ssl.CERT_REQUIRED)
+                
+                redis_client = redis.Redis(
+                    host=parsed.hostname,
+                    port=parsed.port or 6379,
+                    password=parsed.password,
+                    db=int(parsed.path.lstrip('/')) if parsed.path and parsed.path != '/' else 0,
+                    ssl=True,
+                    ssl_cert_reqs=ssl_cert_reqs,
+                    decode_responses=True,
+                    socket_timeout=socket_timeout,
+                    socket_connect_timeout=connect_timeout,
+                    retry_on_timeout=False,
+                    health_check_interval=30
+                )
+                logger.info(f"✅ TLS Redis client created for {parsed.hostname}:{parsed.port or 6379}")
+            else:
+                # Regular non-TLS connection
+                redis_client = redis.from_url(
+                    redis_url,
+                    decode_responses=True,
+                    socket_timeout=socket_timeout,
+                    socket_connect_timeout=connect_timeout,
+                    retry_on_timeout=False,
+                    health_check_interval=30
+                )
             
             # Test connection with timeout
             logger.info("🔄 Testing Redis connection...")
