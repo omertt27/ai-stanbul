@@ -34,9 +34,8 @@ class RedisCache:
                 socket_keepalive=True,
                 health_check_interval=30,
                 retry_on_timeout=True,      # Retry once on timeout
-                max_connections=10,
-                ssl=False,                   # HAProxy handles TLS, not the client
-                ssl_cert_reqs=None
+                max_connections=10
+                # HAProxy handles TLS termination, client uses plain TCP
             )
             logger.info(f"✅ Redis cache client created via REDIS_URL (timeout: {connect_timeout}s)")
         else:

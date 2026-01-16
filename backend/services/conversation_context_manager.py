@@ -5,6 +5,7 @@ Tracks conversation history and maintains context across multiple turns
 
 import json
 import logging
+import os
 import re
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
@@ -194,20 +195,37 @@ class ConversationContextManager:
     Uses Redis for persistent storage with in-memory fallback
     """
     
-    def __init__(self, redis_host: str = 'localhost', redis_port: int = 6379, redis_db: int = 1):
+    def __init__(self, redis_url: str = None, redis_host: str = None, redis_port: int = 6379, redis_db: int = 1):
         """Initialize context manager with Redis or in-memory storage"""
         self.redis_client = None
         self.in_memory_storage = {}  # Fallback storage
         
         if REDIS_AVAILABLE:
             try:
-                self.redis_client = redis.Redis(
-                    host=redis_host,
-                    port=redis_port,
-                    db=redis_db,
-                    decode_responses=True,
-                    socket_connect_timeout=2
-                )
+                # Prefer REDIS_URL from environment, then redis_url parameter, then host/port
+                redis_connection_url = redis_url or os.getenv('REDIS_URL')
+                
+                if redis_connection_url:
+                    # Use redis.from_url for full URL support (including auth)
+                    self.redis_client = redis.from_url(
+                        redis_connection_url,
+                        decode_responses=True,
+                        socket_connect_timeout=30,
+                        socket_timeout=30,
+                        db=redis_db  # Override DB if needed
+                    )
+                else:
+                    # Fallback to host/port for backward compatibility
+                    host = redis_host or 'localhost'
+                    self.redis_client = redis.Redis(
+                        host=host,
+                        port=redis_port,
+                        db=redis_db,
+                        decode_responses=True,
+                        socket_connect_timeout=30,
+                        socket_timeout=30
+                    )
+                
                 # Test connection
                 self.redis_client.ping()
                 logger.info("✅ ConversationContextManager initialized with Redis")
