@@ -22,27 +22,29 @@ class RedisCache:
         
         if redis_url:
             # Parse Redis URL (redis://user:pass@host:port/db)
-            # Add ULTRA-SHORT timeouts to prevent blocking on Cloud Run
-            connect_timeout = int(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '1'))
-            socket_timeout = int(os.getenv('REDIS_SOCKET_TIMEOUT', '1'))
+            # Use longer timeouts for cross-cloud connections (AWS MemoryDB via EC2 proxy)
+            connect_timeout = int(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '30'))
+            socket_timeout = int(os.getenv('REDIS_SOCKET_TIMEOUT', '30'))
             
             self.client = redis.from_url(
                 redis_url, 
                 decode_responses=True,
-                socket_connect_timeout=connect_timeout,  # Ultra-short connection timeout
-                socket_timeout=socket_timeout,           # Ultra-short socket timeout
+                socket_connect_timeout=connect_timeout,  # Longer timeout for cross-cloud
+                socket_timeout=socket_timeout,           # Longer socket timeout
                 socket_keepalive=True,
                 health_check_interval=30,
-                retry_on_timeout=False,     # Don't retry on timeout - fail fast
-                max_connections=10
+                retry_on_timeout=True,      # Retry once on timeout
+                max_connections=10,
+                ssl=False,                   # HAProxy handles TLS, not the client
+                ssl_cert_reqs=None
             )
             logger.info(f"✅ Redis cache client created via REDIS_URL (timeout: {connect_timeout}s)")
         else:
             # Local development
             host = host or os.getenv('REDIS_HOST', 'localhost')
             port = port or int(os.getenv('REDIS_PORT', 6379))
-            connect_timeout = int(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '1'))
-            socket_timeout = int(os.getenv('REDIS_SOCKET_TIMEOUT', '1'))
+            connect_timeout = int(os.getenv('REDIS_SOCKET_CONNECT_TIMEOUT', '30'))
+            socket_timeout = int(os.getenv('REDIS_SOCKET_TIMEOUT', '30'))
             
             self.client = redis.Redis(
                 host=host,
