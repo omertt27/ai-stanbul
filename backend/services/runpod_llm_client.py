@@ -376,15 +376,21 @@ class RunPodLLMClient:
             logger.error(f"[{req_id}] ❌ Invalid response format from RunPod: {result.keys() if isinstance(result, dict) else type(result)}")
             return None
         
-        if generated_text:
+        # Return result even if text is empty (let caller handle it)
+        # Empty text might indicate model/prompt issue
+        if generated_text is not None:
             # Hard limit: truncate responses that are too long
             MAX_RESPONSE_LENGTH = 2048
             if len(generated_text) > MAX_RESPONSE_LENGTH:
                 logger.warning(f"[{req_id}] ⚠️ Response too long ({len(generated_text)} chars), truncating")
                 generated_text = generated_text[:MAX_RESPONSE_LENGTH].rsplit('.', 1)[0] + '.'
             
+            if not generated_text:
+                logger.warning(f"[{req_id}] ⚠️ Model returned empty text (tokens: {result.get('usage', {}).get('completion_tokens', 0)})")
+            
             return {"generated_text": generated_text, "raw": result, "request_id": req_id}
         else:
+            logger.error(f"[{req_id}] ❌ No 'text' or 'response' field in result")
             return None
     
     async def _generate_openai_compatible(

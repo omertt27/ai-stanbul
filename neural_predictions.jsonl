@@ -2563,3 +2563,20 @@
 {"timestamp": "2026-01-17T17:21:03.535132", "query": "what should I do on a rainy day in Istanbul?", "intent": "weather", "confidence": 0.9903, "latency_ms": 17.36, "high_confidence": true}
 {"timestamp": "2026-01-17T17:21:03.624162", "query": "I want to eat kebab in Sultanahmet", "intent": "neighborhoods", "confidence": 0.8358, "latency_ms": 16.02, "high_confidence": true}
 {"timestamp": "2026-01-17T17:21:03.713876", "query": "tell me about Istanbul", "intent": "attraction", "confidence": 0.624, "latency_ms": 18.28, "high_confidence": false}
+{"timestamp": "2026-01-17T21:13:13.594711", "query": "what's nice?", "intent": "greeting", "confidence": 0.7444, "latency_ms": 263.3, "high_confidence": false}
+{"timestamp": "2026-01-17T21:13:13.621581", "query": "tell me something good", "intent": "greeting", "confidence": 0.6784, "latency_ms": 20.32, "high_confidence": false}
+{"timestamp": "2026-01-17T21:13:13.639330", "query": "any ideas?", "intent": "route_planning", "confidence": 0.9373, "latency_ms": 16.83, "high_confidence": true}
+{"timestamp": "2026-01-17T21:13:17.029069", "query": "recommend a Turkish restaurant", "intent": "restaurant", "confidence": 0.9897, "latency_ms": 43.18, "high_confidence": true}
+{"timestamp": "2026-01-17T21:13:17.070080", "query": "what's the weather in Istanbul?", "intent": "weather", "confidence": 0.9967, "latency_ms": 33.49, "high_confidence": true}
+{"timestamp": "2026-01-17T21:13:17.102252", "query": "recommend a Turkish restaurant", "intent": "restaurant", "confidence": 0.9897, "latency_ms": 31.3, "high_confidence": true}
+{"timestamp": "2026-01-17T21:13:17.134121", "query": "ne önerirsin?", "intent": "recommendation", "confidence": 0.9944, "latency_ms": 30.85, "high_confidence": true}
+{"timestamp": "2026-01-17T21:13:18.593458", "query": "Türk restoranı öner", "intent": "restaurant", "confidence": 0.9977, "latency_ms": 47.07, "high_confidence": true}
+{"timestamp": "2026-01-17T21:14:27.839439", "query": "what's nice?", "intent": "greeting", "confidence": 0.5494, "latency_ms": 1090.65, "high_confidence": false}
+{"timestamp": "2026-01-17T21:14:28.112961", "query": "something good", "intent": "greeting", "confidence": 0.7662, "latency_ms": 271.89, "high_confidence": true}
+{"timestamp": "2026-01-17T21:14:28.122438", "query": "help me", "intent": "help", "confidence": 0.9958, "latency_ms": 8.51, "high_confidence": true}
+{"timestamp": "2026-01-17T21:14:28.132750", "query": "recommend a Turkish restaurant", "intent": "local_tips", "confidence": 0.7524, "latency_ms": 10.13, "high_confidence": true}
+{"timestamp": "2026-01-17T21:14:28.350167", "query": "weather in Istanbul", "intent": "local_tips", "confidence": 0.9568, "latency_ms": 217.15, "high_confidence": true}
+{"timestamp": "2026-01-17T21:14:28.556197", "query": "how do I get to Taksim?", "intent": "transportation", "confidence": 0.9646, "latency_ms": 204.89, "high_confidence": true}
+{"timestamp": "2026-01-17T21:14:28.566099", "query": "recommend a Turkish restaurant", "intent": "local_tips", "confidence": 0.7524, "latency_ms": 9.2, "high_confidence": true}
+{"timestamp": "2026-01-17T21:16:12.717409", "query": "hmm", "intent": "luxury", "confidence": 0.9792, "latency_ms": 134.15, "high_confidence": true}
+{"timestamp": "2026-01-17T21:16:13.055182", "query": "ok", "intent": "cultural_info", "confidence": 0.254, "latency_ms": 336.17, "high_confidence": false}

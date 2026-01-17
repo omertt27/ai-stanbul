@@ -302,12 +302,12 @@ async def pure_llm_chat(
                 
                 # If clarification is needed, return early with question
                 if resolved_context.get('needs_clarification') and resolved_context.get('clarification_question'):
-                    logger.info(f"   ⚠️ Clarification needed: {resolved_context['clarification_question']}")
+                    logger.info(f"   ⚠️ Clarification needed: {resolved_context['clarification_question']}'")
                     
                     # 🌍 Translate clarification question
                     clarification_text = translate_if_needed(
                         resolved_context['clarification_question'], 
-                        effective_language
+                        request.language or "en"
                     )
                     
                     return ChatResponse(

@@ -9,6 +9,7 @@ Strategy:
 """
 
 import logging
+import os
 from typing import Dict, Optional, Any
 from dataclasses import dataclass
 from ..core.models import ConversationContext
@@ -61,16 +62,24 @@ class HybridIntentClassifier:
         self.use_llm = llm_classifier is not None
         
         # Confidence threshold for LLM fallback
-        self.llm_fallback_threshold = 0.60  # If confidence < 0.60, try LLM
+        self.llm_fallback_threshold = float(os.getenv("LLM_FALLBACK_THRESHOLD", 0.60))  # If confidence < threshold, try LLM
         
-        # Statistics
+        # Enhanced statistics with performance metrics
         self.stats = {
             'neural_used': 0,
             'keyword_used': 0,
             'ensemble_used': 0,
             'llm_used': 0,
             'neural_failures': 0,
-            'llm_failures': 0
+            'llm_failures': 0,
+            'llm_improved_count': 0,  # Track when LLM improved confidence
+            'confidence_distribution': {  # Track confidence ranges
+                '0.0-0.2': 0,
+                '0.2-0.4': 0,
+                '0.4-0.6': 0,
+                '0.6-0.8': 0,
+                '0.8-1.0': 0
+            }
         }
         
         classifier_modes = []
@@ -185,9 +194,12 @@ class HybridIntentClassifier:
         self.stats['keyword_used'] += 1
         keyword_result.method = 'keyword'
         
+        # Track confidence distribution
+        self._track_confidence(keyword_result.confidence)
+        
         # STEP 5: LLM fallback if confidence is low
         if self.use_llm and keyword_result.confidence < self.llm_fallback_threshold:
-            logger.info(f"⚠️ Low confidence ({keyword_result.confidence:.2f}) - trying LLM for better understanding")
+            logger.info(f"⚠️ Low confidence ({keyword_result.confidence:.2f} < {self.llm_fallback_threshold}) - trying LLM for better understanding")
             try:
                 llm_result = self.llm.classify_intent(
                     message=message,
@@ -198,15 +210,18 @@ class HybridIntentClassifier:
                 )
                 
                 if llm_result and llm_result.confidence > keyword_result.confidence:
-                    logger.info(f"🤖 LLM improved classification: {llm_result.primary_intent} ({llm_result.confidence:.2f})")
+                    improvement = llm_result.confidence - keyword_result.confidence
+                    logger.info(f"✅ LLM improved classification: {llm_result.primary_intent} ({llm_result.confidence:.2f}) +{improvement:.2f}")
                     self.stats['llm_used'] += 1
+                    self.stats['llm_improved_count'] += 1
+                    self._track_confidence(llm_result.confidence)
                     llm_result.method = 'llm_fallback'
                     return llm_result
                 else:
                     logger.debug("LLM didn't improve confidence, using keyword result")
                     
             except Exception as e:
-                logger.warning(f"LLM fallback failed: {e}")
+                logger.warning(f"❌ LLM fallback failed: {e}")
                 self.stats['llm_failures'] += 1
         
         return keyword_result
@@ -261,8 +276,8 @@ class HybridIntentClassifier:
             return IntentResult(
                 primary_intent=neural_intent,
                 confidence=neural_confidence,
-                intents=[neural_intent, keyword_intent],
-                is_multi_intent=True,
+                intents=[neural_intent],
+                is_multi_intent=False,
                 entities=entities,
                 method='neural'
             )
@@ -275,8 +290,8 @@ class HybridIntentClassifier:
             return IntentResult(
                 primary_intent=keyword_intent,
                 confidence=keyword_confidence,
-                intents=[keyword_intent, neural_intent],
-                is_multi_intent=True,
+                intents=[keyword_intent],
+                is_multi_intent=False,
                 entities=entities,
                 method='keyword'
             )
@@ -318,4 +333,39 @@ class HybridIntentClassifier:
             'keyword_used': 0,
             'ensemble_used': 0,
             'neural_failures': 0
+        }
+    
+    def _track_confidence(self, confidence: float):
+        """Track confidence distribution for analytics"""
+        if confidence < 0.2:
+            self.stats['confidence_distribution']['0.0-0.2'] += 1
+        elif confidence < 0.4:
+            self.stats['confidence_distribution']['0.2-0.4'] += 1
+        elif confidence < 0.6:
+            self.stats['confidence_distribution']['0.4-0.6'] += 1
+        elif confidence < 0.8:
+            self.stats['confidence_distribution']['0.6-0.8'] += 1
+        else:
+            self.stats['confidence_distribution']['0.8-1.0'] += 1
+    
+    def get_performance_report(self) -> Dict[str, Any]:
+        """Get comprehensive performance report"""
+        total = (self.stats['neural_used'] + self.stats['keyword_used'] + 
+                self.stats['ensemble_used'] + self.stats['llm_used'])
+        
+        if total == 0:
+            total = 1  # Avoid division by zero
+        
+        return {
+            'total_requests': total,
+            'neural_count': self.stats['neural_used'],
+            'keyword_count': self.stats['keyword_used'],
+            'ensemble_count': self.stats['ensemble_used'],
+            'llm_fallback_count': self.stats['llm_used'],
+            'llm_fallback_rate': (self.stats['llm_used'] / total) * 100,
+            'llm_improved_count': self.stats['llm_improved_count'],
+            'llm_improvement_rate': (self.stats['llm_improved_count'] / max(self.stats['llm_used'], 1)) * 100,
+            'neural_failures': self.stats['neural_failures'],
+            'llm_failures': self.stats['llm_failures'],
+            'confidence_distribution': dict(self.stats['confidence_distribution'])
         }

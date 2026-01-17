@@ -12,6 +12,8 @@ Features:
 - Confidence scoring
 - Multi-intent detection
 - Fallback to neural/keyword classifier for reliability
+- LLM response caching for performance optimization
+- Performance metrics tracking
 
 Author: Istanbul AI Team
 Date: December 2024
@@ -19,8 +21,12 @@ Date: December 2024
 
 import logging
 import json
+import hashlib
+import os
+import time
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -88,13 +94,22 @@ class LLMIntentClassifier:
         self.has_neural_fallback = neural_classifier is not None
         self.has_keyword_fallback = keyword_classifier is not None
         
-        # Statistics
+        # Intent cache for LLM responses
+        self.intent_cache = {}
+        self.cache_ttl = int(os.getenv('LLM_INTENT_CACHE_TTL', '3600'))  # 1 hour default
+        self.enable_cache = os.getenv('LLM_INTENT_CACHE_ENABLED', 'true').lower() == 'true'
+        
+        # Enhanced statistics with performance metrics
         self.stats = {
             'llm_used': 0,
             'neural_fallback': 0,
             'keyword_fallback': 0,
             'llm_failures': 0,
-            'total_requests': 0
+            'total_requests': 0,
+            'cache_hits': 0,
+            'cache_misses': 0,
+            'llm_response_times': [],  # Track LLM latency in ms
+            'avg_llm_latency_ms': 0.0
         }
         
         # Initialize LLM if not provided
@@ -150,8 +165,21 @@ class LLMIntentClassifier:
         # Try LLM classification first
         if self.use_llm:
             try:
+                # Generate cache key for the message
+                cache_key = self._get_cache_key(message)
+                
+                # Check cache first
+                cached_result = self._get_cached_intent(cache_key)
+                if cached_result:
+                    logger.info(f"💾 Cache hit for message: '{message}' (key: {cache_key[:8]}...)")
+                    return cached_result
+                
                 result = self._classify_with_llm(message, entities, context)
                 self.stats['llm_used'] += 1
+                
+                # Cache the result
+                self._cache_intent(cache_key, result)
+                
                 return result
             except Exception as e:
                 logger.warning(f"⚠️ LLM classification failed: {e}")
@@ -206,7 +234,7 @@ class LLMIntentClassifier:
         context: Optional[Any] = None
     ) -> IntentResult:
         """
-        Classify intent using LLM
+        Classify intent using LLM with caching
         
         Args:
             message: User's input message
@@ -216,11 +244,21 @@ class LLMIntentClassifier:
         Returns:
             IntentResult with classification
         """
+        # Check cache first
+        cache_key = self._get_cache_key(message)
+        cached_result = self._get_cached_intent(cache_key)
+        
+        if cached_result:
+            return cached_result
+        
         # Extract language from context
         language = self._get_language(context)
         
         # Build classification prompt
         prompt = self._build_classification_prompt(message, entities, language, context)
+        
+        # Track LLM response time
+        start_time = time.time()
         
         # Check if using Llama 3.x for optimized parameters
         is_llama_3 = self.llm_service and hasattr(self.llm_service, 'model_name') and 'llama-3' in self.llm_service.model_name.lower()
@@ -242,8 +280,21 @@ class LLMIntentClassifier:
                 temperature=0.1  # Very low for deterministic classification
             )
         
+        # Track response time
+        end_time = time.time()
+        latency_ms = (end_time - start_time) * 1000
+        self.stats['llm_response_times'].append(latency_ms)
+        
+        # Update average latency
+        self.stats['avg_llm_latency_ms'] = sum(self.stats['llm_response_times']) / len(self.stats['llm_response_times'])
+        
+        logger.debug(f"⏱️  LLM classification latency: {latency_ms:.2f}ms")
+        
         # Parse LLM response
         result = self._parse_llm_response(llm_response, message, entities)
+        
+        # Cache the result
+        self._cache_intent(cache_key, result)
         
         return result
     
@@ -728,6 +779,50 @@ Classify: "{message}"<|eot_id|><|start_header_id|>assistant<|end_header_id|>
             'failure_rate': f"{(self.stats['llm_failures'] / total * 100):.1f}%"
         }
     
+    def get_performance_report(self) -> Dict[str, Any]:
+        """
+        Generate comprehensive performance report
+        
+        Returns:
+            Dictionary with performance metrics
+        """
+        total_requests = self.stats['total_requests']
+        
+        if total_requests == 0:
+            return {'error': 'No data available'}
+        
+        llm_success = self.stats['llm_used']
+        llm_total = llm_success + self.stats['llm_failures']
+        
+        report = {
+            'total_requests': total_requests,
+            'llm_used': llm_success,
+            'llm_usage_rate_pct': round(llm_success / total_requests * 100, 2) if total_requests > 0 else 0,
+            'llm_success_rate_pct': round(llm_success / llm_total * 100, 2) if llm_total > 0 else 0,
+            'llm_failures': self.stats['llm_failures'],
+            'neural_fallback_count': self.stats['neural_fallback'],
+            'keyword_fallback_count': self.stats['keyword_fallback'],
+            'avg_llm_latency_ms': round(self.stats['avg_llm_latency_ms'], 2),
+            'cache_stats': self.get_cache_stats()
+        }
+        
+        return report
+    
+    def reset_stats(self):
+        """Reset all statistics"""
+        self.stats = {
+            'llm_used': 0,
+            'neural_fallback': 0,
+            'keyword_fallback': 0,
+            'llm_failures': 0,
+            'total_requests': 0,
+            'cache_hits': 0,
+            'cache_misses': 0,
+            'llm_response_times': [],
+            'avg_llm_latency_ms': 0.0
+        }
+        logger.info("📊 LLM classifier statistics reset")
+    
     def _map_neural_intent(self, neural_intent: str) -> str:
         """
         Map neural classifier intent names to our intent names
@@ -766,6 +861,93 @@ Classify: "{message}"<|eot_id|><|start_header_id|>assistant<|end_header_id|>
         
         return mapped
     
+    def _get_cache_key(self, message: str) -> str:
+        """
+        Generate cache key for message
+        
+        Args:
+            message: User's input message
+            
+        Returns:
+            Cache key (MD5 hash of normalized message)
+        """
+        # Normalize message for better cache hits
+        normalized = message.lower().strip()
+        return hashlib.md5(normalized.encode()).hexdigest()
+    
+    def _get_cached_intent(self, cache_key: str) -> Optional[IntentResult]:
+        """
+        Get cached intent if valid and not expired
+        
+        Args:
+            cache_key: Cache key to lookup
+            
+        Returns:
+            Cached IntentResult or None if not found/expired
+        """
+        if not self.enable_cache:
+            return None
+            
+        if cache_key in self.intent_cache:
+            cached_data = self.intent_cache[cache_key]
+            if datetime.now() - cached_data['timestamp'] < timedelta(seconds=self.cache_ttl):
+                self.stats['cache_hits'] += 1
+                logger.info(f"💾 LLM intent cache HIT (key: {cache_key[:8]}...)")
+                return cached_data['result']
+            else:
+                # Expired - remove from cache
+                del self.intent_cache[cache_key]
+                logger.debug(f"🗑️  Cache entry expired and removed (key: {cache_key[:8]}...)")
+        
+        self.stats['cache_misses'] += 1
+        return None
+    
+    def _cache_intent(self, cache_key: str, result: IntentResult):
+        """
+        Cache intent classification result
+        
+        Args:
+            cache_key: Cache key
+            result: IntentResult to cache
+        """
+        if not self.enable_cache:
+            return
+            
+        self.intent_cache[cache_key] = {
+            'result': result,
+            'timestamp': datetime.now()
+        }
+        logger.debug(f"💾 Cached LLM intent (key: {cache_key[:8]}..., intent: {result.primary_intent})")
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """
+        Get cache performance statistics
+        
+        Returns:
+            Dictionary with cache metrics
+        """
+        total_cache_attempts = self.stats['cache_hits'] + self.stats['cache_misses']
+        cache_hit_rate = (
+            round(self.stats['cache_hits'] / total_cache_attempts * 100, 2)
+            if total_cache_attempts > 0 else 0.0
+        )
+        
+        return {
+            'cache_enabled': self.enable_cache,
+            'cache_ttl_seconds': self.cache_ttl,
+            'cache_size': len(self.intent_cache),
+            'cache_hits': self.stats['cache_hits'],
+            'cache_misses': self.stats['cache_misses'],
+            'cache_hit_rate_pct': cache_hit_rate
+        }
+    
+    def clear_cache(self):
+        """Clear the intent cache"""
+        cache_size = len(self.intent_cache)
+        self.intent_cache.clear()
+        logger.info(f"🗑️  Cleared LLM intent cache ({cache_size} entries removed)")
+    
+
 def create_llm_intent_classifier(llm_service=None, keyword_classifier=None, neural_classifier=None) -> LLMIntentClassifier:
     """
     Factory function to create LLM intent classifier
@@ -823,3 +1005,7 @@ if __name__ == "__main__":
     # Print statistics
     print("\nClassifier Statistics:")
     print(json.dumps(classifier.get_statistics(), indent=2))
+    print("\nCache Statistics:")
+    print(json.dumps(classifier.get_cache_stats(), indent=2))
+    print("\nPerformance Report:")
+    print(json.dumps(classifier.get_performance_report(), indent=2))
