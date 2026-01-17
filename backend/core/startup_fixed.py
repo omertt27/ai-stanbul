@@ -117,13 +117,13 @@ class FastStartupManager:
         
         try:
             from services.redis_cache import init_cache
-            # 5 second timeout for AWS MemoryDB through EC2 proxy (local dev)
-            # 1.5s timeout was too short for cross-region AWS connections
-            await asyncio.wait_for(init_cache(), timeout=5.0)
+            # 30 second timeout for cross-cloud GCP→AWS Redis connection
+            # Allows time for VPC connector → Cloud NAT → AWS EC2 HAProxy → MemoryDB
+            await asyncio.wait_for(init_cache(), timeout=30.0)
             self.redis_cache = True
             logger.info("✅ Redis cache initialized successfully")
         except asyncio.TimeoutError:
-            logger.warning("⚠️ Redis cache timeout (5.0s) - likely firewall/network blocked")
+            logger.warning("⚠️ Redis cache timeout (30.0s) - likely firewall/network blocked")
             logger.warning("⚠️ Continuing WITHOUT Redis - sessions will not persist across restarts")
             self.redis_cache = None
         except Exception as e:
