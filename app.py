@@ -4,6 +4,13 @@ FastAPI Web Application for Advanced Istanbul AI
 Production-ready web service with authentication, monitoring, and scalability
 """
 
+# Load environment variables FIRST before any other imports
+from dotenv import load_dotenv
+import os
+
+# Load .env file
+load_dotenv()
+
 import asyncio
 import time
 import json
@@ -681,6 +688,7 @@ async def send_weather_context_notification(user_id: str, user_message: str, ai_
         logger.error(f"Failed to send weather context notification: {e}")
 
 @app.post("/api/v1/chat", response_model=ChatResponse)
+@app.post("/api/chat", response_model=ChatResponse)  # Alias for frontend compatibility
 @limiter.limit("60/minute")
 async def chat(
     request: Request,
@@ -705,9 +713,8 @@ async def chat(
             REQUEST_COUNT.labels(method="POST", endpoint="/chat", status="200").inc()
             return ChatResponse(**response_data)
         
-        # Generate AI response
-        if not ai_system:
-            raise HTTPException(status_code=503, detail="AI system not available")
+        # Generate AI response - Initialize AI system on first use
+        await ensure_ai_system()
         
         # Try main system with map support first
         ai_response = None
@@ -822,8 +829,8 @@ async def voice_chat(
     try:
         REQUEST_COUNT.labels(method="POST", endpoint="/voice", status="processing").inc()
         
-        if not ai_system:
-            raise HTTPException(status_code=503, detail="AI system not available")
+        # Initialize AI system on first use
+        await ensure_ai_system()
         
         # Process voice with deep learning enhancement
         ai_response = await ai_system.process_voice_message(user_id, audio_file)
@@ -864,8 +871,8 @@ async def get_user_profile(
 ):
     """Get user profile and analytics"""
     try:
-        if not ai_system:
-            raise HTTPException(status_code=503, detail="AI system not available")
+        # Initialize AI system on first use
+        await ensure_ai_system()
         
         analytics = ai_system.get_enhanced_user_analytics(user_id)
         
@@ -907,18 +914,19 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
     """WebSocket endpoint for real-time chat"""
     await manager.connect(websocket, user_id, session_id)
     
+    # Initialize AI system once at connection time
+    try:
+        await ensure_ai_system()
+    except Exception as e:
+        logger.error(f"Failed to initialize AI system: {e}")
+        await websocket.close(code=1011, reason="AI system unavailable")
+        return
+    
     try:
         while True:
             # Receive message from client
             data = await websocket.receive_text()
             message_data = json.loads(data)
-            
-            if not ai_system:
-                await websocket.send_text(json.dumps({
-                    "error": "AI system not available",
-                    "timestamp": datetime.now().isoformat()
-                }, cls=CustomJSONEncoder))
-                continue
             
             # Process message
             start_time = time.time()
@@ -1054,8 +1062,8 @@ async def test_weather_notification(user_id: str = "test_user"):
 @app.get("/api/v1/neighborhoods")
 async def get_neighborhoods():
     """Get available Istanbul neighborhoods"""
-    if not ai_system:
-        raise HTTPException(status_code=503, detail="AI system not available")
+    # Initialize AI system on first use
+    await ensure_ai_system()
     
     neighborhoods = ai_system.entity_recognizer.knowledge_graph.neighborhoods
     return {
@@ -1079,8 +1087,8 @@ async def get_english_optimization_metrics(
 ):
     """Get English optimization performance metrics"""
     try:
-        if not ai_system:
-            raise HTTPException(status_code=503, detail="AI system not available")
+        # Initialize AI system on first use
+        await ensure_ai_system()
         
         # Get metrics from deep learning system if available
         if hasattr(ai_system, 'deep_learning_ai') and ai_system.deep_learning_ai:
@@ -1117,8 +1125,8 @@ async def adapt_personality(
 ):
     """Adapt AI personality for user preferences"""
     try:
-        if not ai_system:
-            raise HTTPException(status_code=503, detail="AI system not available")
+        # Initialize AI system on first use
+        await ensure_ai_system()
         
         # Use enhanced personality adaptation
         if hasattr(ai_system, 'deep_learning_ai') and ai_system.deep_learning_ai:
@@ -1182,8 +1190,8 @@ async def plan_route(
     try:
         start_time = time.time()
         
-        if not ai_system:
-            raise HTTPException(status_code=503, detail="AI system not available")
+        # Initialize AI system on first use
+        await ensure_ai_system()
         
         # Create a route planning query from the request
         query = f"Plan a {route_request.duration_hours}-hour {route_request.route_style} route starting from {route_request.start_location}"
@@ -1246,8 +1254,8 @@ async def optimize_route(
 ):
     """Optimize an existing route or re-optimize with new parameters"""
     try:
-        if not ai_system:
-            raise HTTPException(status_code=503, detail="AI system not available")
+        # Initialize AI system on first use
+        await ensure_ai_system()
         
         # Check if route maker service is available for advanced optimization
         if hasattr(ai_system, 'route_maker') and ai_system.route_maker:
@@ -2047,13 +2055,13 @@ async def advanced_daily_talk(
     try:
         # Use user_id or generate anonymous one
         if not user_id:
-            user_id = f"advanced_{int(time.time())}"
+            user_id = f"anonymous_{int(time.time())}"
         
-        # Try comprehensive system first (it has advanced capabilities built-in)
-        if COMPREHENSIVE_DAILY_TALKS_AVAILABLE and daily_talks_wrapper:
+        # Try comprehensive daily talks system first
+        if COMPREHENSIVE_DAILY_TALKS_AVAILABLE:
             try:
-                response = daily_talks_wrapper.process_user_input(
-                    user_input=message,
+                response = process_comprehensive_daily_talk(
+                    message=message,
                     user_id=user_id,
                     location=location,
                     additional_context={"advanced_mode": True}

@@ -370,14 +370,28 @@ class IstanbulDailyTalkAI:
         # Initialize Keyword-based Intent Classifier (fallback/ensemble)
         self.keyword_classifier = IntentClassifier()
         
-        # Initialize Hybrid Intent Classifier (combines neural + keyword)
+        # Initialize LLM Intent Classifier (for low-confidence fallback)
+        try:
+            llm_intent_classifier = create_llm_intent_classifier()
+            if llm_intent_classifier and llm_intent_classifier.use_llm:
+                self.llm_classifier = llm_intent_classifier
+                logger.info("✅ LLM Intent Classifier initialized for low-confidence fallback")
+            else:
+                self.llm_classifier = None
+                logger.warning("⚠️ LLM Intent Classifier not available")
+        except Exception as e:
+            logger.warning(f"⚠️ LLM Intent Classifier initialization failed: {e}")
+            self.llm_classifier = None
+        
+        # Initialize Hybrid Intent Classifier (combines neural + keyword + LLM fallback)
         self.intent_classifier = HybridIntentClassifier(
             neural_classifier=self.neural_classifier,
-            keyword_classifier=self.keyword_classifier
+            keyword_classifier=self.keyword_classifier,
+            llm_classifier=self.llm_classifier
         )
         
         if self.neural_classifier:
-            logger.info("✅ Hybrid intent classifier initialized (Neural + Keyword ensemble)")
+            logger.info("✅ Hybrid intent classifier initialized (Neural + Keyword + LLM fallback)")
         # Initialize Entity Extractor (wraps and enhances entity_recognizer)
         self.entity_extractor = EntityExtractor(
             entity_recognizer=self.entity_recognizer
@@ -836,10 +850,6 @@ class IstanbulDailyTalkAI:
             # Extract neural insights
             neural_insights = preprocessed_query.get('neural_insights') if isinstance(preprocessed_query, dict) else getattr(preprocessed_query, 'neural_insights', {})
             
-            # Check if this is a daily talk query (casual conversation, greetings, weather, etc.)
-            if self._is_daily_talk_query(message):
-                return self._handle_daily_talk_query(message, user_id, session_id, user_profile, context, neural_insights)
-            
             # Week 2: Use EntityExtractor for comprehensive entity extraction
             entities = self.entity_extractor.extract_entities(
                 message=message,
@@ -854,6 +864,8 @@ class IstanbulDailyTalkAI:
                 neural_insights=neural_insights,
                 preprocessed_query=preprocessed_query
             )
+            
+            logger.info(f"🎯 Intent classified: {intent_result.primary_intent} (confidence: {intent_result.confidence:.2f}, method: {intent_result.method})")
             
             # Handle multi-intent queries if detected
             if intent_result.is_multi_intent and intent_result.multi_intent_response:
@@ -908,6 +920,12 @@ class IstanbulDailyTalkAI:
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to apply A/B variant config: {e}")
             
+            # 🗣️ Check if this should use daily talk system (AFTER intent classification)
+            # Only route to daily talk for very simple conversational queries (greetings, weather chat, etc.)
+            if intent_result.primary_intent == 'greeting' and self._is_daily_talk_query(message):
+                logger.info(f"🗣️ Routing greeting to daily talk system")
+                return self._handle_daily_talk_query(message, user_id, session_id, user_profile, context, neural_insights)
+            
             # Week 2: Use ResponseRouter for intelligent response generation
             response_result = self.response_router.route_query(
                 message=message,
@@ -917,7 +935,8 @@ class IstanbulDailyTalkAI:
                 context=context,
                 handlers=self.ml_handlers,
                 neural_insights=neural_insights,
-                return_structured=return_structured
+                return_structured=return_structured,
+                intent_result=intent_result  # Pass intent_result for LLM fallback detection
             )
             
             # 🧪 A/B Testing: Restore original configuration after routing
@@ -1141,9 +1160,84 @@ class IstanbulDailyTalkAI:
     def _handle_daily_talk_query(self, message: str, user_id: str, session_id: str, 
                                 user_profile: UserProfile, context: ConversationContext,
                                 neural_insights: Optional[Dict] = None) -> str:
-        """Handle daily talk queries through enhanced bilingual system with fallback"""
+        """Handle daily talk queries through LLM, then enhanced bilingual system with fallback"""
         
-        # PRIMARY: Try Enhanced Bilingual Daily Talks System
+        # PRIORITY 1: Try LLM Client for intelligent, context-aware responses
+        if hasattr(self, 'llm_service') and self.llm_service is not None:
+            try:
+                import asyncio
+                
+                # Determine user's language preference
+                lang_pref = getattr(user_profile, 'language_preference', 'english').lower()
+                language_code = 'tr' if lang_pref in ['turkish', 'tr', 'türkçe'] else 'en'
+                
+                # Build context from conversation history
+                context_str = ""
+                if hasattr(context, 'conversation_history') and context.conversation_history:
+                    recent_history = context.conversation_history[-3:]  # Last 3 exchanges
+                    context_parts = []
+                    for hist in recent_history:
+                        if isinstance(hist, dict):
+                            user_msg = hist.get('user_message', '')
+                            ai_resp = hist.get('response', '')
+                            if user_msg and ai_resp:
+                                context_parts.append(f"User: {user_msg}\nAI: {ai_resp}")
+                    if context_parts:
+                        context_str = "\n\n".join(context_parts)
+                
+                # Try to get the RunPod LLM client
+                try:
+                    from backend.services.runpod_llm_client import get_llm_client
+                    llm_client = get_llm_client()
+                    
+                    if llm_client and llm_client.enabled:
+                        logger.info(f"🤖 Using LLM for daily talk response (lang: {language_code})")
+                        
+                        # Use asyncio to call the async generate_istanbul_response method
+                        try:
+                            loop = asyncio.get_event_loop()
+                            if loop.is_running():
+                                # Event loop already running, fall through to template-based
+                                raise RuntimeError("Event loop already running")
+                            else:
+                                llm_response = loop.run_until_complete(
+                                    llm_client.generate_istanbul_response(
+                                        query=message,
+                                        context=context_str,
+                                        intent='daily_talk',
+                                        language=language_code
+                                    )
+                                )
+                        except RuntimeError:
+                            # Create new event loop
+                            llm_response = asyncio.run(
+                                llm_client.generate_istanbul_response(
+                                    query=message,
+                                    context=context_str,
+                                    intent='daily_talk',
+                                    language=language_code
+                                )
+                            )
+                        
+                        if llm_response and len(llm_response.strip()) > 0:
+                            # Record interaction in main context
+                            context.add_interaction(message, llm_response, 'daily_talk_llm')
+                            logger.info(f"✅ LLM-generated daily talk response ({len(llm_response)} chars)")
+                            return llm_response
+                        else:
+                            logger.warning("⚠️ LLM returned empty response, falling back to templates")
+                    
+                except ImportError as ie:
+                    logger.warning(f"⚠️ RunPod LLM client not available: {ie}")
+                except Exception as e:
+                    logger.warning(f"⚠️ LLM generation failed: {e}")
+                    # Fall through to template-based systems
+                
+            except Exception as e:
+                logger.error(f"Error in LLM daily talk processing: {e}")
+                # Fall through to enhanced bilingual system
+        
+        # PRIORITY 2: Try Enhanced Bilingual Daily Talks System
         if ENHANCED_DAILY_TALKS_AVAILABLE and self.enhanced_daily_talks:
             try:
                 # Prepare context for enhanced daily talks

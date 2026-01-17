@@ -64,7 +64,8 @@ class EmergencySafetyHandler:
     def __init__(
         self,
         llm_service=None,
-        gps_location_service=None
+        gps_location_service=None,
+        neural_processor=None  # Add neural_processor parameter (optional, for compatibility)
     ):
         """
         Initialize emergency & safety handler.
@@ -72,9 +73,11 @@ class EmergencySafetyHandler:
         Args:
             llm_service: LLM service for natural language responses (REQUIRED)
             gps_location_service: GPS service for location-based recommendations (OPTIONAL)
+            neural_processor: Neural processor (optional, not used but accepted for compatibility)
         """
         self.llm_service = llm_service
         self.gps_location_service = gps_location_service
+        self.neural_processor = neural_processor  # Store but don't require
         
         # Service availability flags
         self.has_llm = llm_service is not None

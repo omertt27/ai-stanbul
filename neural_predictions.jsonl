@@ -2548,3 +2548,18 @@
 {"timestamp": "2026-01-01T16:49:36.160605", "query": "how can I go to Kadıköy from Sultanahmet", "intent": "transportation", "confidence": 0.6425, "latency_ms": 223.21, "high_confidence": false}
 {"timestamp": "2026-01-01T16:51:38.101966", "query": "how can I go to Kadıköy from Sultanahmet", "intent": "transportation", "confidence": 0.6425, "latency_ms": 219.8, "high_confidence": false}
 {"timestamp": "2026-01-01T16:53:21.236833", "query": "how can I go to Kadikoy from Sultanahmet", "intent": "attraction", "confidence": 0.5137, "latency_ms": 131.71, "high_confidence": false}
+{"timestamp": "2026-01-17T16:51:49.451938", "query": "What are the best restaurants in Sultanahmet?", "intent": "hidden_gems", "confidence": 0.5694, "latency_ms": 388.85, "high_confidence": false}
+{"timestamp": "2026-01-17T16:52:31.610305", "query": "Tell me about restaurants in Sultanahmet", "intent": "hidden_gems", "confidence": 0.9287, "latency_ms": 21.72, "high_confidence": true}
+{"timestamp": "2026-01-17T17:00:17.804096", "query": "What are the best restaurants in Sultanahmet?", "intent": "hidden_gems", "confidence": 0.5694, "latency_ms": 305.13, "high_confidence": false}
+{"timestamp": "2026-01-17T17:02:04.467654", "query": "What are the best restaurants in Sultanahmet?", "intent": "hidden_gems", "confidence": 0.5694, "latency_ms": 280.6, "high_confidence": false}
+{"timestamp": "2026-01-17T17:02:12.395436", "query": "What are the best restaurants in Sultanahmet?", "intent": "hidden_gems", "confidence": 0.5694, "latency_ms": 14.9, "high_confidence": false}
+{"timestamp": "2026-01-17T17:03:41.511255", "query": "What are the best restaurants in Sultanahmet?", "intent": "hidden_gems", "confidence": 0.5694, "latency_ms": 263.02, "high_confidence": false}
+{"timestamp": "2026-01-17T17:10:46.521118", "query": "What are the best restaurants in Sultanahmet?", "intent": "hidden_gems", "confidence": 0.5694, "latency_ms": 261.39, "high_confidence": false}
+{"timestamp": "2026-01-17T17:13:05.421616", "query": "Can you recommend a good Turkish restaurant in Beyoglu?", "intent": "attraction", "confidence": 0.8159, "latency_ms": 21.59, "high_confidence": true}
+{"timestamp": "2026-01-17T17:14:05.285257", "query": "recommend a Turkish restaurant", "intent": "restaurant", "confidence": 0.9897, "latency_ms": 18.14, "high_confidence": true}
+{"timestamp": "2026-01-17T17:18:29.959138", "query": "recommend a Turkish restaurant in Beyoglu", "intent": "hidden_gems", "confidence": 0.7341, "latency_ms": 275.08, "high_confidence": false}
+{"timestamp": "2026-01-17T17:19:10.486757", "query": "I want to eat Turkish food", "intent": "local_tips", "confidence": 0.9973, "latency_ms": 17.43, "high_confidence": true}
+{"timestamp": "2026-01-17T17:21:03.273942", "query": "recommend a Turkish restaurant", "intent": "restaurant", "confidence": 0.9897, "latency_ms": 18.05, "high_confidence": true}
+{"timestamp": "2026-01-17T17:21:03.535132", "query": "what should I do on a rainy day in Istanbul?", "intent": "weather", "confidence": 0.9903, "latency_ms": 17.36, "high_confidence": true}
+{"timestamp": "2026-01-17T17:21:03.624162", "query": "I want to eat kebab in Sultanahmet", "intent": "neighborhoods", "confidence": 0.8358, "latency_ms": 16.02, "high_confidence": true}
+{"timestamp": "2026-01-17T17:21:03.713876", "query": "tell me about Istanbul", "intent": "attraction", "confidence": 0.624, "latency_ms": 18.28, "high_confidence": false}

@@ -138,7 +138,7 @@ const SimpleChatInput = ({
         </button>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .simple-chat-input-container {
           width: 100%;
           max-width: 100%;

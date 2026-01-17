@@ -203,7 +203,7 @@ const TripPlanCard = ({ tripPlan, onDaySelect }) => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .trip-plan-card {
           background: white;
           border-radius: 12px;

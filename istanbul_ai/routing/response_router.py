@@ -62,7 +62,8 @@ class ResponseRouter:
         context: ConversationContext,
         handlers: Dict[str, Any],
         neural_insights: Optional[Dict] = None,
-        return_structured: bool = False
+        return_structured: bool = False,
+        intent_result: Optional[Any] = None
     ) -> Union[str, Dict[str, Any]]:
         """
         Route query to the most appropriate handler
@@ -76,11 +77,25 @@ class ResponseRouter:
             handlers: Dictionary of available handlers
             neural_insights: Optional neural insights
             return_structured: Whether to return structured response
+            intent_result: Optional IntentResult object with classification metadata
         
         Returns:
             Response string or structured response dict
         """
         logger.info(f"🎯 Routing query with intent: {intent}")
+        
+        # 🤖 LLM FALLBACK: If LLM was used to understand the intent, use LLM to generate response
+        if intent_result and hasattr(intent_result, 'method') and intent_result.method == 'llm_fallback':
+            logger.info(f"🤖 Intent was classified by LLM - using LLM to generate response for '{intent}'")
+            return self._generate_llm_response(
+                message=message,
+                intent=intent,
+                entities=entities,
+                user_profile=user_profile,
+                context=context,
+                handlers=handlers,
+                return_structured=return_structured
+            )
         
         # 🌐 BILINGUAL: Ensure language is in context for all handlers
         language = self._ensure_language_context(context, user_profile)
@@ -226,8 +241,10 @@ class ResponseRouter:
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
         """Route restaurant queries with language context and map location extraction"""
+        logger.info(f"🍽️ _route_restaurant_query called | message: '{message}' | entities: {entities}")
         # 🌐 BILINGUAL: Ensure language is in context
         language = self._ensure_language_context(context, user_profile)
+        logger.info(f"🌐 Language detected: {language}")
         
         # 🗺️ Extract location info for map display using RestaurantQueryHandler
         map_config = None
@@ -294,6 +311,84 @@ class ResponseRouter:
                 logger.warning(f"ML Restaurant Handler failed: {e}")
         else:
             logger.warning("⚠️ ml_restaurant_handler not found in handlers, using response_generator fallback")
+        
+        # Try LLM client before template-based fallback
+        try:
+            from backend.services.runpod_llm_client import get_llm_client
+            import asyncio
+            
+            llm_client = get_llm_client()
+            if llm_client and llm_client.enabled:
+                logger.info(f"🤖 Using LLM for restaurant query (lang: {language})")
+                
+                # Build context from entities
+                context_parts = []
+                if entities.get('location'):
+                    context_parts.append(f"Location: {entities['location']}")
+                if entities.get('cuisine'):
+                    context_parts.append(f"Cuisine: {entities['cuisine']}")
+                if entities.get('price_range'):
+                    context_parts.append(f"Price range: {entities['price_range']}")
+                
+                context_str = "\n".join(context_parts) if context_parts else None
+                language_code = 'tr' if language == 'tr' else 'en'
+                
+                try:
+                    # Use asyncio to call async method
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If loop is running, create task (will be scheduled)
+                        import concurrent.futures
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            llm_response = executor.submit(
+                                asyncio.run,
+                                llm_client.generate_istanbul_response(
+                                    query=message,
+                                    context=context_str,
+                                    intent='restaurant',
+                                    language=language_code
+                                )
+                            ).result(timeout=35)
+                    else:
+                        llm_response = loop.run_until_complete(
+                            llm_client.generate_istanbul_response(
+                                query=message,
+                                context=context_str,
+                                intent='restaurant',
+                                language=language_code
+                            )
+                        )
+                except RuntimeError:
+                    # No event loop, create one
+                    llm_response = asyncio.run(
+                        llm_client.generate_istanbul_response(
+                            query=message,
+                            context=context_str,
+                            intent='restaurant',
+                            language=language_code
+                        )
+                    )
+                
+                if llm_response and len(llm_response.strip()) > 0:
+                    logger.info(f"✅ LLM generated restaurant response ({len(llm_response)} chars)")
+                    if return_structured:
+                        result = {
+                            'response': llm_response,
+                            'intent': 'restaurant',
+                            'language': language
+                        }
+                        if map_config and map_config.get('show_map'):
+                            result['map_data'] = {
+                                'center': map_config.get('center'),
+                                'zoom': map_config.get('zoom', 14),
+                                'markers': map_config.get('markers', []),
+                                'locations': map_config.get('locations', []),
+                                'query_type': 'restaurant'
+                            }
+                        return result
+                    return llm_response
+        except Exception as e:
+            logger.warning(f"⚠️ LLM restaurant generation failed: {e}")
         
         # Fallback to response generator (ensures language context is passed)
         response_generator = handlers.get('response_generator')
@@ -933,11 +1028,75 @@ class ResponseRouter:
         # 🌐 BILINGUAL: Ensure language is in context
         language = self._ensure_language_context(context, user_profile)
         
+        logger.info(f"❓ General query routing - trying LLM first (lang: {language})")
+        
+        # 🤖 Try LLM first for general queries (it's better at understanding unclear intent)
+        try:
+            from backend.services.runpod_llm_client import get_llm_client
+            import asyncio
+            
+            llm_client = get_llm_client()
+            if llm_client and llm_client.enabled:
+                logger.info(f"🤖 Using LLM for general query (lang: {language})")
+                
+                # Build context from entities
+                context_parts = []
+                if entities:
+                    for key, value in entities.items():
+                        if value:
+                            context_parts.append(f"{key}: {value}")
+                
+                context_str = "\n".join(context_parts) if context_parts else None
+                language_code = 'tr' if language == 'tr' else 'en'
+                
+                try:
+                    # Use asyncio to call async method
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        import concurrent.futures
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            llm_response = executor.submit(
+                                asyncio.run,
+                                llm_client.generate_istanbul_response(
+                                    query=message,
+                                    context=context_str,
+                                    intent='general',
+                                    language=language_code
+                                )
+                            ).result(timeout=35)
+                    else:
+                        llm_response = loop.run_until_complete(
+                            llm_client.generate_istanbul_response(
+                                query=message,
+                                context=context_str,
+                                intent='general',
+                                language=language_code
+                            )
+                        )
+                except RuntimeError:
+                    llm_response = asyncio.run(
+                        llm_client.generate_istanbul_response(
+                            query=message,
+                            context=context_str,
+                            intent='general',
+                            language=language_code
+                        )
+                    )
+                
+                if llm_response and len(llm_response.strip()) > 0:
+                    logger.info(f"✅ LLM generated general response ({len(llm_response)} chars)")
+                    context.add_interaction(message, llm_response, 'general_llm')
+                    return llm_response
+        except Exception as e:
+            logger.warning(f"⚠️ LLM general query failed: {e}")
+        
+        # Fallback to response generator
         response_generator = handlers.get('response_generator')
         if response_generator:
+            logger.info("📝 Using response_generator for general query")
             return response_generator._generate_fallback_response(context, user_profile)
         
-        # Fallback with bilingual response
+        # Final fallback with bilingual response
         if language == 'tr':
             return "İstanbul'u keşfetmenizde size yardımcı olmaktan mutluluk duyarım! Ne aradığınız hakkında daha fazla bilgi verebilir misiniz?"
         else:
@@ -1185,3 +1344,175 @@ class ResponseRouter:
         # Default to English
         context.language = 'en'
         return 'en'
+    
+    def _generate_llm_response(
+        self,
+        message: str,
+        intent: str,
+        entities: Dict[str, Any],
+        user_profile: UserProfile,
+        context: ConversationContext,
+        handlers: Dict[str, Any],
+        return_structured: bool = False
+    ) -> Union[str, Dict[str, Any]]:
+        """
+        Generate response using LLM when intent was classified by LLM
+        
+        This method is called when the hybrid intent classifier had low confidence
+        and used the LLM to understand the intent. In such cases, we also use the
+        LLM to generate the response for better quality.
+        
+        Args:
+            message: User's input message
+            intent: Classified intent
+            entities: Extracted entities
+            user_profile: User profile
+            context: Conversation context
+            handlers: Dictionary of available handlers
+            return_structured: Whether to return structured response
+            
+        Returns:
+            LLM-generated response (string or dict)
+        """
+        try:
+            # Get language from context
+            language = self._ensure_language_context(context, user_profile)
+            language_code = language if language in ['en', 'tr'] else 'en'
+            
+            # Try to get RunPod LLM client from handlers
+            llm_client = None
+            
+            # Option 1: Check if RunPod LLM client is available in handlers
+            if 'runpod_llm_client' in handlers:
+                llm_client = handlers['runpod_llm_client']
+            
+            # Option 2: Try to import and create RunPod LLM client
+            if llm_client is None:
+                try:
+                    from backend.services.runpod_llm_client import get_runpod_llm_client
+                    llm_client = get_runpod_llm_client()
+                except ImportError:
+                    logger.warning("⚠️ RunPod LLM client not available for import")
+            
+            if llm_client is None:
+                logger.warning("⚠️ LLM client not available - falling back to standard handler")
+                # Fall back to standard routing (without LLM override)
+                return self._fallback_to_standard_routing(
+                    message, intent, entities, user_profile, context, handlers, 
+                    None, return_structured
+                )
+            
+            # Build context string from conversation history
+            context_str = ""
+            if hasattr(context, 'interactions') and context.interactions:
+                recent_interactions = context.interactions[-3:]  # Last 3 interactions
+                for interaction in recent_interactions:
+                    if hasattr(interaction, 'user_message') and hasattr(interaction, 'ai_response'):
+                        context_str += f"User: {interaction.user_message}\nAI: {interaction.ai_response}\n"
+            
+            logger.info(f"🤖 Generating LLM response for intent='{intent}', language='{language_code}'")
+            
+            # Check if LLM client has async method
+            import asyncio
+            import inspect
+            
+            if hasattr(llm_client, 'generate_istanbul_response'):
+                generate_method = llm_client.generate_istanbul_response
+                
+                # Check if it's an async method
+                if inspect.iscoroutinefunction(generate_method):
+                    # Async call
+                    try:
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                    
+                    llm_response = loop.run_until_complete(
+                        generate_method(
+                            query=message,
+                            context=context_str,
+                            intent=intent,
+                            language=language_code,
+                            entities=entities
+                        )
+                    )
+                else:
+                    # Sync call
+                    llm_response = generate_method(
+                        query=message,
+                        context=context_str,
+                        intent=intent,
+                        language=language_code,
+                        entities=entities
+                    )
+                
+                if llm_response and len(llm_response) > 10:
+                    logger.info(f"✅ LLM generated response ({len(llm_response)} chars)")
+                    
+                    if return_structured:
+                        return {
+                            'response': llm_response,
+                            'map_data': {},
+                            'intent': intent,
+                            'method': 'llm_fallback'
+                        }
+                    return llm_response
+                else:
+                    logger.warning("⚠️ LLM returned empty or very short response")
+            
+        except Exception as e:
+            logger.error(f"❌ LLM response generation failed: {e}", exc_info=True)
+        
+        # Fallback to standard routing if LLM fails
+        logger.info("⬇️ Falling back to standard handler routing")
+        return self._fallback_to_standard_routing(
+            message, intent, entities, user_profile, context, handlers, 
+            None, return_structured
+        )
+    
+    def _fallback_to_standard_routing(
+        self,
+        message: str,
+        intent: str,
+        entities: Dict[str, Any],
+        user_profile: UserProfile,
+        context: ConversationContext,
+        handlers: Dict[str, Any],
+        neural_insights: Optional[Dict],
+        return_structured: bool
+    ) -> Union[str, Dict[str, Any]]:
+        """
+        Fallback to standard intent-based routing when LLM is unavailable
+        
+        This method routes to the appropriate handler based on intent,
+        without the LLM override.
+        """
+        # Route based on intent (same logic as route_query, but without LLM override)
+        if intent == 'restaurant':
+            return self._route_restaurant_query(
+                message, entities, user_profile, context, handlers, 
+                neural_insights, return_structured
+            )
+        elif intent == 'attraction':
+            return self._route_attraction_query(
+                message, entities, user_profile, context, handlers,
+                neural_insights, return_structured
+            )
+        elif intent == 'transportation':
+            return self._route_transportation_query(
+                message, entities, user_profile, context, handlers,
+                neural_insights, return_structured
+            )
+        elif intent == 'general':
+            return self._route_general_query(
+                message, entities, user_profile, context, handlers, neural_insights
+            )
+        else:
+            # Default fallback
+            response_generator = handlers.get('response_generator')
+            if response_generator:
+                return response_generator.generate_response(
+                    intent, entities, user_profile, context
+                )
+            return "I'm here to help you explore Istanbul! How can I assist you?"

@@ -109,106 +109,188 @@ class WeatherAPIClient:
     """Weather API client with multiple providers"""
     
     def __init__(self):
-        self.openweather_api_key = os.getenv('OPENWEATHER_API_KEY', 'demo_key')
+        # Support both OPENWEATHER_API_KEY and OPENWEATHERMAP_API_KEY
+        self.openweather_api_key = (
+            os.getenv('OPENWEATHER_API_KEY') or 
+            os.getenv('OPENWEATHERMAP_API_KEY') or 
+            'demo_key'
+        )
         self.meteosource_api_key = os.getenv('METEOSOURCE_API_KEY', 'demo_key')
         self.session = requests.Session()
         self.session.timeout = 10
         
+        # Log API key status (masked for security)
+        if self.openweather_api_key and self.openweather_api_key != 'demo_key':
+            masked_key = self.openweather_api_key[:8] + '...' + self.openweather_api_key[-4:]
+            logger.info(f"✅ OpenWeather API key configured: {masked_key}")
+        else:
+            logger.warning("⚠️ No OpenWeather API key found - using fallback data")
+        
     def get_current_weather_openweather(self) -> Optional[WeatherData]:
-        """Get current weather from OpenWeatherMap"""
-        try:
-            url = f"https://api.openweathermap.org/data/2.5/weather"
-            params = {
-                'lat': ISTANBUL_LAT,
-                'lon': ISTANBUL_LON,
-                'appid': self.openweather_api_key,
-                'units': 'metric'
-            }
-            
-            response = self.session.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-            
-            # Parse response
-            main = data['main']
-            weather = data['weather'][0]
-            wind = data.get('wind', {})
-            clouds = data.get('clouds', {})
-            sys = data['sys']
-            rain = data.get('rain', {})
-            
-            return WeatherData(
-                location="Istanbul, Turkey",
-                latitude=ISTANBUL_LAT,
-                longitude=ISTANBUL_LON,
-                current_temp=main['temp'],
-                feels_like=main['feels_like'],
-                humidity=main['humidity'],
-                pressure=main['pressure'],
-                visibility=data.get('visibility', 10000) / 1000,  # Convert to km
-                uv_index=None,  # Requires separate API call
-                condition=weather['main'],
-                description=weather['description'],
-                icon=weather['icon'],
-                wind_speed=wind.get('speed', 0),
-                wind_direction=wind.get('deg', 0),
-                clouds=clouds.get('all', 0),
-                sunrise=datetime.fromtimestamp(sys['sunrise']),
-                sunset=datetime.fromtimestamp(sys['sunset']),
-                timestamp=datetime.now(),
-                bosphorus_wind=wind.get('speed', 0) * 1.2,  # Bosphorus typically windier
-                rainfall_1h=rain.get('1h', 0),
-                rainfall_3h=rain.get('3h', 0)
-            )
-            
-        except Exception as e:
-            logger.error(f"OpenWeatherMap API error: {e}")
-            return None
-    
-    def get_hourly_forecast_openweather(self, hours: int = 24) -> List[HourlyForecast]:
-        """Get hourly forecast from OpenWeatherMap"""
-        try:
-            url = f"https://api.openweathermap.org/data/2.5/forecast"
-            params = {
-                'lat': ISTANBUL_LAT,
-                'lon': ISTANBUL_LON,
-                'appid': self.openweather_api_key,
-                'units': 'metric',
-                'cnt': min(hours, 40)  # API limit
-            }
-            
-            response = self.session.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-            
-            forecasts = []
-            for item in data['list'][:hours]:
-                main = item['main']
-                weather = item['weather'][0]
-                wind = item.get('wind', {})
-                clouds = item.get('clouds', {})
-                rain = item.get('rain', {})
+        """Get current weather from OpenWeatherMap with retry logic"""
+        # Skip API call if using demo key
+        if self.openweather_api_key == 'demo_key':
+            logger.info("Using demo API key - returning fallback weather data")
+            return self.get_current_weather_fallback()
+        
+        max_retries = 3
+        retry_delay = 2  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                url = f"https://api.openweathermap.org/data/2.5/weather"
+                params = {
+                    'lat': ISTANBUL_LAT,
+                    'lon': ISTANBUL_LON,
+                    'appid': self.openweather_api_key,
+                    'units': 'metric'
+                }
                 
-                forecasts.append(HourlyForecast(
-                    datetime=datetime.fromtimestamp(item['dt']),
-                    temp=main['temp'],
+                response = self.session.get(url, params=params, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                
+                # Parse response
+                main = data['main']
+                weather = data['weather'][0]
+                wind = data.get('wind', {})
+                clouds = data.get('clouds', {})
+                sys = data['sys']
+                rain = data.get('rain', {})
+                
+                logger.info(f"✅ OpenWeather API success: {weather['main']}, {main['temp']}°C")
+                
+                return WeatherData(
+                    location="Istanbul, Turkey",
+                    latitude=ISTANBUL_LAT,
+                    longitude=ISTANBUL_LON,
+                    current_temp=main['temp'],
                     feels_like=main['feels_like'],
+                    humidity=main['humidity'],
+                    pressure=main['pressure'],
+                    visibility=data.get('visibility', 10000) / 1000,  # Convert to km
+                    uv_index=None,  # Requires separate API call
                     condition=weather['main'],
                     description=weather['description'],
                     icon=weather['icon'],
-                    precipitation_chance=item.get('pop', 0) * 100,
-                    precipitation_amount=rain.get('3h', 0),
                     wind_speed=wind.get('speed', 0),
-                    humidity=main['humidity'],
+                    wind_direction=wind.get('deg', 0),
                     clouds=clouds.get('all', 0),
-                    visibility=item.get('visibility', 10000) / 1000
-                ))
-            
-            return forecasts
-            
-        except Exception as e:
-            logger.error(f"OpenWeatherMap forecast API error: {e}")
+                    sunrise=datetime.fromtimestamp(sys['sunrise']),
+                    sunset=datetime.fromtimestamp(sys['sunset']),
+                    timestamp=datetime.now(),
+                    bosphorus_wind=wind.get('speed', 0) * 1.2,  # Bosphorus typically windier
+                    rainfall_1h=rain.get('1h', 0),
+                    rainfall_3h=rain.get('3h', 0)
+                )
+                
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 401:
+                    logger.error(f"❌ OpenWeather API authentication failed (invalid API key)")
+                    return self.get_current_weather_fallback()
+                elif e.response.status_code == 429:
+                    logger.warning(f"⚠️ OpenWeather API rate limit exceeded (attempt {attempt + 1}/{max_retries})")
+                else:
+                    logger.error(f"OpenWeatherMap HTTP error {e.response.status_code}: {e}")
+                
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
+                    continue
+                    
+            except requests.exceptions.Timeout:
+                logger.warning(f"⚠️ OpenWeather API timeout (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+                    
+            except Exception as e:
+                logger.error(f"OpenWeatherMap API error: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+        
+        # All retries failed - use fallback
+        logger.warning("All OpenWeather API attempts failed - using fallback data")
+        return self.get_current_weather_fallback()
+    
+    def get_hourly_forecast_openweather(self, hours: int = 24) -> List[HourlyForecast]:
+        """Get hourly forecast from OpenWeatherMap with retry logic"""
+        # Skip API call if using demo key
+        if self.openweather_api_key == 'demo_key':
+            logger.info("Using demo API key - returning empty forecast")
             return []
+        
+        max_retries = 3
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                url = f"https://api.openweathermap.org/data/2.5/forecast"
+                params = {
+                    'lat': ISTANBUL_LAT,
+                    'lon': ISTANBUL_LON,
+                    'appid': self.openweather_api_key,
+                    'units': 'metric',
+                    'cnt': min(hours, 40)  # API limit
+                }
+                
+                response = self.session.get(url, params=params, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                
+                forecasts = []
+                for item in data['list'][:hours]:
+                    main = item['main']
+                    weather = item['weather'][0]
+                    wind = item.get('wind', {})
+                    clouds = item.get('clouds', {})
+                    rain = item.get('rain', {})
+                    
+                    forecasts.append(HourlyForecast(
+                        datetime=datetime.fromtimestamp(item['dt']),
+                        temp=main['temp'],
+                        feels_like=main['feels_like'],
+                        condition=weather['main'],
+                        description=weather['description'],
+                        icon=weather['icon'],
+                        precipitation_chance=item.get('pop', 0) * 100,
+                        precipitation_amount=rain.get('3h', 0),
+                        wind_speed=wind.get('speed', 0),
+                        humidity=main['humidity'],
+                        clouds=clouds.get('all', 0),
+                        visibility=item.get('visibility', 10000) / 1000
+                    ))
+                
+                logger.info(f"✅ OpenWeather forecast success: {len(forecasts)} hours")
+                return forecasts
+                
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 401:
+                    logger.error(f"❌ OpenWeather forecast API authentication failed")
+                    return []
+                elif e.response.status_code == 429:
+                    logger.warning(f"⚠️ OpenWeather forecast API rate limit (attempt {attempt + 1}/{max_retries})")
+                else:
+                    logger.error(f"OpenWeather forecast HTTP error {e.response.status_code}: {e}")
+                
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (attempt + 1))
+                    continue
+                    
+            except requests.exceptions.Timeout:
+                logger.warning(f"⚠️ OpenWeather forecast timeout (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+                    
+            except Exception as e:
+                logger.error(f"OpenWeatherMap forecast API error: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+        
+        logger.warning("All OpenWeather forecast attempts failed")
+        return []
     
     def get_current_weather_fallback(self) -> Optional[WeatherData]:
         """Fallback weather data (mock or alternative API)"""
@@ -540,13 +622,23 @@ class WeatherCache:
         else:
             factors.append(0.5)
         
+        # Cloud cover factor - NEW!
+        if weather.clouds <= 20:  # Clear skies
+            factors.append(1)
+        elif weather.clouds <= 50:  # Partly cloudy
+            factors.append(0.75)
+        elif weather.clouds <= 80:  # Mostly cloudy
+            factors.append(0.5)
+        else:  # Overcast
+            factors.append(0.3)
+        
         score = sum(factors) / len(factors)
         
-        if score >= 0.8:
+        if score >= 0.85:
             return "excellent"
-        elif score >= 0.6:
+        elif score >= 0.65:
             return "good"
-        elif score >= 0.4:
+        elif score >= 0.45:
             return "fair"
         else:
             return "poor"
@@ -573,12 +665,26 @@ class WeatherCache:
             recommendations.append("Be cautious near the Bosphorus - extra windy conditions")
             recommendations.append("Avoid outdoor boat tours in strong winds")
         
-        # General outdoor recommendations
+        # Cloud-based recommendations
+        if weather.clouds > 70:  # Mostly cloudy or overcast
+            recommendations.append("Cloudy weather is good for photography without harsh shadows")
+            recommendations.append("Consider visiting indoor attractions like museums and mosques")
+        elif weather.clouds > 40:  # Partly cloudy
+            recommendations.append("Partly cloudy - comfortable for outdoor sightseeing")
+            recommendations.append("Good time for walking tours without intense sun")
+        
+        # General outdoor recommendations based on overall suitability
         if conditions['outdoor_suitability'] == 'excellent':
-            recommendations.append("Perfect weather for exploring outdoor attractions!")
-            recommendations.append("Great time for Bosphorus cruise and walking tours")
+            recommendations.append("Excellent weather for outdoor activities!")
+            recommendations.append("Perfect conditions for Bosphorus cruise and walking tours")
+        elif conditions['outdoor_suitability'] == 'good':
+            recommendations.append("Good weather for exploring Istanbul")
+            recommendations.append("Suitable for both indoor and outdoor activities")
+        elif conditions['outdoor_suitability'] == 'fair':
+            recommendations.append("Mixed conditions - plan both indoor and outdoor options")
         elif conditions['outdoor_suitability'] == 'poor':
-            recommendations.append("Consider indoor activities like museums and mosques")
+            recommendations.append("Focus on indoor activities like museums and covered markets")
+            recommendations.append("Save outdoor sightseeing for better weather")
         
         return recommendations
     

@@ -570,7 +570,7 @@ class AttractionHandler:
         except Exception:
             return 0.5  # Default similarity
     
-    def _compute_preference_score(self, attraction: Dict[str, Any>,
+    def _compute_preference_score(self, attraction: Dict[str, Any],
                                   ml_context: Dict[str, Any]) -> float:
         """Compute how well attraction matches user preferences."""
         score = 0.0

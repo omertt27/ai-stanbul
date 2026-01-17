@@ -54,7 +54,8 @@ class LocalFoodHandler:
         llm_service=None,
         gps_location_service=None,
         hidden_gems_context_service=None,
-        rag_service=None
+        rag_service=None,
+        neural_processor=None  # Add neural_processor parameter (optional, for compatibility)
     ):
         """
         Initialize local food handler.
@@ -64,11 +65,13 @@ class LocalFoodHandler:
             gps_location_service: GPS service for location-based recommendations
             hidden_gems_context_service: Hidden gems service for local spots
             rag_service: RAG service for food knowledge retrieval
+            neural_processor: Neural processor (optional, not used but accepted for compatibility)
         """
         self.llm_service = llm_service
         self.gps_location_service = gps_location_service
         self.hidden_gems_context_service = hidden_gems_context_service
         self.rag_service = rag_service
+        self.neural_processor = neural_processor  # Store but don't require
         
         # Service availability flags
         self.has_llm = llm_service is not None

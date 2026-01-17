@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 class LLMMode(Enum):
     """LLM deployment modes"""
-    GOOGLE_CLOUD = "google_cloud"  # Production: Google Cloud VM with Llama 3.1 8B
+    RUNPOD = "runpod"              # Production: RunPod vLLM with Llama 3.1 8B
+    GOOGLE_CLOUD = "google_cloud"  # Legacy: Google Cloud VM with Llama 3.1 8B
     LOCAL = "local"                # Development: Local TinyLlama or Llama models
     MOCK = "mock"                  # Testing: Mock responses
 
@@ -43,8 +44,8 @@ class LLMConfig:
     """
     
     # Default configuration
-    DEFAULT_MODE = LLMMode.GOOGLE_CLOUD
-    DEFAULT_ENDPOINT = "http://35.210.251.24:8000"
+    DEFAULT_MODE = LLMMode.RUNPOD  # Use RunPod as default
+    DEFAULT_ENDPOINT = "http://35.210.251.24:8000"  # Legacy Google Cloud (fallback)
     DEFAULT_TIMEOUT = 30
     DEFAULT_MAX_TOKENS = 200
     DEFAULT_TEMPERATURE = 0.7

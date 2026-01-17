@@ -541,7 +541,7 @@ const MapVisualization = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .map-visualization-container {
           margin: 16px 0;
           border-radius: 12px;

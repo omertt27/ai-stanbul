@@ -45,30 +45,42 @@ class HybridIntentClassifier:
     - Automatic graceful degradation
     """
     
-    def __init__(self, neural_classifier=None, keyword_classifier=None):
+    def __init__(self, neural_classifier=None, keyword_classifier=None, llm_classifier=None):
         """
         Initialize hybrid classifier
         
         Args:
             neural_classifier: NeuralQueryClassifier instance (optional)
             keyword_classifier: IntentClassifier instance (required)
+            llm_classifier: LLMIntentClassifier for low-confidence fallback (optional)
         """
         self.neural = neural_classifier
         self.keyword = keyword_classifier
+        self.llm = llm_classifier
         self.use_neural = neural_classifier is not None
+        self.use_llm = llm_classifier is not None
+        
+        # Confidence threshold for LLM fallback
+        self.llm_fallback_threshold = 0.60  # If confidence < 0.60, try LLM
         
         # Statistics
         self.stats = {
             'neural_used': 0,
             'keyword_used': 0,
             'ensemble_used': 0,
-            'neural_failures': 0
+            'llm_used': 0,
+            'neural_failures': 0,
+            'llm_failures': 0
         }
         
+        classifier_modes = []
         if self.use_neural:
-            logger.info("✅ Hybrid classifier initialized (Neural + Keyword)")
-        else:
-            logger.info("⚠️  Hybrid classifier initialized (Keyword only - Neural unavailable)")
+            classifier_modes.append("Neural")
+        classifier_modes.append("Keyword")
+        if self.use_llm:
+            classifier_modes.append("LLM")
+        
+        logger.info(f"✅ Hybrid classifier initialized ({' + '.join(classifier_modes)})")
     
     def classify_intent(
         self,
@@ -172,6 +184,31 @@ class HybridIntentClassifier:
         logger.debug(f"🔤 Keyword only: {keyword_result.primary_intent} ({keyword_result.confidence:.2f})")
         self.stats['keyword_used'] += 1
         keyword_result.method = 'keyword'
+        
+        # STEP 5: LLM fallback if confidence is low
+        if self.use_llm and keyword_result.confidence < self.llm_fallback_threshold:
+            logger.info(f"⚠️ Low confidence ({keyword_result.confidence:.2f}) - trying LLM for better understanding")
+            try:
+                llm_result = self.llm.classify_intent(
+                    message=message,
+                    entities=entities,
+                    context=context,
+                    neural_insights=neural_insights,
+                    preprocessed_query=preprocessed_query
+                )
+                
+                if llm_result and llm_result.confidence > keyword_result.confidence:
+                    logger.info(f"🤖 LLM improved classification: {llm_result.primary_intent} ({llm_result.confidence:.2f})")
+                    self.stats['llm_used'] += 1
+                    llm_result.method = 'llm_fallback'
+                    return llm_result
+                else:
+                    logger.debug("LLM didn't improve confidence, using keyword result")
+                    
+            except Exception as e:
+                logger.warning(f"LLM fallback failed: {e}")
+                self.stats['llm_failures'] += 1
+        
         return keyword_result
     
     def _ensemble_classification(
