@@ -2581,3 +2581,14 @@
 {"timestamp": "2026-01-17T21:16:12.717409", "query": "hmm", "intent": "luxury", "confidence": 0.9792, "latency_ms": 134.15, "high_confidence": true}
 {"timestamp": "2026-01-17T21:16:13.055182", "query": "ok", "intent": "cultural_info", "confidence": 0.254, "latency_ms": 336.17, "high_confidence": false}
 {"timestamp": "2026-01-18T16:32:14.965448", "query": "What are the top attractions in Istanbul?", "intent": "hidden_gems", "confidence": 0.8676, "latency_ms": 302.5, "high_confidence": true}
+{"timestamp": "2026-01-18T16:41:01.108583", "query": "Tell me about Hagia Sophia", "intent": "attraction", "confidence": 0.9971, "latency_ms": 290.59, "high_confidence": true}
+{"timestamp": "2026-01-18T16:42:42.241862", "query": "Hello", "intent": "greeting", "confidence": 0.6778, "latency_ms": 266.72, "high_confidence": false}
+{"timestamp": "2026-01-18T16:43:18.794509", "query": "Where is Hagia Sophia?", "intent": "attraction", "confidence": 0.9979, "latency_ms": 21.6, "high_confidence": true}
+{"timestamp": "2026-01-18T16:48:58.957877", "query": "Hello Istanbul!", "intent": "recommendation", "confidence": 0.4365, "latency_ms": 273.77, "high_confidence": false}
+{"timestamp": "2026-01-18T16:52:46.302477", "query": "Tell me about Turkish food", "intent": "local_tips", "confidence": 0.9754, "latency_ms": 249.72, "high_confidence": true}
+{"timestamp": "2026-01-18T16:57:08.675447", "query": "What is the weather today?", "intent": "weather", "confidence": 0.9979, "latency_ms": 262.72, "high_confidence": true}
+{"timestamp": "2026-01-18T16:59:47.434847", "query": "Hi there!", "intent": "greeting", "confidence": 0.9963, "latency_ms": 266.34, "high_confidence": true}
+{"timestamp": "2026-01-18T17:06:48.232307", "query": "How do I get from Taksim to Sultanahmet?", "intent": "transportation", "confidence": 0.9967, "latency_ms": 24.73, "high_confidence": true}
+{"timestamp": "2026-01-18T17:07:43.184531", "query": "What is the weather like in Istanbul today?", "intent": "weather", "confidence": 0.9929, "latency_ms": 31.22, "high_confidence": true}
+{"timestamp": "2026-01-18T17:28:29.399460", "query": "What is the weather like in Istanbul today?", "intent": "weather", "confidence": 0.9929, "latency_ms": 286.24, "high_confidence": true}
+{"timestamp": "2026-01-18T17:33:18.218008", "query": "What is the weather in Istanbul?", "intent": "weather", "confidence": 0.9948, "latency_ms": 30.34, "high_confidence": true}

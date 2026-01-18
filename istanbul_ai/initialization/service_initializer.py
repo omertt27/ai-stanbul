@@ -439,15 +439,32 @@ class ServiceInitializer:
     
     def _init_llm_service(self) -> Optional[Any]:
         """
-        Initialize LLM service (DISABLED - Using RunPod LLM Instead)
+        Initialize UnifiedLLMService (Phase 5 Integration)
         
-        ⚠️ Local LLM loading has been disabled to use RunPod remote LLM.
-        All LLM requests should go through the RunPod LLM Client in backend/main.py
+        🚀 Returns UnifiedLLMService singleton with:
+        - vLLM primary backend + Groq fallback
+        - Circuit breaker protection
+        - Response caching (90% latency reduction)
+        - Performance metrics tracking
         """
-        # Local LLM loading disabled - use RunPod LLM client instead
-        logger.info("ℹ️  Local LLM service disabled - using RunPod LLM")
-        logger.info("   Endpoint: RunPod (RTX 5080 GPU)")
-        return None
+        try:
+            from unified_system.services.unified_llm_service import get_unified_llm
+            service = get_unified_llm()
+            self._record_success('llm_service', "🚀 UnifiedLLMService (vLLM + Groq + Cache + Circuit Breaker)")
+            
+            # Log current status
+            if hasattr(service, 'circuit_breaker_open'):
+                cb_state = "OPEN (using Groq)" if service.circuit_breaker_open else "CLOSED (using vLLM)"
+                logger.info(f"   Circuit Breaker: {cb_state}")
+            if hasattr(service, 'get_metrics'):
+                metrics = service.get_metrics()
+                logger.info(f"   Cache Hit Rate: {metrics.get('cache_hit_rate', 0):.1%}")
+            
+            return service
+        except Exception as e:
+            self._record_error('llm_service', e)
+            logger.warning("⚠️  Falling back to legacy LLM (no caching, no circuit breaker)")
+            return None
     
     # ============================================================================
     # HELPER METHODS

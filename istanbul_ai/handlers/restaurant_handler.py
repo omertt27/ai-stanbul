@@ -26,16 +26,16 @@ import logging
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 
-# Import enhanced LLM client
+# Import UnifiedLLMService
 try:
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    from enhanced_llm_config import get_enhanced_llm_client, EnhancedLLMClient
-    ENHANCED_LLM_AVAILABLE = True
+    from unified_system.services.unified_llm_service import get_unified_llm
+    UNIFIED_LLM_AVAILABLE = True
 except ImportError as e:
-    ENHANCED_LLM_AVAILABLE = False
-    logging.warning(f"⚠️ Enhanced LLM client not available: {e}")
+    UNIFIED_LLM_AVAILABLE = False
+    logging.warning(f"⚠️ UnifiedLLMService not available: {e}")
 
 # Import bilingual support
 try:
@@ -77,19 +77,20 @@ class RestaurantHandler:
         self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         self.has_maps = map_integration_service is not None and map_integration_service.is_enabled()
         
-        # Initialize enhanced LLM client
-        if ENHANCED_LLM_AVAILABLE:
+        # Initialize UnifiedLLMService
+        self.unified_llm = None
+        self.has_unified_llm = False
+        if UNIFIED_LLM_AVAILABLE:
             try:
-                self.llm_client = get_enhanced_llm_client()
-                self.has_enhanced_llm = True
-                logger.info("✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized for restaurants")
+                self.unified_llm = get_unified_llm()
+                self.has_unified_llm = True
+                logger.info("✅ UnifiedLLMService initialized for restaurant handler")
             except Exception as e:
-                logger.error(f"❌ Failed to initialize enhanced LLM client: {e}")
-                self.llm_client = None
-                self.has_enhanced_llm = False
+                logger.error(f"❌ Failed to initialize UnifiedLLMService: {e}")
+                self.unified_llm = None
+                self.has_unified_llm = False
         else:
-            self.llm_client = None
-            self.has_enhanced_llm = False
+            logger.warning("⚠️ UnifiedLLMService not available for restaurant handler")
         
         # Budget keywords for ML context
         self.budget_keywords = {
@@ -826,8 +827,8 @@ class RestaurantHandler:
         user_location: Optional[Tuple[float, float]] = None
     ) -> Dict[str, Any]:
         """
-        Generate ML-enhanced response using Google Cloud Llama 3.1 8B LLM.
-        Integrates typo correction, multilingual support, and full context awareness.
+        Generate ML-enhanced response using UnifiedLLMService.
+        Integrates multilingual support and full context awareness.
         
         Args:
             restaurants: Ranked restaurants
@@ -841,51 +842,84 @@ class RestaurantHandler:
         Returns:
             Response dictionary with LLM-generated content and map_data
         """
-        if not self.has_enhanced_llm:
+        if not self.has_unified_llm:
             # Fallback to original method
             return self._generate_ml_response(restaurants, ml_context, neural_insights, message, language)
         
         try:
-            # Step 1: Correct typos in user query
-            corrected_query = self.llm_client.correct_typos(message)
-            if corrected_query != message:
-                logger.info(f"✏️ Typo corrected: '{message}' -> '{corrected_query}'")
+            # Build comprehensive prompt for restaurant recommendation
+            restaurant_details = "\n".join([
+                f"{i+1}. {r.get('name', '')} - {r.get('cuisine', '')} cuisine\n"
+                f"   Price: {r.get('price_range', '')}, Rating: {r.get('rating', 0)}/5\n"
+                f"   Location: {r.get('neighborhood', '')}\n"
+                f"   Specialties: {', '.join(r.get('specialties', []))}\n"
+                f"   Dietary: {', '.join(r.get('dietary_options', []))}"
+                for i, r in enumerate(restaurants[:5])
+            ])
             
-            # Step 2: Detect language (override if needed)
-            detected_lang = self.llm_client.detect_language(corrected_query)
-            if detected_lang != language:
-                logger.info(f"🌐 Language detected: {detected_lang} (was {language})")
-                language = detected_lang
+            context_info = []
+            if ml_context.get('budget'):
+                context_info.append(f"Budget: {ml_context['budget']}")
+            if ml_context.get('dietary_restrictions'):
+                context_info.append(f"Dietary: {', '.join(ml_context['dietary_restrictions'])}")
+            if ml_context.get('occasion'):
+                context_info.append(f"Occasion: {ml_context['occasion']}")
+            if weather_context:
+                context_info.append(f"Weather: {weather_context.get('description', '')}, {weather_context.get('temp', '')}°C")
             
-            # Step 3: Build comprehensive context for LLM
-            context = {
-                "restaurants": [
-                    {
-                        "name": r.get("name", ""),
-                        "cuisine": r.get("cuisine", ""),
-                        "price_range": r.get("price_range", ""),
-                        "rating": r.get("rating", 0),
-                        "neighborhood": r.get("neighborhood", ""),
-                        "dietary_options": r.get("dietary_options", []),
-                        "specialties": r.get("specialties", []),
-                        "atmosphere": r.get("atmosphere", "")
-                    }
-                    for r in restaurants[:5]
-                ],
-                "ml_context": ml_context,
-                "neural_insights": neural_insights,
-                "weather": weather_context,
-                "user_location": user_location,
-                "language": language,
-                "query": corrected_query
+            context_str = " | ".join(context_info) if context_info else "General dining"
+            
+            prompt = f"""You are an expert Istanbul restaurant guide. Generate a personalized restaurant recommendation in {'Turkish' if language == 'tr' else 'English'}.
+
+User Query: {message}
+Context: {context_str}
+
+Top Recommended Restaurants:
+{restaurant_details}
+
+Provide a warm, helpful response that:
+1. Acknowledges the user's preferences
+2. Recommends 2-3 restaurants from the list with specific reasons
+3. Mentions key specialties and why they match the request
+4. Includes practical details (location, price range)
+5. Ends with a friendly closing
+
+Response:"""
+
+            # Generate with UnifiedLLMService
+            llm_response = self.unified_llm.complete_text_sync(
+                prompt=prompt,
+                component="restaurant_handler.recommendation",
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            # Step 5: Generate map visualization
+            map_data = None
+            if self.has_maps:
+                try:
+                    map_data = self.map_integration_service.create_restaurant_map(restaurants)
+                    if map_data:
+                        logger.info(f"🗺️ Generated map with {len(restaurants)} restaurants")
+                except Exception as e:
+                    logger.warning(f"Failed to generate map: {e}")
+            
+            logger.info(f"✅ Generated UnifiedLLM restaurant response (lang: {language})")
+            
+            return {
+                'response': llm_response,
+                'intent': 'restaurant',
+                'restaurants': restaurants,
+                'ml_context': ml_context,
+                'confidence': 0.95,  # Higher confidence with LLM
+                'language': language,
+                'map_data': map_data,
+                'unified_llm': True
             }
             
-            # Step 4: Generate restaurant recommendation with enhanced LLM
-            llm_response = self.llm_client.generate_restaurant_recommendation(
-                query=corrected_query,
-                context=context,
-                language=language
-            )
+        except Exception as e:
+            logger.error(f"❌ UnifiedLLM generation failed: {e}, falling back to standard response")
+            return self._generate_ml_response(restaurants, ml_context, neural_insights, message, language)
             
             # Step 5: Generate map visualization
             map_data = None

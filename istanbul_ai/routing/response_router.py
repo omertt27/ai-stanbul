@@ -25,12 +25,13 @@ except ImportError:
 class ResponseRouter:
     """Route queries to appropriate handlers with intelligent fallback"""
     
-    def __init__(self, neural_ranker=None):
+    def __init__(self, neural_ranker=None, llm_service=None):
         """
         Initialize the response router
         
         Args:
             neural_ranker: Optional NeuralResponseRanker for semantic ranking
+            llm_service: Optional UnifiedLLMService for LLM calls
         """
         self.ml_handler_priority = [
             'emergency_safety_handler',      # PRIORITY 1: Emergency & Safety
@@ -47,6 +48,11 @@ class ResponseRouter:
         # Neural ranker for semantic result ordering
         self.neural_ranker = neural_ranker
         self.use_neural_ranking = neural_ranker is not None and neural_ranker.available
+        
+        # UnifiedLLMService for all LLM calls (circuit breaker, caching, metadata)
+        self.llm_service = llm_service
+        if self.llm_service:
+            logger.info("✅ Response Router initialized with UnifiedLLMService")
         
         if self.use_neural_ranking:
             logger.info("✅ Response Router initialized with neural ranking")
@@ -312,65 +318,71 @@ class ResponseRouter:
         else:
             logger.warning("⚠️ ml_restaurant_handler not found in handlers, using response_generator fallback")
         
-        # Try LLM client before template-based fallback
-        try:
-            from backend.services.runpod_llm_client import get_llm_client
-            import asyncio
+        # Try UnifiedLLMService for restaurant query
+        if self.llm_service:
+            logger.info(f"🤖 Using UnifiedLLMService for restaurant query (lang: {language})")
             
-            llm_client = get_llm_client()
-            if llm_client and llm_client.enabled:
-                logger.info(f"🤖 Using LLM for restaurant query (lang: {language})")
-                
-                # Build context from entities
-                context_parts = []
-                if entities.get('location'):
-                    context_parts.append(f"Location: {entities['location']}")
-                if entities.get('cuisine'):
-                    context_parts.append(f"Cuisine: {entities['cuisine']}")
-                if entities.get('price_range'):
-                    context_parts.append(f"Price range: {entities['price_range']}")
-                
-                context_str = "\n".join(context_parts) if context_parts else None
-                language_code = 'tr' if language == 'tr' else 'en'
-                
+            # Build context from entities
+            context_parts = []
+            if entities.get('location'):
+                context_parts.append(f"Location: {entities['location']}")
+            if entities.get('cuisine'):
+                context_parts.append(f"Cuisine: {entities['cuisine']}")
+            if entities.get('price_range'):
+                context_parts.append(f"Price range: {entities['price_range']}")
+            
+            context_str = "\n".join(context_parts) if context_parts else None
+            
+            # Build restaurant-specific prompt
+            prompt = f"""You are an Istanbul restaurant expert assistant. A user is asking: "{message}"
+
+{f'Context: {context_str}' if context_str else ''}
+
+Provide a helpful, specific restaurant recommendation for Istanbul. Include:
+- Restaurant names with brief descriptions
+- Location/neighborhood
+- Approximate prices
+- What makes them special
+
+Respond in {language} language. Be friendly and local."""
+
+            try:
+                # Run async method in sync context
+                import asyncio
                 try:
-                    # Use asyncio to call async method
                     loop = asyncio.get_event_loop()
                     if loop.is_running():
-                        # If loop is running, create task (will be scheduled)
+                        # Create new event loop in thread
                         import concurrent.futures
                         with concurrent.futures.ThreadPoolExecutor() as executor:
                             llm_response = executor.submit(
                                 asyncio.run,
-                                llm_client.generate_istanbul_response(
-                                    query=message,
-                                    context=context_str,
-                                    intent='restaurant',
-                                    language=language_code
+                                self.llm_service.generate_with_prompt(
+                                    prompt=prompt,
+                                    temperature=0.7,
+                                    max_tokens=500
                                 )
                             ).result(timeout=35)
                     else:
                         llm_response = loop.run_until_complete(
-                            llm_client.generate_istanbul_response(
-                                query=message,
-                                context=context_str,
-                                intent='restaurant',
-                                language=language_code
+                            self.llm_service.generate_with_prompt(
+                                prompt=prompt,
+                                temperature=0.7,
+                                max_tokens=500
                             )
                         )
                 except RuntimeError:
-                    # No event loop, create one
+                    # No event loop
                     llm_response = asyncio.run(
-                        llm_client.generate_istanbul_response(
-                            query=message,
-                            context=context_str,
-                            intent='restaurant',
-                            language=language_code
+                        self.llm_service.generate_with_prompt(
+                            prompt=prompt,
+                            temperature=0.7,
+                            max_tokens=500
                         )
                     )
                 
                 if llm_response and len(llm_response.strip()) > 0:
-                    logger.info(f"✅ LLM generated restaurant response ({len(llm_response)} chars)")
+                    logger.info(f"✅ UnifiedLLMService generated restaurant response ({len(llm_response)} chars)")
                     if return_structured:
                         result = {
                             'response': llm_response,
@@ -387,8 +399,10 @@ class ResponseRouter:
                             }
                         return result
                     return llm_response
-        except Exception as e:
-            logger.warning(f"⚠️ LLM restaurant generation failed: {e}")
+            except Exception as e:
+                logger.warning(f"⚠️ UnifiedLLMService restaurant generation failed: {e}")
+        else:
+            logger.warning("⚠️ UnifiedLLMService not available, using fallback")
         
         # Fallback to response generator (ensures language context is passed)
         response_generator = handlers.get('response_generator')
@@ -751,6 +765,92 @@ class ResponseRouter:
         context.add_interaction(message, fallback, 'emergency_safety')
         return fallback
     
+    def _route_weather_query(
+        self, message: str, entities: Dict, user_profile: UserProfile,
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
+        return_structured: bool
+    ) -> Union[str, Dict[str, Any]]:
+        """
+        Route weather-related queries to the ML weather handler
+        """
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
+        # Get weather handler from handlers dict
+        weather_handler = handlers.get('ml_weather_handler')
+        
+        if weather_handler:
+            try:
+                # Call handler with full context
+                result = weather_handler.handle_query(
+                    message,
+                    entities=entities,
+                    user_profile=user_profile,
+                    context=context,
+                    neural_insights=neural_insights
+                )
+                
+                if return_structured and isinstance(result, dict):
+                    return result
+                elif isinstance(result, dict):
+                    response = result.get('response', str(result))
+                else:
+                    response = str(result)
+                    
+                context.add_interaction(message, response, 'weather')
+                return response
+                
+            except Exception as e:
+                logger.warning(f"Weather handler failed: {e}")
+        
+        # Fallback response
+        fallback = "I can help you with Istanbul weather! Please try asking about current weather, forecasts, or weather-based recommendations."
+        context.add_interaction(message, fallback, 'weather')
+        return fallback
+    
+    def _route_events_query(
+        self, message: str, entities: Dict, user_profile: UserProfile,
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
+        return_structured: bool
+    ) -> Union[str, Dict[str, Any]]:
+        """
+        Route events-related queries to the ML events handler
+        """
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
+        # Get events handler from handlers dict
+        events_handler = handlers.get('ml_event_handler')
+        
+        if events_handler:
+            try:
+                # Call handler with full context
+                result = events_handler.handle_query(
+                    message,
+                    entities=entities,
+                    user_profile=user_profile,
+                    context=context,
+                    neural_insights=neural_insights
+                )
+                
+                if return_structured and isinstance(result, dict):
+                    return result
+                elif isinstance(result, dict):
+                    response = result.get('response', str(result))
+                else:
+                    response = str(result)
+                    
+                context.add_interaction(message, response, 'events')
+                return response
+                
+            except Exception as e:
+                logger.warning(f"Events handler failed: {e}")
+        
+        # Fallback response
+        fallback = "I can help you discover events in Istanbul! Please ask about concerts, festivals, exhibitions, or cultural events."
+        context.add_interaction(message, fallback, 'events')
+        return fallback
+    
     def _route_local_food_query(
         self, message: str, entities: Dict, user_profile: UserProfile,
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
@@ -1028,67 +1128,72 @@ class ResponseRouter:
         # 🌐 BILINGUAL: Ensure language is in context
         language = self._ensure_language_context(context, user_profile)
         
-        logger.info(f"❓ General query routing - trying LLM first (lang: {language})")
+        logger.info(f"❓ General query routing - trying UnifiedLLMService first (lang: {language})")
         
-        # 🤖 Try LLM first for general queries (it's better at understanding unclear intent)
-        try:
-            from backend.services.runpod_llm_client import get_llm_client
-            import asyncio
+        # 🤖 Try UnifiedLLMService for general queries
+        if self.llm_service:
+            logger.info(f"🤖 Using UnifiedLLMService for general query (lang: {language})")
             
-            llm_client = get_llm_client()
-            if llm_client and llm_client.enabled:
-                logger.info(f"🤖 Using LLM for general query (lang: {language})")
-                
-                # Build context from entities
-                context_parts = []
-                if entities:
-                    for key, value in entities.items():
-                        if value:
-                            context_parts.append(f"{key}: {value}")
-                
-                context_str = "\n".join(context_parts) if context_parts else None
-                language_code = 'tr' if language == 'tr' else 'en'
-                
+            # Build context from entities
+            context_parts = []
+            if entities:
+                for key, value in entities.items():
+                    if value:
+                        context_parts.append(f"{key}: {value}")
+            
+            context_str = "\n".join(context_parts) if context_parts else None
+            
+            # Build general query prompt
+            prompt = f"""You are a helpful Istanbul tourism assistant. A user is asking: "{message}"
+
+{f'Context: {context_str}' if context_str else ''}
+
+Provide a helpful, informative answer about Istanbul. Be friendly and conversational.
+
+Respond in {language} language."""
+
+            try:
+                # Run async method in sync context
+                import asyncio
                 try:
-                    # Use asyncio to call async method
                     loop = asyncio.get_event_loop()
                     if loop.is_running():
+                        # Create new event loop in thread
                         import concurrent.futures
                         with concurrent.futures.ThreadPoolExecutor() as executor:
                             llm_response = executor.submit(
                                 asyncio.run,
-                                llm_client.generate_istanbul_response(
-                                    query=message,
-                                    context=context_str,
-                                    intent='general',
-                                    language=language_code
+                                self.llm_service.generate_with_prompt(
+                                    prompt=prompt,
+                                    temperature=0.8,
+                                    max_tokens=400
                                 )
                             ).result(timeout=35)
                     else:
                         llm_response = loop.run_until_complete(
-                            llm_client.generate_istanbul_response(
-                                query=message,
-                                context=context_str,
-                                intent='general',
-                                language=language_code
+                            self.llm_service.generate_with_prompt(
+                                prompt=prompt,
+                                temperature=0.8,
+                                max_tokens=400
                             )
                         )
                 except RuntimeError:
                     llm_response = asyncio.run(
-                        llm_client.generate_istanbul_response(
-                            query=message,
-                            context=context_str,
-                            intent='general',
-                            language=language_code
+                        self.llm_service.generate_with_prompt(
+                            prompt=prompt,
+                            temperature=0.8,
+                            max_tokens=400
                         )
                     )
                 
                 if llm_response and len(llm_response.strip()) > 0:
-                    logger.info(f"✅ LLM generated general response ({len(llm_response)} chars)")
+                    logger.info(f"✅ UnifiedLLMService generated general response ({len(llm_response)} chars)")
                     context.add_interaction(message, llm_response, 'general_llm')
                     return llm_response
-        except Exception as e:
-            logger.warning(f"⚠️ LLM general query failed: {e}")
+            except Exception as e:
+                logger.warning(f"⚠️ UnifiedLLMService general query failed: {e}")
+        else:
+            logger.warning("⚠️ UnifiedLLMService not available")
         
         # Fallback to response generator
         response_generator = handlers.get('response_generator')
@@ -1356,7 +1461,7 @@ class ResponseRouter:
         return_structured: bool = False
     ) -> Union[str, Dict[str, Any]]:
         """
-        Generate response using LLM when intent was classified by LLM
+        Generate response using UnifiedLLMService when intent was classified by LLM
         
         This method is called when the hybrid intent classifier had low confidence
         and used the LLM to understand the intent. In such cases, we also use the
@@ -1377,26 +1482,10 @@ class ResponseRouter:
         try:
             # Get language from context
             language = self._ensure_language_context(context, user_profile)
-            language_code = language if language in ['en', 'tr'] else 'en'
             
-            # Try to get RunPod LLM client from handlers
-            llm_client = None
-            
-            # Option 1: Check if RunPod LLM client is available in handlers
-            if 'runpod_llm_client' in handlers:
-                llm_client = handlers['runpod_llm_client']
-            
-            # Option 2: Try to import and create RunPod LLM client
-            if llm_client is None:
-                try:
-                    from backend.services.runpod_llm_client import get_runpod_llm_client
-                    llm_client = get_runpod_llm_client()
-                except ImportError:
-                    logger.warning("⚠️ RunPod LLM client not available for import")
-            
-            if llm_client is None:
-                logger.warning("⚠️ LLM client not available - falling back to standard handler")
-                # Fall back to standard routing (without LLM override)
+            # Use UnifiedLLMService if available
+            if not self.llm_service:
+                logger.warning("⚠️ UnifiedLLMService not available - falling back to standard handler")
                 return self._fallback_to_standard_routing(
                     message, intent, entities, user_profile, context, handlers, 
                     None, return_structured
@@ -1410,59 +1499,76 @@ class ResponseRouter:
                     if hasattr(interaction, 'user_message') and hasattr(interaction, 'ai_response'):
                         context_str += f"User: {interaction.user_message}\nAI: {interaction.ai_response}\n"
             
-            logger.info(f"🤖 Generating LLM response for intent='{intent}', language='{language_code}'")
+            # Build entity context
+            entity_str = ""
+            if entities:
+                entity_parts = [f"{k}: {v}" for k, v in entities.items() if v]
+                if entity_parts:
+                    entity_str = "\nExtracted information: " + ", ".join(entity_parts)
             
-            # Check if LLM client has async method
+            logger.info(f"🤖 Generating UnifiedLLM response for intent='{intent}', language='{language}'")
+            
+            # Build intent-specific prompt
+            prompt = f"""You are a helpful Istanbul tourism assistant. A user is asking: "{message}"
+
+Intent: {intent}
+{entity_str}
+
+{f'Previous conversation:\n{context_str}' if context_str else ''}
+
+Provide a helpful, accurate answer about Istanbul. Be friendly and conversational.
+
+Respond in {language} language."""
+
+            # Run async method in sync context
             import asyncio
-            import inspect
-            
-            if hasattr(llm_client, 'generate_istanbul_response'):
-                generate_method = llm_client.generate_istanbul_response
-                
-                # Check if it's an async method
-                if inspect.iscoroutinefunction(generate_method):
-                    # Async call
-                    try:
-                        loop = asyncio.get_event_loop()
-                    except RuntimeError:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                    
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # Create new event loop in thread
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        llm_response = executor.submit(
+                            asyncio.run,
+                            self.llm_service.generate_with_prompt(
+                                prompt=prompt,
+                                temperature=0.7,
+                                max_tokens=500
+                            )
+                        ).result(timeout=35)
+                else:
                     llm_response = loop.run_until_complete(
-                        generate_method(
-                            query=message,
-                            context=context_str,
-                            intent=intent,
-                            language=language_code,
-                            entities=entities
+                        self.llm_service.generate_with_prompt(
+                            prompt=prompt,
+                            temperature=0.7,
+                            max_tokens=500
                         )
                     )
-                else:
-                    # Sync call
-                    llm_response = generate_method(
-                        query=message,
-                        context=context_str,
-                        intent=intent,
-                        language=language_code,
-                        entities=entities
+            except RuntimeError:
+                llm_response = asyncio.run(
+                    self.llm_service.generate_with_prompt(
+                        prompt=prompt,
+                        temperature=0.7,
+                        max_tokens=500
                     )
+                )
+            
+            if llm_response and len(llm_response) > 10:
+                logger.info(f"✅ UnifiedLLMService generated response ({len(llm_response)} chars)")
                 
-                if llm_response and len(llm_response) > 10:
-                    logger.info(f"✅ LLM generated response ({len(llm_response)} chars)")
-                    
-                    if return_structured:
-                        return {
-                            'response': llm_response,
-                            'map_data': {},
-                            'intent': intent,
-                            'method': 'llm_fallback'
-                        }
-                    return llm_response
-                else:
-                    logger.warning("⚠️ LLM returned empty or very short response")
+                if return_structured:
+                    return {
+                        'response': llm_response,
+                        'map_data': {},
+                        'intent': intent,
+                        'method': 'llm_fallback'
+                    }
+                return llm_response
+            else:
+                logger.warning("⚠️ UnifiedLLMService returned empty or very short response")
             
         except Exception as e:
-            logger.error(f"❌ LLM response generation failed: {e}", exc_info=True)
+            logger.error(f"❌ UnifiedLLMService response generation failed: {e}", exc_info=True)
         
         # Fallback to standard routing if LLM fails
         logger.info("⬇️ Falling back to standard handler routing")

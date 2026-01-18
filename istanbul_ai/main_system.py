@@ -400,8 +400,11 @@ class IstanbulDailyTalkAI:
         # Initialize Query Preprocessor (no constructor params - uses neural_processor at runtime)
         self.query_preprocessor = QueryPreprocessor()
         
-        # Initialize Response Router with neural ranker (Phase 2)
-        self.response_router = ResponseRouter(neural_ranker=self.neural_ranker)
+        # Initialize Response Router with neural ranker and UnifiedLLMService (Phase 2)
+        self.response_router = ResponseRouter(
+            neural_ranker=self.neural_ranker,
+            llm_service=getattr(self, 'llm_service', None)
+        )
         
         # Store ML handlers for routing (include response_generator for fallback)
         self.ml_handlers = handlers
@@ -458,23 +461,36 @@ class IstanbulDailyTalkAI:
         # The service was already assigned to self.llm_service via setattr() in __init__
         try:
             if hasattr(self, 'llm_service') and self.llm_service is not None:
-                logger.info(f"✅ LLM Service (reused): {self.llm_service.model_name} on {self.llm_service.device}")
-                
-                # Log model info for debugging
-                llm_info = self.llm_service.get_info()
-                if llm_info.get('device') == 'cuda' and 'gpu_name' in llm_info:
-                    logger.info(f"   GPU: {llm_info['gpu_name']}")
-                    logger.info(f"   GPU Memory: {llm_info.get('gpu_memory_allocated_gb', 0):.2f}GB / {llm_info.get('gpu_memory_total_gb', 0):.2f}GB")
-                elif llm_info.get('device') == 'mps':
-                    logger.info(f"   Running on Apple Metal (MPS)")
+                # Check if it's UnifiedLLMService (Phase 5 integration)
+                if hasattr(self.llm_service, 'circuit_breaker_open'):
+                    cb_state = "OPEN (Groq)" if self.llm_service.circuit_breaker_open else "CLOSED (vLLM)"
+                    logger.info(f"✅ UnifiedLLMService initialized - Circuit Breaker: {cb_state}")
+                    if hasattr(self.llm_service, 'get_metrics'):
+                        metrics = self.llm_service.get_metrics()
+                        logger.info(f"   Cache Hit Rate: {metrics.get('cache_hit_rate', 0):.1%}")
+                # Legacy LLM service
+                elif hasattr(self.llm_service, 'model_name'):
+                    logger.info(f"✅ LLM Service (reused): {self.llm_service.model_name} on {self.llm_service.device}")
+                    
+                    # Log model info for debugging
+                    llm_info = self.llm_service.get_info()
+                    if llm_info.get('device') == 'cuda' and 'gpu_name' in llm_info:
+                        logger.info(f"   GPU: {llm_info['gpu_name']}")
+                        logger.info(f"   GPU Memory: {llm_info.get('gpu_memory_allocated_gb', 0):.2f}GB / {llm_info.get('gpu_memory_total_gb', 0):.2f}GB")
+                    elif llm_info.get('device') == 'mps':
+                        logger.info(f"   Running on Apple Metal (MPS)")
+                else:
+                    logger.info(f"✅ LLM Service initialized (type: {type(self.llm_service).__name__})")
             else:
                 logger.warning("⚠️ LLM Service not available from ServiceInitializer")
                 self.llm_service = None
             
         except Exception as e:
-            logger.warning(f"⚠️ LLM Service not available: {e}")
+            logger.warning(f"⚠️ LLM Service initialization check failed: {e}")
             logger.warning("   System will work without LLM-enhanced responses")
-            self.llm_service = None
+            # Don't set to None - keep the service if it exists
+            if not hasattr(self, 'llm_service') or self.llm_service is None:
+                self.llm_service = None
         
         # Verify GPS Location Service is available for LLM integration
         if hasattr(self, 'gps_location_service') and self.gps_location_service:
@@ -1185,56 +1201,69 @@ class IstanbulDailyTalkAI:
                     if context_parts:
                         context_str = "\n\n".join(context_parts)
                 
-                # Try to get the RunPod LLM client
-                try:
-                    from backend.services.runpod_llm_client import get_llm_client
-                    llm_client = get_llm_client()
+                # Try to use UnifiedLLMService for daily talk
+                if hasattr(self, 'llm_service') and self.llm_service:
+                    logger.info(f"🤖 Using UnifiedLLMService for daily talk response (lang: {language_code})")
                     
-                    if llm_client and llm_client.enabled:
-                        logger.info(f"🤖 Using LLM for daily talk response (lang: {language_code})")
-                        
-                        # Use asyncio to call the async generate_istanbul_response method
+                    # Build prompt
+                    prompt = f"""You are a friendly Istanbul tourism assistant. The user is having a casual conversation: "{message}"
+
+{f'Previous conversation:\n{context_str}' if context_str else ''}
+
+Provide a warm, friendly response. Be conversational and helpful.
+
+Respond in {language_code} language."""
+
+                    try:
+                        # Run async method in sync context
+                        import asyncio
                         try:
                             loop = asyncio.get_event_loop()
                             if loop.is_running():
-                                # Event loop already running, fall through to template-based
-                                raise RuntimeError("Event loop already running")
+                                # Create new event loop in thread
+                                import concurrent.futures
+                                with concurrent.futures.ThreadPoolExecutor() as executor:
+                                    llm_response = executor.submit(
+                                        asyncio.run,
+                                        self.llm_service.generate_with_prompt(
+                                            prompt=prompt,
+                                            temperature=0.8,
+                                            max_tokens=400
+                                        )
+                                    ).result(timeout=35)
                             else:
                                 llm_response = loop.run_until_complete(
-                                    llm_client.generate_istanbul_response(
-                                        query=message,
-                                        context=context_str,
-                                        intent='daily_talk',
-                                        language=language_code
+                                    self.llm_service.generate_with_prompt(
+                                        prompt=prompt,
+                                        temperature=0.8,
+                                        max_tokens=400
                                     )
                                 )
                         except RuntimeError:
-                            # Create new event loop
                             llm_response = asyncio.run(
-                                llm_client.generate_istanbul_response(
-                                    query=message,
-                                    context=context_str,
-                                    intent='daily_talk',
-                                    language=language_code
+                                self.llm_service.generate_with_prompt(
+                                    prompt=prompt,
+                                    temperature=0.8,
+                                    max_tokens=400
                                 )
                             )
                         
                         if llm_response and len(llm_response.strip()) > 0:
                             # Record interaction in main context
                             context.add_interaction(message, llm_response, 'daily_talk_llm')
-                            logger.info(f"✅ LLM-generated daily talk response ({len(llm_response)} chars)")
+                            logger.info(f"✅ UnifiedLLMService generated daily talk response ({len(llm_response)} chars)")
                             return llm_response
                         else:
-                            logger.warning("⚠️ LLM returned empty response, falling back to templates")
+                            logger.warning("⚠️ UnifiedLLMService returned empty response, falling back to templates")
                     
-                except ImportError as ie:
-                    logger.warning(f"⚠️ RunPod LLM client not available: {ie}")
-                except Exception as e:
-                    logger.warning(f"⚠️ LLM generation failed: {e}")
-                    # Fall through to template-based systems
+                    except Exception as e:
+                        logger.warning(f"⚠️ UnifiedLLMService generation failed: {e}")
+                        # Fall through to template-based systems
+                else:
+                    logger.warning("⚠️ UnifiedLLMService not available, using template-based response")
                 
             except Exception as e:
-                logger.error(f"Error in LLM daily talk processing: {e}")
+                logger.error(f"Error in UnifiedLLM daily talk processing: {e}")
                 # Fall through to enhanced bilingual system
         
         # PRIORITY 2: Try Enhanced Bilingual Daily Talks System

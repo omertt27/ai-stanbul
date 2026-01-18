@@ -565,7 +565,7 @@ def extract_llm_metadata(ai_sys=None, main_sys=None, processing_time: float = 0.
         # Try to extract from main_system first (priority)
         system_to_check = main_sys if main_sys and MAIN_SYSTEM_AVAILABLE else ai_sys
         
-        if system_to_check and hasattr(system_to_check, 'llm_service'):
+        if system_to_check and hasattr(system_to_check, 'llm_service') and system_to_check.llm_service is not None:
             llm_service = system_to_check.llm_service
             
             # Check if it's UnifiedLLMService
@@ -592,8 +592,18 @@ def extract_llm_metadata(ai_sys=None, main_sys=None, processing_time: float = 0.
             metadata["cache_hit"] = False  # Default to False for now
             
         else:
-            logger.info("ℹ️ No LLM service found in AI systems - using legacy mode")
+            # LLM service not found or is None
+            if system_to_check:
+                has_attr = hasattr(system_to_check, 'llm_service')
+                is_none = system_to_check.llm_service is None if has_attr else "N/A"
+                logger.info(f"ℹ️ AI system found but llm_service unavailable (has_attr={has_attr}, is_none={is_none})")
+            else:
+                logger.info("ℹ️ No AI system available yet")
+            
             metadata["llm_backend"] = "legacy"
+            metadata["circuit_breaker_state"] = "n/a"
+            metadata["llm_latency_ms"] = int(processing_time * 1000) if processing_time else None
+            metadata["cache_hit"] = False
             
     except Exception as e:
         logger.warning(f"Failed to extract LLM metadata: {e}")
