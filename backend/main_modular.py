@@ -18,7 +18,14 @@ Date: January 2025
 # CRITICAL: Set environment variables BEFORE any imports (in case run directly)
 # =============================================================================
 import os
+import sys
 import warnings
+
+# Add parent directory to Python path for unified_system imports
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 # Prevent tokenizer fork warnings (if not already set by main.py)
 if 'TOKENIZERS_PARALLELISM' not in os.environ:
@@ -87,7 +94,8 @@ from core.startup_fixed import fast_startup_manager as startup_manager
 from api.health import router as health_router
 from api.auth import router as auth_router
 from api.chat import router as chat_router
-from api.llm import router as llm_router
+# Legacy LLM testing router (uses old RunPod client, not needed for production)
+# from api.llm import router as llm_router
 from api.aws_diagnostics import router as aws_diagnostics_router
 from api.monitoring_routes import router as monitoring_router
 from api.admin import experiments as admin_experiments
@@ -246,7 +254,8 @@ logger.info(f"✅ Static files mounted at /static -> {STATIC_DIR}")
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(chat_router)
-app.include_router(llm_router)
+# Legacy LLM testing router disabled (uses old RunPod client, not needed for production)
+# app.include_router(llm_router)
 app.include_router(aws_diagnostics_router)  # AWS S3 and Redis diagnostic endpoints
 app.include_router(startup_status_router)  # Startup diagnostics
 app.include_router(admin_experiments.router)

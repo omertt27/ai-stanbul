@@ -5,10 +5,14 @@ Run this on Render.com server
 """
 import json
 import os
+import sys
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+# Add backend to path
+sys.path.insert(0, os.path.dirname(__file__))
+from database import Base
 
 # Get DATABASE_URL from environment (Render provides this automatically)
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -22,7 +26,6 @@ print(f"📊 Using database from environment: {DATABASE_URL[:50]}...")
 
 # Create engine
 engine = create_engine(DATABASE_URL)
-Base = declarative_base()
 Session = sessionmaker(bind=engine)
 
 # Blog Post Model

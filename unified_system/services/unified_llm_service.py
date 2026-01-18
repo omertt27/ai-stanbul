@@ -382,6 +382,13 @@ class UnifiedLLMService:
         self.cache_ttl = int(os.getenv('UNIFIED_CACHE_TTL', '3600'))  # 1 hour
         self.circuit_breaker_enabled = os.getenv('CIRCUIT_BREAKER_ENABLED', 'true').lower() == 'true'
         
+        # Backend configuration (for health checks and logging)
+        self.vllm_endpoint = os.getenv('VLLM_ENDPOINT', os.getenv('VLLM_API_ENDPOINT', 'http://localhost:8000'))
+        self.groq_api_key = os.getenv('GROQ_API_KEY', '')
+        self.cache_max_size = 1000  # Max cache entries
+        self.circuit_breaker_threshold = 5  # Failures before opening circuit
+        self.circuit_breaker_open = False  # Track circuit breaker state
+        
         # Core components
         if COMPONENTS_AVAILABLE:
             self.llm_client = get_llm_client()  # Reuse existing RunPod client
@@ -398,6 +405,10 @@ class UnifiedLLMService:
         self.metrics_collector = MetricsCollector()
         self.circuit_breaker = CircuitBreaker() if self.circuit_breaker_enabled else None
         self.context_builder = None  # Optional context builder (not used in current implementation)
+        
+        # Startup tracking (for cache alert warm-up)
+        self.startup_time = time.time()
+        self.warmup_period_seconds = 60  # Don't alert on low cache hit rate for first 60 seconds
         
         # Legacy metrics (for backward compatibility)
         self.metrics = self._init_legacy_metrics()

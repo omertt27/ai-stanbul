@@ -4,10 +4,14 @@ Migrate blog posts from local JSON file to PostgreSQL database
 """
 import json
 import os
+import sys
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+# Add backend to path
+sys.path.insert(0, os.path.dirname(__file__))
+from database import Base
 
 # Database connection
 # Get from Render.com dashboard or use environment variable
@@ -15,7 +19,6 @@ DATABASE_URL = os.getenv('DATABASE_URL') or input("Enter PostgreSQL Database URL
 
 # Create engine
 engine = create_engine(DATABASE_URL)
-Base = declarative_base()
 Session = sessionmaker(bind=engine)
 
 # Blog Post Model

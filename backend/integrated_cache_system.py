@@ -261,9 +261,19 @@ class ProductionCacheMonitor:
         """Check for performance alerts"""
         alerts = []
         
-        # Hit rate alert
+        # Skip alerts during warm-up period (first 60 seconds or first 10 requests)
+        if not hasattr(self, 'startup_time'):
+            self.startup_time = time.time()
+        
+        time_since_startup = time.time() - self.startup_time
+        is_warming_up = time_since_startup < 60 or self.metrics.total_requests < 10
+        
+        # Hit rate alert (only after warm-up)
         if self.metrics.hit_rate_percent < self.alert_thresholds['min_hit_rate']:
-            alerts.append(f"Low cache hit rate: {self.metrics.hit_rate_percent:.1f}%")
+            if is_warming_up:
+                logger.info(f"💾 Cache hit rate: {self.metrics.hit_rate_percent:.1f}% (warming up)")
+            else:
+                alerts.append(f"Low cache hit rate: {self.metrics.hit_rate_percent:.1f}%")
         
         # Error rate alert
         if self.metrics.total_requests > 0:

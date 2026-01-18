@@ -129,6 +129,22 @@ else:
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Log database backend information
+try:
+    logger.info("=" * 60)
+    logger.info("📊 DATABASE BACKEND INFORMATION")
+    logger.info(f"   Type: {engine.dialect.name}")
+    logger.info(f"   Driver: {engine.driver}")
+    if hasattr(engine.url, 'database'):
+        logger.info(f"   Database: {engine.url.database}")
+    if hasattr(engine.url, 'host') and engine.url.host:
+        logger.info(f"   Host: {engine.url.host}")
+        logger.info(f"   Port: {engine.url.port or 'default'}")
+    logger.info(f"   Pool: {engine.pool.__class__.__name__}")
+    logger.info("=" * 60)
+except Exception as e:
+    logger.warning(f"⚠️ Could not log database info: {e}")
+
 # Dependency function to get database session
 def get_db():
     db = SessionLocal()

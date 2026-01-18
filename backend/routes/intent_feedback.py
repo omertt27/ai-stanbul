@@ -48,7 +48,7 @@ class IntentFeedbackRequest(BaseModel):
     context_data: Optional[Dict[str, Any]] = Field(None, description="Additional context")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "session_id": "abc123",
                 "query": "Sultanahmet'te restoran",
@@ -71,7 +71,7 @@ class ImplicitFeedbackRequest(BaseModel):
     time_spent_seconds: Optional[float] = None
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "session_id": "abc123",
                 "query": "Best restaurants",

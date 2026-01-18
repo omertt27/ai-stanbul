@@ -63,9 +63,12 @@ from pydantic import BaseModel
 
 # Database imports
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, Boolean, text
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
+
+# Import Base from database module
+sys.path.insert(0, os.path.dirname(__file__))
+from database import Base
 
 # Load environment variables
 load_dotenv()
@@ -80,8 +83,6 @@ logger = logging.getLogger(__name__)
 # ===============================
 # DATABASE CONFIGURATION
 # ===============================
-
-Base = declarative_base()
 
 # Database URL with fallback
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")

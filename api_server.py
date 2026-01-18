@@ -153,7 +153,7 @@ class RouteRequest(BaseModel):
     )
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "user_id": "user123",
                 "start_location": {
@@ -237,7 +237,7 @@ class MultiDayRequest(BaseModel):
     )
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "user_id": "tourist123",
                 "num_days": 3,
@@ -263,7 +263,7 @@ class CrowdAnalysisRequest(BaseModel):
     visit_time: str = Field(..., description="Planned visit time (ISO 8601)")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "pois": [
                     {

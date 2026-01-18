@@ -509,6 +509,8 @@ class TimeAwareCacheManager:
     Provides 30% additional cost savings through smart cache management
     """
     
+    _redis_initialized = False  # Class variable to track initialization
+    
     def __init__(self):
         self.redis_client = self._initialize_redis()
         self.cache_hit_stats = {}
@@ -584,15 +586,24 @@ class TimeAwareCacheManager:
         
     def _initialize_redis(self) -> Optional[redis.Redis]:
         """Initialize Redis connection with fallback handling - uses centralized check"""
+        # Only log once per class
+        if TimeAwareCacheManager._redis_initialized:
+            # Silently return client without logging
+            if STARTUP_GUARD_AVAILABLE:
+                return get_redis_client()
+            return None
+        
         # Use centralized Redis check if available
         if STARTUP_GUARD_AVAILABLE:
             if not is_redis_ready():
                 logger.info("⏭️ Time-aware cache: Redis not available (centralized check)")
+                TimeAwareCacheManager._redis_initialized = True
                 return None
             
             client = get_redis_client()
             if client:
                 logger.info("✅ Time-aware cache using centralized Redis client")
+                TimeAwareCacheManager._redis_initialized = True
                 return client
         
         # Fallback: try to connect directly
@@ -601,9 +612,11 @@ class TimeAwareCacheManager:
             client = redis.from_url(redis_url, decode_responses=True)
             client.ping()
             logger.info("✅ Time-aware cache Redis connected")
+            TimeAwareCacheManager._redis_initialized = True
             return client
         except Exception as e:
             logger.warning(f"⚠️ Redis not available for time-aware cache: {e}")
+            TimeAwareCacheManager._redis_initialized = True
             return None
     
     def classify_cache_type(self, query: str, intent: QueryIntent, fields: List[str]) -> str:
