@@ -52,7 +52,7 @@ except ImportError as e:
 # Import ML Prediction Cache Service
 try:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'services'))
-    from ml_prediction_cache_service import MLPredictionCacheService
+    from ml_prediction_cache_service import get_ml_cache, MLPredictionCache
     ML_CACHE_AVAILABLE = True
     logger.info("✅ ML Prediction Cache Service integrated successfully!")
 except ImportError as e:

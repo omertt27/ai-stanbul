@@ -4,7 +4,8 @@ Provides weather-aware activity recommendations with neural ranking and LLM-powe
 🌐 Full English/Turkish bilingual support
 🤖 LLM-powered context-aware responses
 
-Updated: [Current Date] - Added LLM integration with context-aware prompts (Step 3.1)
+Updated: January 18, 2026 - Week 2 Phase 4A (UnifiedLLMService integration)
+Previous: [Current Date] - Added LLM integration with context-aware prompts (Step 3.1)
 Previous: November 2, 2025 - Added bilingual support
 """
 
@@ -12,6 +13,34 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
 import logging
+import sys
+import os
+
+# Add backend/services to path for mixin import
+backend_services_path = os.path.join(os.path.dirname(__file__), '..', '..', 'backend', 'services')
+if backend_services_path not in sys.path:
+    sys.path.insert(0, backend_services_path)
+
+# Import handler LLM mixin for UnifiedLLMService integration
+try:
+    from backend.services.handler_llm_mixin import HandlerLLMMixin
+    HANDLER_MIXIN_AVAILABLE = True
+    logging.info("✅ HandlerLLMMixin loaded successfully")
+except ImportError:
+    try:
+        from handler_llm_mixin import HandlerLLMMixin
+        HANDLER_MIXIN_AVAILABLE = True
+        logging.info("✅ HandlerLLMMixin loaded successfully (fallback path)")
+    except ImportError as e:
+        HANDLER_MIXIN_AVAILABLE = False
+        logging.warning(f"⚠️ HandlerLLMMixin not available: {e}")
+        # Create a dummy mixin if not available
+        class HandlerLLMMixin:
+            def _init_handler_llm(self): pass
+            def _llm_generate(self, prompt, component, **kwargs):
+                if hasattr(self, 'llm_service') and self.llm_service:
+                    return self.llm_service.generate(prompt=prompt, **kwargs)
+                raise RuntimeError("No LLM service available")
 
 # Import bilingual support
 try:
@@ -28,19 +57,7 @@ try:
     LLM_AVAILABLE = True
 except ImportError:
     LLM_AVAILABLE = False
-    logger.warning("⚠️ LLM service or context-aware prompts not available")
-
-
-# Import enhanced LLM client
-try:
-    import sys
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    from enhanced_llm_config import get_enhanced_llm_client, EnhancedLLMClient
-    ENHANCED_LLM_AVAILABLE = True
-except ImportError as e:
-    ENHANCED_LLM_AVAILABLE = False
-    logging.warning(f"⚠️ Enhanced LLM client not available: {e}")
+    logging.warning("ℹ️  LLM service or context-aware prompts not available")
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +79,7 @@ class WeatherContext:
     user_sentiment: float
 
 
-class MLEnhancedWeatherHandler:
+class MLEnhancedWeatherHandler(HandlerLLMMixin):
     """
     ML-Enhanced Weather Handler with LLM Integration
     
@@ -103,7 +120,11 @@ class MLEnhancedWeatherHandler:
         
         # Initialize LLM service (optional, with fallback)
         self.llm_service = llm_service
-        self.has_llm = llm_service is not None and LLM_AVAILABLE
+        
+        # Initialize UnifiedLLMService integration via mixin
+        self._init_handler_llm()
+        
+        self.has_llm = llm_service is not None or hasattr(self, 'unified_llm') and LLM_AVAILABLE
         
         # Initialize context-aware prompt engine if LLM is available
         if self.has_llm:
@@ -112,19 +133,6 @@ class MLEnhancedWeatherHandler:
             self.prompt_engine = None
         
         logger.info(f"✅ ML-Enhanced Weather Handler initialized (Bilingual: {self.has_bilingual}, LLM: {self.has_llm})")
-# Initialize enhanced LLM client
-        if ENHANCED_LLM_AVAILABLE:
-            try:
-                self.llm_client = get_enhanced_llm_client()
-                self.has_enhanced_llm = True
-                logger.info("✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized")
-            except Exception as e:
-                logger.error(f"❌ Failed to initialize enhanced LLM client: {e}")
-                self.llm_client = None
-                self.has_enhanced_llm = False
-        else:
-            self.llm_client = None
-            self.has_enhanced_llm = False
     
     def _extract_language(self, context: Optional[Dict[str, Any]]) -> Language:
         """Extract language from context or detect from query"""
@@ -725,8 +733,9 @@ class MLEnhancedWeatherHandler:
             
             # Generate response using LLM
             logger.info("🤖 Generating LLM-powered weather recommendation...")
-            llm_output = self.llm_service.generate(
+            llm_output = self._llm_generate(
                 prompt=prompt,
+                component="weather.advice",
                 max_tokens=200,
                 temperature=0.7
             )

@@ -80,16 +80,28 @@ export async function sendMessage(message, sessionId = null, language = 'en') {
       method: data.method,
       cached: data.cached,
       confidence: data.confidence,
-      contextUsed: data.context_used?.length || 0
+      contextUsed: data.context_used?.length || 0,
+      // 🚀 UnifiedLLM metadata
+      llm_backend: data.llm_backend,
+      cache_hit: data.cache_hit,
+      circuit_breaker_state: data.circuit_breaker_state,
+      llm_latency_ms: data.llm_latency_ms
     });
 
     // 🔒 Sanitize response to prevent data leakage
     const sanitizedData = processApiResponse(data);
 
-    // Add response time to metadata
-    if (sanitizedData.metadata) {
-      sanitizedData.metadata.frontend_response_time = responseTime;
+    // Add response time and UnifiedLLM metadata
+    if (!sanitizedData.metadata) {
+      sanitizedData.metadata = {};
     }
+    sanitizedData.metadata.frontend_response_time = responseTime;
+    
+    // 🚀 Pass through UnifiedLLM metadata for frontend display
+    if (data.llm_backend) sanitizedData.llm_backend = data.llm_backend;
+    if (data.cache_hit !== undefined) sanitizedData.cache_hit = data.cache_hit;
+    if (data.circuit_breaker_state) sanitizedData.circuit_breaker_state = data.circuit_breaker_state;
+    if (data.llm_latency_ms !== undefined) sanitizedData.llm_latency_ms = data.llm_latency_ms;
 
     return {
       success: true,

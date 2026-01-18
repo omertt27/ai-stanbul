@@ -9,7 +9,8 @@ previously scattered in main_system.py into a dedicated, ML-enhanced handler.
 🌤️ WEATHER-AWARE: Integrates weather data for route recommendations (Step 3.2)
 💎 HIDDEN GEMS: Contextual local recommendations in route responses (Step 2)
 
-Updated: November 5, 2025 - Simplified to use LLM's automatic multilingual capability
+Updated: January 18, 2026 - Week 2 Phase 4A (UnifiedLLMService integration)
+Previous: November 5, 2025 - Simplified to use LLM's automatic multilingual capability
 Previous: November 5, 2025 - Added hidden gems integration to LLM responses
 Previous: November 5, 2025 - Added weather-aware transportation advice
 Previous: November 4, 2025 - Added LLM and GPS integration
@@ -18,6 +19,34 @@ Previous: November 4, 2025 - Added LLM and GPS integration
 from typing import Dict, Optional, List, Any, Union
 import logging
 from datetime import datetime
+import sys
+import os
+
+# Add backend/services to path for mixin import
+backend_services_path = os.path.join(os.path.dirname(__file__), '..', '..', 'backend', 'services')
+if backend_services_path not in sys.path:
+    sys.path.insert(0, backend_services_path)
+
+# Import handler LLM mixin for UnifiedLLMService integration
+try:
+    from backend.services.handler_llm_mixin import HandlerLLMMixin
+    HANDLER_MIXIN_AVAILABLE = True
+    logging.info("✅ HandlerLLMMixin loaded successfully")
+except ImportError:
+    try:
+        from handler_llm_mixin import HandlerLLMMixin
+        HANDLER_MIXIN_AVAILABLE = True
+        logging.info("✅ HandlerLLMMixin loaded successfully (fallback path)")
+    except ImportError as e:
+        HANDLER_MIXIN_AVAILABLE = False
+        logging.warning(f"⚠️ HandlerLLMMixin not available: {e}")
+        # Create a dummy mixin if not available
+        class HandlerLLMMixin:
+            def _init_handler_llm(self): pass
+            def _llm_generate(self, prompt, component, **kwargs):
+                if hasattr(self, 'llm_service') and self.llm_service:
+                    return self.llm_service.generate(prompt=prompt, **kwargs)
+                raise RuntimeError("No LLM service available")
 
 # Import Marmaray data (Step 4.2)
 try:
@@ -32,26 +61,14 @@ except ImportError:
     MARMARAY_AVAILABLE = False
     # Logger warning will be logged after logger is defined
 
-
-# Import enhanced LLM client
-try:
-    import sys
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    from enhanced_llm_config import get_enhanced_llm_client, EnhancedLLMClient
-    ENHANCED_LLM_AVAILABLE = True
-except ImportError as e:
-    ENHANCED_LLM_AVAILABLE = False
-    logging.warning(f"⚠️ Enhanced LLM client not available: {e}")
-
 logger = logging.getLogger(__name__)
 
 # Log Marmaray availability if it wasn't available
 if not MARMARAY_AVAILABLE:
-    logger.warning("Marmaray station data not available")
+    logger.info("ℹ️  Marmaray station data not available")
 
 
-class TransportationHandler:
+class TransportationHandler(HandlerLLMMixin):
     """
     ML-Enhanced Transportation Response Handler
     
@@ -111,6 +128,9 @@ class TransportationHandler:
         self.hidden_gems_context_service = hidden_gems_context_service
         self.rag_service = rag_service
         
+        # Initialize UnifiedLLMService integration via mixin
+        self._init_handler_llm()
+        
         # Feature availability flags
         self.transfer_map_integration_available = transfer_map_integration_available
         self.advanced_transport_available = advanced_transport_available
@@ -119,7 +139,7 @@ class TransportationHandler:
         self.has_transport_processor = transport_processor is not None
         self.has_gps_service = gps_route_service is not None
         self.has_maps = map_integration_service is not None and map_integration_service.is_enabled()
-        self.has_llm = llm_service is not None
+        self.has_llm = llm_service is not None or hasattr(self, 'unified_llm')
         self.has_gps_location = gps_location_service is not None
         self.has_weather = weather_service is not None
         self.has_hidden_gems = hidden_gems_context_service is not None
@@ -138,21 +158,6 @@ class TransportationHandler:
             f"HiddenGems: {self.has_hidden_gems}, "
             f"RAG: {self.has_rag}"
         )
-    
-    
-# Initialize enhanced LLM client
-        if ENHANCED_LLM_AVAILABLE:
-            try:
-                self.llm_client = get_enhanced_llm_client()
-                self.has_enhanced_llm = True
-                logger.info("✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized")
-            except Exception as e:
-                logger.error(f"❌ Failed to initialize enhanced LLM client: {e}")
-                self.llm_client = None
-                self.has_enhanced_llm = False
-        else:
-            self.llm_client = None
-            self.has_enhanced_llm = False
     def can_handle(self, message: str, entities: Dict[str, Any]) -> bool:
         """
         Determine if this handler can process the given query.
@@ -735,8 +740,9 @@ class TransportationHandler:
             
             # Generate concise LLM advice (max 100 tokens for brevity)
             logger.info("🤖 Generating weather-aware transportation advice...")
-            llm_advice = self.llm_service.generate(
+            llm_advice = self._llm_generate(
                 prompt=prompt,
+                component="transportation.weather_advice",
                 max_tokens=100,
                 temperature=0.7
             )
@@ -899,8 +905,9 @@ class TransportationHandler:
             
             # Generate LLM response
             logger.info("🤖 Generating Marmaray comparison advice with LLM...")
-            llm_advice = self.llm_service.generate(
+            llm_advice = self._llm_generate(
                 prompt=prompt,
+                component="transportation.marmaray",
                 max_tokens=150,
                 temperature=0.7
             )
@@ -1260,8 +1267,9 @@ class TransportationHandler:
             
             # Generate LLM response
             logger.info("🤖 Generating RAG-enhanced LLM route advice...")
-            llm_advice = self.llm_service.generate(
+            llm_advice = self._llm_generate(
                 prompt=prompt,
+                component="transportation.rag_route",
                 max_tokens=150,
                 temperature=0.7
             )

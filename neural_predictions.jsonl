@@ -2580,3 +2580,4 @@
 {"timestamp": "2026-01-17T21:14:28.566099", "query": "recommend a Turkish restaurant", "intent": "local_tips", "confidence": 0.7524, "latency_ms": 9.2, "high_confidence": true}
 {"timestamp": "2026-01-17T21:16:12.717409", "query": "hmm", "intent": "luxury", "confidence": 0.9792, "latency_ms": 134.15, "high_confidence": true}
 {"timestamp": "2026-01-17T21:16:13.055182", "query": "ok", "intent": "cultural_info", "confidence": 0.254, "latency_ms": 336.17, "high_confidence": false}
+{"timestamp": "2026-01-18T16:32:14.965448", "query": "What are the top attractions in Istanbul?", "intent": "hidden_gems", "confidence": 0.8676, "latency_ms": 302.5, "high_confidence": true}

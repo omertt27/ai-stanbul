@@ -7,9 +7,12 @@ Integrates:
 - Prompt Builder (existing)  
 - Shared Cache (new)
 - Metrics (new)
+- Circuit Breaker (new)
+- Streaming Support (new)
 
 Author: Istanbul AI Team
 Date: January 17, 2026
+Last Updated: January 18, 2026 - Week 2 Integration
 """
 
 import os
@@ -18,8 +21,12 @@ import logging
 import time
 import hashlib
 import json
-from typing import Dict, Any, Optional, List
+import asyncio
+from typing import Dict, Any, Optional, List, AsyncGenerator
 from pathlib import Path
+from enum import Enum
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 
 # Add backend to path for imports
 backend_path = Path(__file__).parent.parent.parent / "backend"
@@ -27,8 +34,16 @@ sys.path.insert(0, str(backend_path))
 
 # Import existing components
 try:
-    from services.runpod_llm_client import RunPodLLMClient, get_llm_client
-    from services.llm.prompts import PromptBuilder
+    # Try both import patterns
+    try:
+        from services.runpod_llm_client import RunPodLLMClient, get_llm_client
+        from services.llm.prompts import PromptBuilder
+    except ImportError:
+        # Alternative import path (when called from backend)
+        import sys
+        sys.path.insert(0, str(backend_path))
+        from runpod_llm_client import RunPodLLMClient, get_llm_client
+        from llm.prompts import PromptBuilder
     COMPONENTS_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"⚠️  Could not import backend components: {e}")
@@ -36,6 +51,214 @@ except ImportError as e:
 
 logger = logging.getLogger(__name__)
 
+
+# ============================================================================
+# Circuit Breaker Pattern
+# ============================================================================
+
+class CircuitState(Enum):
+    """Circuit breaker states"""
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"      # Failing, reject requests
+    HALF_OPEN = "half_open"  # Testing if service recovered
+
+
+@dataclass
+class CircuitBreakerConfig:
+    """Circuit breaker configuration"""
+    failure_threshold: int = 5  # Failures before opening circuit
+    success_threshold: int = 2  # Successes to close circuit from half-open
+    timeout_seconds: int = 60  # Time to wait before trying half-open
+    
+
+class CircuitBreaker:
+    """
+    Circuit Breaker pattern implementation for LLM calls
+    
+    Prevents cascading failures by:
+    - Tracking consecutive failures
+    - Opening circuit after threshold failures
+    - Allowing periodic retry attempts
+    - Closing circuit after successful recoveries
+    """
+    
+    def __init__(self, config: Optional[CircuitBreakerConfig] = None):
+        self.config = config or CircuitBreakerConfig()
+        self.state = CircuitState.CLOSED
+        self.failure_count = 0
+        self.success_count = 0
+        self.last_failure_time = None
+        self.state_changes = []
+        
+    def can_execute(self) -> bool:
+        """Check if request can be executed"""
+        if self.state == CircuitState.CLOSED:
+            return True
+        
+        if self.state == CircuitState.OPEN:
+            # Check if timeout has passed
+            if self.last_failure_time:
+                elapsed = (datetime.now() - self.last_failure_time).total_seconds()
+                if elapsed >= self.config.timeout_seconds:
+                    self._transition_to(CircuitState.HALF_OPEN)
+                    return True
+            return False
+        
+        # HALF_OPEN: allow one request through
+        return True
+    
+    def record_success(self):
+        """Record successful execution"""
+        self.failure_count = 0
+        
+        if self.state == CircuitState.HALF_OPEN:
+            self.success_count += 1
+            if self.success_count >= self.config.success_threshold:
+                self._transition_to(CircuitState.CLOSED)
+                self.success_count = 0
+    
+    def record_failure(self):
+        """Record failed execution"""
+        self.failure_count += 1
+        self.last_failure_time = datetime.now()
+        self.success_count = 0
+        
+        if self.state == CircuitState.HALF_OPEN:
+            self._transition_to(CircuitState.OPEN)
+        elif self.failure_count >= self.config.failure_threshold:
+            self._transition_to(CircuitState.OPEN)
+    
+    def _transition_to(self, new_state: CircuitState):
+        """Transition to new state"""
+        old_state = self.state
+        self.state = new_state
+        self.state_changes.append({
+            'from': old_state.value,
+            'to': new_state.value,
+            'timestamp': datetime.now().isoformat(),
+            'failure_count': self.failure_count
+        })
+        logger.warning(f"🔌 Circuit breaker: {old_state.value} → {new_state.value}")
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get circuit breaker status"""
+        return {
+            'state': self.state.value,
+            'failure_count': self.failure_count,
+            'success_count': self.success_count,
+            'last_failure': self.last_failure_time.isoformat() if self.last_failure_time else None,
+            'recent_transitions': self.state_changes[-5:]  # Last 5 transitions
+        }
+
+
+# ============================================================================
+# Enhanced Metrics
+# ============================================================================
+
+@dataclass
+class LLMCallMetrics:
+    """Metrics for a single LLM call"""
+    timestamp: datetime
+    operation: str  # classify_intent, generate_response, complete, stream
+    component: str  # caller component
+    intent: Optional[str] = None
+    cache_hit: bool = False
+    latency_ms: float = 0.0
+    tokens_used: int = 0
+    success: bool = True
+    error: Optional[str] = None
+
+
+class MetricsCollector:
+    """
+    Centralized metrics collection for UnifiedLLMService
+    
+    Tracks:
+    - Call counts by operation, component, intent
+    - Cache hit rates
+    - Latency percentiles
+    - Error rates
+    - Token usage
+    """
+    
+    def __init__(self):
+        self.calls: List[LLMCallMetrics] = []
+        self.max_history = 10000  # Keep last 10k calls
+        
+    def record_call(self, metrics: LLMCallMetrics):
+        """Record a call with metrics"""
+        self.calls.append(metrics)
+        
+        # Trim history if too large
+        if len(self.calls) > self.max_history:
+            self.calls = self.calls[-self.max_history:]
+    
+    def get_summary(self, minutes: int = 60) -> Dict[str, Any]:
+        """Get metrics summary for last N minutes"""
+        cutoff = datetime.now() - timedelta(minutes=minutes)
+        recent_calls = [c for c in self.calls if c.timestamp >= cutoff]
+        
+        if not recent_calls:
+            return {
+                'period_minutes': minutes,
+                'total_calls': 0,
+                'cache_hit_rate': 0,
+                'cache_hits': 0,
+                'cache_misses': 0,
+                'error_rate': 0,
+                'errors': 0,
+                'avg_latency_ms': 0,
+                'latency_p50_ms': 0,
+                'latency_p95_ms': 0,
+                'latency_p99_ms': 0,
+                'total_tokens': 0,
+                'by_operation': {},
+                'by_component': {}
+            }
+        
+        total = len(recent_calls)
+        cache_hits = sum(1 for c in recent_calls if c.cache_hit)
+        errors = sum(1 for c in recent_calls if not c.success)
+        total_latency = sum(c.latency_ms for c in recent_calls)
+        total_tokens = sum(c.tokens_used for c in recent_calls)
+        
+        # By operation
+        by_operation = {}
+        for call in recent_calls:
+            by_operation[call.operation] = by_operation.get(call.operation, 0) + 1
+        
+        # By component
+        by_component = {}
+        for call in recent_calls:
+            by_component[call.component] = by_component.get(call.component, 0) + 1
+        
+        # Latency percentiles
+        latencies = sorted([c.latency_ms for c in recent_calls if c.latency_ms > 0])
+        p50 = latencies[len(latencies)//2] if latencies else 0
+        p95 = latencies[int(len(latencies)*0.95)] if latencies else 0
+        p99 = latencies[int(len(latencies)*0.99)] if latencies else 0
+        
+        return {
+            'period_minutes': minutes,
+            'total_calls': total,
+            'cache_hit_rate': (cache_hits / total * 100) if total > 0 else 0,
+            'cache_hits': cache_hits,
+            'cache_misses': total - cache_hits,
+            'error_rate': (errors / total * 100) if total > 0 else 0,
+            'errors': errors,
+            'avg_latency_ms': total_latency / total if total > 0 else 0,
+            'latency_p50_ms': p50,
+            'latency_p95_ms': p95,
+            'latency_p99_ms': p99,
+            'total_tokens': total_tokens,
+            'by_operation': by_operation,
+            'by_component': by_component
+        }
+
+
+# ============================================================================
+# Intent Classification Prompts
+# ============================================================================
 
 class IntentClassificationPrompts:
     """
@@ -154,9 +377,10 @@ class UnifiedLLMService:
             return
         
         # Feature flags
-        self.enabled = os.getenv('USE_UNIFIED_LLM_SERVICE', 'false').lower() == 'true'
+        self.enabled = os.getenv('USE_UNIFIED_LLM_SERVICE', 'true').lower() == 'true'  # Changed to true by default
         self.cache_enabled = os.getenv('UNIFIED_CACHE_ENABLED', 'true').lower() == 'true'
         self.cache_ttl = int(os.getenv('UNIFIED_CACHE_TTL', '3600'))  # 1 hour
+        self.circuit_breaker_enabled = os.getenv('CIRCUIT_BREAKER_ENABLED', 'true').lower() == 'true'
         
         # Core components
         if COMPONENTS_AVAILABLE:
@@ -168,20 +392,27 @@ class UnifiedLLMService:
             self.prompt_builder = None
             logger.warning("⚠️  Unified LLM Service - components not available")
         
-        # New components
+        # Enhanced components
         self.cache = {}  # Simple dict cache for now (TODO: upgrade to Redis)
         self.cache_timestamps = {}
-        self.metrics = self._init_metrics()
+        self.metrics_collector = MetricsCollector()
+        self.circuit_breaker = CircuitBreaker() if self.circuit_breaker_enabled else None
+        self.context_builder = None  # Optional context builder (not used in current implementation)
+        
+        # Legacy metrics (for backward compatibility)
+        self.metrics = self._init_legacy_metrics()
         
         self._initialized = True
         
         if self.enabled:
             logger.info("✅ Unified LLM Service initialized (ENABLED)")
+            logger.info(f"   Cache: {'✅' if self.cache_enabled else '❌'}")
+            logger.info(f"   Circuit Breaker: {'✅' if self.circuit_breaker_enabled else '❌'}")
         else:
-            logger.info("ℹ️  Unified LLM Service initialized (DISABLED - set USE_UNIFIED_LLM_SERVICE=true to enable)")
+            logger.info("ℹ️  Unified LLM Service initialized (DISABLED)")
     
-    def _init_metrics(self) -> Dict[str, Any]:
-        """Initialize metrics collection"""
+    def _init_legacy_metrics(self) -> Dict[str, Any]:
+        """Initialize legacy metrics (for backward compatibility)"""
         return {
             'total_calls': 0,
             'cache_hits': 0,
@@ -219,6 +450,11 @@ class UnifiedLLMService:
         """
         if not self.llm_client:
             logger.warning("LLM client not available")
+            return {'primary_intent': 'general', 'confidence': 0.5, 'all_intents': ['general']}
+        
+        # Check circuit breaker
+        if self.circuit_breaker and not self.circuit_breaker.can_execute():
+            logger.warning("🔌 Circuit breaker open - request denied")
             return {'primary_intent': 'general', 'confidence': 0.5, 'all_intents': ['general']}
         
         # Check cache first
@@ -373,6 +609,316 @@ class UnifiedLLMService:
         
         return result
     
+    async def complete(
+        self,
+        prompt: str,
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+        component: str = 'unknown'
+    ) -> Dict[str, Any]:
+        """
+        Core LLM completion method - Main interface for all services
+        
+        This is the primary method that all other services should use.
+        It provides:
+        - Caching (semantic deduplication)
+        - Circuit breaker protection
+        - Metrics tracking
+        - Consistent interface
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature (0.0-1.0)
+            component: Name of calling component (for metrics)
+            
+        Returns:
+            {
+                "text": "generated text",
+                "finish_reason": "stop|length|error",
+                "usage": {"prompt_tokens": int, "completion_tokens": int},
+                "cached": bool,
+                "latency_ms": float
+            }
+        """
+        if not self.llm_client:
+            logger.warning("LLM client not available")
+            return {
+                "text": "LLM service unavailable",
+                "finish_reason": "error",
+                "usage": {},
+                "cached": False,
+                "latency_ms": 0
+            }
+        
+        # Check circuit breaker
+        if self.circuit_breaker and not self.circuit_breaker.can_execute():
+            logger.warning(f"🔌 Circuit breaker OPEN - rejecting request from {component}")
+            return {
+                "text": "LLM service temporarily unavailable (circuit breaker open)",
+                "finish_reason": "circuit_breaker",
+                "usage": {},
+                "cached": False,
+                "latency_ms": 0
+            }
+        
+        # Check cache
+        cached = False
+        if self.cache_enabled:
+            cache_key = self._cache_key('complete', prompt, max_tokens, temperature)
+            cached_result = self._get_from_cache(cache_key)
+            if cached_result:
+                # Cache hit
+                self.metrics['cache_hits'] += 1
+                self.metrics['total_calls'] += 1
+                
+                self.metrics_collector.record_call(LLMCallMetrics(
+                    timestamp=datetime.now(),
+                    operation='complete',
+                    component=component,
+                    cache_hit=True,
+                    latency_ms=0,
+                    success=True
+                ))
+                
+                logger.debug(f"💾 Cache HIT: {component} ({cache_key[:16]}...)")
+                cached_result['cached'] = True
+                return cached_result
+            
+            self.metrics['cache_misses'] += 1
+        
+        # Call LLM via RunPodLLMClient
+        start = time.time()
+        success = False
+        result_text = ""
+        finish_reason = "error"
+        usage = {}
+        error_msg = None
+        
+        try:
+            llm_result = await self.llm_client.generate(
+                prompt=prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            
+            if not llm_result:
+                error_msg = "LLM returned None"
+                logger.error(f"❌ {error_msg}")
+            else:
+                result_text = llm_result.get('generated_text', '')
+                finish_reason = llm_result.get('finish_reason', 'stop')
+                usage = llm_result.get('usage', {})
+                success = True
+                
+                if self.circuit_breaker:
+                    self.circuit_breaker.record_success()
+                
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"❌ LLM generation failed ({component}): {e}")
+            
+            if self.circuit_breaker:
+                self.circuit_breaker.record_failure()
+        
+        latency_ms = (time.time() - start) * 1000
+        
+        # Build result
+        result = {
+            "text": result_text,
+            "finish_reason": finish_reason,
+            "usage": usage,
+            "cached": False,
+            "latency_ms": latency_ms
+        }
+        
+        # Update metrics
+        self.metrics['total_calls'] += 1
+        self.metrics['llm_calls'] += 1
+        self.metrics['total_latency_ms'] += latency_ms
+        self.metrics['by_component'][component] = self.metrics['by_component'].get(component, 0) + 1
+        self.metrics['by_operation']['complete'] = self.metrics['by_operation'].get('complete', 0) + 1
+        
+        self.metrics_collector.record_call(LLMCallMetrics(
+            timestamp=datetime.now(),
+            operation='complete',
+            component=component,
+            cache_hit=False,
+            latency_ms=latency_ms,
+            tokens_used=usage.get('completion_tokens', 0),
+            success=success,
+            error=error_msg
+        ))
+        
+        # Cache successful result
+        if success and self.cache_enabled:
+            self._set_cache(cache_key, result)
+        
+        logger.info(f"🤖 LLM complete: {len(result_text)} chars ({latency_ms:.0f}ms, {component})")
+        
+        return result
+    
+    async def complete_text(
+        self,
+        prompt: str,
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+        component: str = 'unknown'
+    ) -> str:
+        """
+        Complete a prompt and return just the text (for backwards compatibility)
+        
+        This is a convenience wrapper around complete() for classifiers and other
+        services that just need the text response.
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature (0.0-1.0)
+            component: Name of calling component
+            
+        Returns:
+            Generated text string
+        """
+        result = await self.complete(
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            component=component
+        )
+        return result.get('text', '')
+    
+    def complete_text_sync(
+        self,
+        prompt: str,
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+        component: str = 'unknown',
+        **kwargs
+    ) -> str:
+        """
+        Synchronous wrapper for complete_text() for handler compatibility.
+        
+        This allows synchronous handlers to use UnifiedLLMService without
+        dealing with async/await.
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature (0.0-1.0)
+            component: Name of calling component
+            **kwargs: Additional parameters (ignored for compatibility)
+            
+        Returns:
+            Generated text string
+        """
+        # Create new event loop if needed
+        try:
+            loop = asyncio.get_running_loop()
+            # Already in async context - this shouldn't happen in sync handlers
+            logger.warning(f"⚠️ complete_text_sync called from async context ({component})")
+            # Use asyncio.create_task instead
+            raise RuntimeError("Cannot use sync method in async context")
+        except RuntimeError:
+            # No running loop - create one (this is the normal path for handlers)
+            return asyncio.run(
+                self.complete_text(
+                    prompt=prompt,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    component=component
+                )
+            )
+    
+    async def stream_completion(
+        self,
+        prompt: str,
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+        component: str = 'unknown'
+    ) -> AsyncGenerator[str, None]:
+        """
+        Stream LLM completion (yields chunks as they're generated)
+        
+        For real-time user-facing applications that need progressive response.
+        Note: Streaming responses are NOT cached.
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature (0.0-1.0)
+            component: Name of calling component
+            
+        Yields:
+            Text chunks as they arrive
+        """
+        if not self.llm_client:
+            logger.warning("LLM client not available")
+            yield "LLM service unavailable"
+            return
+        
+        # Check circuit breaker
+        if self.circuit_breaker and not self.circuit_breaker.can_execute():
+            logger.warning(f"🔌 Circuit breaker OPEN - rejecting stream request from {component}")
+            yield "LLM service temporarily unavailable"
+            return
+        
+        # Check if client supports streaming
+        if not hasattr(self.llm_client, 'stream_generate'):
+            logger.warning(f"⚠️  LLM client doesn't support streaming, falling back to complete()")
+            result = await self.complete(prompt, max_tokens, temperature, component)
+            yield result['text']
+            return
+        
+        # Stream from LLM
+        start = time.time()
+        success = False
+        total_chunks = 0
+        error_msg = None
+        
+        try:
+            async for chunk in self.llm_client.stream_generate(
+                prompt=prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
+            ):
+                total_chunks += 1
+                yield chunk
+            
+            success = True
+            if self.circuit_breaker:
+                self.circuit_breaker.record_success()
+                
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"❌ LLM stream failed ({component}): {e}")
+            
+            if self.circuit_breaker:
+                self.circuit_breaker.record_failure()
+            
+            yield f"\n\n[Error: {error_msg}]"
+        
+        latency_ms = (time.time() - start) * 1000
+        
+        # Update metrics
+        self.metrics['total_calls'] += 1
+        self.metrics['llm_calls'] += 1
+        self.metrics['total_latency_ms'] += latency_ms
+        self.metrics['by_component'][component] = self.metrics['by_component'].get(component, 0) + 1
+        self.metrics['by_operation']['stream'] = self.metrics['by_operation'].get('stream', 0) + 1
+        
+        self.metrics_collector.record_call(LLMCallMetrics(
+            timestamp=datetime.now(),
+            operation='stream',
+            component=component,
+            cache_hit=False,
+            latency_ms=latency_ms,
+            success=success,
+            error=error_msg
+        ))
+        
+        logger.info(f"🌊 LLM stream: {total_chunks} chunks ({latency_ms:.0f}ms, {component})")
+    
     def _cache_key(self, operation: str, *args) -> str:
         """Generate cache key from operation and arguments"""
         key_str = f"{operation}:" + ":".join(str(arg) for arg in args)
@@ -426,54 +972,132 @@ class UnifiedLLMService:
                 'all_intents': ['general']
             }
     
+    def _init_legacy_metrics(self) -> Dict[str, Any]:
+        """Initialize legacy metrics (for backward compatibility)"""
+        return {
+            'total_calls': 0,
+            'cache_hits': 0,
+            'cache_misses': 0,
+            'llm_calls': 0,
+            'total_latency_ms': 0.0,
+            'by_intent': {},
+            'by_component': {},
+            'by_operation': {}
+        }
+    
     def get_metrics(self) -> Dict[str, Any]:
-        """Get current metrics"""
-        total = max(self.metrics['total_calls'], 1)  # Avoid division by zero
+        """Get current metrics (enhanced with MetricsCollector data)"""
+        # Legacy metrics
+        total = max(self.metrics['total_calls'], 1)
         llm_calls = self.metrics['llm_calls']
         
-        return {
+        legacy = {
             **self.metrics,
             'cache_hit_rate': (self.metrics['cache_hits'] / total) * 100,
             'cache_size': len(self.cache),
             'avg_latency_ms': self.metrics['total_latency_ms'] / llm_calls if llm_calls > 0 else 0,
             'llm_call_rate': (llm_calls / total) * 100
         }
+        
+        # Enhanced metrics from collector
+        enhanced = self.metrics_collector.get_summary(minutes=60)
+        
+        # Circuit breaker status
+        circuit_status = self.circuit_breaker.get_status() if self.circuit_breaker else None
+        
+        return {
+            'legacy': legacy,  # Backward compatible
+            'last_hour': enhanced,
+            'circuit_breaker': circuit_status,
+            'cache': self.get_cache_stats()
+        }
     
-    def reset_metrics(self):
-        """Reset all metrics"""
-        self.metrics = self._init_metrics()
-        logger.info("📊 Metrics reset")
+    def health_check(self) -> Dict[str, Any]:
+        """
+        Check service health status
+        
+        Returns:
+            Health status dict with component availability
+        """
+        health = {
+            'status': 'healthy' if self.enabled else 'disabled',
+            'enabled': self.enabled,
+            'cache_enabled': self.cache_enabled,
+            'circuit_breaker_state': self.circuit_breaker.state if self.circuit_breaker else 'N/A',
+            'llm_client_available': self.llm_client is not None,
+            'prompt_builder_available': self.prompt_builder is not None,
+            'context_builder_available': self.context_builder is not None,
+        }
+        
+        return health
     
-    def clear_cache(self):
-        """Clear all cached data"""
-        size = len(self.cache)
-        self.cache.clear()
-        self.cache_timestamps.clear()
-        logger.info(f"🗑️  Cache cleared ({size} items removed)")
+    def get_metrics_summary(self) -> Dict[str, Any]:
+        """
+        Get comprehensive metrics summary
+        
+        Returns:
+            Dict with all metrics including cache stats, component breakdown, etc.
+        """
+        summary = {
+            'totals': {
+                'total_calls': self.metrics['total_calls'],
+                'llm_calls': self.metrics['llm_calls'],
+                'cache_hits': self.metrics['cache_hits'],
+                'cache_misses': self.metrics['cache_misses'],
+                'cache_hit_rate': (
+                    self.metrics['cache_hits'] / (self.metrics['cache_hits'] + self.metrics['cache_misses'])
+                    if (self.metrics['cache_hits'] + self.metrics['cache_misses']) > 0
+                    else 0.0
+                ),
+            },
+            'latency': {
+                'total_ms': self.metrics['total_latency_ms'],
+                'average_ms': (
+                    self.metrics['total_latency_ms'] / self.metrics['llm_calls']
+                    if self.metrics['llm_calls'] > 0
+                    else 0.0
+                ),
+            },
+            'by_component': dict(self.metrics['by_component']),
+            'by_operation': dict(self.metrics['by_operation']),
+            'by_intent': dict(self.metrics['by_intent']),
+            'circuit_breaker': {
+                'state': self.circuit_breaker.state.value if self.circuit_breaker else 'N/A',
+                'failure_count': self.circuit_breaker.failure_count if self.circuit_breaker else 0,
+            } if self.circuit_breaker else None,
+        }
+        
+        return summary
     
     def get_cache_stats(self) -> Dict[str, Any]:
-        """Get cache statistics"""
+        """
+        Get cache statistics
+        
+        Returns:
+            Dict with cache size, hit rate, and TTL info
+        """
+        total_requests = self.metrics['cache_hits'] + self.metrics['cache_misses']
+        hit_rate = (self.metrics['cache_hits'] / total_requests * 100) if total_requests > 0 else 0.0
+        
         return {
             'size': len(self.cache),
             'hits': self.metrics['cache_hits'],
             'misses': self.metrics['cache_misses'],
-            'hit_rate': (self.metrics['cache_hits'] / max(self.metrics['total_calls'], 1)) * 100,
-            'ttl': self.cache_ttl,
+            'hit_rate': hit_rate,
+            'ttl_seconds': self.cache_ttl,
             'enabled': self.cache_enabled
         }
 
 
-# Global instance (singleton)
-_unified_llm = None
+# ============================================================================
+# Module-level convenience functions
+# ============================================================================
 
 def get_unified_llm() -> UnifiedLLMService:
     """
-    Get or create unified LLM service singleton
+    Get singleton instance of UnifiedLLMService
     
     Returns:
         UnifiedLLMService instance
     """
-    global _unified_llm
-    if _unified_llm is None:
-        _unified_llm = UnifiedLLMService()
-    return _unified_llm
+    return UnifiedLLMService()

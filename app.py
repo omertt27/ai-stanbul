@@ -429,6 +429,12 @@ class ChatResponse(BaseModel):
     entities: Optional[List[Dict[str, Any]]] = Field(None, description="Extracted entities")
     suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
     map_data: Optional[Dict[str, Any]] = Field(None, description="Map visualization data (Leaflet.js format)")
+    
+    # Phase 5B/5C: UnifiedLLMService Metadata for Frontend Badges
+    llm_backend: Optional[str] = Field(None, description="LLM backend used: 'vllm', 'groq', or 'legacy'")
+    cache_hit: Optional[bool] = Field(None, description="Whether response was served from LLM cache")
+    circuit_breaker_state: Optional[str] = Field(None, description="Circuit breaker state: 'open', 'closed', 'half_open'")
+    llm_latency_ms: Optional[int] = Field(None, description="LLM response latency in milliseconds")
 
 class UserProfileResponse(BaseModel):
     user_id: str
@@ -528,6 +534,73 @@ async def ensure_ai_system():
     except Exception as e:
         logger.error(f"❌ AI system initialization failed: {e}")
         raise HTTPException(status_code=503, detail=f"AI system initialization failed: {str(e)}")
+
+# Helper function to extract UnifiedLLM metadata from AI system
+def extract_llm_metadata(ai_sys=None, main_sys=None, processing_time: float = 0.0) -> Dict[str, Any]:
+    """
+    Extract UnifiedLLMService metadata from AI systems for frontend badge display.
+    
+    Attempts to extract:
+    - llm_backend: Which LLM backend was used ('vllm', 'groq', or 'legacy')
+    - cache_hit: Whether response was served from cache
+    - circuit_breaker_state: Circuit breaker state ('open', 'closed', 'half_open')
+    - llm_latency_ms: LLM response latency in milliseconds
+    
+    Args:
+        ai_sys: Daily talk AI system instance
+        main_sys: Main system instance
+        processing_time: Total processing time in seconds
+        
+    Returns:
+        Dict with metadata fields (None values if not available)
+    """
+    metadata = {
+        "llm_backend": None,
+        "cache_hit": None,
+        "circuit_breaker_state": None,
+        "llm_latency_ms": None
+    }
+    
+    try:
+        # Try to extract from main_system first (priority)
+        system_to_check = main_sys if main_sys and MAIN_SYSTEM_AVAILABLE else ai_sys
+        
+        if system_to_check and hasattr(system_to_check, 'llm_service'):
+            llm_service = system_to_check.llm_service
+            
+            # Check if it's UnifiedLLMService
+            if hasattr(llm_service, 'circuit_breaker_open'):
+                # Extract circuit breaker state
+                is_open = llm_service.circuit_breaker_open
+                metadata["circuit_breaker_state"] = "open" if is_open else "closed"
+                metadata["llm_backend"] = "groq" if is_open else "vllm"
+                
+                logger.info(f"📊 UnifiedLLM metadata: backend={metadata['llm_backend']}, cb_state={metadata['circuit_breaker_state']}")
+            else:
+                # Legacy LLM service
+                metadata["llm_backend"] = "legacy"
+                metadata["circuit_breaker_state"] = "n/a"
+                logger.info("📊 Using legacy LLM service (no UnifiedLLM)")
+            
+            # Convert processing time to milliseconds
+            if processing_time:
+                metadata["llm_latency_ms"] = int(processing_time * 1000)
+            
+            # Note: cache_hit is harder to determine without modifying the AI systems
+            # We'd need to check if the response was cached inside the LLM service
+            # For now, leave it as None unless we can detect it
+            metadata["cache_hit"] = False  # Default to False for now
+            
+        else:
+            logger.info("ℹ️ No LLM service found in AI systems - using legacy mode")
+            metadata["llm_backend"] = "legacy"
+            
+    except Exception as e:
+        logger.warning(f"Failed to extract LLM metadata: {e}")
+        # Return None values on error (non-blocking)
+    
+    return metadata
+
 
 # API Routes
 
@@ -759,6 +832,14 @@ async def chat(
         processing_time = time.time() - start_time
         RESPONSE_GENERATION_TIME.observe(processing_time)
         
+        # === PHASE 5B/5C: EXTRACT UNIFIEDLLM METADATA ===
+        # Extract metadata from AI systems for frontend badge display
+        llm_metadata = extract_llm_metadata(
+            ai_sys=ai_system,
+            main_sys=main_system,
+            processing_time=processing_time
+        )
+        
         # Create response
         response_data = {
             "response": ai_response,
@@ -770,7 +851,12 @@ async def chat(
                 "Tell me more about Turkish cuisine",
                 "How do I get around Istanbul?",
                 "What are the best neighborhoods to visit?"
-            ]
+            ],
+            # Phase 5B/5C: UnifiedLLM metadata for frontend badges
+            "llm_backend": llm_metadata.get("llm_backend"),
+            "cache_hit": llm_metadata.get("cache_hit"),
+            "circuit_breaker_state": llm_metadata.get("circuit_breaker_state"),
+            "llm_latency_ms": llm_metadata.get("llm_latency_ms")
         }
         
         # Cache the response

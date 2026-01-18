@@ -21,23 +21,41 @@ Created: November 5, 2025
 
 from typing import Dict, Optional, List, Any, Union
 import logging
+import sys
+import os
 
-
-# Import enhanced LLM client
-try:
-    import sys
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    from enhanced_llm_config import get_enhanced_llm_client, EnhancedLLMClient
-    ENHANCED_LLM_AVAILABLE = True
-except ImportError as e:
-    ENHANCED_LLM_AVAILABLE = False
-    logging.warning(f"⚠️ Enhanced LLM client not available: {e}")
-
+# Initialize logger early
 logger = logging.getLogger(__name__)
 
+# Add backend/services to path for mixin import
+backend_services_path = os.path.join(os.path.dirname(__file__), '..', '..', 'backend', 'services')
+if backend_services_path not in sys.path:
+    sys.path.insert(0, backend_services_path)
 
-class LocalFoodHandler:
+# Import handler LLM mixin for UnifiedLLMService integration
+try:
+    from backend.services.handler_llm_mixin import HandlerLLMMixin
+    HANDLER_MIXIN_AVAILABLE = True
+    logger.info("✅ HandlerLLMMixin loaded successfully")
+except ImportError:
+    try:
+        # Fallback: try direct import after path modification
+        from handler_llm_mixin import HandlerLLMMixin
+        HANDLER_MIXIN_AVAILABLE = True
+        logger.info("✅ HandlerLLMMixin loaded successfully (fallback path)")
+    except ImportError as e:
+        HANDLER_MIXIN_AVAILABLE = False
+        logger.warning(f"⚠️ HandlerLLMMixin not available: {e}")
+        # Create a dummy mixin if not available
+        class HandlerLLMMixin:
+            def _init_handler_llm(self): pass
+            def _llm_generate(self, prompt, component, **kwargs):
+                if hasattr(self, 'llm_service') and self.llm_service:
+                    return self.llm_service.generate(prompt=prompt, **kwargs)
+                raise RuntimeError("No LLM service available")
+
+
+class LocalFoodHandler(HandlerLLMMixin):
     """
     Local Food & Street Food Handler
     
@@ -47,6 +65,9 @@ class LocalFoodHandler:
     - Best locations for specific foods
     - Food culture explanations
     - Dietary considerations (vegetarian, halal, etc.)
+    
+    Integrated with UnifiedLLMService via HandlerLLMMixin for consistent
+    LLM calls, metrics tracking, and caching.
     """
     
     def __init__(
@@ -73,8 +94,11 @@ class LocalFoodHandler:
         self.rag_service = rag_service
         self.neural_processor = neural_processor  # Store but don't require
         
+        # Initialize UnifiedLLMService integration via mixin
+        self._init_handler_llm()
+        
         # Service availability flags
-        self.has_llm = llm_service is not None
+        self.has_llm = llm_service is not None or hasattr(self, 'unified_llm')
         self.has_gps = gps_location_service is not None
         self.has_hidden_gems = hidden_gems_context_service is not None
         self.has_rag = rag_service is not None and getattr(rag_service, 'available', False)
@@ -87,19 +111,6 @@ class LocalFoodHandler:
             f"RAG: {self.has_rag}"
         )
     
-# Initialize enhanced LLM client
-        if ENHANCED_LLM_AVAILABLE:
-            try:
-                self.llm_client = get_enhanced_llm_client()
-                self.has_enhanced_llm = True
-                logger.info("✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized")
-            except Exception as e:
-                logger.error(f"❌ Failed to initialize enhanced LLM client: {e}")
-                self.llm_client = None
-                self.has_enhanced_llm = False
-        else:
-            self.llm_client = None
-            self.has_enhanced_llm = False
     def can_handle(self, message: str, entities: Dict[str, Any]) -> bool:
         """
         Determine if this handler should process the query.
@@ -293,10 +304,11 @@ Use food emojis (🐟🥔🦪🥯🥖) and keep it conversational. Respond in th
 
 Response:"""
             
-            # Generate response
-            logger.info("🤖 Generating food recommendation with LLM...")
-            response = self.llm_service.generate(
+            # Generate response using UnifiedLLMService via mixin
+            logger.info("🤖 Generating food recommendation with UnifiedLLM...")
+            response = self._llm_generate(
                 prompt=prompt,
+                component="food_handler.street_food",
                 max_tokens=200,
                 temperature=0.7
             )
@@ -392,10 +404,11 @@ Use food emojis (🐟🥔🦪🥯) and keep it practical. Respond in the same la
 
 Response:"""
             
-            # Generate response
+            # Generate response using UnifiedLLMService via mixin
             logger.info(f"🤖 Generating location-based food recommendations for {location}...")
-            response = self.llm_service.generate(
+            response = self._llm_generate(
                 prompt=prompt,
+                component="food_handler.restaurant_question",
                 max_tokens=200,
                 temperature=0.7
             )
@@ -472,10 +485,11 @@ Be specific about dietary considerations (halal, vegetarian, etc.) and use food 
 
 Response:"""
             
-            # Generate response
+            # Generate response using UnifiedLLMService via mixin
             logger.info("🤖 Generating dietary-specific recommendations...")
-            response = self.llm_service.generate(
+            response = self._llm_generate(
                 prompt=prompt,
+                component="food_handler.cuisine_question",
                 max_tokens=200,
                 temperature=0.7
             )
@@ -546,10 +560,11 @@ Use food emojis (🐟🥔🦪🥯🥖🍽️) and be welcoming. Respond in the s
 
 Response:"""
             
-            # Generate response
+            # Generate response using UnifiedLLMService via mixin
             logger.info("🤖 Generating general food recommendations...")
-            response = self.llm_service.generate(
+            response = self._llm_generate(
                 prompt=prompt,
+                component="food_handler.price_budget_question",
                 max_tokens=200,
                 temperature=0.7
             )

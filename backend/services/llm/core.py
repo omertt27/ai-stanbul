@@ -20,6 +20,7 @@ import asyncio
 import time
 import logging
 import re
+import os
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple, AsyncGenerator
 from collections import defaultdict
@@ -376,13 +377,44 @@ class PureLLMCore:
         Initialize the Pure LLM Core orchestrator.
         
         Args:
-            llm_client: LLM API client (RunPod, OpenAI, etc.)
+            llm_client: LLM API client (RunPod, OpenAI, etc.) 
+                        OR None to auto-initialize with UnifiedLLMService
             db_connection: Database connection
             config: Configuration dictionary
             services: Service Manager instance with all local services
         """
-        self.llm = llm_client
-        self.llm_client = llm_client  # Alias for compatibility
+        # Check if we should use UnifiedLLMService (Week 2 Integration)
+        use_unified = os.getenv('USE_UNIFIED_LLM', 'true').lower() == 'true'
+        
+        if use_unified and llm_client is None:
+            # Auto-initialize with UnifiedLLMService
+            try:
+                import sys
+                from pathlib import Path
+                unified_path = Path(__file__).parent.parent.parent.parent / "unified_system"
+                if str(unified_path) not in sys.path:
+                    sys.path.insert(0, str(unified_path))
+                
+                from services.unified_llm_service import get_unified_llm
+                self.llm = get_unified_llm()
+                self.using_unified_llm = True
+                logger.info("✅ Using UnifiedLLMService (with caching, metrics, circuit breaker)")
+            except Exception as e:
+                logger.warning(f"⚠️  Failed to initialize UnifiedLLMService: {e}")
+                logger.warning("   Falling back to provided llm_client")
+                self.llm = llm_client
+                self.using_unified_llm = False
+        elif llm_client is not None:
+            # Use provided LLM client
+            self.llm = llm_client
+            self.using_unified_llm = False
+            if use_unified:
+                logger.info("ℹ️  USE_UNIFIED_LLM=true but llm_client provided, using provided client")
+        else:
+            # No client provided and unified disabled
+            raise ValueError("Either provide llm_client or set USE_UNIFIED_LLM=true")
+        
+        self.llm_client = self.llm  # Alias for compatibility
         self.db = db_connection
         self.config = config or {}
         self.services = services  # Service Manager for local services
@@ -391,6 +423,7 @@ class PureLLMCore:
         self._initialize_subsystems()
         
         logger.info("🚀 Pure LLM Core initialized successfully")
+        logger.info(f"   🤖 LLM Service: {'UnifiedLLMService' if self.using_unified_llm else 'Legacy RunPodClient'}")
         if services:
             status = services.get_service_status()
             active = sum(1 for v in status.values() if v)
@@ -543,6 +576,115 @@ class PureLLMCore:
         
         logger.info("✅ All subsystems initialized (including Phase 2 features)")
     
+    # ========================================================================
+    # LLM Call Compatibility Wrapper (Week 2 Integration)
+    # ========================================================================
+    
+    async def _llm_call(
+        self,
+        prompt: str,
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+        component: str = 'core'
+    ) -> Dict[str, Any]:
+        """
+        Unified LLM call interface - Works with both UnifiedLLMService and legacy clients
+        
+        This wrapper provides backward compatibility while enabling UnifiedLLMService features:
+        - Automatic caching (UnifiedLLMService only)
+        - Circuit breaker (UnifiedLLMService only)
+        - Enhanced metrics (UnifiedLLMService only)
+        - Consistent interface for both services
+        
+        Args:
+            prompt: The prompt to send to LLM
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature (0.0-1.0)
+            component: Component name for metrics tracking
+            
+        Returns:
+            {
+                'generated_text': str,      # Main response text
+                'finish_reason': str,       # stop, length, or error
+                'usage': dict,              # Token usage stats
+                'cached': bool,             # True if from cache (UnifiedLLM only)
+                'latency_ms': float         # Latency in milliseconds
+            }
+        """
+        if self.using_unified_llm:
+            # Use UnifiedLLMService (with caching, metrics, circuit breaker)
+            result = await self.llm.complete(
+                prompt=prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                component=component
+            )
+            
+            # Convert UnifiedLLMService format to legacy format
+            return {
+                'generated_text': result['text'],
+                'finish_reason': result['finish_reason'],
+                'usage': result.get('usage', {}),
+                'cached': result.get('cached', False),
+                'latency_ms': result.get('latency_ms', 0)
+            }
+        else:
+            # Use legacy RunPodLLMClient
+            import time
+            start = time.time()
+            
+            result = await self.llm.generate(
+                prompt=prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            
+            latency_ms = (time.time() - start) * 1000
+            
+            # Ensure consistent format
+            if result:
+                result['cached'] = False
+                result['latency_ms'] = latency_ms
+            
+            return result
+    
+    async def _llm_stream(
+        self,
+        prompt: str,
+        max_tokens: int = 2048,
+        temperature: float = 0.7,
+        component: str = 'core'
+    ):
+        """
+        Unified LLM streaming interface
+        
+        Yields:
+            Text chunks as they arrive
+        """
+        if self.using_unified_llm:
+            # Use UnifiedLLMService streaming
+            async for chunk in self.llm.stream_completion(
+                prompt=prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                component=component
+            ):
+                yield chunk
+        else:
+            # Use legacy streaming if available
+            if hasattr(self.llm, 'generate_stream'):
+                async for chunk in self.llm.generate_stream(
+                    prompt=prompt,
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                ):
+                    yield chunk
+            else:
+                # Fallback: non-streaming
+                result = await self._llm_call(prompt, max_tokens, temperature, component)
+                if result and 'generated_text' in result:
+                    yield result['generated_text']
+    
     async def _rewrite_query_with_llm(
         self,
         query: str,
@@ -607,10 +749,11 @@ Query: "{query}"
 Fixed version (max 50 chars):"""
         
         try:
-            result = await self.llm.generate(
+            result = await self._llm_call(
                 prompt=rewrite_prompt,
                 max_tokens=30,  # Drastically reduced to prevent long outputs
-                temperature=0.1  # Very low temperature for consistency
+                temperature=0.1,  # Very low temperature for consistency
+                component='query_rewriter'
             )
             
             rewritten = result['generated_text'].strip()
@@ -920,7 +1063,7 @@ Fixed version (max 50 chars):"""
                 ],
                 'de': [
                     "Könnten Sie genauer sagen, wonach Sie suchen?",
-                    "Interessieren Sie sich für Essen, Besichtigungen, Transport oder etwas anderes?"
+                    "Interessieren Sie sich für Essen, Besichtigungen, Transport или etwas anderes?"
                 ],
                 'ar': [
                     "هل يمكنك أن تكون أكثر تحديداً بشأن ما تبحث عنه؟",
@@ -1393,12 +1536,15 @@ Fixed version (max 50 chars):"""
                 logger.info(f"📝 Calling LLM...")
                 logger.info(f"📏 Prompt length: {len(prompt)} chars")
                 logger.info(f"🔚 Prompt ending (last 300 chars): ...{prompt[-300:]}")
-                result = await self.llm.generate(
+                result = await self._llm_call(
                     prompt=prompt,
                     max_tokens=max_tokens,
-                    temperature=0.7
+                    temperature=0.7,
+                    component='main_generation'
                 )
                 logger.info(f"📥 LLM returned response with keys: {list(result.keys()) if isinstance(result, dict) else type(result)}")
+                if result.get('cached'):
+                    logger.info(f"💾 Response from cache (latency: {result.get('latency_ms', 0):.0f}ms)")
                 return result
             
             # Apply circuit breaker protection
@@ -2144,45 +2290,19 @@ Fixed version (max 50 chars):"""
             llm_start = time.time()
             response_tokens = []
             
-            # Check if LLM supports streaming
-            if hasattr(self.llm, 'generate_stream'):
-                async for token in self.llm.generate_stream(
-                    prompt=prompt,
-                    max_tokens=max_tokens,
-                    temperature=0.7
-                ):
-                    response_tokens.append(token)
-                    yield {
-                        'type': 'token',
-                        'data': token,
-                        'cached': False
-                    }
-            else:
-                # Fallback: simulate streaming
-                response_data = await self.llm.generate(
-                    prompt=prompt,
-                    max_tokens=max_tokens,
-                    temperature=0.7
-                )
-                
-                if not response_data or "generated_text" not in response_data:
-                    raise Exception("Invalid LLM response")
-                
-                response_text = response_data["generated_text"]
-                
-                # Clean training data leakage from response
-                response_text = clean_training_data_leakage(response_text)
-                
-                # Simulate streaming
-                for i in range(0, len(response_text), 5):
-                    yield {
-                        'type': 'token',
-                        'data': response_text[i:i+5],
-                        'cached': False
-                    }
-                    await asyncio.sleep(0.01)
-                
-                response_tokens = [response_text]
+            # Use unified streaming interface
+            async for token in self._llm_stream(
+                prompt=prompt,
+                max_tokens=max_tokens,
+                temperature=0.7,
+                component='streaming_generation'
+            ):
+                response_tokens.append(token)
+                yield {
+                    'type': 'token',
+                    'data': token,
+                    'cached': False
+                }
             
             llm_latency = time.time() - llm_start
             response_text = ''.join(response_tokens)
@@ -2695,7 +2815,7 @@ Fixed version (max 50 chars):"""
         # Check if response mentions stations not in verified route
         # (This is heuristic-based and may have false positives)
         common_stations = {
-            'taksim', 'sultanahmet', 'kadıköy', 'üsküdar', 'beşiktaş',
+            'taksim', 'sultanahmet', 'kadiköy', 'üsküdar', 'beşiktaş',
             'eminönü', 'karaköy', 'şişli', 'mecidiyeköy', 'levent'
         }
         

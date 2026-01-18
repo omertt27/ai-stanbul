@@ -184,6 +184,27 @@ async def _background_initialization():
         # Initialize startup manager components
         await startup_manager.initialize()
         
+        # ===== UNIFIED LLM SERVICE INITIALIZATION =====
+        # Initialize UnifiedLLMService singleton for API layer
+        try:
+            from unified_system.services.unified_llm_service import get_unified_llm
+            
+            unified_llm = get_unified_llm()
+            app.state.unified_llm = unified_llm
+            logger.info("✅ UnifiedLLMService initialized and ready for API layer")
+            
+            # Log configuration for visibility
+            logger.info(f"📡 vLLM endpoint: {unified_llm.vllm_endpoint}")
+            logger.info(f"🔄 Fallback: Groq API enabled")
+            logger.info(f"💾 Cache size: {len(unified_llm.cache)}/{unified_llm.cache_max_size}")
+            logger.info(f"🛡️  Circuit breaker: enabled (threshold={unified_llm.circuit_breaker_threshold})")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize UnifiedLLMService: {e}")
+            app.state.unified_llm = None
+            logger.warning("⚠️  API will fall back to legacy LLM clients")
+        # ===== END UNIFIED LLM SERVICE INITIALIZATION =====
+        
         # Initialize admin experiments managers
         try:
             from api.admin.experiments import initialize_managers

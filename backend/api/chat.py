@@ -4,7 +4,7 @@ Chat Endpoints Module
 All chat-related endpoints including ML chat, Pure LLM chat, and legacy chat
 """
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
@@ -22,6 +22,32 @@ from utils.response_sanitizer import ResponseSanitizer
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
+
+# ==========================================
+# UnifiedLLMService Dependency Injection
+# ==========================================
+async def get_unified_llm(request: Request):
+    """
+    Dependency to inject UnifiedLLMService into endpoints.
+    
+    This provides access to the centralized LLM service with:
+    - Automatic response caching (90% faster for cached queries)
+    - Circuit breaker protection (automatic fallback to Groq)
+    - Performance metrics tracking
+    - Multi-backend support (vLLM + Groq)
+    
+    Returns:
+        UnifiedLLMService instance
+        
+    Raises:
+        HTTPException: If UnifiedLLMService not initialized
+    """
+    if not hasattr(request.app.state, 'unified_llm') or request.app.state.unified_llm is None:
+        logger.warning("⚠️ UnifiedLLMService not available, endpoint will use legacy LLM")
+        # Return None to allow graceful degradation
+        return None
+    return request.app.state.unified_llm
+
 
 # ==========================================
 # Response Sanitizer
@@ -195,6 +221,13 @@ class ChatResponse(BaseModel):
     navigation_active: Optional[bool] = Field(None, description="Whether GPS navigation is active")
     navigation_data: Optional[Dict[str, Any]] = Field(None, description="GPS navigation state and instructions")
     interaction_id: Optional[str] = Field(None, description="Interaction ID for feedback tracking")
+    
+    # Phase 5B: UnifiedLLMService Metadata (NEW!)
+    cached: Optional[bool] = Field(None, description="Whether response was served from cache")
+    backend_used: Optional[str] = Field(None, description="LLM backend: 'vllm', 'groq', or 'fallback'")
+    latency_ms: Optional[int] = Field(None, description="Response latency in milliseconds")
+    circuit_breaker_state: Optional[str] = Field(None, description="Circuit breaker state: 'closed', 'open', 'half_open'")
+    tokens_used: Optional[int] = Field(None, description="Tokens used for generation")
 
 
 class MLChatRequest(BaseModel):
@@ -228,12 +261,13 @@ class MLChatResponse(BaseModel):
 @router.post("/pure-llm", response_model=ChatResponse)
 async def pure_llm_chat(
     request: ChatRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    unified_llm = Depends(get_unified_llm)
 ):
     """
     Pure LLM chat endpoint - LLM-First Architecture with Full Pipeline
     
-    Phase 4.2 Enhancement: Context Resolution runs FIRST to understand conversation flow
+    Phase 5B Enhancement: Uses UnifiedLLMService for caching, circuit breaker, and metrics
     
     Flow:
     0. LLM Conversation Context (Phase 4.2!) - Resolve references & context
@@ -242,6 +276,7 @@ async def pure_llm_chat(
     3. LLM Route Preferences (Phase 4.1) - Detect preferences
     4. Specialized handlers (routes, gems, info)
     5. LLM Response Enhancement (Phase 3) - Enhance final response
+    6. Extract UnifiedLLMService metadata for frontend display (Phase 5B!)
     """
     
     # Generate or use provided session_id
@@ -955,6 +990,49 @@ async def pure_llm_chat(
         except Exception as e:
             logger.warning(f"Failed to merge multi-route data: {e}")
         
+        # === PHASE 5B: EXTRACT UNIFIEDLLMSERVICE METADATA ===
+        # Extract caching, backend, and performance metrics from UnifiedLLMService
+        cached = False
+        backend_used = None
+        latency_ms = None
+        circuit_breaker_state = None
+        tokens_used = None
+        
+        try:
+            # Get metadata from UnifiedLLMService via PureLLMCore
+            if unified_llm:
+                # Get current circuit breaker state
+                circuit_breaker_state = "open" if unified_llm.circuit_breaker_open else "closed"
+                backend_used = "groq" if unified_llm.circuit_breaker_open else "vllm"
+                
+                # Get metrics
+                metrics = unified_llm.get_metrics()
+                
+                # Check if this specific request was cached
+                # The result dict may contain 'cached' flag from PureLLMCore
+                cached = result.get('cached', False) or result.get('metadata', {}).get('cached', False)
+                
+                # Get latency (convert to ms)
+                latency_ms = int(response_time * 1000) if response_time else None
+                
+                # Get tokens (if available in metadata)
+                tokens_used = result.get('metadata', {}).get('tokens_used')
+                
+                logger.info(f"📊 UnifiedLLMService Metadata: cached={cached}, backend={backend_used}, latency={latency_ms}ms, cb_state={circuit_breaker_state}")
+            
+            elif pure_llm_core and hasattr(pure_llm_core, 'llm_service'):
+                # Fallback: Extract from PureLLMCore's llm_service
+                llm_service = pure_llm_core.llm_service
+                circuit_breaker_state = "open" if llm_service.circuit_breaker_open else "closed"
+                backend_used = "groq" if llm_service.circuit_breaker_open else "vllm"
+                cached = result.get('cached', False)
+                latency_ms = int(response_time * 1000) if response_time else None
+                logger.info(f"📊 Metadata from PureLLMCore: cached={cached}, backend={backend_used}")
+        
+        except Exception as e:
+            logger.warning(f"Failed to extract UnifiedLLMService metadata: {e}")
+            # Continue without metadata - non-blocking
+        
         return ChatResponse(
             response=translated_response,  # 🔥 Translated + safety-netted response
             session_id=result.get('session_id', request.session_id or 'new'),
@@ -966,7 +1044,13 @@ async def pure_llm_chat(
             route_data=final_route_data,  # 🔥 FIX #3: Early-extracted route data
             navigation_active=result.get('navigation_active', False),
             navigation_data=result.get('navigation_data'),
-            interaction_id=interaction_id  # Include for frontend feedback tracking
+            interaction_id=interaction_id,  # Include for frontend feedback tracking
+            # Phase 5B: UnifiedLLMService metadata (NEW!)
+            cached=cached,
+            backend_used=backend_used,
+            latency_ms=latency_ms,
+            circuit_breaker_state=circuit_breaker_state,
+            tokens_used=tokens_used
         )
         
     except Exception as e:

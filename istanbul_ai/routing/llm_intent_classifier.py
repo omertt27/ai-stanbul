@@ -84,6 +84,7 @@ class LLMIntentClassifier:
         
         Args:
             llm_service: LLMServiceWrapper instance (optional, auto-initialized)
+                        Will use UnifiedLLMService if USE_UNIFIED_LLM is enabled
             keyword_classifier: Fallback keyword-based IntentClassifier (optional)
             neural_classifier: NeuralQueryClassifier for better fallback (optional, preferred over keyword)
         """
@@ -93,6 +94,7 @@ class LLMIntentClassifier:
         self.use_llm = llm_service is not None
         self.has_neural_fallback = neural_classifier is not None
         self.has_keyword_fallback = keyword_classifier is not None
+        self.unified_llm_service = None
         
         # Intent cache for LLM responses
         self.intent_cache = {}
@@ -112,8 +114,18 @@ class LLMIntentClassifier:
             'avg_llm_latency_ms': 0.0
         }
         
-        # Initialize LLM if not provided
-        if not self.use_llm:
+        # Try to initialize UnifiedLLMService if enabled
+        if os.getenv('USE_UNIFIED_LLM', 'false').lower() == 'true':
+            try:
+                from unified_system.services.unified_llm_service import UnifiedLLMService
+                self.unified_llm_service = UnifiedLLMService()
+                logger.info("✅ LLM Intent Classifier initialized with UnifiedLLMService")
+                self.use_llm = True
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to initialize UnifiedLLMService: {e}")
+        
+        # Initialize LLM if not provided and UnifiedLLM not available
+        if not self.use_llm and not self.unified_llm_service:
             try:
                 from ml_systems.llm_service_wrapper import LLMServiceWrapper
                 self.llm_service = LLMServiceWrapper()
@@ -123,8 +135,11 @@ class LLMIntentClassifier:
                 logger.warning(f"⚠️ Failed to auto-load LLM service: {e}")
                 self.use_llm = False
         
-        if self.use_llm:
-            logger.info(f"✅ LLM Intent Classifier initialized (Model: {self.llm_service.model_name})")
+        if self.use_llm or self.unified_llm_service:
+            if self.unified_llm_service:
+                logger.info("✅ LLM Intent Classifier initialized (Using UnifiedLLMService)")
+            else:
+                logger.info(f"✅ LLM Intent Classifier initialized (Model: {self.llm_service.model_name})")
             if self.has_neural_fallback:
                 logger.info("   → Primary fallback: Neural classifier (DistilBERT)")
             if self.has_keyword_fallback:
@@ -227,6 +242,55 @@ class LLMIntentClassifier:
             method='default'
         )
     
+    async def _classify_with_llm_async(
+        self,
+        message: str,
+        entities: Dict,
+        context: Optional[Any] = None
+    ) -> IntentResult:
+        """
+        Async version of LLM classification (for UnifiedLLMService)
+        
+        Args:
+            message: User's input message
+            entities: Extracted entities
+            context: Conversation context
+            
+        Returns:
+            IntentResult with classification
+        """
+        # Extract language from context
+        language = self._get_language(context)
+        
+        # Build classification prompt
+        prompt = self._build_classification_prompt(message, entities, language, context)
+        
+        # Track LLM response time
+        start_time = time.time()
+        
+        # Use UnifiedLLMService
+        llm_response = await self.unified_llm_service.complete_text(
+            prompt=prompt,
+            max_tokens=100,
+            temperature=0.2,
+            component="llm_intent_classifier"
+        )
+        
+        # Track response time
+        end_time = time.time()
+        latency_ms = (end_time - start_time) * 1000
+        self.stats['llm_response_times'].append(latency_ms)
+        
+        # Update average latency
+        self.stats['avg_llm_latency_ms'] = sum(self.stats['llm_response_times']) / len(self.stats['llm_response_times'])
+        
+        logger.debug(f"⏱️  LLM classification latency: {latency_ms:.2f}ms")
+        
+        # Parse LLM response
+        result = self._parse_llm_response(llm_response, message, entities)
+        
+        return result
+    
     def _classify_with_llm(
         self,
         message: str,
@@ -250,6 +314,33 @@ class LLMIntentClassifier:
         
         if cached_result:
             return cached_result
+        
+        # Use async version for UnifiedLLMService
+        if self.unified_llm_service:
+            import asyncio
+            try:
+                # Check if we can use async directly
+                try:
+                    loop = asyncio.get_running_loop()
+                    # We're already in an async event loop
+                    # We can't use asyncio.run() here, so we need to schedule it properly
+                    # For now, we'll fall back to synchronous mode
+                    logger.warning("Cannot use UnifiedLLMService from sync context in async loop - falling back")
+                    # Fall through to legacy service
+                except RuntimeError:
+                    # No running loop - we can create one
+                    result = asyncio.run(self._classify_with_llm_async(message, entities, context))
+                    self._cache_intent(cache_key, result)
+                    return result
+            except Exception as e:
+                logger.error(f"Unified LLM classification failed: {e}")
+                # Fall through to legacy service
+        
+        # Legacy LLM service (synchronous)
+        if not self.llm_service:
+            # No LLM service available at all
+            logger.warning("No LLM service available for classification")
+            raise ValueError("No LLM service available")
         
         # Extract language from context
         language = self._get_language(context)

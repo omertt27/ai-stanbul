@@ -1879,7 +1879,12 @@ function Chatbot({ userLocation: propUserLocation }) {
             method: chatResponse.method,
             cached: chatResponse.cached,
             responseTime: chatResponse.response_time,
-            backend: usePureLLM ? 'pure-llm' : 'standard'
+            backend: usePureLLM ? 'pure-llm' : 'standard',
+            // 🚀 UnifiedLLM metadata for badges
+            llm_backend: chatResponse.llm_backend,
+            cache_hit: chatResponse.cache_hit,
+            circuit_breaker_state: chatResponse.circuit_breaker_state,
+            llm_latency_ms: chatResponse.llm_latency_ms
           });
           
           setLastFailedMessage(null);
@@ -1921,7 +1926,12 @@ function Chatbot({ userLocation: propUserLocation }) {
         method: chatResponse.method, // Include LLM method (cached/fresh)
         cached: chatResponse.cached,
         responseTime: chatResponse.response_time,
-        backend: usePureLLM ? 'pure-llm' : 'standard'
+        backend: usePureLLM ? 'pure-llm' : 'standard',
+        // 🚀 UnifiedLLM metadata for badges
+        llm_backend: chatResponse.llm_backend,
+        cache_hit: chatResponse.cache_hit,
+        circuit_breaker_state: chatResponse.circuit_breaker_state,
+        llm_latency_ms: chatResponse.llm_latency_ms
       });
       
       // Track message received (analytics)
@@ -2317,6 +2327,35 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 ⚡ Cached
                               </span>
                             )}
+                            
+                            {/* 🚀 UnifiedLLM Backend Indicator */}
+                            {msg.llm_backend && (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                msg.llm_backend === 'vllm'
+                                  ? darkMode ? 'bg-purple-900/50 text-purple-200' : 'bg-purple-100 text-purple-700'
+                                  : darkMode ? 'bg-orange-900/50 text-orange-200' : 'bg-orange-100 text-orange-700'
+                              }`} title={`Backend: ${msg.llm_backend.toUpperCase()}`}>
+                                {msg.llm_backend === 'vllm' ? '🚀 vLLM' : '🔄 Groq'}
+                              </span>
+                            )}
+                            
+                            {/* 🎯 Circuit Breaker State */}
+                            {msg.circuit_breaker_state && msg.circuit_breaker_state !== 'closed' && (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                darkMode ? 'bg-yellow-900/50 text-yellow-200' : 'bg-yellow-100 text-yellow-700'
+                              }`} title={`Circuit Breaker: ${msg.circuit_breaker_state}`}>
+                                ⚠️ {msg.circuit_breaker_state === 'open' ? 'Fallback' : 'Half-Open'}
+                              </span>
+                            )}
+                            
+                            {/* ⏱️ Response Time (if available) */}
+                            {msg.llm_latency_ms && (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+                              }`} title={`LLM Latency: ${msg.llm_latency_ms}ms`}>
+                                ⏱️ {msg.llm_latency_ms}ms
+                              </span>
+                            )}
                           </div>
                           
                           {/* NO background, just text - ChatGPT style */}
@@ -2610,6 +2649,35 @@ function Chatbot({ userLocation: propUserLocation }) {
                               darkMode ? 'bg-green-900/50 text-green-200' : 'bg-green-100 text-green-700'
                             }`}>
                               ⚡ Cached
+                            </span>
+                          )}
+                          
+                          {/* 🚀 UnifiedLLM Backend Indicator */}
+                          {msg.llm_backend && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              msg.llm_backend === 'vllm'
+                                ? darkMode ? 'bg-purple-900/50 text-purple-200' : 'bg-purple-100 text-purple-700'
+                                : darkMode ? 'bg-orange-900/50 text-orange-200' : 'bg-orange-100 text-orange-700'
+                            }`} title={`Backend: ${msg.llm_backend.toUpperCase()}`}>
+                              {msg.llm_backend === 'vllm' ? '🚀 vLLM' : '🔄 Groq'}
+                            </span>
+                          )}
+                          
+                          {/* 🎯 Circuit Breaker State */}
+                          {msg.circuit_breaker_state && msg.circuit_breaker_state !== 'closed' && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              darkMode ? 'bg-yellow-900/50 text-yellow-200' : 'bg-yellow-100 text-yellow-700'
+                            }`} title={`Circuit Breaker: ${msg.circuit_breaker_state}`}>
+                              ⚠️ {msg.circuit_breaker_state === 'open' ? 'Fallback' : 'Half-Open'}
+                            </span>
+                          )}
+                          
+                          {/* ⏱️ Response Time (if available) */}
+                          {msg.llm_latency_ms && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+                            }`} title={`LLM Latency: ${msg.llm_latency_ms}ms`}>
+                              ⏱️ {msg.llm_latency_ms}ms
                             </span>
                           )}
                         </div>

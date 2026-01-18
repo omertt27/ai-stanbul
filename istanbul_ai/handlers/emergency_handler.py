@@ -10,17 +10,54 @@ with LLM-enhanced natural language responses and GPS-aware recommendations.
 🏛️ EMBASSIES: Embassy/consulate locations and contact info for all countries
 🌐 MULTILINGUAL: LLM automatically responds in user's language (50+ languages)
 
-Created: November 5, 2025
+Created: Response:"""
+            
+            try:
+                llm_response = self._llm_generate(
+                    prompt=prompt,
+                    component="emergency.immediate",
+                    max_tokens=300,
+                    temperature=0.3
+                ) 5, 2025
+Updated: January 18, 2026 (Week 2 Phase 4A - UnifiedLLMService integration)
 """
 
 from typing import Dict, Optional, List, Any, Union
 import logging
 from datetime import datetime
+import sys
+import os
 
 logger = logging.getLogger(__name__)
 
+# Add backend/services to path for mixin import
+backend_services_path = os.path.join(os.path.dirname(__file__), '..', '..', 'backend', 'services')
+if backend_services_path not in sys.path:
+    sys.path.insert(0, backend_services_path)
 
-class EmergencyHandler:
+# Import handler LLM mixin for UnifiedLLMService integration
+try:
+    from backend.services.handler_llm_mixin import HandlerLLMMixin
+    HANDLER_MIXIN_AVAILABLE = True
+    logger.info("✅ HandlerLLMMixin loaded successfully")
+except ImportError:
+    try:
+        from handler_llm_mixin import HandlerLLMMixin
+        HANDLER_MIXIN_AVAILABLE = True
+        logger.info("✅ HandlerLLMMixin loaded successfully (fallback path)")
+    except ImportError as e:
+        HANDLER_MIXIN_AVAILABLE = False
+        logger.warning(f"⚠️ HandlerLLMMixin not available: {e}")
+        # Create a dummy mixin if not available
+        class HandlerLLMMixin:
+            def _init_handler_llm(self): pass
+            def _llm_generate(self, prompt, component, **kwargs):
+                if hasattr(self, 'llm_service') and self.llm_service:
+                    return self.llm_service.generate(prompt=prompt, **kwargs)
+                raise RuntimeError("No LLM service available")
+
+
+class EmergencyHandler(HandlerLLMMixin):
     """
     Emergency & Safety Information Handler
     
@@ -213,7 +250,10 @@ class EmergencyHandler:
         self.gps_location_service = gps_location_service
         self.rag_service = rag_service
         
-        self.has_llm = llm_service is not None
+        # Initialize UnifiedLLMService integration via mixin
+        self._init_handler_llm()
+        
+        self.has_llm = llm_service is not None or hasattr(self, 'unified_llm')
         self.has_gps = gps_location_service is not None
         self.has_rag = rag_service is not None and getattr(rag_service, 'available', False)
         
@@ -463,8 +503,9 @@ Response:"""
             prompt = self._create_hospital_prompt(message, nearest_hospitals, gps_context)
             
             try:
-                llm_response = self.llm_service.generate(
+                llm_response = self._llm_generate(
                     prompt=prompt,
+                    component="emergency.hospital",
                     max_tokens=200,
                     temperature=0.7
                 )
@@ -524,8 +565,9 @@ Response:"""
             prompt = self._create_embassy_prompt(message, embassy_info, country_code, gps_context)
             
             try:
-                llm_response = self.llm_service.generate(
+                llm_response = self._llm_generate(
                     prompt=prompt,
+                    component="emergency.embassy",
                     max_tokens=200,
                     temperature=0.7
                 )
@@ -592,8 +634,9 @@ Keep it concise (3-4 sentences). Always respond in the same language as the user
 Response:"""
             
             try:
-                llm_response = self.llm_service.generate(
+                llm_response = self._llm_generate(
                     prompt=prompt,
+                    component="emergency.pharmacy",
                     max_tokens=150,
                     temperature=0.7
                 )
@@ -671,8 +714,9 @@ Always respond in the same language as the user's query.
 Response:"""
             
             try:
-                llm_response = self.llm_service.generate(
+                llm_response = self._llm_generate(
                     prompt=prompt,
+                    component="emergency.safety_info",
                     max_tokens=150,
                     temperature=0.7
                 )

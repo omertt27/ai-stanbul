@@ -670,7 +670,7 @@ class TransportationIntentClassifier:
     async def clarify_with_llm(
         self,
         query: str,
-        llm_service
+        llm_service=None
     ) -> bool:
         """
         Use LLM to clarify intent when confidence is uncertain (0.4-0.6).
@@ -681,18 +681,46 @@ class TransportationIntentClassifier:
         - Expected latency: ~300ms
         
         Only called when needed, not for every query.
+        
+        Args:
+            query: User query to classify
+            llm_service: Legacy LLM service (for backwards compatibility)
+                        Will use UnifiedLLMService if USE_UNIFIED_LLM is enabled
         """
         try:
+            # Try to use UnifiedLLMService if enabled
+            unified_llm = None
+            try:
+                import os
+                if os.getenv('USE_UNIFIED_LLM', 'false').lower() == 'true':
+                    from unified_system.services.unified_llm_service import UnifiedLLMService
+                    unified_llm = UnifiedLLMService()
+                    logger.debug("🔄 Using UnifiedLLMService for classification")
+            except Exception as e:
+                logger.debug(f"UnifiedLLMService not available, using fallback: {e}")
+            
             prompt = f"""Does this user want directions or navigation help?
 Query: "{query}"
 
 Answer only YES or NO."""
 
-            response = await llm_service.generate(
-                prompt=prompt,
-                max_tokens=3,
-                temperature=0
-            )
+            # Use UnifiedLLMService if available, otherwise fall back to legacy
+            if unified_llm:
+                response = await unified_llm.complete_text(
+                    prompt=prompt,
+                    max_tokens=3,
+                    temperature=0,
+                    component="transportation_classifier"
+                )
+            elif llm_service:
+                response = await llm_service.generate(
+                    prompt=prompt,
+                    max_tokens=3,
+                    temperature=0
+                )
+            else:
+                logger.warning("No LLM service available for clarification")
+                return False
             
             answer = response.strip().upper()
             is_transportation = 'YES' in answer

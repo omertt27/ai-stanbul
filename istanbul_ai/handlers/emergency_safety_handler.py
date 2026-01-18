@@ -10,15 +10,44 @@ This handler provides critical safety and emergency information for tourists in 
 📞 CONTACT-RICH: Includes emergency numbers, addresses, and directions
 
 Created: November 5, 2025
+Updated: January 18, 2026 (Week 2 Phase 4A - UnifiedLLMService integration)
 """
 
 from typing import Dict, Optional, Any, Union
 import logging
+import sys
+import os
 
 logger = logging.getLogger(__name__)
 
+# Add backend/services to path for mixin import
+backend_services_path = os.path.join(os.path.dirname(__file__), '..', '..', 'backend', 'services')
+if backend_services_path not in sys.path:
+    sys.path.insert(0, backend_services_path)
 
-class EmergencySafetyHandler:
+# Import handler LLM mixin for UnifiedLLMService integration
+try:
+    from backend.services.handler_llm_mixin import HandlerLLMMixin
+    HANDLER_MIXIN_AVAILABLE = True
+    logger.info("✅ HandlerLLMMixin loaded successfully")
+except ImportError:
+    try:
+        from handler_llm_mixin import HandlerLLMMixin
+        HANDLER_MIXIN_AVAILABLE = True
+        logger.info("✅ HandlerLLMMixin loaded successfully (fallback path)")
+    except ImportError as e:
+        HANDLER_MIXIN_AVAILABLE = False
+        logger.warning(f"⚠️ HandlerLLMMixin not available: {e}")
+        # Create a dummy mixin if not available
+        class HandlerLLMMixin:
+            def _init_handler_llm(self): pass
+            def _llm_generate(self, prompt, component, **kwargs):
+                if hasattr(self, 'llm_service') and self.llm_service:
+                    return self.llm_service.generate(prompt=prompt, **kwargs)
+                raise RuntimeError("No LLM service available")
+
+
+class EmergencySafetyHandler(HandlerLLMMixin):
     """
     Emergency & Safety Information Handler
     
@@ -31,6 +60,9 @@ class EmergencySafetyHandler:
     - Common scams and how to avoid them
     - 🌐 Automatic multilingual support (LLM detects language from query)
     - 📍 GPS-aware recommendations (nearest facilities)
+    
+    Integrated with UnifiedLLMService via HandlerLLMMixin for consistent
+    LLM calls, metrics tracking, and caching.
     """
     
     # Emergency keywords (multilingual)
@@ -79,8 +111,11 @@ class EmergencySafetyHandler:
         self.gps_location_service = gps_location_service
         self.neural_processor = neural_processor  # Store but don't require
         
+        # Initialize UnifiedLLMService integration via mixin
+        self._init_handler_llm()
+        
         # Service availability flags
-        self.has_llm = llm_service is not None
+        self.has_llm = llm_service is not None or hasattr(self, 'unified_llm')
         self.has_gps = gps_location_service is not None
         
         logger.info(
@@ -271,7 +306,10 @@ class EmergencySafetyHandler:
                 message, urgency, user_location
             )
             try:
-                response = self.llm_service.generate(prompt)
+                response = self._llm_generate(
+                    prompt=prompt,
+                    component="emergency_safety.medical"
+                )
                 return response
             except Exception as e:
                 logger.error(f"LLM error: {e}")
@@ -329,7 +367,10 @@ Response:"""
                 message, urgency, user_location
             )
             try:
-                response = self.llm_service.generate(prompt)
+                response = self._llm_generate(
+                    prompt=prompt,
+                    component="emergency_safety.police"
+                )
                 return response
             except Exception as e:
                 logger.error(f"LLM error: {e}")
@@ -393,7 +434,10 @@ Response:"""
         if self.has_llm:
             prompt = self._create_embassy_prompt(message, user_location)
             try:
-                response = self.llm_service.generate(prompt)
+                response = self._llm_generate(
+                    prompt=prompt,
+                    component="emergency_safety.embassy"
+                )
                 return response
             except Exception as e:
                 logger.error(f"LLM error: {e}")
@@ -466,7 +510,10 @@ Keep advice practical and reassuring. Be concise (2-3 sentences).
 Response:"""
             
             try:
-                response = self.llm_service.generate(prompt)
+                response = self._llm_generate(
+                    prompt=prompt,
+                    component="emergency_safety.safety_info"
+                )
                 return response
             except Exception as e:
                 logger.error(f"LLM error: {e}")
@@ -500,7 +547,10 @@ Keep response clear and actionable.
 Response:"""
             
             try:
-                response = self.llm_service.generate(prompt)
+                response = self._llm_generate(
+                    prompt=prompt,
+                    component="emergency_safety.general"
+                )
                 return response
             except Exception as e:
                 logger.error(f"LLM error: {e}")
