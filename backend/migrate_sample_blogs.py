@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Add backend to path
 sys.path.insert(0, os.path.dirname(__file__))
-from database import Base
+from db.base import Base
 
 # Get DATABASE_URL from environment (Render provides this automatically)
 DATABASE_URL = os.getenv('DATABASE_URL')

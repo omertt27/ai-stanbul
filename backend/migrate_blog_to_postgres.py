@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Add backend to path
 sys.path.insert(0, os.path.dirname(__file__))
-from database import Base
+from db.base import Base
 
 # Database connection
 # Get from Render.com dashboard or use environment variable

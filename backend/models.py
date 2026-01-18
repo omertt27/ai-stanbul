@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, UniqueConstraint, JSON
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from database import Base
+from db.base import Base  # Use central Base - single source of truth
 from datetime import datetime
 
 # User model exists in the database already, using extend_existing to avoid conflicts

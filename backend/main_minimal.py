@@ -57,9 +57,9 @@ try:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
     
-    # Import Base from database module
+    # Import Base from central location
     sys.path.insert(0, os.path.dirname(__file__))
-    from database import Base
+    from db.base import Base
     
     DB_URL = "sqlite:///./app.db"
     engine = create_engine(DB_URL, connect_args={"check_same_thread": False})

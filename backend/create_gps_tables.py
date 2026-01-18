@@ -29,7 +29,8 @@ print("")
 try:
     # Import database and models
     print("📦 Importing database models...")
-    from database import Base, engine
+    from db.base import Base
+    from database import engine
     from models import (
         LocationHistory,
         NavigationSession,

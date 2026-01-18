@@ -39,15 +39,19 @@ class DatabaseConfig:
         
         if not db_url:
             # Try to construct from individual parameters
-            host = os.getenv('POSTGRES_HOST')
-            port = os.getenv('POSTGRES_PORT', '5432')
-            db_name = os.getenv('POSTGRES_DB')
-            user = os.getenv('POSTGRES_USER')
-            password = os.getenv('POSTGRES_PASSWORD')
+            host = os.getenv('POSTGRES_HOST', os.getenv('DATABASE_HOST', 'localhost'))
+            # Default to 5433 for Cloud SQL Proxy, fallback to 5432 for local
+            port = os.getenv('POSTGRES_PORT', os.getenv('DATABASE_PORT', os.getenv('CLOUDSQL_PORT', '5433')))
+            db_name = os.getenv('POSTGRES_DB', os.getenv('DATABASE_NAME', 'postgres'))
+            user = os.getenv('POSTGRES_USER', os.getenv('DATABASE_USER', 'postgres'))
+            password = os.getenv('POSTGRES_PASSWORD', os.getenv('DATABASE_PASSWORD', ''))
             
-            if all([host, db_name, user, password]):
-                db_url = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
-                logger.info("✅ Constructed DATABASE_URL from individual parameters")
+            if all([host, db_name, user]):
+                if password:
+                    db_url = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
+                else:
+                    db_url = f"postgresql://{user}@{host}:{port}/{db_name}"
+                logger.info(f"✅ Constructed DATABASE_URL from individual parameters (port={port})")
             else:
                 logger.warning("⚠️ No DATABASE_URL found, using SQLite")
                 db_url = "sqlite:///./app.db"

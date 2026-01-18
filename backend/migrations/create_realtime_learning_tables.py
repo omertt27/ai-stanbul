@@ -12,7 +12,8 @@ parent_dir = os.path.dirname(backend_dir)
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, backend_dir)
 
-from database import Base, engine
+from db.base import Base
+from database import engine
 from models import (
     FeedbackEvent,
     UserInteractionAggregate,

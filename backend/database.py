@@ -2,11 +2,13 @@ import os
 import sys
 import logging
 from sqlalchemy import create_engine, event
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool, NullPool
 from sqlalchemy.engine import Engine
 from dotenv import load_dotenv
+
+# Import central Base (single source of truth)
+from db.base import Base
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -45,8 +47,6 @@ try:
 except ImportError:
     USE_CENTRALIZED_CONFIG = False
     logger.warning("⚠️ Using legacy database configuration")
-
-Base = declarative_base()
 
 # Database configuration - only log once
 if USE_CENTRALIZED_CONFIG:
@@ -153,4 +153,10 @@ def get_db():
     finally:
         db.close()
 
-
+# Import models registry to ensure all models are registered with SQLAlchemy
+# This must be done AFTER Base and engine are created
+try:
+    from db.models_registry import __all__ as registered_models
+    logger.info(f"✅ Registered {len(registered_models) - 1} database models")  # -1 for Base
+except ImportError as e:
+    logger.warning(f"⚠️ Could not import models registry: {e}")

@@ -66,9 +66,9 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, 
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 
-# Import Base from database module
+# Import Base from central location
 sys.path.insert(0, os.path.dirname(__file__))
-from database import Base
+from db.base import Base
 
 # Load environment variables
 load_dotenv()

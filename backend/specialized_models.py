@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, Time
 from sqlalchemy.orm import relationship
-from database import Base
+from db.base import Base  # Use central Base - single source of truth
 from datetime import datetime, time
 
 class TransportRoute(Base):
