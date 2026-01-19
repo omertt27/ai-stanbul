@@ -11,6 +11,8 @@ from datetime import datetime
 import logging
 
 from database import get_db
+# Use direct import to avoid circular dependency with models/ package
+from models_direct import BlogPost as BlogPostModel, BlogComment as BlogCommentModel, BlogLike as BlogLikeModel
 
 # Import rate limiter
 try:
@@ -117,7 +119,7 @@ async def get_blog_posts(
     ✅ Supports both parameter naming conventions
     """
     try:
-        from models import BlogPost, BlogComment
+        # Models already imported at top of file
         
         # Handle parameter aliases
         actual_per_page = per_page or limit or 12
@@ -128,26 +130,26 @@ async def get_blog_posts(
         response.headers["ETag"] = f"posts-{page}-{district}-{actual_sort}-{search}"
         
         # Base query with eager loading
-        query = db.query(BlogPost)
+        query = db.query(BlogPostModel)
         
         # Apply filters
         if district:
-            query = query.filter(BlogPost.district == district)
+            query = query.filter(BlogPostModel.district == district)
         
         if search:
             search_filter = f"%{search}%"
             query = query.filter(
-                (BlogPost.title.ilike(search_filter)) | 
-                (BlogPost.content.ilike(search_filter))
+                (BlogPostModel.title.ilike(search_filter)) | 
+                (BlogPostModel.content.ilike(search_filter))
             )
         
         # Apply sorting
         if actual_sort == "newest":
-            query = query.order_by(BlogPost.created_at.desc())
+            query = query.order_by(BlogPostModel.created_at.desc())
         elif actual_sort == "oldest":
-            query = query.order_by(BlogPost.created_at.asc())
+            query = query.order_by(BlogPostModel.created_at.asc())
         elif actual_sort == "popular":
-            query = query.order_by(BlogPost.likes_count.desc())
+            query = query.order_by(BlogPostModel.likes_count.desc())
         
         # Get total count
         total = query.count()
@@ -206,20 +208,18 @@ async def get_blog_post(post_id: int, response: Response, db: Session = Depends(
     ✅ Added response caching headers
     """
     try:
-        from models import BlogPost, BlogComment
-        
         # Add cache headers for public content (10 minutes)
         response.headers["Cache-Control"] = "public, max-age=600"
         response.headers["ETag"] = f"post-{post_id}"
         
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
         
         if not post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
-        comments_count = db.query(BlogComment).filter(
-            BlogComment.blog_post_id == post.id,
-            BlogComment.is_approved == True
+        comments_count = db.query(BlogCommentModel).filter(
+            BlogCommentModel.blog_post_id == post.id,
+            BlogCommentModel.is_approved == True
         ).count()
         
         return BlogPostResponse(
@@ -249,7 +249,7 @@ async def create_blog_post(post: BlogPostCreate, request: Request, db: Session =
     ✅ Rate limited: 10 posts/hour per IP
     """
     try:
-        from models import BlogPost
+        # Models already imported at top of file
         
         # Rate limiting (if available)
         if RATE_LIMITER_AVAILABLE and limiter:
@@ -259,7 +259,7 @@ async def create_blog_post(post: BlogPostCreate, request: Request, db: Session =
                 logger.warning(f"Rate limiter error: {e}")
         
         # Create new blog post
-        new_post = BlogPost(
+        new_post = BlogPostModel(
             title=post.title,
             content=post.content,
             author=post.author_name,
@@ -304,7 +304,7 @@ async def update_blog_post(post_id: int, post_update: BlogPostUpdate, request: R
     ✅ Rate limited: 20 updates/hour per IP
     """
     try:
-        from models import BlogPost, BlogComment
+        # Models already imported at top of file
         
         # Rate limiting (if available)
         if RATE_LIMITER_AVAILABLE and limiter:
@@ -314,7 +314,7 @@ async def update_blog_post(post_id: int, post_update: BlogPostUpdate, request: R
                 logger.warning(f"Rate limiter error: {e}")
         
         # Get existing post
-        existing_post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        existing_post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
         if not existing_post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
@@ -334,7 +334,7 @@ async def update_blog_post(post_id: int, post_update: BlogPostUpdate, request: R
         db.refresh(existing_post)
         
         # Get comments count
-        comments_count = db.query(BlogComment).filter(BlogComment.blog_post_id == post_id).count()
+        comments_count = db.query(BlogCommentModel).filter(BlogCommentModel.blog_post_id == post_id).count()
         
         logger.info(f"✅ Updated blog post: {existing_post.id} - {existing_post.title}")
         
@@ -366,7 +366,7 @@ async def delete_blog_post(post_id: int, request: Request, db: Session = Depends
     ✅ Rate limited: 10 deletions/hour per IP
     """
     try:
-        from models import BlogPost, BlogComment, BlogLike
+        # Models already imported at top of file
         
         # Rate limiting (if available)
         if RATE_LIMITER_AVAILABLE and limiter:
@@ -376,15 +376,15 @@ async def delete_blog_post(post_id: int, request: Request, db: Session = Depends
                 logger.warning(f"Rate limiter error: {e}")
         
         # Get existing post
-        existing_post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        existing_post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
         if not existing_post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
         post_title = existing_post.title
         
         # Delete associated comments and likes (cascade)
-        db.query(BlogComment).filter(BlogComment.blog_post_id == post_id).delete()
-        db.query(BlogLike).filter(BlogLike.blog_post_id == post_id).delete()
+        db.query(BlogCommentModel).filter(BlogCommentModel.blog_post_id == post_id).delete()
+        db.query(BlogLikeModel).filter(BlogLikeModel.blog_post_id == post_id).delete()
         
         # Delete the post
         db.delete(existing_post)
@@ -412,18 +412,16 @@ async def get_post_comments(post_id: int, db: Session = Depends(get_db)):
     Get all approved comments for a blog post
     """
     try:
-        from models import BlogPost, BlogComment
-        
         # Verify post exists
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
         if not post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
         # Get approved comments
-        comments = db.query(BlogComment).filter(
-            BlogComment.blog_post_id == post_id,
-            BlogComment.is_approved == True
-        ).order_by(BlogComment.created_at.desc()).all()
+        comments = db.query(BlogCommentModel).filter(
+            BlogCommentModel.blog_post_id == post_id,
+            BlogCommentModel.is_approved == True
+        ).order_by(BlogCommentModel.created_at.desc()).all()
         
         formatted_comments = [
             BlogCommentResponse(
@@ -448,7 +446,7 @@ async def get_post_comments(post_id: int, db: Session = Depends(get_db)):
 
 @router.post("/posts/{post_id}/comments", response_model=BlogCommentResponse, status_code=status.HTTP_201_CREATED)
 async def create_comment(
-    post_id: int, 
+    post_id: int,
     comment: BlogCommentCreate,
     request: Request,
     db: Session = Depends(get_db)
@@ -458,8 +456,6 @@ async def create_comment(
     ✅ Rate limited: 20 comments/hour per IP
     """
     try:
-        from models import BlogPost, BlogComment
-        
         # Rate limiting (if available)
         if RATE_LIMITER_AVAILABLE and limiter:
             try:
@@ -468,7 +464,7 @@ async def create_comment(
                 logger.warning(f"Rate limiter error: {e}")
         
         # Verify post exists
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
         if not post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
@@ -477,7 +473,7 @@ async def create_comment(
         user_agent = request.headers.get("user-agent", "")
         
         # Create new comment (auto-approved for now)
-        new_comment = BlogComment(
+        new_comment = BlogCommentModel(
             blog_post_id=post_id,
             author_name=comment.author_name,
             author_email=comment.author_email,
@@ -528,17 +524,15 @@ async def toggle_like(
     Returns the new like status and updated count
     """
     try:
-        from models import BlogPost, BlogLike
-        
         # Verify post exists
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
         if not post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
         # Check if user already liked
-        existing_like = db.query(BlogLike).filter(
-            BlogLike.blog_post_id == post_id,
-            BlogLike.user_id == user_identifier
+        existing_like = db.query(BlogLikeModel).filter(
+            BlogLikeModel.blog_post_id == post_id,
+            BlogLikeModel.user_id == user_identifier
         ).first()
         
         if existing_like:
@@ -549,7 +543,7 @@ async def toggle_like(
             logger.info(f"👎 User {user_identifier[:8]} unliked post {post_id}")
         else:
             # Like - add new like
-            new_like = BlogLike(
+            new_like = BlogLikeModel(
                 blog_post_id=post_id,
                 user_id=user_identifier,
                 created_at=datetime.utcnow()
@@ -585,17 +579,15 @@ async def get_like_status(
     Check if a user has liked a post
     """
     try:
-        from models import BlogPost, BlogLike
-        
         # Verify post exists
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
         if not post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
         # Check if user has liked
-        existing_like = db.query(BlogLike).filter(
-            BlogLike.blog_post_id == post_id,
-            BlogLike.user_id == user_identifier
+        existing_like = db.query(BlogLikeModel).filter(
+            BlogLikeModel.blog_post_id == post_id,
+            BlogLikeModel.user_id == user_identifier
         ).first()
         
         return {
@@ -620,15 +612,12 @@ async def get_blog_districts(db: Session = Depends(get_db)):
     Get list of districts with blog posts
     """
     try:
-        from models import BlogPost
-        from sqlalchemy import func
-        
         districts = db.query(
-            BlogPost.district,
-            func.count(BlogPost.id).label('count')
+            BlogPostModel.district,
+            func.count(BlogPostModel.id).label('count')
         ).filter(
-            BlogPost.district.isnot(None)
-        ).group_by(BlogPost.district).all()
+            BlogPostModel.district.isnot(None)
+        ).group_by(BlogPostModel.district).all()
         
         return {
             "districts": [

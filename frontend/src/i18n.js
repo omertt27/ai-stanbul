@@ -1,9 +1,9 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
-import logger from './utils/logger.js';
+import { Logger } from './utils/logger.js';
 
-const log = logger.namespace('i18n');
+const log = new Logger('i18n');
 
 // Translation resources - bundled for instant loading
 import enTranslation from './locales/en/translation.json';

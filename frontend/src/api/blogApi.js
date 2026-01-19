@@ -5,6 +5,9 @@ import {
   ErrorTypes,
   createCircuitBreaker
 } from '../utils/errorHandler.js';
+import { Logger } from '../utils/logger';
+
+const logger = new Logger('BlogAPI');
 
 // API configuration
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -12,10 +15,10 @@ const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
 const BLOG_API_URL = `${cleanBaseUrl}/api/blog/posts`;
 
 // Debug logging
-console.log('🔧 API Configuration:');
-console.log('  VITE_API_URL:', import.meta.env.VITE_API_URL);
-console.log('  BASE_URL:', BASE_URL);
-console.log('  BLOG_API_URL:', BLOG_API_URL);
+logger.debug('🔧 API Configuration:');
+logger.debug('  VITE_API_URL:', import.meta.env.VITE_API_URL);
+logger.debug('  BASE_URL:', BASE_URL);
+logger.debug('  BLOG_API_URL:', BLOG_API_URL);
 
 // Circuit breaker for blog API
 const blogCircuitBreaker = createCircuitBreaker({
@@ -28,7 +31,7 @@ const handleBlogApiError = (error, response = null, context = '') => {
   const errorType = classifyError(error, response);
   const userMessage = getUserFriendlyMessage(error, response);
   
-  console.error(`${context} error:`, {
+  logger.error(`${context} error:`, {
     message: error.message,
     type: errorType,
     userMessage,
@@ -64,7 +67,7 @@ export const fetchBlogPosts = async (params = {}) => {
       });
       
       const url = `${BLOG_API_URL}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
-      console.log('🔍 Fetching blog posts from:', url);
+      logger.debug('🔍 Fetching blog posts from:', url);
       
       const response = await fetchWithRetry(url, {
         method: 'GET',
@@ -80,15 +83,15 @@ export const fetchBlogPosts = async (params = {}) => {
       const data = await response.json();
       
       // DEBUGGING: Log the full response structure
-      console.log('📦 Raw API response:', data);
-      console.log('📊 Response type:', Array.isArray(data) ? 'Array' : typeof data);
-      console.log('📊 Response keys:', Array.isArray(data) ? 'N/A (is array)' : Object.keys(data));
+      logger.info('📦 Raw API response:', data);
+      logger.info('📊 Response type:', Array.isArray(data) ? 'Array' : typeof data);
+      logger.info('📊 Response keys:', Array.isArray(data) ? 'N/A (is array)' : Object.keys(data));
       
       // Handle different response formats
       let normalizedData;
       if (Array.isArray(data)) {
         // If API returns an array directly, wrap it
-        console.log('⚠️ API returned array directly, normalizing...');
+        logger.info('⚠️ API returned array directly, normalizing...');
         normalizedData = {
           posts: data,
           total: data.length,
@@ -100,7 +103,7 @@ export const fetchBlogPosts = async (params = {}) => {
         normalizedData = data;
       } else {
         // Unknown format
-        console.error('❌ Unexpected API response format:', data);
+        logger.error('❌ Unexpected API response format:', data);
         normalizedData = {
           posts: [],
           total: 0,
@@ -109,7 +112,7 @@ export const fetchBlogPosts = async (params = {}) => {
         };
       }
       
-      console.log('✅ Blog posts fetched:', normalizedData.posts?.length || 0, 'posts, total:', normalizedData.total);
+      logger.info('✅ Blog posts fetched:', normalizedData.posts?.length || 0, 'posts, total:', normalizedData.total);
       return normalizedData;
       
     } catch (error) {
@@ -121,11 +124,11 @@ export const fetchBlogPosts = async (params = {}) => {
 export const fetchBlogPost = async (postId) => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('📖 Fetching blog post:', postId);
-      console.log('🔗 Blog API URL:', BLOG_API_URL);
-      console.log('🎯 Full URL:', `${BLOG_API_URL}${postId}`);
+      logger.info('📖 Fetching blog post:', postId);
+      logger.info('🔗 Blog API URL:', BLOG_API_URL);
+      logger.info('🎯 Full URL:', `${BLOG_API_URL}/${postId}`);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -137,7 +140,7 @@ export const fetchBlogPost = async (postId) => {
       });
       
       const data = await response.json();
-      console.log('✅ Blog post fetched:', data.title);
+      logger.info('✅ Blog post fetched:', data.title);
       return data;
       
     } catch (error) {
@@ -146,26 +149,27 @@ export const fetchBlogPost = async (postId) => {
   });
 };
 
+// Admin CRUD operations
 export const createBlogPost = async (postData) => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('✍️ Creating blog post:', postData.title);
+      logger.info('✨ Creating new blog post:', postData.title);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}`, {
+      const response = await fetchWithRetry(BLOG_API_URL, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         body: JSON.stringify(postData),
-        timeout: 20000
+        timeout: 15000
       }, {
         maxAttempts: 2,
         baseDelay: 1000
       });
       
       const data = await response.json();
-      console.log('✅ Blog post created:', data.id);
+      logger.info('✅ Blog post created:', data.id);
       return data;
       
     } catch (error) {
@@ -174,10 +178,67 @@ export const createBlogPost = async (postData) => {
   });
 };
 
+export const updateBlogPost = async (postId, postData) => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      logger.info('💾 Updating blog post:', postId);
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(postData),
+        timeout: 15000
+      }, {
+        maxAttempts: 2,
+        baseDelay: 1000
+      });
+      
+      const data = await response.json();
+      logger.info('✅ Blog post updated:', postId);
+      return data;
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Update Blog Post');
+    }
+  });
+};
+
+export const deleteBlogPost = async (postId) => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      logger.info('🗑️ Deleting blog post:', postId);
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      }, {
+        maxAttempts: 2,
+        baseDelay: 1000
+      });
+      
+      const data = await response.json();
+      logger.info('✅ Blog post deleted:', postId);
+      return data;
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Delete Blog Post');
+    }
+  });
+};
+
+// Alias for compatibility with different naming conventions
+export const getBlogPosts = fetchBlogPosts;
+
 export const uploadBlogImage = async (file) => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('📸 Uploading blog image:', file.name);
+      logger.info('📸 Uploading blog image:', file.name);
       
       const formData = new FormData();
       formData.append('file', file);
@@ -192,7 +253,7 @@ export const uploadBlogImage = async (file) => {
       });
       
       const data = await response.json();
-      console.log('✅ Image uploaded:', data.image_url);
+      logger.info('✅ Image uploaded:', data.image_url);
       return data;
       
     } catch (error) {
@@ -210,7 +271,7 @@ export const likeBlogPost = async (postId, userIdentifier = null) => {
         localStorage.setItem('user_identifier', userIdentifier);
       }
       
-      console.log('❤️ Toggling like for post:', postId, 'User:', userIdentifier.substr(0, 10) + '...');
+      logger.info('❤️ Toggling like for post:', postId, 'User:', userIdentifier.substr(0, 10) + '...');
       
       // Use the new database-backed endpoint
       const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like`, {
@@ -227,11 +288,11 @@ export const likeBlogPost = async (postId, userIdentifier = null) => {
       });
       
       const data = await response.json();
-      console.log('✅ Post like toggled:', data);
+      logger.info('✅ Post like toggled:', data);
       return data; // { success: true, is_liked: boolean, likes_count: number }
       
     } catch (error) {
-      console.error('❌ Like failed for post ID:', postId, 'Error:', error.message);
+      logger.error('❌ Like failed for post ID:', postId, 'Error:', error.message);
       throw handleBlogApiError(error, null, `Like Blog Post (ID: ${postId})`);
     }
   });
@@ -240,10 +301,10 @@ export const likeBlogPost = async (postId, userIdentifier = null) => {
 export const checkLikeStatus = async (postId, userIdentifier = 'default_user') => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log(`🔍 Checking like status for post ${postId}`);
+      logger.info(`🔍 Checking like status for post ${postId}`);
       
-      // Use the new database-backed endpoint
-      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like-status`, {
+      // Use the new database-backed endpoint with query parameter
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like-status?user_identifier=${encodeURIComponent(userIdentifier)}`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -256,11 +317,11 @@ export const checkLikeStatus = async (postId, userIdentifier = 'default_user') =
       }
 
       const data = await response.json();
-      console.log('✅ Like status checked:', data);
+      logger.info('✅ Like status checked:', data);
       return data; // { success: true, isLiked: boolean, likes_count: number }
       
     } catch (error) {
-      console.error('❌ Error checking like status:', error);
+      logger.error('❌ Error checking like status:', error);
       // Return default values on error
       return { success: false, isLiked: false, likes_count: 0 };
     }
@@ -270,7 +331,7 @@ export const checkLikeStatus = async (postId, userIdentifier = 'default_user') =
 export const fetchBlogDistricts = async () => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('📍 Fetching blog districts');
+      logger.info('📍 Fetching blog districts');
       
       const response = await fetchWithRetry(`${BLOG_API_URL}districts`, {
         method: 'GET',
@@ -284,7 +345,7 @@ export const fetchBlogDistricts = async () => {
       });
       
       const data = await response.json();
-      console.log('✅ Blog districts fetched:', data.length, 'districts');
+      logger.info('✅ Blog districts fetched:', data.length, 'districts');
       return data;
       
     } catch (error) {
@@ -296,7 +357,7 @@ export const fetchBlogDistricts = async () => {
 export const fetchBlogTags = async () => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('📋 Fetching blog tags');
+      logger.info('📋 Fetching blog tags');
       
       const response = await fetchWithRetry(`${BLOG_API_URL}tags`, {
         method: 'GET',
@@ -310,7 +371,7 @@ export const fetchBlogTags = async () => {
       });
       
       const data = await response.json();
-      console.log('✅ Blog tags fetched:', data.length, 'tags');
+      logger.info('✅ Blog tags fetched:', data.length, 'tags');
       return data;
       
     } catch (error) {
@@ -322,7 +383,7 @@ export const fetchBlogTags = async () => {
 export const fetchFeaturedPosts = async (limit = 3) => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('⭐ Fetching featured posts');
+      logger.info('⭐ Fetching featured posts');
       
       const response = await fetchWithRetry(`${BLOG_API_URL}featured?limit=${limit}`, {
         method: 'GET',
@@ -336,7 +397,7 @@ export const fetchFeaturedPosts = async (limit = 3) => {
       });
       
       const data = await response.json();
-      console.log('✅ Featured posts fetched:', data.featured_posts?.length || 0, 'posts');
+      logger.info('✅ Featured posts fetched:', data.featured_posts?.length || 0, 'posts');
       return data;
       
     } catch (error) {
@@ -348,7 +409,7 @@ export const fetchFeaturedPosts = async (limit = 3) => {
 export const fetchTrendingPosts = async (limit = 5) => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('🔥 Fetching trending posts');
+      logger.info('🔥 Fetching trending posts');
       
       const response = await fetchWithRetry(`${BLOG_API_URL}trending?limit=${limit}`, {
         method: 'GET',
@@ -362,7 +423,7 @@ export const fetchTrendingPosts = async (limit = 5) => {
       });
       
       const data = await response.json();
-      console.log('✅ Trending posts fetched:', data.trending_posts?.length || 0, 'posts');
+      logger.info('✅ Trending posts fetched:', data.trending_posts?.length || 0, 'posts');
       return data;
       
     } catch (error) {
@@ -374,7 +435,7 @@ export const fetchTrendingPosts = async (limit = 5) => {
 export const fetchBlogStats = async () => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('📊 Fetching blog stats');
+      logger.info('📊 Fetching blog stats');
       
       const response = await fetchWithRetry(`${BLOG_API_URL}stats`, {
         method: 'GET',
@@ -388,7 +449,7 @@ export const fetchBlogStats = async () => {
       });
       
       const data = await response.json();
-      console.log('✅ Blog stats fetched:', data);
+      logger.info('✅ Blog stats fetched:', data);
       return data;
       
     } catch (error) {
@@ -399,7 +460,7 @@ export const fetchBlogStats = async () => {
 
 export const fetchRelatedPosts = async (postId, limit = 4) => {
   try {
-    console.log('🔗 Fetching related posts for:', postId);
+    logger.info('🔗 Fetching related posts for:', postId);
     
     // Get all posts and filter client-side since backend doesn't have related endpoint
     const allPosts = await fetchBlogPosts();
@@ -418,25 +479,25 @@ export const fetchRelatedPosts = async (postId, limit = 4) => {
       )
       ?.slice(0, limit) || [];
     
-    console.log('✅ Related posts fetched:', related.length, 'posts');
+    logger.info('✅ Related posts fetched:', related.length, 'posts');
     return { related_posts: related };
     
   } catch (error) {
-    console.error('❌ Failed to fetch related posts:', error);
+    logger.error('❌ Failed to fetch related posts:', error);
     return { related_posts: [] };
   }
 };
 
 export const seedSamplePosts = async () => {
   // Backend automatically seeds sample posts on startup
-  console.log('🌱 Sample posts are automatically seeded by backend');
+  logger.info('🌱 Sample posts are automatically seeded by backend');
   return { message: 'Sample posts already available' };
 };
 
 // Circuit breaker utilities
 export const resetBlogCircuitBreaker = () => {
   blogCircuitBreaker.reset();
-  console.log('🔄 Blog circuit breaker has been reset');
+  logger.info('🔄 Blog circuit breaker has been reset');
 };
 
 export const getBlogCircuitBreakerState = () => {
@@ -450,7 +511,7 @@ export const getBlogCircuitBreakerState = () => {
 // Validation utilities
 export const validatePostExists = async (postId) => {
   try {
-    console.log('🔍 Validating post exists:', postId);
+    logger.info('🔍 Validating post exists:', postId);
     const response = await fetchWithRetry(`${BLOG_API_URL}${postId}`, {
       method: 'GET',
       headers: { 
@@ -463,7 +524,7 @@ export const validatePostExists = async (postId) => {
     
     return response.ok;
   } catch (error) {
-    console.warn('⚠️ Post validation failed for ID:', postId, error.message);
+    logger.warn('⚠️ Post validation failed for ID:', postId, error.message);
     return false;
   }
 };
@@ -472,7 +533,7 @@ export const safeLikeBlogPost = async (postId, userIdentifier = 'default_user') 
   // First validate the post exists
   const exists = await validatePostExists(postId);
   if (!exists) {
-    console.error('❌ Cannot like non-existent post:', postId);
+    logger.error('❌ Cannot like non-existent post:', postId);
     throw new Error(`Blog post with ID ${postId} does not exist`);
   }
   
@@ -486,9 +547,9 @@ export const safeLikeBlogPost = async (postId, userIdentifier = 'default_user') 
 export const fetchComments = async (postId) => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('💬 Fetching comments for post:', postId);
+      logger.info('💬 Fetching comments for post:', postId);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/comments`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/comments`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -500,7 +561,7 @@ export const fetchComments = async (postId) => {
       });
       
       const data = await response.json();
-      console.log('✅ Comments fetched:', data.comments?.length || 0, 'comments');
+      logger.info('✅ Comments fetched:', data.comments?.length || 0, 'comments');
       return data; // { comments: [...], total: number }
       
     } catch (error) {
@@ -512,7 +573,7 @@ export const fetchComments = async (postId) => {
 export const createComment = async (postId, commentData) => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('✍️ Creating comment on post:', postId);
+      logger.info('✍️ Creating comment on post:', postId);
       
       const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/comments`, {
         method: 'POST',
@@ -528,7 +589,7 @@ export const createComment = async (postId, commentData) => {
       });
       
       const data = await response.json();
-      console.log('✅ Comment created:', data.id);
+      logger.info('✅ Comment created:', data.id);
       return data;
       
     } catch (error) {

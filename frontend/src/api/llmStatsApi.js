@@ -8,6 +8,9 @@
  * Date: November 15, 2025
  */
 
+import { Logger } from '../utils/logger';
+
+const logger = new Logger('LLMStatsAPI');
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const STATS_API_BASE = `${BASE_URL}/api/v1/llm`;
 
@@ -52,7 +55,7 @@ export const getGeneralStats = async () => {
 
     return stats;
   } catch (error) {
-    console.error('Error fetching general stats:', error);
+    logger.error('Error fetching general stats:', error);
     throw error;
   }
 };
@@ -78,7 +81,7 @@ export const getSignalStats = async (filters = {}) => {
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching signal stats:', error);
+    logger.error('Error fetching signal stats:', error);
     throw error;
   }
 };
@@ -96,7 +99,7 @@ export const getPerformanceStats = async (hours = 24) => {
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching performance stats:', error);
+    logger.error('Error fetching performance stats:', error);
     throw error;
   }
 };
@@ -113,7 +116,7 @@ export const getCacheStats = async () => {
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching cache stats:', error);
+    logger.error('Error fetching cache stats:', error);
     throw error;
   }
 };
@@ -131,7 +134,7 @@ export const getUserStats = async (days = 7) => {
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching user stats:', error);
+    logger.error('Error fetching user stats:', error);
     throw error;
   }
 };
@@ -148,7 +151,7 @@ export const getErrorStats = async () => {
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching error stats:', error);
+    logger.error('Error fetching error stats:', error);
     throw error;
   }
 };
@@ -166,7 +169,7 @@ export const getHourlyTrends = async (hours = 24) => {
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching hourly trends:', error);
+    logger.error('Error fetching hourly trends:', error);
     throw error;
   }
 };
@@ -184,7 +187,7 @@ export const exportStats = async (format = 'json') => {
     }
     return await response.blob();
   } catch (error) {
-    console.error('Error exporting stats:', error);
+    logger.error('Error exporting stats:', error);
     throw error;
   }
 };
@@ -200,7 +203,7 @@ export const createStatsWebSocket = (onMessage, onError) => {
   const ws = new WebSocket(`${wsUrl}/api/v1/llm/stats/stream`);
   
   ws.onopen = () => {
-    console.log('📊 Connected to LLM stats stream');
+    logger.info('📊 Connected to LLM stats stream');
   };
   
   ws.onmessage = (event) => {
@@ -208,18 +211,18 @@ export const createStatsWebSocket = (onMessage, onError) => {
       const data = JSON.parse(event.data);
       onMessage(data);
     } catch (error) {
-      console.error('Error parsing stats message:', error);
+      logger.error('Error parsing stats message:', error);
       if (onError) onError(error);
     }
   };
   
   ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
+    logger.error('WebSocket error:', error);
     if (onError) onError(error);
   };
   
   ws.onclose = () => {
-    console.log('📊 Disconnected from LLM stats stream');
+    logger.info('📊 Disconnected from LLM stats stream');
   };
   
   return ws;
@@ -248,7 +251,7 @@ export const getAllStats = async () => {
       timestamp: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Error fetching all stats:', error);
+    logger.error('Error fetching all stats:', error);
     throw error;
   }
 };

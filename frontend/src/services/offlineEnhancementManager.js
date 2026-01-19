@@ -11,9 +11,9 @@ const OFFLINE_SYNC_ENABLED = false;
 import offlineMapTileCache from './offlineMapTileCache.js';
 import offlineIntentDetector from './offlineIntentDetector.js';
 import offlineDatabase from './offlineDatabase.js';
-import logger from '../utils/logger.js';
+import { Logger } from '../utils/logger.js';
 
-const log = logger.namespace('OfflineManager');
+const log = new Logger('OfflineManager');
 
 class OfflineEnhancementManager {
   constructor() {

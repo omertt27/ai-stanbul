@@ -29,13 +29,47 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        // Smart code splitting for better caching
+        manualChunks(id) {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            // Separate large libraries
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
+            }
+            if (id.includes('leaflet') || id.includes('react-leaflet')) {
+              return 'vendor-maps';
+            }
+            if (id.includes('i18next') || id.includes('react-i18next')) {
+              return 'vendor-i18n';
+            }
+            if (id.includes('@sentry')) {
+              return 'vendor-sentry';
+            }
+            // All other vendor code
+            return 'vendor';
+          }
+          
+          // App chunks
+          if (id.includes('/pages/')) {
+            return 'pages';
+          }
+          if (id.includes('/components/')) {
+            return 'components';
+          }
+          if (id.includes('/services/')) {
+            return 'services';
+          }
+        },
         // Ensure consistent asset naming with cache busting
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]'
       }
-    }
+    },
+    // Optimize chunk size
+    chunkSizeWarningLimit: 1000, // Increase limit for map libraries
+    minify: 'esbuild' // Use esbuild instead of terser (faster, included by default)
   },
   esbuild: {
     loader: 'jsx',

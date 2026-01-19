@@ -20,7 +20,9 @@
  */
 
 import { fetchWithRetry, handleApiError } from '../utils/errorHandler';
+import { Logger } from '../utils/logger';
 
+const logger = new Logger('TransportationAPI');
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const CHAT_API_URL = `${BASE_URL}/api/chat`;
 
@@ -50,7 +52,7 @@ export const getTransportationDirections = async ({
     
     const query = `Get directions from ${from.name || `${from.lat}, ${from.lng}`} to ${to.name || `${to.lat}, ${to.lng}`} using ${mode}${accessibleText}${timeText}. Include step-by-step instructions, transfer points, and map data.`;
 
-    console.log('🗺️ Transportation query:', query);
+    logger.log('🗺️ Transportation query:', query);
 
     const response = await fetchWithRetry(CHAT_API_URL, {
       method: 'POST',
@@ -80,11 +82,11 @@ export const getTransportationDirections = async ({
     // Extract transportation data from AI response
     const route = parseTransportationResponse(data);
     
-    console.log('✅ Transportation directions received:', route);
+    logger.log('✅ Transportation directions received:', route);
     return route;
 
   } catch (error) {
-    console.error('❌ Transportation directions failed:', error);
+    logger.error('❌ Transportation directions failed:', error);
     throw handleApiError(error, null, 'Transportation Directions');
   }
 };
@@ -107,7 +109,7 @@ export const getGPSRoute = async ({
   try {
     const query = `Navigate me from my current location (${userLocation.latitude}, ${userLocation.longitude}) to ${destination.name || destination.lat + ',' + destination.lng} using ${mode}. Use live GPS tracking.`;
 
-    console.log('📍 GPS route query:', query);
+    logger.log('📍 GPS route query:', query);
 
     const response = await fetchWithRetry(CHAT_API_URL, {
       method: 'POST',
@@ -131,11 +133,11 @@ export const getGPSRoute = async ({
     const data = await response.json();
     const route = parseTransportationResponse(data);
     
-    console.log('✅ GPS route received:', route);
+    logger.log('✅ GPS route received:', route);
     return route;
 
   } catch (error) {
-    console.error('❌ GPS route failed:', error);
+    logger.error('❌ GPS route failed:', error);
     throw handleApiError(error, null, 'GPS Route');
   }
 };
@@ -152,7 +154,7 @@ export const getNearbyTransit = async (location, radius = 500, types = null) => 
     const typesText = types ? types.join(', ') : 'all transit';
     const query = `Show me ${typesText} stations within ${radius} meters of ${location.lat}, ${location.lng}`;
 
-    console.log('🚉 Nearby transit query:', query);
+    logger.log('🚉 Nearby transit query:', query);
 
     const response = await fetchWithRetry(CHAT_API_URL, {
       method: 'POST',
@@ -175,11 +177,11 @@ export const getNearbyTransit = async (location, radius = 500, types = null) => 
     const data = await response.json();
     const stations = parseNearbyTransitResponse(data);
     
-    console.log('✅ Nearby transit stations:', stations.length);
+    logger.log('✅ Nearby transit stations:', stations.length);
     return stations;
 
   } catch (error) {
-    console.error('❌ Nearby transit search failed:', error);
+    logger.error('❌ Nearby transit search failed:', error);
     throw handleApiError(error, null, 'Nearby Transit');
   }
 };
@@ -195,7 +197,7 @@ export const getTransitSchedule = async (stationName, lineId = null) => {
     const lineText = lineId ? ` on line ${lineId}` : '';
     const query = `Show me the schedule for ${stationName}${lineText}. Include next arrivals and real-time updates.`;
 
-    console.log('📅 Transit schedule query:', query);
+    logger.log('📅 Transit schedule query:', query);
 
     const response = await fetchWithRetry(CHAT_API_URL, {
       method: 'POST',
@@ -217,11 +219,11 @@ export const getTransitSchedule = async (stationName, lineId = null) => {
     const data = await response.json();
     const schedule = parseScheduleResponse(data);
     
-    console.log('✅ Transit schedule received');
+    logger.log('✅ Transit schedule received');
     return schedule;
 
   } catch (error) {
-    console.error('❌ Transit schedule failed:', error);
+    logger.error('❌ Transit schedule failed:', error);
     throw handleApiError(error, null, 'Transit Schedule');
   }
 };
@@ -237,7 +239,7 @@ export const searchRouteByName = async (originName, destinationName, mode = 'tra
   try {
     const query = `How do I get from ${originName} to ${destinationName} using ${mode}?`;
 
-    console.log('🔍 Route search query:', query);
+    logger.log('🔍 Route search query:', query);
 
     const response = await fetchWithRetry(CHAT_API_URL, {
       method: 'POST',
@@ -260,11 +262,11 @@ export const searchRouteByName = async (originName, destinationName, mode = 'tra
     const data = await response.json();
     const route = parseTransportationResponse(data);
     
-    console.log('✅ Route search completed');
+    logger.log('✅ Route search completed');
     return route;
 
   } catch (error) {
-    console.error('❌ Route search failed:', error);
+    logger.error('❌ Route search failed:', error);
     throw handleApiError(error, null, 'Route Search');
   }
 };
@@ -281,7 +283,7 @@ const parseTransportationResponse = (data) => {
                           data.response?.includes('route');
 
   if (!hasTransportData && !data.map_data) {
-    console.warn('⚠️ No transportation data in response');
+    logger.warn('⚠️ No transportation data in response');
     return {
       error: 'No transportation data found',
       message: data.response || 'Unable to find route information',
@@ -543,7 +545,7 @@ export const checkTransportationServiceHealth = async () => {
     return health;
     
   } catch (error) {
-    console.error('Transportation service health check failed:', error);
+    logger.error('Transportation service health check failed:', error);
     return { status: 'offline', error: error.message };
   }
 };

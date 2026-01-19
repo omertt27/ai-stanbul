@@ -4,8 +4,8 @@
  * Integrates with Istanbul Daily Talk AI System
  */
 
-import logger from '../utils/logger.js';
-const log = logger.namespace('GPS');
+import { Logger } from '../utils/logger.js';
+const log = new Logger('GPS');
 
 class GPSLocationService {
   constructor() {

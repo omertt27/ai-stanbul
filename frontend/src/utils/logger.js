@@ -151,13 +151,24 @@ class Logger {
    * Send critical errors to error tracking service
    */
   _sendToErrorTracking(message, args) {
-    // Implement your error tracking here (Sentry, LogRocket, etc.)
-    // Example:
-    // if (window.Sentry) {
-    //   window.Sentry.captureException(new Error(message), {
-    //     extra: { args }
-    //   });
-    // }
+    // Sentry integration for production error tracking
+    if (typeof window !== 'undefined' && window.Sentry) {
+      try {
+        window.Sentry.captureException(new Error(message), {
+          level: 'error',
+          extra: {
+            namespace: this.namespace,
+            args: args,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            url: window.location.href
+          }
+        });
+      } catch (err) {
+        // Fallback if Sentry fails
+        console.error('[Logger] Failed to send to Sentry:', err);
+      }
+    }
   }
 }
 

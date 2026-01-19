@@ -5,9 +5,9 @@
 
 // Import response sanitizer to prevent data leakage
 import { processApiResponse, sanitizeResponse } from '../utils/responseSanitizer.js';
-import logger from '../utils/logger.js';
+import { Logger } from '../utils/logger.js';
 
-const log = logger.namespace('ChatService');
+const log = new Logger('ChatService');
 
 // API Configuration
 const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8002';

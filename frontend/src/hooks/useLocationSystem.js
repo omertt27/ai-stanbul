@@ -6,6 +6,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from '../contexts/LocationContext';
 import locationApi from '../services/locationApi';
+import { Logger } from '../utils/logger';
+
+const logger = new Logger('useLocationSystem');
 
 /**
  * Hook for managing location tracking
@@ -80,7 +83,7 @@ export const usePOIRecommendations = (options = {}) => {
         }
       });
     } catch (error) {
-      console.error('Failed to load recommendations:', error);
+      logger.error('Failed to load recommendations:', error);
       throw error;
     }
   }, [filters, getRecommendations]);
@@ -127,7 +130,7 @@ export const useRoutePlanning = () => {
       const poiIds = Array.isArray(pois) ? pois : [pois];
       await planRoute(poiIds, routeOptions);
     } catch (error) {
-      console.error('Failed to plan route:', error);
+      logger.error('Failed to plan route:', error);
       throw error;
     }
   }, [planRoute, preferences.transportMode]);
@@ -199,7 +202,7 @@ export const useNearbySearch = (options = {}) => {
     try {
       await searchNearby(searchLocation, params);
     } catch (error) {
-      console.error('Failed to search nearby:', error);
+      logger.error('Failed to search nearby:', error);
       throw error;
     }
   }, [searchNearby, currentLocation, searchParams]);

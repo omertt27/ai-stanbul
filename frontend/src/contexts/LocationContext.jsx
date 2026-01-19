@@ -6,9 +6,9 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import locationApi from '../services/locationApi';
 import gpsLocationService from '../services/gpsLocationService';
-import logger from '../utils/logger.js';
+import { Logger } from '../utils/logger.js';
 
-const log = logger.namespace('LocationContext');
+const log = new Logger('LocationContext');
 
 // Initial state
 const initialState = {

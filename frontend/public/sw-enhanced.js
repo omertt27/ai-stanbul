@@ -2,12 +2,12 @@
  * Enhanced Service Worker
  * Integrates map tile caching, periodic sync, and improved offline handling
  * 
- * @version 2.5.0
+ * @version 2.5.1
  * @features Map tiles, Periodic sync, Background sync, Push notifications, Cache busting for JS/CSS
- * @updated 2025-12-02 - Fix API request interception causing false offline errors
+ * @updated 2025-01-19 - Fix HEAD request caching errors, improve request method filtering
  */
 
-const CACHE_VERSION = 'ai-istanbul-v2.5.0';
+const CACHE_VERSION = 'ai-istanbul-v2.5.1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const MAP_TILES_CACHE = 'map-tiles-v2';
@@ -240,6 +240,11 @@ async function handleAPIRequest(request) {
  * This is CRITICAL to fix "Unexpected token '<'" errors
  */
 async function handleBuildAssetRequest(request) {
+  // Only handle GET requests
+  if (request.method !== 'GET') {
+    return fetch(request);
+  }
+  
   try {
     // ALWAYS try network first for JS/CSS to get latest version
     const networkResponse = await fetch(request, {
@@ -292,13 +297,18 @@ async function handleBuildAssetRequest(request) {
  */
 async function handleNavigationRequest(request) {
   try {
+    // Don't cache HEAD requests (not supported by Cache API)
+    if (request.method !== 'GET') {
+      return fetch(request);
+    }
+    
     // ALWAYS try network first for HTML to get latest version
     const networkResponse = await fetch(request, {
       cache: 'no-cache' // Force revalidation
     });
     
     if (networkResponse.ok) {
-      // Cache the fresh HTML
+      // Cache the fresh HTML (only for GET requests)
       try {
         const cache = await caches.open(STATIC_CACHE);
         await cache.put(request, networkResponse.clone());
@@ -309,13 +319,15 @@ async function handleNavigationRequest(request) {
     
     return networkResponse;
   } catch (error) {
-    // Try cache fallback
-    const cache = await caches.open(STATIC_CACHE);
-    const cachedResponse = await cache.match(request);
-    
-    if (cachedResponse) {
-      console.log('📦 Serving cached navigation (offline)');
-      return cachedResponse;
+    // Try cache fallback (only for GET requests)
+    if (request.method === 'GET') {
+      const cache = await caches.open(STATIC_CACHE);
+      const cachedResponse = await cache.match(request);
+      
+      if (cachedResponse) {
+        console.log('📦 Serving cached navigation (offline)');
+        return cachedResponse;
+      }
     }
 
     // Return offline page as last resort

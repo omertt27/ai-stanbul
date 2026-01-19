@@ -7,8 +7,8 @@
  * @priority MEDIUM
  */
 
-import logger from '../utils/logger.js';
-const log = logger.namespace('OfflineDB');
+import { Logger } from '../utils/logger.js';
+const log = new Logger('OfflineDB');
 
 class OfflineDatabase {
   constructor() {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import logger from './utils/logger.js';
-const log = logger.namespace('App');
+import { Logger } from './utils/logger.js';
+const log = new Logger('App');
 import { Link, useLocation as useRouterLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from './contexts/LocationContext';
