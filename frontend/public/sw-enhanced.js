@@ -2,12 +2,12 @@
  * Enhanced Service Worker
  * Integrates map tile caching, periodic sync, and improved offline handling
  * 
- * @version 2.5.3
+ * @version 2.5.4
  * @features Map tiles, Periodic sync, Background sync, Push notifications, Cache busting for JS/CSS
- * @updated 2025-01-20 - Force complete cache invalidation for TDZ fix
+ * @updated 2025-01-20 - FORCE UPDATE - Skip waiting, immediate activation
  */
 
-const CACHE_VERSION = 'ai-istanbul-v2.5.3';
+const CACHE_VERSION = 'ai-istanbul-v2.5.4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const MAP_TILES_CACHE = 'map-tiles-v2';
@@ -590,4 +590,15 @@ function saveToIndexedDB(storeName, data) {
   });
 }
 
-console.log('✅ Enhanced Service Worker loaded (v2.5.0) - API requests bypass service worker');
+console.log('✅ Enhanced Service Worker loaded (v2.5.4) - API requests bypass service worker - FORCE UPDATE');
+
+// Notify all clients to reload immediately
+self.clients.matchAll().then(clients => {
+  clients.forEach(client => {
+    client.postMessage({
+      type: 'SW_UPDATED',
+      version: '2.5.4',
+      message: 'Service Worker updated! Please reload.'
+    });
+  });
+});
