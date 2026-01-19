@@ -67,7 +67,9 @@ class Settings:
         "http://localhost:3000",
         "http://localhost:8080",
         "https://ai-stanbul.vercel.app",
-        "*"  # Remove in production!
+        "https://aistanbul.net",
+        "https://www.aistanbul.net",
+        "*"  # Allow all origins (for testing, review for production)
     ]
     
     # Feature Flags

@@ -826,8 +826,9 @@ async def pure_llm_chat(
                 route_data = map_data
         
         # === LLM ROUTE EXTRACTION: For landmarks not in database ===
-        # If we don't have route_data yet, try to extract it from LLM response
-        if not route_data and not map_data:
+        # Try to extract route data from LLM response if we don't have complete data
+        # This handles landmarks (Galataport, Grand Bazaar, etc.) that aren't transit stations
+        if not map_data or not route_data:
             try:
                 from services.llm_route_extractor import get_llm_route_extractor
                 
@@ -839,12 +840,17 @@ async def pure_llm_chat(
                 )
                 
                 if extraction_result:
-                    route_data = extraction_result.get('route_data')
-                    map_data = extraction_result.get('map_data')
+                    # Use extracted data if we don't already have it
+                    if not route_data:
+                        route_data = extraction_result.get('route_data')
+                    if not map_data:
+                        map_data = extraction_result.get('map_data')
+                    
                     logger.info(f"✅ LLM Route Extractor: Generated route card for landmark")
-                    logger.info(f"   Origin: {route_data.get('origin')}")
-                    logger.info(f"   Destination: {route_data.get('final_destination')}")
-                    logger.info(f"   Via: {route_data.get('destination')}")
+                    if route_data:
+                        logger.info(f"   Origin: {route_data.get('origin')}")
+                        logger.info(f"   Destination: {route_data.get('final_destination')}")
+                        logger.info(f"   Via: {route_data.get('destination')}")
                 else:
                     logger.info(f"   LLM Route Extractor: No route data could be extracted")
             
@@ -1040,7 +1046,8 @@ async def pure_llm_chat(
         translated_response = translate_if_needed(final_response, effective_language)
         
         # CRITICAL: Merge multi-route data into map_data for frontend
-        final_map_data = map_data_from_transport or result.get('map_data')
+        # Priority: transport RAG > result > LLM extractor
+        final_map_data = map_data_from_transport or result.get('map_data') or map_data
         
         # Try to get transport alternatives from context builder
         # The context builder stores it but we need to access it from the result
