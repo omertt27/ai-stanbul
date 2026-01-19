@@ -35,7 +35,8 @@ const currentLogLevel = import.meta.env.VITE_LOG_LEVEL
 
 class Logger {
   constructor(namespace = 'App') {
-    this.namespace = namespace;
+    // Store namespace on a private field to avoid shadowing the prototype method `namespace()`
+    this._namespace = namespace;
   }
 
   /**
@@ -52,7 +53,7 @@ class Logger {
    */
   _format(level, message, ...args) {
     const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-    const prefix = `[${timestamp}] [${this.namespace}] [${level}]`;
+    const prefix = `[${timestamp}] [${this._namespace}] [${level}]`;
     return [prefix, message, ...args];
   }
 
@@ -87,7 +88,7 @@ class Logger {
     // Errors are always logged, even in production (but sanitized)
     if (isProduction) {
       // In production, only log error message without sensitive data
-      console.error(`[${this.namespace}] Error:`, message);
+      console.error(`[${this._namespace}] Error:`, message);
     } else {
       console.error(...this._format('ERROR', message, ...args));
     }
@@ -136,7 +137,7 @@ class Logger {
    */
   time(label) {
     if (!LOGGING_ENABLED) return;
-    console.time(`[${this.namespace}] ${label}`);
+    console.time(`[${this._namespace}] ${label}`);
   }
 
   /**
@@ -144,7 +145,7 @@ class Logger {
    */
   timeEnd(label) {
     if (!LOGGING_ENABLED) return;
-    console.timeEnd(`[${this.namespace}] ${label}`);
+    console.timeEnd(`[${this._namespace}] ${label}`);
   }
 
   /**
@@ -157,7 +158,7 @@ class Logger {
         window.Sentry.captureException(new Error(message), {
           level: 'error',
           extra: {
-            namespace: this.namespace,
+            namespace: this._namespace,
             args: args,
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent,
