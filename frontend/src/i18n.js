@@ -1,6 +1,9 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import logger from './utils/logger.js';
+
+const log = logger.namespace('i18n');
 
 // Translation resources - bundled for instant loading
 import enTranslation from './locales/en/translation.json';
@@ -80,10 +83,10 @@ i18n
     initImmediate: false,
   })
   .then(() => {
-    console.log('✅ i18n initialized successfully');
+    log.info('✅ i18n initialized successfully');
   })
   .catch((error) => {
-    console.error('❌ i18n initialization error:', error);
+    log.error('❌ i18n initialization error:', error);
   });
 
 export default i18n;

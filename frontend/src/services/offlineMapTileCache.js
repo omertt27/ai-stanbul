@@ -74,7 +74,7 @@ class OfflineMapTileCache {
    */
   async cacheIstanbulTiles(onProgress = null) {
     if (this.isCaching) {
-      console.warn('⚠️ Caching already in progress');
+      log.warn('⚠️ Caching already in progress');
       return { status: 'in_progress' };
     }
 
@@ -84,7 +84,7 @@ class OfflineMapTileCache {
     const tileUrls = this.generateTileUrls();
     this.totalTiles = tileUrls.length;
     
-    console.log(`📦 Starting to cache ${this.totalTiles} tiles for Istanbul area`);
+    log.debug(`📦 Starting to cache ${this.totalTiles} tiles for Istanbul area`);
     
     try {
       const cache = await caches.open(this.cacheName);
@@ -97,7 +97,7 @@ class OfflineMapTileCache {
       const tilesToCache = tileUrls.filter(url => !cachedUrls.has(url));
       
       if (tilesToCache.length === 0) {
-        console.log('✅ All tiles already cached');
+        log.debug('✅ All tiles already cached');
         this.isCaching = false;
         return {
           status: 'complete',
@@ -107,7 +107,7 @@ class OfflineMapTileCache {
         };
       }
       
-      console.log(`🔄 Caching ${tilesToCache.length} new tiles (${cachedUrls.size} already cached)`);
+      log.debug(`🔄 Caching ${tilesToCache.length} new tiles (${cachedUrls.size} already cached)`);
       
       // Cache tiles in batches to avoid overwhelming the browser
       const BATCH_SIZE = 20;
@@ -135,7 +135,7 @@ class OfflineMapTileCache {
                 }
               }
             } catch (error) {
-              console.warn(`Failed to cache tile: ${url}`, error);
+              log.warn(`Failed to cache tile: ${url}`, error);
             }
           })
         );
@@ -153,12 +153,12 @@ class OfflineMapTileCache {
         new: tilesToCache.length
       };
       
-      console.log('✅ Map tile caching complete:', result);
+      log.debug('✅ Map tile caching complete:', result);
       return result;
       
     } catch (error) {
       this.isCaching = false;
-      console.error('❌ Error caching map tiles:', error);
+      log.error('❌ Error caching map tiles:', error);
       throw error;
     }
   }
@@ -180,7 +180,7 @@ class OfflineMapTileCache {
         isCaching: this.isCaching
       };
     } catch (error) {
-      console.error('Error getting cache stats:', error);
+      log.error('Error getting cache stats:', error);
       return { cached: 0, expected: 0, percentage: 0, isCaching: false };
     }
   }
@@ -192,10 +192,10 @@ class OfflineMapTileCache {
   async clearCache() {
     try {
       const deleted = await caches.delete(this.cacheName);
-      console.log(deleted ? '✅ Map tile cache cleared' : '⚠️ No cache to clear');
+      log.debug(deleted ? '✅ Map tile cache cleared' : '⚠️ No cache to clear');
       return deleted;
     } catch (error) {
-      console.error('Error clearing cache:', error);
+      log.error('Error clearing cache:', error);
       return false;
     }
   }

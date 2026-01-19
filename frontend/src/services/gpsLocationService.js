@@ -4,6 +4,9 @@
  * Integrates with Istanbul Daily Talk AI System
  */
 
+import logger from '../utils/logger.js';
+const log = logger.namespace('GPS');
+
 class GPSLocationService {
   constructor() {
     this.watchId = null;
@@ -85,7 +88,7 @@ class GPSLocationService {
       this.stopLocationTracking();
     }
 
-    console.log('🎯 Starting high-accuracy GPS tracking (Google Maps quality)...');
+    log.debug('🎯 Starting high-accuracy GPS tracking (Google Maps quality)...');
 
     this.watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -99,7 +102,7 @@ class GPSLocationService {
           timestamp: new Date()
         };
 
-        console.log(`📍 GPS Update: ${newPosition.lat.toFixed(6)}, ${newPosition.lng.toFixed(6)} (±${newPosition.accuracy.toFixed(1)}m)`);
+        log.debug(`📍 GPS Update: ${newPosition.lat.toFixed(6)}, ${newPosition.lng.toFixed(6)} (±${newPosition.accuracy.toFixed(1)}m)`);
 
         // Update on every position change for maximum accuracy
         // Only skip if position is identical (within 1 meter)
@@ -111,7 +114,7 @@ class GPSLocationService {
         }
       },
       (error) => {
-        console.error('❌ GPS Error:', error.message);
+        log.error('❌ GPS Error:', error.message);
         this.notifyErrorCallbacks(error);
       },
       this.watchOptions  // Use continuous tracking options
@@ -327,7 +330,7 @@ class GPSLocationService {
       try {
         callback(position);
       } catch (error) {
-        console.error('Error in location callback:', error);
+        log.error('Error in location callback:', error);
       }
     });
   }
@@ -337,13 +340,13 @@ class GPSLocationService {
       try {
         callback(error);
       } catch (error) {
-        console.error('Error in error callback:', error);
+        log.error('Error in error callback:', error);
       }
     });
   }
 
   handleGeolocationError(error) {
-    console.error('🔴 GPS Error Details:', {
+    log.error('🔴 GPS Error Details:', {
       code: error.code,
       message: error.message,
       PERMISSION_DENIED: error.PERMISSION_DENIED,
@@ -428,7 +431,7 @@ class GPSLocationService {
         }
       }
     } catch (error) {
-      console.error('Error loading last known position:', error);
+      log.error('Error loading last known position:', error);
     }
   }
 

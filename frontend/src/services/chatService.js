@@ -5,6 +5,9 @@
 
 // Import response sanitizer to prevent data leakage
 import { processApiResponse, sanitizeResponse } from '../utils/responseSanitizer.js';
+import logger from '../utils/logger.js';
+
+const log = logger.namespace('ChatService');
 
 // API Configuration
 const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8002';
@@ -49,7 +52,7 @@ export async function sendMessage(message, sessionId = null, language = 'en') {
       language: language
     };
 
-    console.log('📤 Sending message to Pure LLM:', {
+    log.debug('📤 Sending message to Pure LLM:', {
       endpoint: CHAT_ENDPOINT,
       messageLength: message.length,
       sessionId: requestBody.session_id,
@@ -75,7 +78,7 @@ export async function sendMessage(message, sessionId = null, language = 'en') {
 
     const data = await response.json();
     
-    console.log('📥 Received response from Pure LLM:', {
+    log.debug('📥 Received response from Pure LLM:', {
       responseTime: `${responseTime}ms`,
       method: data.method,
       cached: data.cached,
@@ -110,7 +113,7 @@ export async function sendMessage(message, sessionId = null, language = 'en') {
     };
 
   } catch (error) {
-    console.error('❌ Chat service error:', error);
+    log.error('❌ Chat service error:', error);
     
     // Check if backend is unreachable (actual network error)
     if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
@@ -152,7 +155,7 @@ export async function checkBackendHealth() {
 
     const data = await response.json();
     
-    console.log('✅ Backend health check:', data);
+    log.info('✅ Backend health check:', data);
 
     return {
       success: true,
@@ -161,7 +164,7 @@ export async function checkBackendHealth() {
     };
 
   } catch (error) {
-    console.error('❌ Health check failed:', error);
+    log.error('❌ Health check failed:', error);
     return {
       success: false,
       isHealthy: false,
@@ -178,7 +181,7 @@ export function saveChatHistory(messages) {
   try {
     sessionStorage.setItem('llm_chat_history', JSON.stringify(messages));
   } catch (error) {
-    console.error('Failed to save chat history:', error);
+    log.error('Failed to save chat history:', error);
   }
 }
 
@@ -191,7 +194,7 @@ export function loadChatHistory() {
     const history = sessionStorage.getItem('llm_chat_history');
     return history ? JSON.parse(history) : [];
   } catch (error) {
-    console.error('Failed to load chat history:', error);
+    log.error('Failed to load chat history:', error);
     return [];
   }
 }
@@ -203,7 +206,7 @@ export function clearChatHistory() {
   try {
     sessionStorage.removeItem('llm_chat_history');
   } catch (error) {
-    console.error('Failed to clear chat history:', error);
+    log.error('Failed to clear chat history:', error);
   }
 }
 
@@ -239,13 +242,13 @@ export function getCachedResponse(message) {
       // Check if cache is still valid (1 hour)
       const cacheAge = Date.now() - cachedItem.timestamp;
       if (cacheAge < 3600000) { // 1 hour in milliseconds
-        console.log('✨ Using cached response');
+        log.debug('✨ Using cached response');
         return cachedItem.response;
       }
     }
     return null;
   } catch (error) {
-    console.error('Failed to get cached response:', error);
+    log.error('Failed to get cached response:', error);
     return null;
   }
 }
@@ -275,7 +278,7 @@ export function cacheResponse(message, response) {
       sessionStorage.setItem('llm_response_cache', JSON.stringify(cache));
     }
   } catch (error) {
-    console.error('Failed to cache response:', error);
+    log.error('Failed to cache response:', error);
   }
 }
 

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import logger from './utils/logger.js';
+const log = logger.namespace('App');
 import { Link, useLocation as useRouterLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from './contexts/LocationContext';
@@ -173,18 +175,18 @@ const App = () => {
         // Manual location from modal
         await setManualLocation(location);
       }
-      console.log('Location set:', location);
+      log.debug('Location set:', location);
     } catch (error) {
-      console.error('Error setting location:', error);
+      log.error('Error setting location:', error);
     }
   };
 
   const handleRouteRequest = async (routeData) => {
     try {
       // Simulate route planning - route planning functionality moved to chat page
-      console.log('Route request:', routeData);
+      log.debug('Route request:', routeData);
     } catch (error) {
-      console.error('Route planning error:', error);
+      log.error('Route planning error:', error);
     }
   };
 

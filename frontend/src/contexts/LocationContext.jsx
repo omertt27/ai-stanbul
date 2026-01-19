@@ -6,6 +6,9 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import locationApi from '../services/locationApi';
 import gpsLocationService from '../services/gpsLocationService';
+import logger from '../utils/logger.js';
+
+const log = logger.namespace('LocationContext');
 
 // Initial state
 const initialState = {
@@ -285,7 +288,7 @@ export const LocationProvider = ({ children }) => {
         const preferences = JSON.parse(savedPreferences);
         dispatch({ type: actionTypes.UPDATE_PREFERENCES, payload: preferences });
       } catch (error) {
-        console.error('Failed to parse saved preferences:', error);
+        log.error('Failed to parse saved preferences:', error);
       }
     }
   }, []);
@@ -319,7 +322,7 @@ export const LocationProvider = ({ children }) => {
           dispatch({ type: actionTypes.SET_LOCATION_SOURCE, payload: 'cached' });
         }
       } catch (error) {
-        console.error('Error initializing GPS:', error);
+        log.error('Error initializing GPS:', error);
       }
     };
 
@@ -338,7 +341,7 @@ export const LocationProvider = ({ children }) => {
         dispatch({ type: actionTypes.SET_NEIGHBORHOOD, payload: neighborhood });
         dispatch({ type: actionTypes.SET_LOCATION_SOURCE, payload: 'gps' });
       } catch (error) {
-        console.error('Error processing location update:', error);
+        log.error('Error processing location update:', error);
       }
     });
 
@@ -496,7 +499,7 @@ export const LocationProvider = ({ children }) => {
         dispatch({ type: actionTypes.SET_SESSION_ACTIVE, payload: true });
         return response;
       } catch (error) {
-        console.error('Failed to create session:', error);
+        log.error('Failed to create session:', error);
         throw error;
       }
     },
@@ -573,7 +576,7 @@ export const LocationProvider = ({ children }) => {
         dispatch({ type: actionTypes.SET_DISTRICTS, payload: response.districts || [] });
         return response;
       } catch (error) {
-        console.error('Failed to load districts:', error);
+        log.error('Failed to load districts:', error);
         throw error;
       }
     },
@@ -586,7 +589,7 @@ export const LocationProvider = ({ children }) => {
           dispatch({ type: actionTypes.SET_CURRENT_LOCATION, payload: location });
           // Auto-update session location if session is active
           if (state.sessionActive) {
-            locationApi.updateLocation(location).catch(console.error);
+            locationApi.updateLocation(location).catch(log.error);
           }
         },
         (error) => {
@@ -618,7 +621,7 @@ export const LocationProvider = ({ children }) => {
         dispatch({ type: actionTypes.SET_SESSION_ACTIVE, payload: false });
         dispatch({ type: actionTypes.SET_SESSION_ID, payload: null });
       } catch (error) {
-        console.error('Failed to cleanup session:', error);
+        log.error('Failed to cleanup session:', error);
       }
     },
 

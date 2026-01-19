@@ -11,6 +11,9 @@ const OFFLINE_SYNC_ENABLED = false;
 import offlineMapTileCache from './offlineMapTileCache.js';
 import offlineIntentDetector from './offlineIntentDetector.js';
 import offlineDatabase from './offlineDatabase.js';
+import logger from '../utils/logger.js';
+
+const log = logger.namespace('OfflineManager');
 
 class OfflineEnhancementManager {
   constructor() {
@@ -31,12 +34,12 @@ class OfflineEnhancementManager {
    */
   async initialize(config = {}) {
     if (this.isInitialized) {
-      console.log('⚠️ Already initialized');
+      log.warn('⚠️ Already initialized');
       return { status: 'already_initialized' };
     }
 
     this.config = { ...this.config, ...config };
-    console.log('🚀 Initializing offline enhancements...');
+    log.info('🚀 Initializing offline enhancements...');
 
     try {
       // 1. Setup online/offline listeners
@@ -44,7 +47,7 @@ class OfflineEnhancementManager {
 
       // 2. Initialize IndexedDB
       await offlineDatabase.init();
-      console.log('✅ IndexedDB initialized');
+      log.info('✅ IndexedDB initialized');
 
       // 3. Register enhanced service worker
       if ('serviceWorker' in navigator) {
@@ -58,17 +61,17 @@ class OfflineEnhancementManager {
 
       // 5. Check cache status
       const stats = await this.getCacheStatus();
-      console.log('📊 Cache status:', stats);
+      log.debug('📊 Cache status:', stats);
 
       // 6. Auto-sync if online
       if (this.isOnline && this.config.autoSyncOnReconnect) {
         this.syncAllData().catch(err => 
-          console.warn('Initial sync failed:', err)
+          log.warn('Initial sync failed:', err)
         );
       }
 
       this.isInitialized = true;
-      console.log('✅ Offline enhancements initialized');
+      log.debug('✅ Offline enhancements initialized');
 
       return {
         status: 'success',
@@ -81,7 +84,7 @@ class OfflineEnhancementManager {
         stats
       };
     } catch (error) {
-      console.error('❌ Initialization failed:', error);
+      log.error('❌ Initialization failed:', error);
       return {
         status: 'error',
         error: error.message
@@ -94,13 +97,13 @@ class OfflineEnhancementManager {
    */
   setupNetworkListeners() {
     window.addEventListener('online', () => {
-      console.log('🌐 Back online');
+      log.debug('🌐 Back online');
       this.isOnline = true;
       this.handleReconnect();
     });
 
     window.addEventListener('offline', () => {
-      console.log('📴 Offline mode activated');
+      log.debug('📴 Offline mode activated');
       this.isOnline = false;
       this.handleOffline();
     });
@@ -114,21 +117,21 @@ class OfflineEnhancementManager {
       const registration = await navigator.serviceWorker.register('/sw-enhanced.js', {
         updateViaCache: 'none' // Force check for updates on every page load
       });
-      console.log('✅ Enhanced service worker registered');
+      log.debug('✅ Enhanced service worker registered');
       
       // Force update check on page load
       registration.update().catch(err => 
-        console.warn('Update check failed:', err)
+        log.warn('Update check failed:', err)
       );
       
       // Listen for updates
       registration.addEventListener('updatefound', () => {
-        console.log('🔄 Service worker update found');
+        log.debug('🔄 Service worker update found');
         const newWorker = registration.installing;
         
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('✅ New service worker installed, activating...');
+            log.debug('✅ New service worker installed, activating...');
             
             // Automatically skip waiting and reload
             newWorker.postMessage({ type: 'SKIP_WAITING' });
@@ -144,7 +147,7 @@ class OfflineEnhancementManager {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!refreshing) {
           refreshing = true;
-          console.log('🔄 New service worker activated, reloading page...');
+          log.debug('🔄 New service worker activated, reloading page...');
           // Automatically reload to use new service worker
           window.location.reload();
         }
@@ -152,7 +155,7 @@ class OfflineEnhancementManager {
 
       return registration;
     } catch (error) {
-      console.error('❌ Service worker registration failed:', error);
+      log.error('❌ Service worker registration failed:', error);
       throw error;
     }
   }
@@ -172,19 +175,19 @@ class OfflineEnhancementManager {
           await registration.periodicSync.register('update-cache', {
             minInterval: 24 * 60 * 60 * 1000 // 24 hours
           });
-          console.log('✅ Periodic sync registered');
+          log.debug('✅ Periodic sync registered');
         } else {
-          console.log('ℹ️ Periodic sync permission not granted (this is optional)');
+          log.debug('ℹ️ Periodic sync permission not granted (this is optional)');
         }
       } else {
-        console.log('ℹ️ Periodic sync not supported by this browser');
+        log.debug('ℹ️ Periodic sync not supported by this browser');
       }
     } catch (error) {
       // Periodic sync is optional - fail silently
       if (error.name === 'NotAllowedError') {
-        console.log('ℹ️ Periodic sync not allowed (this is optional and doesn\'t affect functionality)');
+        log.debug('ℹ️ Periodic sync not allowed (this is optional and doesn\'t affect functionality)');
       } else {
-        console.log('ℹ️ Periodic sync unavailable:', error.message);
+        log.debug('ℹ️ Periodic sync unavailable:', error.message);
       }
     }
   }
@@ -195,13 +198,13 @@ class OfflineEnhancementManager {
   async handleReconnect() {
     if (!this.config.autoSyncOnReconnect) return;
 
-    console.log('🔄 Syncing data after reconnection...');
+    log.debug('🔄 Syncing data after reconnection...');
     
     try {
       await this.syncAllData();
       this.notifyReconnect();
     } catch (error) {
-      console.error('❌ Reconnect sync failed:', error);
+      log.error('❌ Reconnect sync failed:', error);
     }
   }
 
@@ -218,7 +221,7 @@ class OfflineEnhancementManager {
    */
   async syncAllData() {
     if (!OFFLINE_SYNC_ENABLED) {
-      console.log('ℹ️ Offline sync disabled - backend endpoints not ready yet');
+      log.debug('ℹ️ Offline sync disabled - backend endpoints not ready yet');
       return {
         success: true,
         disabled: true,
@@ -228,7 +231,7 @@ class OfflineEnhancementManager {
       };
     }
     
-    console.log('🔄 Syncing all offline data...');
+    log.debug('🔄 Syncing all offline data...');
     
     const results = {
       restaurants: null,
@@ -255,10 +258,10 @@ class OfflineEnhancementManager {
         'pois'
       );
 
-      console.log('✅ Data sync complete:', results);
+      log.debug('✅ Data sync complete:', results);
       return results;
     } catch (error) {
-      console.error('❌ Data sync failed:', error);
+      log.error('❌ Data sync failed:', error);
       throw error;
     }
   }
@@ -269,7 +272,7 @@ class OfflineEnhancementManager {
    * @returns {Promise<object>} Cache results
    */
   async cacheMapTiles(onProgress = null) {
-    console.log('📦 Starting map tile caching...');
+    log.debug('📦 Starting map tile caching...');
     
     try {
       const result = await offlineMapTileCache.cacheIstanbulTiles(onProgress);
@@ -281,7 +284,7 @@ class OfflineEnhancementManager {
       
       return result;
     } catch (error) {
-      console.error('❌ Map tile caching failed:', error);
+      log.error('❌ Map tile caching failed:', error);
       throw error;
     }
   }
@@ -387,7 +390,7 @@ class OfflineEnhancementManager {
    * @returns {Promise<object>} Clear results
    */
   async clearAllCaches() {
-    console.log('🗑️ Clearing all caches...');
+    log.debug('🗑️ Clearing all caches...');
     
     const results = {
       mapTiles: false,
@@ -402,10 +405,10 @@ class OfflineEnhancementManager {
       results.attractions = await offlineDatabase.clear('attractions');
       results.pois = await offlineDatabase.clear('pois');
       
-      console.log('✅ Caches cleared');
+      log.debug('✅ Caches cleared');
       return results;
     } catch (error) {
-      console.error('❌ Failed to clear caches:', error);
+      log.error('❌ Failed to clear caches:', error);
       throw error;
     }
   }
@@ -418,7 +421,7 @@ class OfflineEnhancementManager {
   }
 
   notifyUpdateAndReload() {
-    console.log('🔄 Notifying user of update...');
+    log.debug('🔄 Notifying user of update...');
     this.dispatchEvent('sw-update-ready', { 
       updateAvailable: true,
       message: 'A new version is available and will load shortly...' 

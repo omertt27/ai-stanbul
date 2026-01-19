@@ -34,7 +34,7 @@ class LocationApiService {
 
       return await response.json();
     } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error);
+      log.error(`API request failed: ${endpoint}`, error);
       throw error;
     }
   }
@@ -62,7 +62,7 @@ class LocationApiService {
 
       return response;
     } catch (error) {
-      console.error('Failed to create location session:', error);
+      log.error('Failed to create location session:', error);
       throw error;
     }
   }
@@ -82,7 +82,7 @@ class LocationApiService {
     try {
       return await this.request(`/location/session/${this.sessionId}`);
     } catch (error) {
-      console.error('Failed to get session:', error);
+      log.error('Failed to get session:', error);
       throw error;
     }
   }
@@ -107,7 +107,7 @@ class LocationApiService {
         }),
       });
     } catch (error) {
-      console.error('Failed to update location:', error);
+      log.error('Failed to update location:', error);
       throw error;
     }
   }
@@ -132,7 +132,7 @@ class LocationApiService {
         }),
       });
     } catch (error) {
-      console.error('Failed to get recommendations:', error);
+      log.error('Failed to get recommendations:', error);
       throw error;
     }
   }
@@ -157,7 +157,7 @@ class LocationApiService {
         }),
       });
     } catch (error) {
-      console.error('Failed to plan route:', error);
+      log.error('Failed to plan route:', error);
       throw error;
     }
   }
@@ -176,7 +176,7 @@ class LocationApiService {
         }),
       });
     } catch (error) {
-      console.error('Failed to plan multi-stop route:', error);
+      log.error('Failed to plan multi-stop route:', error);
       throw error;
     }
   }
@@ -195,7 +195,7 @@ class LocationApiService {
         }),
       });
     } catch (error) {
-      console.error('Failed to update route:', error);
+      log.error('Failed to update route:', error);
       throw error;
     }
   }
@@ -215,7 +215,7 @@ class LocationApiService {
         }),
       });
     } catch (error) {
-      console.error('Failed to search nearby:', error);
+      log.error('Failed to search nearby:', error);
       throw error;
     }
   }
@@ -227,7 +227,7 @@ class LocationApiService {
     try {
       return await this.request('/location/districts');
     } catch (error) {
-      console.error('Failed to get districts:', error);
+      log.error('Failed to get districts:', error);
       throw error;
     }
   }
@@ -245,7 +245,7 @@ class LocationApiService {
         }),
       });
     } catch (error) {
-      console.error('Failed to get offline data:', error);
+      log.error('Failed to get offline data:', error);
       throw error;
     }
   }
@@ -257,7 +257,7 @@ class LocationApiService {
     try {
       return await this.request('/location/available-pois');
     } catch (error) {
-      console.error('Failed to get available POIs:', error);
+      log.error('Failed to get available POIs:', error);
       throw error;
     }
   }
@@ -278,7 +278,7 @@ class LocationApiService {
       this.sessionId = null;
       localStorage.removeItem('ai_istanbul_session_id');
     } catch (error) {
-      console.error('Failed to cleanup session:', error);
+      log.error('Failed to cleanup session:', error);
       // Don't throw - cleanup should be non-blocking
     }
   }

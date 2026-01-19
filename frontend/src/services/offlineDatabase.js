@@ -1,10 +1,14 @@
 /**
  * Offline Database Service
- * Uses IndexedDB for structured offline storage of restaurants, attractions, and POIs
+ * Uses IndexedDB for structured          poiStore.createIndex('type', 'type', { unique: false });
+          log.debug('📦 Created POIs store');ffline storage of restaurants, attractions, and POIs
  * 
  * @version 1.0.0
  * @priority MEDIUM
  */
+
+import logger from '../utils/logger.js';
+const log = logger.namespace('OfflineDB');
 
 class OfflineDatabase {
   constructor() {
@@ -24,13 +28,13 @@ class OfflineDatabase {
       const request = indexedDB.open(this.dbName, this.version);
 
       request.onerror = () => {
-        console.error('❌ Failed to open IndexedDB:', request.error);
+        log.error('❌ Failed to open IndexedDB:', request.error);
         reject(request.error);
       };
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('✅ IndexedDB initialized:', this.dbName);
+        log.info('✅ IndexedDB initialized:', this.dbName);
         resolve(this.db);
       };
 
@@ -44,7 +48,7 @@ class OfflineDatabase {
           restaurantStore.createIndex('cuisine', 'cuisine', { unique: false });
           restaurantStore.createIndex('district', 'district', { unique: false });
           restaurantStore.createIndex('rating', 'rating', { unique: false });
-          console.log('📦 Created restaurants store');
+          log.debug('📦 Created restaurants store');
         }
 
         if (!db.objectStoreNames.contains('attractions')) {
@@ -52,20 +56,20 @@ class OfflineDatabase {
           attractionStore.createIndex('name', 'name', { unique: false });
           attractionStore.createIndex('category', 'category', { unique: false });
           attractionStore.createIndex('district', 'district', { unique: false });
-          attractionStore.createIndex('rating', 'rating', { unique: false });
-          console.log('📦 Created attractions store');
+          attractionStore.createIndex('rating', 'rating', { unique: false          });
+          log.debug('📦 Created attractions store');
         }
 
         if (!db.objectStoreNames.contains('pois')) {
           const poiStore = db.createObjectStore('pois', { keyPath: 'id' });
           poiStore.createIndex('type', 'type', { unique: false });
           poiStore.createIndex('name', 'name', { unique: false });
-          console.log('📦 Created POIs store');
+          log.debug('📦 Created POIs store');
         }
 
         if (!db.objectStoreNames.contains('metadata')) {
           db.createObjectStore('metadata', { keyPath: 'key' });
-          console.log('📦 Created metadata store');
+          log.debug('📦 Created metadata store');
         }
       };
     });
@@ -92,12 +96,12 @@ class OfflineDatabase {
       });
 
       transaction.oncomplete = () => {
-        console.log(`✅ Stored ${count} items in ${storeName}`);
+        log.debug(`✅ Stored ${count} items in ${storeName}`);
         resolve(count);
       };
 
       transaction.onerror = () => {
-        console.error(`❌ Error storing items in ${storeName}:`, transaction.error);
+        log.error(`❌ Error storing items in ${storeName}:`, transaction.error);
         reject(transaction.error);
       };
     });
@@ -235,7 +239,7 @@ class OfflineDatabase {
       const request = store.clear();
 
       request.onsuccess = () => {
-        console.log(`✅ Cleared ${storeName}`);
+        log.debug(`✅ Cleared ${storeName}`);
         resolve();
       };
       request.onerror = () => reject(request.error);
@@ -273,7 +277,7 @@ class OfflineDatabase {
    */
   async syncFromServer(apiEndpoint, storeName) {
     try {
-      console.log(`🔄 Syncing ${storeName} from server...`);
+      log.debug(`🔄 Syncing ${storeName} from server...`);
       
       const response = await fetch(apiEndpoint);
       if (!response.ok) {
@@ -286,7 +290,7 @@ class OfflineDatabase {
       const count = await this.putItems(storeName, items);
       await this.saveMetadata(`${storeName}_last_sync`, new Date().toISOString());
       
-      console.log(`✅ Synced ${count} ${storeName} from server`);
+      log.info(`✅ Synced ${count} ${storeName} from server`);
       
       return {
         success: true,
@@ -294,7 +298,7 @@ class OfflineDatabase {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error(`❌ Failed to sync ${storeName}:`, error);
+      log.error(`❌ Failed to sync ${storeName}:`, error);
       return {
         success: false,
         error: error.message
