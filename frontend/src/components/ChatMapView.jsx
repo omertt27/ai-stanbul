@@ -141,14 +141,9 @@ const ChatMapView = ({ mapData, darkMode = false, showRoute = true, showUserLoca
     metadata: { color: m.color }
   }))];
   
-  // Determine tile layer based on theme
-  const tileUrl = darkMode
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-  
-  const tileAttribution = darkMode
-    ? '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
-    : '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  // Use light, clean map style
+  const tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const tileAttribution = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>';
 
   // Filter toggle handler
   const toggleFilter = (type) => {

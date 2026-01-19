@@ -288,14 +288,9 @@ const TransportationMap = ({
     setTimeout(() => setCenterOnUser(false), 1000); // Reset after centering
   }, [hasLocation, requestLocation]);
 
-  // Tile layer configuration
-  const tileUrl = darkMode
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-  
-  const tileAttribution = darkMode
-    ? '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
-    : '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  // Tile layer configuration - always use light, clean map style
+  const tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const tileAttribution = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>';
 
   const center = getCenter();
   const bounds = getBounds();

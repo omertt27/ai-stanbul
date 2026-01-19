@@ -855,11 +855,8 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
                   }}
                 >
                   <TileLayer
-                    attribution={isDarkMode ? '© CARTO © OpenStreetMap contributors' : '© OpenStreetMap contributors'}
-                    url={isDarkMode 
-                      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-                    }
+                    attribution='© CARTO © OpenStreetMap contributors'
+                    url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
                     maxZoom={19}
                     keepBuffer={4}
                     updateWhenIdle={true}
@@ -1229,11 +1226,8 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
             }}
           >
             <TileLayer
-              attribution={isDarkMode ? '© CARTO © OpenStreetMap contributors' : '© OpenStreetMap contributors'}
-              url={isDarkMode 
-                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-              }
+              attribution='© CARTO © OpenStreetMap contributors'
+              url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
               maxZoom={19}
               keepBuffer={4}
               updateWhenIdle={true}

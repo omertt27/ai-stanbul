@@ -18,6 +18,7 @@ from database import get_db
 from core.startup_fixed import fast_startup_manager as startup_manager
 from services.data_collection import log_chat_interaction
 from utils.response_sanitizer import ResponseSanitizer
+from utils.place_name_corrector import correct_place_names
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,13 @@ def translate_if_needed(response_text: str, target_language: str) -> str:
     """
     Translate response to target language if needed.
     Priority #3 implementation - ensures all responses match user's language preference.
+    
+    Also applies place name spelling corrections automatically.
     """
+    # STEP 1: Fix place name spellings FIRST (before translation)
+    response_text = fix_place_name_spellings(response_text)
+    
+    # STEP 2: Translate if needed
     if not target_language or target_language == 'en':
         return response_text
     
@@ -93,6 +100,27 @@ def translate_if_needed(response_text: str, target_language: str) -> str:
     
     # Fallback: return original if translation fails
     return response_text
+
+
+def fix_place_name_spellings(response_text: str) -> str:
+    """
+    Fix common place name misspellings in LLM responses.
+    
+    Ensures consistent, correct spelling of Istanbul landmarks and districts
+    regardless of LLM output quality (e.g., "Galatport" → "Galataport").
+    
+    Args:
+        response_text: Raw LLM response text
+        
+    Returns:
+        Response text with corrected place names
+    """
+    try:
+        return correct_place_names(response_text)
+    except Exception as e:
+        logger.warning(f"⚠️ Place name correction failed: {e}")
+        return response_text  # Fallback: return original
+
 
 # ==========================================
 # RAG Service Integration
@@ -228,6 +256,25 @@ class ChatResponse(BaseModel):
     latency_ms: Optional[int] = Field(None, description="Response latency in milliseconds")
     circuit_breaker_state: Optional[str] = Field(None, description="Circuit breaker state: 'closed', 'open', 'half_open'")
     tokens_used: Optional[int] = Field(None, description="Tokens used for generation")
+    
+    @field_validator('response')
+    @classmethod
+    def correct_place_names_in_response(cls, v):
+        """
+        Automatically correct common place name misspellings in responses.
+        Ensures "Galatport" → "Galataport", "Karakoy" → "Karaköy", etc.
+        """
+        if v:
+            return fix_place_name_spellings(v)
+        return v
+    
+    @field_validator('suggestions')
+    @classmethod
+    def correct_place_names_in_suggestions(cls, v):
+        """Correct place names in suggestion list"""
+        if v:
+            return [fix_place_name_spellings(suggestion) for suggestion in v]
+        return v
 
 
 class MLChatRequest(BaseModel):
@@ -281,6 +328,15 @@ async def pure_llm_chat(
     
     # Generate or use provided session_id
     session_id = request.session_id or f"session_{hash(request.message)}"
+    
+    # === STEP 0: FIX PLACE NAME MISSPELLINGS IN USER INPUT ===
+    # Correct common misspellings before LLM processing
+    # e.g., "galatport" → "Galataport", "karakoy" → "Karaköy"
+    original_message = request.message
+    request.message = fix_place_name_spellings(request.message)
+    
+    if original_message != request.message:
+        logger.info(f"✏️ Corrected user input: '{original_message}' → '{request.message}'")
     
     # === PHASE 4.2: LLM CONVERSATION CONTEXT RESOLUTION (NEW!) ===
     # This runs FIRST to resolve pronouns, references, and conversation flow
@@ -1075,6 +1131,13 @@ async def ml_chat(
         from backend.ml_service_client import get_ml_answer
         
         start_time = time.time()
+        
+        # === FIX PLACE NAME MISSPELLINGS IN USER INPUT ===
+        original_message = request.message
+        request.message = fix_place_name_spellings(request.message)
+        
+        if original_message != request.message:
+            logger.info(f"✏️ Corrected ML chat input: '{original_message}' → '{request.message}'")
         
         # Call ML service
         ml_result = await get_ml_answer(

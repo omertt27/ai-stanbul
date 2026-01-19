@@ -328,13 +328,8 @@ const MapCore = ({
   const [mapInstance, setMapInstance] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
 
-  const tileUrl = darkMode
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-  const attribution = darkMode
-    ? '© CARTO © OpenStreetMap contributors'
-    : '© OpenStreetMap contributors';
+  const tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const attribution = '© CARTO © OpenStreetMap contributors';
 
   // Map control handlers
   const handleZoomIn = () => {
