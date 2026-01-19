@@ -825,6 +825,33 @@ async def pure_llm_chat(
             elif 'steps' in map_data and 'origin' in map_data and 'destination' in map_data:
                 route_data = map_data
         
+        # === LLM ROUTE EXTRACTION: For landmarks not in database ===
+        # If we don't have route_data yet, try to extract it from LLM response
+        if not route_data and not map_data:
+            try:
+                from services.llm_route_extractor import get_llm_route_extractor
+                
+                extractor = get_llm_route_extractor()
+                extraction_result = extractor.extract_route_from_llm_response(
+                    llm_response=result.get('response', ''),
+                    user_query=request.message,
+                    user_location=request.user_location
+                )
+                
+                if extraction_result:
+                    route_data = extraction_result.get('route_data')
+                    map_data = extraction_result.get('map_data')
+                    logger.info(f"✅ LLM Route Extractor: Generated route card for landmark")
+                    logger.info(f"   Origin: {route_data.get('origin')}")
+                    logger.info(f"   Destination: {route_data.get('final_destination')}")
+                    logger.info(f"   Via: {route_data.get('destination')}")
+                else:
+                    logger.info(f"   LLM Route Extractor: No route data could be extracted")
+            
+            except Exception as e:
+                logger.warning(f"LLM route extraction failed: {e}")
+                # Continue without extracted route data - non-blocking
+        
         # Phase 3: Enhance Pure LLM response with contextual intelligence
         enhanced_response = await enhance_chat_response(
             base_response=result.get('response', ''),
