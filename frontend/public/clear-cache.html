@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clear Cache - AI Istanbul</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    h1 {
+      color: #f5576c;
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+    .warning-box {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 30px;
+      text-align: left;
+    }
+    .warning-box h3 {
+      color: #856404;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    .warning-box p {
+      color: #856404;
+      line-height: 1.6;
+    }
+    .btn {
+      background: #f5576c;
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin: 10px;
+      min-width: 200px;
+    }
+    .btn:hover {
+      background: #d94352;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+    }
+    .btn-secondary {
+      background: #6c757d;
+    }
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+    .steps {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    .step {
+      padding: 10px 0;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      display: inline-block;
+      background: #f5576c;
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 24px;
+      margin-right: 10px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .success {
+      background: #d4edda;
+      border: 2px solid #28a745;
+      border-radius: 10px;
+      padding: 20px;
+      color: #155724;
+      margin: 20px 0;
+      display: none;
+    }
+    .loading {
+      display: none;
+      margin: 20px 0;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #f5576c;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Cache Cleanup Required</h1>
+    <p class="subtitle">Your browser has old cached files. Let's fix that!</p>
+    
+    <div class="warning-box">
+      <h3>⚠️ Good News!</h3>
+      <p><strong>Production is FIXED!</strong> The error has been resolved on the server. You just need to clear your browser's cache to download the new, working files.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">1</span>
+        <strong>Click "Clear Cache Now" below</strong>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <strong>Wait for cleanup to complete</strong> (2-3 seconds)
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <strong>Page will auto-reload</strong> with fresh files
+      </div>
+      <div class="step">
+        <span class="step-num">4</span>
+        <strong>✅ Error will be gone!</strong>
+      </div>
+    </div>
+
+    <button class="btn" id="clearBtn" onclick="clearCache()">
+      🗑️ Clear Cache Now
+    </button>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p style="margin-top: 15px; color: #666;">Clearing cache...</p>
+    </div>
+
+    <div class="success" id="success">
+      <h3>✅ Cache Cleared Successfully!</h3>
+      <p>Reloading with fresh files in 2 seconds...</p>
+    </div>
+
+    <hr style="margin: 30px 0; border: none; border-top: 1px solid #dee2e6;">
+
+    <p style="color: #666; margin-bottom: 15px;">Or try these alternatives:</p>
+
+    <button class="btn btn-secondary" onclick="openIncognito()">
+      🕵️ Test in Incognito Mode
+    </button>
+
+    <button class="btn btn-secondary" onclick="hardReload()">
+      ♻️ Hard Reload (Cmd+Shift+R)
+    </button>
+
+    <div style="margin-top: 30px; padding: 20px; background: #e7f3ff; border-radius: 10px;">
+      <p style="color: #004085; font-size: 14px;">
+        <strong>Why this happened:</strong> When we first deployed the fix, your browser cached the old (broken) files. We've since deployed multiple fixes, and the production server is now serving completely fixed code. You just need to download the new files!
+      </p>
+    </div>
+  </div>
+
+  <script>
+    async function clearCache() {
+      const btn = document.getElementById('clearBtn');
+      const loading = document.getElementById('loading');
+      const success = document.getElementById('success');
+
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      loading.style.display = 'block';
+
+      try {
+        console.log('🧹 Starting cache cleanup...');
+
+        // 1. Unregister service workers
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let reg of registrations) {
+          await reg.unregister();
+          console.log('✅ Unregistered SW:', reg.scope);
+        }
+
+        // 2. Delete all caches
+        const cacheNames = await caches.keys();
+        for (let name of cacheNames) {
+          await caches.delete(name);
+          console.log('✅ Deleted cache:', name);
+        }
+
+        // 3. Clear storage
+        localStorage.clear();
+        sessionStorage.clear();
+        console.log('✅ Cleared localStorage & sessionStorage');
+
+        // 4. Clear IndexedDB
+        if (window.indexedDB) {
+          try {
+            const dbs = await indexedDB.databases();
+            for (let db of dbs) {
+              indexedDB.deleteDatabase(db.name);
+              console.log('✅ Deleted IndexedDB:', db.name);
+            }
+          } catch (e) {
+            console.log('ℹ️ IndexedDB cleanup skipped:', e.message);
+          }
+        }
+
+        loading.style.display = 'none';
+        success.style.display = 'block';
+
+        console.log('🎉 Cache cleared successfully!');
+        console.log('Reloading...');
+
+        setTimeout(() => {
+          window.location.href = 'https://aistanbul.net/?nocache=' + Date.now();
+        }, 2000);
+
+      } catch (error) {
+        loading.style.display = 'none';
+        alert('Error clearing cache: ' + error.message + '\n\nPlease try hard reload instead (Cmd+Shift+R)');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    }
+
+    function openIncognito() {
+      alert('📝 Instructions:\n\n' +
+            '1. Open Incognito/Private window:\n' +
+            '   • Chrome/Edge: Cmd+Shift+N (Mac) or Ctrl+Shift+N (Win)\n' +
+            '   • Safari: Cmd+Shift+N\n' +
+            '   • Firefox: Cmd+Shift+P (Mac) or Ctrl+Shift+P (Win)\n\n' +
+            '2. Go to: https://aistanbul.net\n\n' +
+            '3. Check console (F12) - NO errors!\n\n' +
+            'This proves production is fixed!');
+    }
+
+    function hardReload() {
+      if (confirm('This will perform a hard reload.\n\nPress OK to continue.')) {
+        window.location.reload(true);
+      }
+    }
+
+    // Show current bundle info
+    window.addEventListener('load', () => {
+      const scripts = Array.from(document.querySelectorAll('script[src]'));
+      const vendorScript = scripts.find(s => s.src.includes('vendor-'));
+      
+      if (vendorScript) {
+        console.log('📦 Current vendor bundle:', vendorScript.src);
+        console.log('Expected: Should include timestamp 1768925854749');
+        console.log('If it doesn\'t match, you need to clear cache!');
+      }
+    });
+  </script>
+</body>
+</html>

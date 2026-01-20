@@ -1,12 +1,30 @@
 // Feedback logging utility
 class FeedbackLogger {
   constructor() {
-    this.feedbacks = this.loadFeedbacks();
+    // Lazy initialization - don't access localStorage until needed
+    this._feedbacks = null;
+    this._initialized = false;
+  }
+
+  // Initialize feedbacks (lazy loaded on first access)
+  _ensureInitialized() {
+    if (this._initialized) return;
+    this._feedbacks = this.loadFeedbacks();
+    this._initialized = true;
+  }
+
+  // Getter for feedbacks with lazy initialization
+  get feedbacks() {
+    this._ensureInitialized();
+    return this._feedbacks;
   }
 
   // Load existing feedbacks from localStorage
   loadFeedbacks() {
     try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return [];
+      }
       const stored = localStorage.getItem('ai-stanbul-feedbacks');
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
@@ -17,8 +35,12 @@ class FeedbackLogger {
 
   // Save feedbacks to localStorage
   saveFeedbacks() {
+    this._ensureInitialized();
     try {
-      localStorage.setItem('ai-stanbul-feedbacks', JSON.stringify(this.feedbacks));
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
+      localStorage.setItem('ai-stanbul-feedbacks', JSON.stringify(this._feedbacks));
     } catch (error) {
       console.error('Error saving feedbacks:', error);
     }
@@ -26,6 +48,7 @@ class FeedbackLogger {
 
   // Log a feedback event
   logFeedback(messageText, feedbackType, userQuery = '') {
+    this._ensureInitialized();
     const feedback = {
       id: Date.now() + Math.random(), // Simple unique ID
       timestamp: new Date().toISOString(),
@@ -35,7 +58,7 @@ class FeedbackLogger {
       sessionId: this.getSessionId()
     };
 
-    this.feedbacks.push(feedback);
+    this._feedbacks.push(feedback);
     this.saveFeedbacks();
 
     // Also log to console for immediate observation
@@ -59,14 +82,16 @@ class FeedbackLogger {
 
   // Get all feedbacks
   getAllFeedbacks() {
-    return [...this.feedbacks];
+    this._ensureInitialized();
+    return [...this._feedbacks];
   }
 
   // Get feedback statistics
   getStatistics() {
-    const total = this.feedbacks.length;
-    const good = this.feedbacks.filter(f => f.feedbackType === 'good').length;
-    const bad = this.feedbacks.filter(f => f.feedbackType === 'bad').length;
+    this._ensureInitialized();
+    const total = this._feedbacks.length;
+    const good = this._feedbacks.filter(f => f.feedbackType === 'good').length;
+    const bad = this._feedbacks.filter(f => f.feedbackType === 'bad').length;
     
     return {
       total,
@@ -98,7 +123,8 @@ class FeedbackLogger {
 
   // Clear all feedbacks
   clearFeedbacks() {
-    this.feedbacks = [];
+    this._ensureInitialized();
+    this._feedbacks = [];
     this.saveFeedbacks();
     console.log('🗑️ All feedbacks cleared');
   }
