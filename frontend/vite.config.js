@@ -74,14 +74,39 @@ export default defineConfig({
     minify: 'terser', // Use terser instead of esbuild for better variable hoisting
     terserOptions: {
       compress: {
-        drop_console: false, // Keep console logs
-        pure_funcs: [], // Don't remove any functions
-        keep_fnames: true, // Keep function names
-        keep_classnames: true // Keep class names
+        drop_console: false,
+        pure_funcs: [],
+        passes: 1, // Single pass to avoid aggressive optimization
+        sequences: false, // Don't join consecutive statements
+        properties: false, // Don't optimize property access
+        dead_code: true,
+        drop_debugger: true,
+        conditionals: true,
+        evaluate: false, // Don't evaluate constant expressions
+        booleans: false, // Don't optimize boolean expressions
+        loops: false, // Don't optimize loops
+        unused: true,
+        toplevel: false,
+        if_return: false,
+        inline: false, // CRITICAL: Don't inline function calls
+        join_vars: false, // CRITICAL: Don't join variable declarations
+        collapse_vars: false, // CRITICAL: Don't collapse single-use variables
+        reduce_vars: false, // CRITICAL: Don't reduce variables
+        warnings: false,
+        negate_iife: false,
+        pure_getters: false,
+        keep_fargs: true,
+        keep_fnames: true,
+        keep_classnames: true,
+        hoist_funs: false, // CRITICAL: Don't hoist function declarations
+        hoist_props: false, // CRITICAL: Don't hoist properties
+        hoist_vars: false, // CRITICAL: Don't hoist var declarations
+        side_effects: false // CRITICAL: Assume all code has side effects
       },
-      mangle: {
-        keep_fnames: true, // Prevent function name mangling that causes TDZ
-        keep_classnames: true // Prevent class name mangling
+      mangle: false, // CRITICAL: Disable all variable name mangling
+      format: {
+        comments: false,
+        beautify: false
       }
     }
   },
