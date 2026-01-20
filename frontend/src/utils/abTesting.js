@@ -37,9 +37,22 @@ export const VARIANTS = {
 
 class ABTestingManager {
   constructor() {
-    this.userBucket = this.getUserBucket();
-    this.assignments = this.loadAssignments();
-    this.conversions = this.loadConversions();
+    // Lazy initialization - don't access localStorage until actually needed
+    this._userBucket = null;
+    this._assignments = null;
+    this._conversions = null;
+    this._initialized = false;
+  }
+
+  /**
+   * Initialize the manager (called lazily on first use)
+   */
+  _ensureInitialized() {
+    if (this._initialized) return;
+    this._userBucket = this.getUserBucket();
+    this._assignments = this.loadAssignments();
+    this._conversions = this.loadConversions();
+    this._initialized = true;
   }
 
   /**
@@ -47,6 +60,9 @@ class ABTestingManager {
    */
   getUserBucket() {
     try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return Math.floor(Math.random() * 100);
+      }
       const stored = localStorage.getItem(USER_BUCKET_KEY);
       if (stored !== null) {
         return parseInt(stored, 10);
@@ -58,7 +74,9 @@ class ABTestingManager {
     // Generate new bucket (0-99)
     const bucket = Math.floor(Math.random() * 100);
     try {
-      localStorage.setItem(USER_BUCKET_KEY, bucket.toString());
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(USER_BUCKET_KEY, bucket.toString());
+      }
     } catch (e) {
       console.warn('Failed to save user bucket:', e);
     }
@@ -70,6 +88,9 @@ class ABTestingManager {
    */
   loadAssignments() {
     try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return {};
+      }
       const stored = localStorage.getItem(AB_TEST_STORAGE_KEY);
       if (stored) {
         const data = JSON.parse(stored);
@@ -86,6 +107,9 @@ class ABTestingManager {
    */
   loadConversions() {
     try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return {};
+      }
       const stored = localStorage.getItem(AB_TEST_STORAGE_KEY);
       if (stored) {
         const data = JSON.parse(stored);
@@ -102,10 +126,13 @@ class ABTestingManager {
    */
   save() {
     try {
+      if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+      }
       const data = {
-        assignments: this.assignments,
-        conversions: this.conversions,
-        userBucket: this.userBucket,
+        assignments: this._assignments,
+        conversions: this._conversions,
+        userBucket: this._userBucket,
         lastUpdated: new Date().toISOString()
       };
       localStorage.setItem(AB_TEST_STORAGE_KEY, JSON.stringify(data));
@@ -118,21 +145,23 @@ class ABTestingManager {
    * Get variant for a test (consistent across sessions)
    */
   getVariant(testName, splitPercentage = 50) {
+    this._ensureInitialized();
+    
     // Return existing assignment if available
-    if (this.assignments[testName]) {
-      return this.assignments[testName];
+    if (this._assignments[testName]) {
+      return this._assignments[testName];
     }
 
     // Assign based on user bucket
-    const variant = this.userBucket < splitPercentage 
+    const variant = this._userBucket < splitPercentage 
       ? VARIANTS.TREATMENT 
       : VARIANTS.CONTROL;
 
     // Save assignment
-    this.assignments[testName] = variant;
+    this._assignments[testName] = variant;
     this.save();
 
-    console.log(`[A/B Test] ${testName}: Assigned to ${variant} (bucket: ${this.userBucket})`);
+    console.log(`[A/B Test] ${testName}: Assigned to ${variant} (bucket: ${this._userBucket})`);
     return variant;
   }
 
@@ -140,6 +169,7 @@ class ABTestingManager {
    * Check if user is in treatment group
    */
   isTreatment(testName, splitPercentage = 50) {
+    this._ensureInitialized();
     return this.getVariant(testName, splitPercentage) === VARIANTS.TREATMENT;
   }
 
@@ -147,6 +177,7 @@ class ABTestingManager {
    * Check if user is in control group
    */
   isControl(testName, splitPercentage = 50) {
+    this._ensureInitialized();
     return this.getVariant(testName, splitPercentage) === VARIANTS.CONTROL;
   }
 
@@ -154,11 +185,13 @@ class ABTestingManager {
    * Track a conversion event
    */
   trackConversion(testName, conversionType = 'primary', metadata = {}) {
-    if (!this.conversions[testName]) {
-      this.conversions[testName] = [];
+    this._ensureInitialized();
+    
+    if (!this._conversions[testName]) {
+      this._conversions[testName] = [];
     }
 
-    this.conversions[testName].push({
+    this._conversions[testName].push({
       variant: this.getVariant(testName),
       conversionType,
       metadata,
@@ -173,7 +206,9 @@ class ABTestingManager {
    * Get test results
    */
   getResults(testName) {
-    const conversions = this.conversions[testName] || [];
+    this._ensureInitialized();
+    
+    const conversions = this._conversions[testName] || [];
     
     const controlConversions = conversions.filter(c => c.variant === VARIANTS.CONTROL);
     const treatmentConversions = conversions.filter(c => c.variant === VARIANTS.TREATMENT);
@@ -198,8 +233,10 @@ class ABTestingManager {
    * Get all test results
    */
   getAllResults() {
+    this._ensureInitialized();
+    
     const results = {};
-    for (const testName in this.assignments) {
+    for (const testName in this._assignments) {
       results[testName] = this.getResults(testName);
     }
     return results;

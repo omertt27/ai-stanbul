@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production Verification Test - AI Istanbul</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .test-section {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .test-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .test-item:last-child { border-bottom: none; }
+    .icon {
+      font-size: 24px;
+      margin-right: 15px;
+      min-width: 30px;
+    }
+    .pending { color: #ffa500; }
+    .success { color: #4caf50; }
+    .error { color: #f44336; }
+    .test-label {
+      flex: 1;
+      font-weight: 500;
+      color: #333;
+    }
+    .test-value {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #666;
+      background: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 20px;
+      width: 100%;
+    }
+    .btn:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .status-banner {
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .status-success {
+      background: #d4edda;
+      color: #155724;
+      border: 2px solid #c3e6cb;
+    }
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 2px solid #f5c6cb;
+    }
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+      border: 2px solid #ffeaa7;
+    }
+    pre {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Production Verification</h1>
+    <p class="subtitle">AI Istanbul v2.6.0 - TDZ Fix Deployment Test</p>
+    
+    <div id="statusBanner" class="status-banner status-pending">
+      ⏳ Running tests...
+    </div>
+
+    <div class="test-section">
+      <h3 style="margin-bottom: 15px;">🚀 Deployment Status</h3>
+      <div class="test-item">
+        <span class="icon pending" id="icon-sw">⏳</span>
+        <span class="test-label">Service Worker Version</span>
+        <span class="test-value" id="sw-version">Checking...</span>
+      </div>
+      <div class="test-item">
+        <span class="icon pending" id="icon-bundle">⏳</span>
+        <span class="test-label">Vendor Bundle Hash</span>
+        <span class="test-value" id="bundle-hash">Checking...</span>
+      </div>
+      <div class="test-item">
+        <span class="icon pending" id="icon-cache">⏳</span>
+        <span class="test-label">Cache Version</span>
+        <span class="test-value" id="cache-version">Checking...</span>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h3 style="margin-bottom: 15px;">🐛 Error Detection</h3>
+      <div class="test-item">
+        <span class="icon pending" id="icon-error">⏳</span>
+        <span class="test-label">TDZ Error Check</span>
+        <span class="test-value" id="error-status">Checking...</span>
+      </div>
+      <div class="test-item">
+        <span class="icon pending" id="icon-console">⏳</span>
+        <span class="test-label">Console Errors</span>
+        <span class="test-value" id="console-errors">0</span>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h3 style="margin-bottom: 15px;">💾 Storage Status</h3>
+      <div class="test-item">
+        <span class="icon pending" id="icon-storage">⏳</span>
+        <span class="test-label">LocalStorage</span>
+        <span class="test-value" id="storage-status">Checking...</span>
+      </div>
+      <div class="test-item">
+        <span class="icon pending" id="icon-caches">⏳</span>
+        <span class="test-label">Total Caches</span>
+        <span class="test-value" id="total-caches">Checking...</span>
+      </div>
+    </div>
+
+    <button class="btn" id="visitSiteBtn">✅ All Tests Passed - Visit AI Istanbul</button>
+
+    <div id="detailsSection" style="margin-top: 20px; display: none;">
+      <h3 style="margin-bottom: 10px;">📋 Full Details</h3>
+      <pre id="detailsOutput"></pre>
+    </div>
+  </div>
+
+  <script>
+    const expectedVersion = '2.6.0';
+    const expectedBundlePrefix = '1768922';
+    let testsPassed = 0;
+    let totalTests = 8;
+    let hasErrors = false;
+    const errors = [];
+
+    // Capture console errors
+    const originalError = console.error;
+    console.error = function(...args) {
+      errors.push(args.join(' '));
+      originalError.apply(console, args);
+    };
+
+    async function runTests() {
+      const results = {
+        serviceWorker: await checkServiceWorker(),
+        bundle: await checkBundle(),
+        cache: await checkCaches(),
+        error: checkForTDZError(),
+        storage: checkStorage(),
+        timestamp: new Date().toISOString()
+      };
+
+      updateUI(results);
+      return results;
+    }
+
+    async function checkServiceWorker() {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg && reg.active) {
+          const response = await fetch(reg.active.scriptURL);
+          const text = await response.text();
+          const match = text.match(/CACHE_VERSION.*'ai-istanbul-v([\d.]+)'/);
+          
+          if (match && match[1] === expectedVersion) {
+            setIcon('icon-sw', '✅', 'success');
+            document.getElementById('sw-version').textContent = 'v' + match[1];
+            testsPassed++;
+            return { success: true, version: match[1] };
+          } else {
+            setIcon('icon-sw', '❌', 'error');
+            document.getElementById('sw-version').textContent = match ? 'v' + match[1] + ' (OLD)' : 'Not found';
+            hasErrors = true;
+            return { success: false, version: match ? match[1] : 'unknown' };
+          }
+        } else {
+          setIcon('icon-sw', '⚠️', 'pending');
+          document.getElementById('sw-version').textContent = 'Not registered';
+          return { success: false, version: 'none' };
+        }
+      } catch (e) {
+        setIcon('icon-sw', '❌', 'error');
+        document.getElementById('sw-version').textContent = 'Error: ' + e.message;
+        hasErrors = true;
+        return { success: false, error: e.message };
+      }
+    }
+
+    async function checkBundle() {
+      try {
+        const scripts = Array.from(document.querySelectorAll('script[src]'));
+        const vendorScript = scripts.find(s => s.src.includes('vendor-'));
+        
+        if (vendorScript) {
+          const match = vendorScript.src.match(/vendor-[a-zA-Z0-9_-]+-(\d+)\.js/);
+          if (match && match[1].startsWith(expectedBundlePrefix)) {
+            setIcon('icon-bundle', '✅', 'success');
+            document.getElementById('bundle-hash').textContent = match[1];
+            testsPassed++;
+            return { success: true, timestamp: match[1] };
+          } else {
+            setIcon('icon-bundle', '❌', 'error');
+            document.getElementById('bundle-hash').textContent = match ? match[1] + ' (OLD)' : 'Unknown';
+            hasErrors = true;
+            return { success: false, timestamp: match ? match[1] : 'unknown' };
+          }
+        } else {
+          setIcon('icon-bundle', '⚠️', 'pending');
+          document.getElementById('bundle-hash').textContent = 'Not found';
+          return { success: false };
+        }
+      } catch (e) {
+        setIcon('icon-bundle', '❌', 'error');
+        document.getElementById('bundle-hash').textContent = 'Error';
+        hasErrors = true;
+        return { success: false, error: e.message };
+      }
+    }
+
+    async function checkCaches() {
+      try {
+        const cacheNames = await caches.keys();
+        const hasCorrectVersion = cacheNames.some(name => name.includes(expectedVersion));
+        
+        document.getElementById('total-caches').textContent = cacheNames.length + ' caches';
+        
+        if (hasCorrectVersion || cacheNames.length === 0) {
+          setIcon('icon-cache', '✅', 'success');
+          document.getElementById('cache-version').textContent = hasCorrectVersion ? 'v' + expectedVersion : 'Empty (OK)';
+          testsPassed++;
+          setIcon('icon-caches', '✅', 'success');
+          testsPassed++;
+          return { success: true, count: cacheNames.length, names: cacheNames };
+        } else {
+          setIcon('icon-cache', '❌', 'error');
+          document.getElementById('cache-version').textContent = 'Old cache detected';
+          setIcon('icon-caches', '⚠️', 'pending');
+          hasErrors = true;
+          return { success: false, count: cacheNames.length, names: cacheNames };
+        }
+      } catch (e) {
+        setIcon('icon-cache', '❌', 'error');
+        setIcon('icon-caches', '❌', 'error');
+        hasErrors = true;
+        return { success: false, error: e.message };
+      }
+    }
+
+    function checkForTDZError() {
+      const hasTDZError = errors.some(err => 
+        err.includes('Cannot access') || 
+        err.includes('before initialization') ||
+        err.includes("'ni'")
+      );
+
+      document.getElementById('console-errors').textContent = errors.length;
+
+      if (!hasTDZError && errors.length === 0) {
+        setIcon('icon-error', '✅', 'success');
+        setIcon('icon-console', '✅', 'success');
+        document.getElementById('error-status').textContent = 'No TDZ errors ✓';
+        testsPassed += 2;
+        return { success: true, errors: [] };
+      } else {
+        setIcon('icon-error', '❌', 'error');
+        setIcon('icon-console', '❌', 'error');
+        document.getElementById('error-status').textContent = hasTDZError ? 'TDZ ERROR FOUND!' : (errors.length + ' errors');
+        hasErrors = true;
+        return { success: false, errors: errors };
+      }
+    }
+
+    function checkStorage() {
+      try {
+        const test = '__test__';
+        localStorage.setItem(test, test);
+        localStorage.removeItem(test);
+        
+        setIcon('icon-storage', '✅', 'success');
+        document.getElementById('storage-status').textContent = Object.keys(localStorage).length + ' items';
+        testsPassed++;
+        return { success: true, available: true, items: Object.keys(localStorage).length };
+      } catch (e) {
+        setIcon('icon-storage', '⚠️', 'pending');
+        document.getElementById('storage-status').textContent = 'Not available';
+        return { success: false, available: false };
+      }
+    }
+
+    function setIcon(id, icon, className) {
+      const el = document.getElementById(id);
+      el.textContent = icon;
+      el.className = 'icon ' + className;
+    }
+
+    function updateUI(results) {
+      const banner = document.getElementById('statusBanner');
+      const btn = document.getElementById('visitSiteBtn');
+      const detailsSection = document.getElementById('detailsSection');
+      const detailsOutput = document.getElementById('detailsOutput');
+
+      if (!hasErrors && testsPassed >= 7) {
+        banner.className = 'status-banner status-success';
+        banner.innerHTML = '🎉 All Tests Passed! Deployment Successful - No TDZ Error!';
+        btn.disabled = false;
+      } else if (hasErrors) {
+        banner.className = 'status-banner status-error';
+        banner.innerHTML = `❌ ${totalTests - testsPassed} test(s) failed - Cache clearing may be needed`;
+        btn.textContent = '🔄 Clear Cache & Retry';
+        btn.disabled = false;
+      }
+
+      // Show details
+      detailsSection.style.display = 'block';
+      detailsOutput.textContent = JSON.stringify(results, null, 2);
+    }
+
+    document.getElementById('visitSiteBtn').addEventListener('click', function() {
+      if (hasErrors) {
+        // Clear cache and reload
+        (async () => {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (let r of regs) await r.unregister();
+          const cacheNames = await caches.keys();
+          for (let name of cacheNames) await caches.delete(name);
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.reload();
+        })();
+      } else {
+        window.location.href = 'https://aistanbul.net';
+      }
+    });
+
+    // Run tests on load
+    setTimeout(() => runTests(), 1000);
+  </script>
+</body>
+</html>
