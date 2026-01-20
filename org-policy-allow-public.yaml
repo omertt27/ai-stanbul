@@ -1,0 +1,3 @@
+name: projects/509659445005/policies/iam.allowedPolicyMemberDomains
+spec:
+  reset: true
