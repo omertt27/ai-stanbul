@@ -18,8 +18,34 @@ const MAX_CONTEXT_MESSAGES = 10; // Keep last 10 messages for context
 class ConversationContextManager {
   constructor() {
     this.contextHistory = [];
-    this.userPreferences = this.loadPreferences();
+    this._userPreferences = null; // Lazy load
     this.sessionMetadata = {};
+    this._initialized = false;
+  }
+
+  /**
+   * Lazy initialization
+   */
+  _ensureInitialized() {
+    if (this._initialized) return;
+    this._userPreferences = this.loadPreferences();
+    this._initialized = true;
+  }
+
+  /**
+   * Get user preferences (lazy loaded)
+   */
+  get userPreferences() {
+    this._ensureInitialized();
+    return this._userPreferences;
+  }
+
+  /**
+   * Set user preferences
+   */
+  set userPreferences(prefs) {
+    this._ensureInitialized();
+    this._userPreferences = prefs;
   }
 
   /**

@@ -18,7 +18,17 @@ class PushNotificationManager {
   constructor() {
     this.supported = 'Notification' in window;
     this.permission = this.supported ? Notification.permission : 'denied';
-    this.enabled = this.getEnabledPreference();
+    this._enabled = null; // Lazy load
+    this._initialized = false;
+  }
+
+  /**
+   * Lazy initialization
+   */
+  _ensureInitialized() {
+    if (this._initialized) return;
+    this._enabled = this.getEnabledPreference();
+    this._initialized = true;
   }
 
   /**
@@ -39,7 +49,8 @@ class PushNotificationManager {
    * Check if notifications are enabled by user
    */
   isEnabled() {
-    return this.enabled && this.permission === 'granted';
+    this._ensureInitialized();
+    return this._enabled && this.permission === 'granted';
   }
 
   /**
@@ -58,7 +69,8 @@ class PushNotificationManager {
    * Set user's notification preference
    */
   setEnabledPreference(enabled) {
-    this.enabled = enabled;
+    this._ensureInitialized();
+    this._enabled = enabled;
     try {
       localStorage.setItem(NOTIFICATION_ENABLED_KEY, enabled.toString());
     } catch (e) {

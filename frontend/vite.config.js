@@ -71,7 +71,19 @@ export default defineConfig({
     },
     // Optimize chunk size
     chunkSizeWarningLimit: 1000, // Increase limit for map libraries
-    minify: 'esbuild' // Use esbuild instead of terser (faster, included by default)
+    minify: 'terser', // Use terser instead of esbuild for better variable hoisting
+    terserOptions: {
+      compress: {
+        drop_console: false, // Keep console logs
+        pure_funcs: [], // Don't remove any functions
+        keep_fnames: true, // Keep function names
+        keep_classnames: true // Keep class names
+      },
+      mangle: {
+        keep_fnames: true, // Prevent function name mangling that causes TDZ
+        keep_classnames: true // Prevent class name mangling
+      }
+    }
   },
   esbuild: {
     loader: 'jsx',

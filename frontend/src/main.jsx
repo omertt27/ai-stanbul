@@ -1,4 +1,6 @@
-// Force cache bust v2.6.0 - Jan 20, 2025 19:00 UTC
+// Force cache bust v2.7.0 - Jan 20, 2025 20:00 UTC - NUCLEAR FIX
+// Import safe storage FIRST to prevent any TDZ errors
+import './utils/safeStorageInit.js';
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { Analytics } from '@vercel/analytics/react'
