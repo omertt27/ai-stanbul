@@ -34,10 +34,10 @@ export default defineConfig({
         manualChunks(id) {
           // Vendor chunks
           if (id.includes('node_modules')) {
-            // Separate large libraries
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-react';
-            }
+            // DO NOT split React - keep it in main vendor bundle to avoid circular deps
+            // if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            //   return 'vendor-react';
+            // }
             if (id.includes('leaflet') || id.includes('react-leaflet')) {
               return 'vendor-maps';
             }
@@ -47,7 +47,7 @@ export default defineConfig({
             if (id.includes('@sentry')) {
               return 'vendor-sentry';
             }
-            // All other vendor code
+            // All other vendor code (including React)
             return 'vendor';
           }
           
