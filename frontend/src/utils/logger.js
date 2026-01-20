@@ -12,12 +12,21 @@
 const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
 const isProduction = import.meta.env.PROD || import.meta.env.MODE === 'production';
 
-// Force enable/disable logging (can be toggled via localStorage)
-const FORCE_ENABLE = localStorage.getItem('ENABLE_LOGS') === 'true';
-const FORCE_DISABLE = localStorage.getItem('DISABLE_LOGS') === 'true';
+// Helper function to safely access localStorage
+const getLocalStorageItem = (key) => {
+  try {
+    return typeof window !== 'undefined' && window.localStorage ? localStorage.getItem(key) : null;
+  } catch (e) {
+    return null;
+  }
+};
 
-// Determine if logging should be enabled
-const LOGGING_ENABLED = FORCE_ENABLE || (isDevelopment && !FORCE_DISABLE);
+// Function to determine if logging should be enabled (evaluated at runtime, not module load)
+const isLoggingEnabled = () => {
+  const FORCE_ENABLE = getLocalStorageItem('ENABLE_LOGS') === 'true';
+  const FORCE_DISABLE = getLocalStorageItem('DISABLE_LOGS') === 'true';
+  return FORCE_ENABLE || (isDevelopment && !FORCE_DISABLE);
+};
 
 // Log levels
 const LogLevel = {
@@ -61,7 +70,7 @@ class Logger {
    * Debug - Detailed diagnostic information
    */
   debug(message, ...args) {
-    if (!LOGGING_ENABLED || currentLogLevel > LogLevel.DEBUG) return;
+    if (!isLoggingEnabled() || currentLogLevel > LogLevel.DEBUG) return;
     console.log(...this._format('DEBUG', message, ...args));
   }
 
@@ -69,7 +78,7 @@ class Logger {
    * Info - General informational messages
    */
   info(message, ...args) {
-    if (!LOGGING_ENABLED || currentLogLevel > LogLevel.INFO) return;
+    if (!isLoggingEnabled() || currentLogLevel > LogLevel.INFO) return;
     console.log(...this._format('INFO', message, ...args));
   }
 
@@ -77,7 +86,7 @@ class Logger {
    * Warn - Warning messages
    */
   warn(message, ...args) {
-    if (!LOGGING_ENABLED || currentLogLevel > LogLevel.WARN) return;
+    if (!isLoggingEnabled() || currentLogLevel > LogLevel.WARN) return;
     console.warn(...this._format('WARN', message, ...args));
   }
 
@@ -112,7 +121,7 @@ class Logger {
    * Group - Group related logs together
    */
   group(label, collapsed = false) {
-    if (!LOGGING_ENABLED) return;
+    if (!isLoggingEnabled()) return;
     collapsed ? console.groupCollapsed(label) : console.group(label);
   }
 
@@ -120,7 +129,7 @@ class Logger {
    * End group
    */
   groupEnd() {
-    if (!LOGGING_ENABLED) return;
+    if (!isLoggingEnabled()) return;
     console.groupEnd();
   }
 
@@ -128,7 +137,7 @@ class Logger {
    * Table - Display data as a table
    */
   table(data) {
-    if (!LOGGING_ENABLED) return;
+    if (!isLoggingEnabled()) return;
     console.table(data);
   }
 
@@ -136,7 +145,7 @@ class Logger {
    * Time - Start a timer
    */
   time(label) {
-    if (!LOGGING_ENABLED) return;
+    if (!isLoggingEnabled()) return;
     console.time(`[${this._namespace}] ${label}`);
   }
 
@@ -144,7 +153,7 @@ class Logger {
    * Time End - End a timer
    */
   timeEnd(label) {
-    if (!LOGGING_ENABLED) return;
+    if (!isLoggingEnabled()) return;
     console.timeEnd(`[${this._namespace}] ${label}`);
   }
 
@@ -196,7 +205,7 @@ if (typeof window !== 'undefined') {
 
   // Show logging status on load
   if (isDevelopment) {
-    console.log(`🔍 Logging: ${LOGGING_ENABLED ? 'ENABLED' : 'DISABLED'} (${isDevelopment ? 'development' : 'production'} mode)`);
+    console.log(`🔍 Logging: ${isLoggingEnabled() ? 'ENABLED' : 'DISABLED'} (${isDevelopment ? 'development' : 'production'} mode)`);
     console.log('💡 Use enableLogs() or disableLogs() to toggle');
   }
 }
