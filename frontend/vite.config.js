@@ -30,43 +30,16 @@ export default defineConfig({
     // Force new build hash - CRITICAL for cache busting
     rollupOptions: {
       output: {
-        // Smart code splitting for better caching
-        manualChunks(id) {
-          // Vendor chunks
-          if (id.includes('node_modules')) {
-            // DO NOT split React - keep it in main vendor bundle to avoid circular deps
-            // if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-            //   return 'vendor-react';
-            // }
-            if (id.includes('leaflet') || id.includes('react-leaflet')) {
-              return 'vendor-maps';
-            }
-            if (id.includes('i18next') || id.includes('react-i18next')) {
-              return 'vendor-i18n';
-            }
-            if (id.includes('@sentry')) {
-              return 'vendor-sentry';
-            }
-            // All other vendor code (including React)
-            return 'vendor';
-          }
-          
-          // App chunks
-          if (id.includes('/pages/')) {
-            return 'pages';
-          }
-          if (id.includes('/components/')) {
-            return 'components';
-          }
-          if (id.includes('/services/')) {
-            return 'services';
-          }
-        },
+        // DISABLE all code splitting to avoid circular dependency issues
+        // Build as a single bundle - simpler, no TDZ errors
+        manualChunks: undefined,
         // Ensure consistent asset naming with cache busting
         // Using timestamp in dev to force new hashes
         entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
         chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`
+        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`,
+        // Prevent circular dependencies
+        inlineDynamicImports: true
       }
     },
     // Optimize chunk size
