@@ -27,6 +27,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
+    // Force new build hash - CRITICAL for cache busting
     rollupOptions: {
       output: {
         // Smart code splitting for better caching
@@ -62,9 +63,10 @@ export default defineConfig({
           }
         },
         // Ensure consistent asset naming with cache busting
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        // Using timestamp in dev to force new hashes
+        entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+        chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`
       }
     },
     // Optimize chunk size

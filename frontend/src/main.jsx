@@ -1,4 +1,4 @@
-// Force cache bust v2.5.4 - Jan 20, 2025
+// Force cache bust v2.6.0 - Jan 20, 2025 19:00 UTC
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { Analytics } from '@vercel/analytics/react'
