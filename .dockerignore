@@ -70,11 +70,16 @@ google-cloud-sdk/
 **/gsutil/**
 **/platform/**
 
-# Data files (but NOT the db/ directory!)
+# Data files (but NOT the backend/db/ source directory!)
 **/*.db
-!db/
-*.sqlite
-*.sqlite3
+**/*.sqlite
+**/*.sqlite3
+# Explicitly include the backend/db/ directory (it contains source code, not database files)
+!backend/db/
+# But still exclude actual .db files inside it
+backend/db/*.db
+backend/db/*.sqlite
+backend/db/*.sqlite3
 
 # Large files
 *.pem
