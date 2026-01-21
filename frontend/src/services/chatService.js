@@ -1,6 +1,6 @@
 /**
  * Chat Service for Pure LLM Backend (Llama 3.1 8B)
- * Handles communication with the FastAPI backend on port 8002
+ * Handles communication with the FastAPI backend on port 8000
  */
 
 // Import response sanitizer to prevent data leakage
@@ -10,7 +10,8 @@ import { Logger } from '../utils/logger.js';
 const log = new Logger('ChatService');
 
 // API Configuration
-const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8002';
+// Use the standard VITE_API_URL from .env files
+const PURE_LLM_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const CHAT_ENDPOINT = `${PURE_LLM_BASE_URL}/api/chat`;
 const HEALTH_ENDPOINT = `${PURE_LLM_BASE_URL}/api/health`;
 
@@ -123,7 +124,7 @@ export async function sendMessage(message, sessionId = null, language = 'en') {
         success: false,
         error: isActuallyOffline 
           ? 'No internet connection. Please check your network.'
-          : 'Cannot connect to AI backend. Please ensure the server is running on port 8002.',
+          : 'Cannot connect to AI backend. Please ensure the server is running on port 8000.',
         type: isActuallyOffline ? 'NETWORK_ERROR' : 'CONNECTION_ERROR'
       };
     }

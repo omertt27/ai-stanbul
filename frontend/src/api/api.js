@@ -631,7 +631,7 @@ export const subscribeToNetworkStatus = (callback) => {
 // Pure LLM Backend Integration (Llama 3.1 8B)
 // ============================================
 
-const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8002';
+const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8000';
 const PURE_LLM_CHAT_URL = `${PURE_LLM_BASE_URL}/api/chat`;
 const PURE_LLM_HEALTH_URL = `${PURE_LLM_BASE_URL}/api/health`;
 
