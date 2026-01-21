@@ -4,7 +4,7 @@
 .gitattributes
 .github/
 
-# Documentation  
+# Documentation
 *.md
 !README.md
 
@@ -35,7 +35,7 @@ tests/
 *_test.py
 test_*.py
 
-# Logs - exclude .log files but NOT backend/**/*.log pattern that might cause issues
+# Logs
 *.log
 logs/
 
@@ -68,10 +68,15 @@ google-cloud-sdk/
 **/gsutil/**
 **/platform/**
 
-# CRITICAL: Exclude database FILES by specific name, NOT by pattern
-# This ensures we don't accidentally exclude the backend/db/ source directory
+# Database FILES only (NOT the backend/db/ source code directory!)
+# Use very specific patterns that won't match the db/ directory
+*.sqlite
+*.sqlite3
 ai_stanbul.db
 app.db
+*.db.old
+*.db.backup
+*.db.corrupted*
 blog_analytics.db
 curation_content.db
 daily_usage.db
@@ -82,10 +87,8 @@ monitoring.db
 query_analytics.db
 lightweight_personalization.db
 istanbul_ai_analytics.db
-backend/ai_stanbul.db
-backend/app.db
-backend/*.sqlite
-backend/*.sqlite3
+# Explicitly include backend/db/ directory (source code!)
+!backend/db/
 
 # Large files
 *.pem
