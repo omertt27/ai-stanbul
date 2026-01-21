@@ -58,12 +58,8 @@ backend/cache/
 images/
 backend/images/
 *.pkg
-*.db
-*.db.old
-*.db.backup
-*.db.corrupted*
-backend/*.db
-backend/*.log
+backend/**/*.db
+backend/**/*.log
 backend/uploads/
 backend/static/
 
@@ -74,8 +70,9 @@ google-cloud-sdk/
 **/gsutil/**
 **/platform/**
 
-# Data files
-*.db
+# Data files (but NOT the db/ directory!)
+**/*.db
+!db/
 *.sqlite
 *.sqlite3
 
