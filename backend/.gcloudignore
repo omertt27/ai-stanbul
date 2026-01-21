@@ -16,8 +16,7 @@ ENV/
 # Logs
 *.log
 logs/
-*.db
-*.db-journal
+# *.db-journal  -- Keep this in case db directory needs it
 
 # Test files
 test_*.py
@@ -51,31 +50,35 @@ READY_STATUS.md
 .env.*
 !.env.example
 
-# Data files
+# Data files (but keep db/base.py!)
 *.json
 *.csv
-*.db
+# *.db  -- COMMENTED OUT: We need db/base.py!
 *.sqlite
 *.sqlite3
-
-# Backend artifacts
-backend.log
-server.log
-startup.log
-nohup.out
+# Exclude specific database files, not all .db
+ai_stanbul.db
+app.db
+app.db.backup
 blog_analytics.db
 monitoring.db
 query_analytics.db
 vectors.db
 automated_pipeline.db
 enhanced_pipeline.db
-ai_stanbul.db
-app.db
-app.db.backup
 curation_content.db
 daily_usage.db
 istanbul_ai_analytics.db
 lightweight_personalization.db
+
+# Backend artifacts - specific database files only
+backend.log
+server.log
+startup.log
+nohup.out
+# blog_analytics.db  -- already listed above
+# monitoring.db  -- already listed above
+# ... rest are listed above
 
 # Large directories
 data/
