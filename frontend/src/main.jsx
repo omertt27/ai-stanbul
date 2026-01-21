@@ -118,23 +118,29 @@ try {
   }
   
   const root = createRoot(container)
+  
+  // Only use StrictMode in development, not production
+  const isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development'
+  
+  const app = (
+    <ErrorBoundary>
+      <HelmetProvider>
+        <ThemeProvider>
+          <BlogProvider>
+            <LocationProvider>
+              <NotificationProvider>
+                <AppRouter />
+                <Analytics />
+              </NotificationProvider>
+            </LocationProvider>
+          </BlogProvider>
+        </ThemeProvider>
+      </HelmetProvider>
+    </ErrorBoundary>
+  )
+  
   root.render(
-    <React.StrictMode>
-      <ErrorBoundary>
-        <HelmetProvider>
-          <ThemeProvider>
-            <BlogProvider>
-              <LocationProvider>
-                <NotificationProvider>
-                  <AppRouter />
-                  <Analytics />
-                </NotificationProvider>
-              </LocationProvider>
-            </BlogProvider>
-          </ThemeProvider>
-        </HelmetProvider>
-      </ErrorBoundary>
-    </React.StrictMode>,
+    isDevelopment ? <React.StrictMode>{app}</React.StrictMode> : app
   )
   
   console.log('React app mounted successfully')

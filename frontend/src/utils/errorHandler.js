@@ -203,6 +203,13 @@ export const fetchWithRetry = async (url, options = {}, customConfig = {}) => {
         options.timeout || 30000 // 30 second default timeout
       );
       
+      // If the caller provided a signal, listen for it too
+      const originalSignal = options.signal;
+      if (originalSignal) {
+        const abortHandler = () => controller.abort();
+        originalSignal.addEventListener('abort', abortHandler, { once: true });
+      }
+      
       const response = await fetch(url, {
         ...options,
         signal: controller.signal
@@ -235,8 +242,14 @@ export const fetchWithRetry = async (url, options = {}, customConfig = {}) => {
     } catch (error) {
       lastError = error;
       
-      // Handle AbortError (timeout)
+      // Handle AbortError - check if it's from component unmount or timeout
       if (error.name === 'AbortError') {
+        // If the original signal was aborted (component unmount), don't retry
+        if (options.signal && options.signal.aborted) {
+          console.log(`🛑 Request aborted (component unmounted), skipping retries`);
+          throw new Error('Request cancelled');
+        }
+        // Otherwise it's a timeout, convert to TimeoutError
         lastError = new Error('TimeoutError: Request timed out');
       }
       

@@ -185,7 +185,8 @@ const InteractiveMainPage = ({ onQuickStart }) => {
   ];
 
   const handleDistrictClick = (district) => {
-    const query = t('homepage.districtQuery', { districtName: district.name });
+    // Create a query asking for information about the district
+    const query = `Give me information about ${district.name}`;
     onQuickStart(query);
     navigate('/chat');
   };
