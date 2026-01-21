@@ -85,14 +85,18 @@ API_SETUP_INSTRUCTIONS.txt
 REAL_TIME_DATA_INTEGRATION_GUIDE.md
 VM_LLAMA_SETUP_COMMANDS.md
 
-# Database Files (Contains User Data)
+# Database Files (Contains User Data) - but NOT the backend/db/ source directory!
 *.db
 *.sqlite
 *.sqlite3
 app.db
 backend/app.db
 blog_analytics.db
-db/
+# Do NOT exclude backend/db/ - it contains source code, not database files!
+# Only exclude specific database files
+ai_stanbul.db
+vectors.db
+monitoring.db
 
 # Python Cache and Virtual Environments
 __pycache__/
