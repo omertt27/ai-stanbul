@@ -110,7 +110,17 @@ const ErrorNotification = ({
   
   const handleRetry = () => {
     if (onRetry) {
-      onRetry();
+      try {
+        const result = onRetry();
+        // Handle Promise result if onRetry returns a Promise
+        if (result && typeof result === 'object' && typeof result.finally === 'function') {
+          result.catch((err) => {
+            console.error('Retry failed:', err);
+          });
+        }
+      } catch (err) {
+        console.error('Retry failed:', err);
+      }
     }
   };
   

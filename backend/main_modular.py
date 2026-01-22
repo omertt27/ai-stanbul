@@ -202,10 +202,10 @@ async def _background_initialization():
             logger.info("✅ UnifiedLLMService initialized and ready for API layer")
             
             # Log configuration for visibility
-            logger.info(f"📡 vLLM endpoint: {unified_llm.vllm_endpoint}")
-            logger.info(f"🔄 Fallback: Groq API enabled")
-            logger.info(f"💾 Cache size: {len(unified_llm.cache)}/{unified_llm.cache_max_size}")
-            logger.info(f"🛡️  Circuit breaker: enabled (threshold={unified_llm.circuit_breaker_threshold})")
+            logger.info(f"📡 RunPod LLM endpoint: {os.getenv('LLM_API_URL', 'not configured')}")
+            logger.info(f"🤖 Model: {os.getenv('LLM_MODEL_NAME', 'default')}")
+            logger.info(f"💾 Cache: {'enabled' if unified_llm.cache_enabled else 'disabled'} ({len(unified_llm.cache)}/{unified_llm.cache_max_size} entries)")
+            logger.info(f"🛡️  Circuit breaker: {'enabled' if unified_llm.circuit_breaker_enabled else 'disabled'} (threshold={unified_llm.circuit_breaker_threshold})")
             
         except Exception as e:
             logger.error(f"❌ Failed to initialize UnifiedLLMService: {e}")

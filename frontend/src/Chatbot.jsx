@@ -567,7 +567,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   const isMobile = useIsMobile();
   
   // Use standard backend (not Pure LLM mode)
-  const usePureLLM = false;
+  const usePureLLM = true;
   
   // Component initialization state - FIX FOR NAVIGATION ISSUE
   const [isInitialized, setIsInitialized] = useState(false);
@@ -648,7 +648,7 @@ function Chatbot({ userLocation: propUserLocation }) {
           getCurrentLocation();
         }
       } catch (error) {
-        console.error('❌ Permission check failed:', error);
+        // Suppress permission check errors (expected on some browsers)
       }
     };
 
@@ -669,8 +669,7 @@ function Chatbot({ userLocation: propUserLocation }) {
             setLocationError(null);
           },
           (error) => {
-            console.error('❌ High accuracy GPS failed, trying low accuracy...', error);
-            // If high accuracy fails, try with lower accuracy settings
+            // Silently try low accuracy if high accuracy fails (suppress GPS error logging)
             tryLowAccuracy();
           },
           {
@@ -695,13 +694,8 @@ function Chatbot({ userLocation: propUserLocation }) {
             setLocationError(null);
           },
           (error) => {
-            console.error('❌ GPS error details:', {
-              code: error.code,
-              message: error.message,
-              PERMISSION_DENIED: 1,
-              POSITION_UNAVAILABLE: 2,
-              TIMEOUT: 3
-            });
+            // Suppress GPS error logging for cleaner console output
+            // The CoreLocation errors are expected on some systems
             
             // Enhanced error messages with troubleshooting
             let userMessage = '';
@@ -738,7 +732,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   
   // Manual GPS request handler
   const requestLocationManually = () => {
-    console.log('📍 Manual GPS request triggered');
+    // Suppress manual GPS logging for cleaner console
     if (!('geolocation' in navigator)) {
       alert('❌ GPS not supported by your browser. Please use a modern browser with location support.');
       return;
@@ -763,7 +757,7 @@ function Chatbot({ userLocation: propUserLocation }) {
           setShowGPSBanner(false);
         },
         (error) => {
-          console.log('❌ High accuracy failed, trying low accuracy...');
+          // Silently try low accuracy fallback
           tryLowAccuracy();
         },
         {
@@ -789,10 +783,7 @@ function Chatbot({ userLocation: propUserLocation }) {
           setShowGPSBanner(false);
         },
         (error) => {
-          console.error('❌ Manual GPS error:', {
-            code: error.code,
-            message: error.message
-          });
+          // Suppress GPS error logging (CoreLocation errors are expected on some systems)
           
           // Enhanced error messages with actionable troubleshooting
           let errorMessage = '';
@@ -1396,22 +1387,47 @@ function Chatbot({ userLocation: propUserLocation }) {
     }
   }, [messages, currentSessionId]);
 
-  // Handle initial query from navigation state (from main page search)
+  // Track pending initial query to send after component is ready
+  const [pendingInitialQuery, setPendingInitialQuery] = useState(null);
+  
+  // Capture initial query from navigation state IMMEDIATELY
   useEffect(() => {
     const initialQuery = location.state?.initialQuery;
-    if (initialQuery && !loading) {
-      console.log('🔍 Processing initial query from navigation:', initialQuery);
-      setInput(initialQuery);
+    if (initialQuery) {
+      console.log('🔍 Captured initial query from navigation:', initialQuery);
+      setPendingInitialQuery(initialQuery);
       
-      // Auto-submit the query after a short delay
-      setTimeout(() => {
-        handleSend(initialQuery);
-        
-        // Clear the navigation state to prevent resubmission
-        navigate(location.pathname, { replace: true, state: {} });
-      }, 300);
+      // Clear the navigation state immediately to prevent back button issues
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state?.initialQuery]);
+  }, [location.pathname]); // Only run when pathname changes (navigation occurs)
+  
+  // Send the pending query once component is initialized and not loading
+  useEffect(() => {
+    if (pendingInitialQuery && isInitialized && !loading) {
+      console.log('📤 Sending pending initial query:', pendingInitialQuery);
+      
+      // Set the input field
+      setInput(pendingInitialQuery);
+      
+      // Send the query
+      const submitQuery = async () => {
+        try {
+          await handleSend(pendingInitialQuery);
+          console.log('✅ Initial query sent successfully');
+          
+          // Clear the pending query
+          setPendingInitialQuery(null);
+        } catch (error) {
+          console.error('❌ Failed to send initial query:', error);
+          // Keep the pending query so user can retry
+        }
+      };
+      
+      // Small delay to ensure handleSend is available
+      setTimeout(submitQuery, 200);
+    }
+  }, [pendingInitialQuery, isInitialized, loading]);
 
   // Error boundary handler - catch any render errors
   useEffect(() => {
@@ -3133,7 +3149,7 @@ function Chatbot({ userLocation: propUserLocation }) {
               onRetry={handleRetry}
               onDismiss={dismissError}
               darkMode={darkMode}
-              autoRetry={true}
+              autoRetry={false}  // Disabled: prevents infinite retry loops on persistent backend errors
               maxRetries={3}
             />
           ) : (

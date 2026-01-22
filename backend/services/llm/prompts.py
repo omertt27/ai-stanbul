@@ -338,20 +338,40 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         # DISABLED: Intent classification, low-confidence, and multi-intent prompts cause template artifacts
         # These features are currently disabled to keep responses clean and focused
         
-        # 7. User query - Clean format without visible instruction markers
-        # The language is set via the system prompt, not via visible markers
+        # 7. User query - with STRONG language enforcement
+        # Add explicit language instruction right before the response to ensure correct language
+        
+        # Language name mapping for clarity
+        language_names = {
+            'en': 'English',
+            'tr': 'Turkish',
+            'ru': 'Russian',
+            'de': 'German',
+            'ar': 'Arabic',
+            'fr': 'French',
+            'es': 'Spanish',
+            'zh': 'Chinese',
+            'ja': 'Japanese',
+            'ko': 'Korean'
+        }
+        lang_name = language_names.get(language, 'English')
         
         # For non-English, add a subtle language hint in the conversation format
         if language == 'tr':
-            prompt_parts.append(f"\n---\n\nKullanıcı: {query}\n\nYanıt:")
+            prompt_parts.append(f"\n---\n\nKullanıcı: {query}\n\n⚠️ RESPOND IN TURKISH ONLY.\nYanıt:")
         elif language == 'ru':
-            prompt_parts.append(f"\n---\n\nПользователь: {query}\n\nОтвет:")
+            prompt_parts.append(f"\n---\n\nПользователь: {query}\n\n⚠️ RESPOND IN RUSSIAN ONLY.\nОтвет:")
         elif language == 'de':
-            prompt_parts.append(f"\n---\n\nBenutzer: {query}\n\nAntwort:")
+            prompt_parts.append(f"\n---\n\nBenutzer: {query}\n\n⚠️ RESPOND IN GERMAN ONLY.\nAntwort:")
         elif language == 'ar':
-            prompt_parts.append(f"\n---\n\nالمستخدم: {query}\n\nالرد:")
+            prompt_parts.append(f"\n---\n\nالمستخدم: {query}\n\n⚠️ RESPOND IN ARABIC ONLY.\nالرد:")
+        elif language == 'fr':
+            prompt_parts.append(f"\n---\n\nUtilisateur: {query}\n\n⚠️ RESPOND IN FRENCH ONLY.\nRéponse:")
+        elif language == 'es':
+            prompt_parts.append(f"\n---\n\nUsuario: {query}\n\n⚠️ RESPOND IN SPANISH ONLY.\nRespuesta:")
         else:
-            prompt_parts.append(f"\n---\n\nUser: {query}\n\nResponse:")
+            # English - explicitly enforce English response
+            prompt_parts.append(f"\n---\n\nUser: {query}\n\n⚠️ RESPOND IN ENGLISH ONLY.\nResponse:")
 
 
         

@@ -86,12 +86,14 @@ Extract and classify the following in valid JSON format:
 1. **primary_intent**: Choose ONE from:
    - "route" (wants directions/navigation)
    - "restaurant" (wants restaurant recommendations)
-   - "information" (wants info about POIs, attractions, history)
+   - "landmark" (wants info about specific landmarks like Hagia Sophia, Blue Mosque, Galata Tower)
+   - "information" (wants general info about POIs, attractions, history, culture)
    - "hidden_gems" (wants off-the-beaten-path, local spots)
    - "event" (wants event information)
    - "weather" (wants weather information)
    - "museum" (wants museum information)
    - "transport" (wants transportation info)
+   - "neighborhood_guide" (wants info about a specific neighborhood/district)
    - "general" (general chat/greeting/unclear)
    - "multi_intent" (multiple intents detected)
 

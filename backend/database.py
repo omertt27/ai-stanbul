@@ -155,8 +155,13 @@ def get_db():
 
 # Import models registry to ensure all models are registered with SQLAlchemy
 # This must be done AFTER Base and engine are created
-try:
-    from db.models_registry import __all__ as registered_models
-    logger.info(f"✅ Registered {len(registered_models) - 1} database models")  # -1 for Base
-except ImportError as e:
-    logger.warning(f"⚠️ Could not import models registry: {e}")
+# Using lazy import to avoid circular import issues
+def register_models():
+    """Lazy registration of models to avoid circular imports"""
+    try:
+        from db.models_registry import __all__ as registered_models
+        logger.info(f"✅ Registered {len(registered_models) - 1} database models")  # -1 for Base
+        return True
+    except ImportError as e:
+        logger.warning(f"⚠️ Could not import models registry: {e}")
+        return False

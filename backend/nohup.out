@@ -1,831 +1,830 @@
 INFO:     Will watch for changes in these directories: ['/Users/omer/Desktop/ai-stanbul/backend']
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [58887] using StatReload
-2025-12-09 18:10:21,955 - database - INFO - ✅ Using centralized database configuration
-2025-12-09 18:10:21,955 - config.database_config - INFO - ============================================================
-2025-12-09 18:10:21,955 - config.database_config - INFO - DATABASE CONFIGURATION
-2025-12-09 18:10:21,955 - config.database_config - INFO - ============================================================
-2025-12-09 18:10:21,955 - config.database_config - INFO - Database Type: POSTGRESQL
-2025-12-09 18:10:21,955 - config.database_config - INFO - Host: localhost
-2025-12-09 18:10:21,955 - config.database_config - INFO - Port: 5432
-2025-12-09 18:10:21,955 - config.database_config - INFO - Database: istanbul_ai
-2025-12-09 18:10:21,955 - config.database_config - INFO - Username: omer
-2025-12-09 18:10:21,955 - config.database_config - INFO - Render PostgreSQL: No
-2025-12-09 18:10:21,955 - config.database_config - INFO - SSL Enabled: No
-2025-12-09 18:10:21,955 - config.database_config - INFO - ============================================================
-2025-12-09 18:10:22,207 - database - INFO - � PostgreSQL engine created with connection pooling
-2025-12-09 18:10:22,762 - api.admin.routes - INFO - ✅ Admin routes initialized
-2025-12-09 18:10:24,833 - ttl_fine_tuning - INFO - 🔧 TTL Optimizer initialized with dynamic fine-tuning
-2025-12-09 18:10:24,833 - google_api_integration - INFO - ✅ TTL fine-tuning system loaded
-2025-12-09 18:10:24,837 - google_api_integration - INFO - ✅ Time-aware cache Redis connected
-2025-12-09 18:10:24,839 - google_api_integration - INFO - ✅ Time-aware cache Redis connected
-2025-12-09 18:10:24,843 - google_api_integration - INFO - ✅ Time-aware cache Redis connected
-2025-12-09 18:10:24,844 - google_api_integration - INFO - ✅ Time-aware cache Redis connected
-2025-12-09 18:10:24,846 - integrated_cache_system - INFO - ✅ Production cache monitor Redis connected
-2025-12-09 18:10:24,846 - integrated_cache_system - INFO - 🔄 Production cache monitoring started
-2025-12-09 18:10:24,847 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:10:24,847 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 18:10:24,847 - integrated_cache_system - INFO - 🔥 Cache warming service started
-2025-12-09 18:10:24,847 - integrated_cache_system - INFO - 🚀 Integrated Cache System initialized successfully
-2025-12-09 18:10:24,856 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: best restaurants in Sultanahmet...
-2025-12-09 18:10:24,856 - integrated_cache_system - INFO - 🔥 Warmed cache for: best restaurants in Sultanahme... (0ms)
-2025-12-09 18:10:24,857 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: seafood restaurants near Bosphorus...
-2025-12-09 18:10:24,857 - integrated_cache_system - INFO - 🔥 Warmed cache for: seafood restaurants near Bosph... (0ms)
-2025-12-09 18:10:24,857 - google_api_integration - INFO - 🎯 Intent: quick_rec, Fields: 4, Cost savings: 91.8%
-2025-12-09 18:10:24,858 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: rooftop restaurants with view...
-2025-12-09 18:10:24,858 - integrated_cache_system - INFO - 🔥 Warmed cache for: rooftop restaurants with view... (1ms)
-2025-12-09 18:10:24,862 - google_api_integration - INFO - ✅ Time-aware cache HIT for opening_hours: romantic dinner places Istanbul...
-2025-12-09 18:10:24,862 - integrated_cache_system - INFO - 🔥 Warmed cache for: romantic dinner places Istanbu... (1ms)
-2025-12-09 18:10:24,862 - google_api_integration - INFO - 🎯 Intent: quick_rec, Fields: 4, Cost savings: 91.8%
-2025-12-09 18:10:24,862 - google_api_integration - INFO - 🎯 Intent: dining_decision, Fields: 5, Cost savings: 86.9%
-/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/pydantic/_internal/_config.py:373: UserWarning: Valid config keys have changed in V2:
-* 'schema_extra' has been renamed to 'json_schema_extra'
-  warnings.warn(message, UserWarning)
-2025-12-09 18:10:25,688 - api_clients.google_analytics_api - WARNING - Google Analytics Data API not available. Install with: pip install google-analytics-data
-2025-12-09 18:10:25,690 - api_clients.enhanced_google_places - INFO - Google Places API: Ready for live data integration!
-2025-12-09 18:10:26,174 - routes.blog - INFO - Blog router initialized successfully
-2025-12-09 18:10:26,174 - core.middleware - INFO - ✅ CORS middleware configured
-2025-12-09 18:10:26,174 - core.middleware - INFO - ✅ Middleware configured
-2025-12-09 18:10:26,175 - main_modular - INFO - ✅ Static files mounted at /static -> /Users/omer/Desktop/ai-stanbul/backend/static
-2025-12-09 18:10:26,185 - main_modular - INFO - 📋 Admin routes router has 10 routes
-2025-12-09 18:10:26,187 - main_modular - INFO - ✅ Admin routes registered at /api/admin
-2025-12-09 18:10:26,190 - main_modular - INFO - ✅ Blog API registered at /api/blog
-2025-12-09 18:10:26,191 - main_modular - INFO - ✅ Cache monitoring routes registered at /api/cache
-2025-12-09 18:10:26,193 - main_modular - INFO - ✅ Intent feedback routes registered at /api/feedback
-2025-12-09 18:10:26,197 - main_modular - INFO - ✅ Legacy routes registered
-INFO:     Started server process [58932]
+INFO:     Started reloader process [246] using StatReload
+2026-01-22 17:22:15,473 - database - INFO - ✅ Using centralized database configuration
+2026-01-22 17:22:15,473 - config.database_config - INFO - ============================================================
+2026-01-22 17:22:15,473 - config.database_config - INFO - DATABASE CONFIGURATION
+2026-01-22 17:22:15,473 - config.database_config - INFO - ============================================================
+2026-01-22 17:22:15,473 - config.database_config - INFO - Database Type: POSTGRESQL
+2026-01-22 17:22:15,473 - config.database_config - INFO - Host: localhost
+2026-01-22 17:22:15,473 - config.database_config - INFO - Port: 5433
+2026-01-22 17:22:15,473 - config.database_config - INFO - Database: ai_istanbul
+2026-01-22 17:22:15,473 - config.database_config - INFO - Username: postgres
+2026-01-22 17:22:15,473 - config.database_config - INFO - Render PostgreSQL: No
+2026-01-22 17:22:15,473 - config.database_config - INFO - SSL Enabled: No
+2026-01-22 17:22:15,473 - config.database_config - INFO - ============================================================
+2026-01-22 17:22:15,501 - database - INFO - � PostgreSQL engine created with connection pooling
+2026-01-22 17:22:15,501 - database - INFO - ============================================================
+2026-01-22 17:22:15,501 - database - INFO - 📊 DATABASE BACKEND INFORMATION
+2026-01-22 17:22:15,501 - database - INFO -    Type: postgresql
+2026-01-22 17:22:15,501 - database - INFO -    Driver: psycopg2
+2026-01-22 17:22:15,501 - database - INFO -    Database: ai_istanbul
+2026-01-22 17:22:15,501 - database - INFO -    Host: localhost
+2026-01-22 17:22:15,501 - database - INFO -    Port: 5433
+2026-01-22 17:22:15,501 - database - INFO -    Pool: QueuePool
+2026-01-22 17:22:15,501 - database - INFO - ============================================================
+2026-01-22 17:22:16,152 - services.llm.context - INFO - ✅ Industry-level Transportation RAG system available
+2026-01-22 17:22:16,154 - services.llm.context - INFO - ✅ Istanbul Knowledge RAG system available
+2026-01-22 17:22:16,269 - api.admin.routes - INFO - ✅ Admin routes initialized
+2026-01-22 17:22:16,273 - services.smart_feedback_processor - INFO - 📁 Feedback data directory: /Users/omer/Desktop/ai-stanbul/backend/training_data
+2026-01-22 17:22:16,389 - ttl_fine_tuning - INFO - 🔧 TTL Optimizer initialized with dynamic fine-tuning
+2026-01-22 17:22:16,389 - google_api_integration - INFO - ✅ TTL fine-tuning system loaded
+2026-01-22 17:22:16,390 - core.startup_guard - INFO - ✅ Redis readiness check: CONNECTED
+2026-01-22 17:22:16,390 - google_api_integration - INFO - ✅ Time-aware cache using centralized Redis client
+2026-01-22 17:22:16,392 - integrated_cache_system - INFO - ✅ Production cache monitor using centralized Redis client
+2026-01-22 17:22:16,392 - integrated_cache_system - INFO - 🔄 Production cache monitoring started
+2026-01-22 17:22:16,392 - integrated_cache_system - INFO - 💾 Cache hit rate: 0.0% (warming up)
+2026-01-22 17:22:16,392 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+2026-01-22 17:22:16,393 - integrated_cache_system - INFO - 🔥 Cache warming service started
+2026-01-22 17:22:16,393 - integrated_cache_system - INFO - 🚀 Integrated Cache System initialized successfully
+2026-01-22 17:22:16,395 - integrated_cache_system - ERROR - ❌ Error warming query 'best restaurants in Sultanahmet': Google API key not configured
+2026-01-22 17:22:16,396 - integrated_cache_system - ERROR - ❌ Error warming query 'vegetarian restaurants in Karakoy': Google API key not configured
+2026-01-22 17:22:16,396 - integrated_cache_system - ERROR - ❌ Error warming query 'fine dining Istanbul': Google API key not configured
+2026-01-22 17:22:16,397 - backend.database - INFO - ✅ Using centralized database configuration
+2026-01-22 17:22:16,397 - integrated_cache_system - ERROR - ❌ Error warming query 'seafood restaurants near Bosphorus': Google API key not configured
+2026-01-22 17:22:16,397 - integrated_cache_system - ERROR - ❌ Error warming query 'Turkish street food': Google API key not configured
+2026-01-22 17:22:16,398 - config.database_config - INFO - ============================================================
+2026-01-22 17:22:16,398 - integrated_cache_system - ERROR - ❌ Error warming query 'Turkish breakfast places in Beyoğlu': Google API key not configured
+2026-01-22 17:22:16,398 - integrated_cache_system - ERROR - ❌ Error warming query 'family friendly restaurants': Google API key not configured
+2026-01-22 17:22:16,398 - integrated_cache_system - ERROR - ❌ Error warming query 'cheap eats in Kadikoy': Google API key not configured
+2026-01-22 17:22:16,398 - config.database_config - INFO - DATABASE CONFIGURATION
+2026-01-22 17:22:16,398 - integrated_cache_system - ERROR - ❌ Error warming query 'restaurants open late night': Google API key not configured
+2026-01-22 17:22:16,398 - integrated_cache_system - ERROR - ❌ Error warming query 'romantic dinner places Istanbul': Google API key not configured
+2026-01-22 17:22:16,398 - integrated_cache_system - ERROR - ❌ Error warming query 'best kebab places in Istanbul': Google API key not configured
+2026-01-22 17:22:16,399 - integrated_cache_system - ERROR - ❌ Error warming query 'rooftop restaurants with view': Google API key not configured
+2026-01-22 17:22:16,399 - integrated_cache_system - ERROR - ❌ Error warming query 'restaurants with live music': Google API key not configured
+2026-01-22 17:22:16,399 - config.database_config - INFO - ============================================================
+2026-01-22 17:22:16,399 - integrated_cache_system - ERROR - ❌ Error warming query 'halal restaurants near Hagia Sophia': Google API key not configured
+2026-01-22 17:22:16,399 - integrated_cache_system - ERROR - ❌ Error warming query 'traditional Turkish restaurants': Google API key not configured
+2026-01-22 17:22:16,399 - config.database_config - INFO - Database Type: POSTGRESQL
+2026-01-22 17:22:16,399 - config.database_config - INFO - Host: localhost
+2026-01-22 17:22:16,399 - config.database_config - INFO - Port: 5433
+2026-01-22 17:22:16,399 - config.database_config - INFO - Database: ai_istanbul
+2026-01-22 17:22:16,399 - config.database_config - INFO - Username: postgres
+2026-01-22 17:22:16,399 - config.database_config - INFO - Render PostgreSQL: No
+2026-01-22 17:22:16,399 - config.database_config - INFO - SSL Enabled: No
+2026-01-22 17:22:16,399 - config.database_config - INFO - ============================================================
+2026-01-22 17:22:16,400 - backend.database - INFO - � PostgreSQL engine created with connection pooling
+2026-01-22 17:22:16,400 - backend.database - INFO - ============================================================
+2026-01-22 17:22:16,400 - backend.database - INFO - 📊 DATABASE BACKEND INFORMATION
+2026-01-22 17:22:16,400 - backend.database - INFO -    Type: postgresql
+2026-01-22 17:22:16,400 - backend.database - INFO -    Driver: psycopg2
+2026-01-22 17:22:16,400 - backend.database - INFO -    Database: ai_istanbul
+2026-01-22 17:22:16,400 - backend.database - INFO -    Host: localhost
+2026-01-22 17:22:16,400 - backend.database - INFO -    Port: 5433
+2026-01-22 17:22:16,400 - backend.database - INFO -    Pool: QueuePool
+2026-01-22 17:22:16,400 - backend.database - INFO - ============================================================
+2026-01-22 17:22:16,400 - integrated_cache_system - INFO - 🔥 Cache warming completed: 0/15 queries warmed
+2026-01-22 17:22:16,644 - api_clients.google_analytics_api - WARNING - Google Analytics Data API not available. Install with: pip install google-analytics-data
+2026-01-22 17:22:16,645 - api_clients.enhanced_google_places - WARNING - Google Places API: Using fallback mode with enhanced mock data.
+2026-01-22 17:22:16,949 - routes.blog - INFO - Blog router initialized successfully
+2026-01-22 17:22:16,949 - core.middleware - INFO - ✅ CORS middleware configured
+2026-01-22 17:22:16,949 - core.security - INFO - ✅ Security middleware configured
+2026-01-22 17:22:16,949 - core.errors - INFO - ✅ Standardized error handlers configured
+2026-01-22 17:22:16,949 - core.middleware - INFO - ✅ All middleware configured
+2026-01-22 17:22:16,949 - main_modular - INFO - ✅ Static files mounted at /static -> /Users/omer/Desktop/ai-stanbul/backend/static
+2026-01-22 17:22:16,959 - main_modular - INFO - ✅ Streaming API registered at /api/stream
+2026-01-22 17:22:16,960 - main_modular - INFO - ✅ Feedback API registered at /api/feedback
+2026-01-22 17:22:16,962 - main_modular - INFO - ✅ Direct Routing API registered at /api/routes
+2026-01-22 17:22:16,962 - main_modular - INFO - 📋 Admin routes router has 10 routes
+2026-01-22 17:22:16,964 - main_modular - INFO - ✅ Admin routes registered at /api/admin
+2026-01-22 17:22:16,968 - main_modular - INFO - ✅ Blog API registered at /api/blog
+2026-01-22 17:22:16,969 - main_modular - INFO - ✅ Cache monitoring routes registered at /api/cache
+2026-01-22 17:22:16,970 - main_modular - INFO - ✅ Intent feedback routes registered at /api/feedback
+2026-01-22 17:22:17,012 - main_modular - INFO - ✅ Legacy routes registered
+INFO:     Started server process [300]
 INFO:     Waiting for application startup.
-2025-12-09 18:10:26,198 - core.startup - INFO - 🚀 Starting AI Istanbul Backend
-2025-12-09 18:10:26,198 - core.startup - INFO - ============================================================
-2025-12-09 18:10:26,198 - core.startup - INFO - 🔄 Initializing Redis Cache...
-2025-12-09 18:10:26,198 - services.redis_cache - INFO - ✅ Redis cache connected: localhost:6379
-2025-12-09 18:10:26,199 - services.redis_cache - INFO - ✅ Redis cache connected
-2025-12-09 18:10:26,199 - core.startup - INFO - ✅ Redis cache initialized successfully
-2025-12-09 18:10:26,199 - core.startup - INFO - 🔧 Initializing Service Manager...
-2025-12-09 18:10:26,201 - services.service_manager - INFO - 🔧 Initializing Service Manager...
-2025-12-09 18:10:26,201 - services.service_manager - INFO - 📦 Loading Istanbul AI services...
-2025-12-09 18:10:26,204 - google_api_integration - INFO - 💾 Cached result (live_pricing, TTL: 240s): cheap eats in Kadikoy...
-2025-12-09 18:10:26,205 - integrated_cache_system - INFO - 🔥 Warmed cache for: cheap eats in Kadikoy... (1343ms)
-2025-12-09 18:10:26,207 - services.service_manager - INFO - ✅ Restaurant service loaded
-2025-12-09 18:10:26,208 - google_api_integration - INFO - ✅ Time-aware cache HIT for restaurant_basic_info: fine dining Istanbul...
-2025-12-09 18:10:26,208 - integrated_cache_system - INFO - 🔥 Warmed cache for: fine dining Istanbul... (0ms)
-2025-12-09 18:10:26,213 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: halal restaurants near Hagia Sophia...
-2025-12-09 18:10:26,213 - integrated_cache_system - INFO - 🔥 Warmed cache for: halal restaurants near Hagia S... (0ms)
-2025-12-09 18:10:26,216 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: best kebab places in Istanbul...
-2025-12-09 18:10:26,216 - integrated_cache_system - INFO - 🔥 Warmed cache for: best kebab places in Istanbul... (3ms)
-2025-12-09 18:10:26,217 - google_api_integration - INFO - 🎯 Intent: quick_rec, Fields: 4, Cost savings: 91.8%
-2025-12-09 18:10:26,218 - services.transportation_directions_service - INFO - ✅ Backend OSRM routing service imported successfully
-2025-12-09 18:10:26,223 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine imported successfully
-2025-12-09 18:10:26,223 - google_api_integration - INFO - 💾 Cached result (preference_search, TTL: 5760s): traditional Turkish restaurants...
-2025-12-09 18:10:26,223 - services.redis_cache - INFO - ✅ Redis cache connected: localhost:6379
-2025-12-09 18:10:26,225 - integrated_cache_system - INFO - 🔥 Warmed cache for: traditional Turkish restaurant... (1368ms)
-2025-12-09 18:10:26,225 - google_api_integration - INFO - 💾 Cached result (preference_search, TTL: 5760s): Turkish breakfast places in Beyoğlu...
-2025-12-09 18:10:26,226 - integrated_cache_system - INFO - 🔥 Warmed cache for: Turkish breakfast places in Be... (1368ms)
-2025-12-09 18:10:26,226 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: restaurants with live music...
-2025-12-09 18:10:26,227 - integrated_cache_system - INFO - 🔥 Warmed cache for: restaurants with live music... (0ms)
-2025-12-09 18:10:26,227 - google_api_integration - INFO - ✅ Time-aware cache HIT for restaurant_basic_info: family friendly restaurants...
-2025-12-09 18:10:26,227 - integrated_cache_system - INFO - 🔥 Warmed cache for: family friendly restaurants... (0ms)
-2025-12-09 18:10:26,227 - services.osrm_routing_service - INFO - ✅ OSRM routing cache enabled (Redis)
-2025-12-09 18:10:26,227 - google_api_integration - INFO - ✅ Time-aware cache HIT for opening_hours: restaurants open late night...
-2025-12-09 18:10:26,227 - services.osrm_routing_service - INFO - OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
-2025-12-09 18:10:26,228 - integrated_cache_system - INFO - 🔥 Warmed cache for: restaurants open late night... (1ms)
-2025-12-09 18:10:26,228 - services.transportation_directions_service - INFO - ✅ OSRM service initialized successfully
-2025-12-09 18:10:26,228 - google_api_integration - INFO - ✅ Time-aware cache HIT for opening_hours: vegetarian restaurants in Karakoy...
-2025-12-09 18:10:26,228 - services.graph_routing_engine - INFO - 🏗️ Building Istanbul transportation graph...
-2025-12-09 18:10:26,228 - integrated_cache_system - INFO - 🔥 Warmed cache for: vegetarian restaurants in Kara... (0ms)
-2025-12-09 18:10:26,229 - services.graph_routing_engine - INFO - 🔄 Adding transfer connections...
-2025-12-09 18:10:26,230 - services.graph_routing_engine - INFO - ✅ Added 154 transfer connections
-2025-12-09 18:10:26,230 - services.graph_routing_engine - INFO - ✅ Graph built: 208 nodes, 528 edges
-2025-12-09 18:10:26,230 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine initialized successfully
-2025-12-09 18:10:26,230 - services.transportation_directions_service - INFO - ✅ Transportation Directions Service initialized
-2025-12-09 18:10:26,230 - services.service_manager - INFO - ✅ Transportation service loaded
-2025-12-09 18:10:26,232 - services.service_manager - INFO - ✅ Hidden gems service loaded
-2025-12-09 18:10:26,236 - services.service_manager - INFO - ✅ Events service loaded
-2025-12-09 18:10:26,241 - services.service_manager - INFO - ✅ Attractions service loaded
-2025-12-09 18:10:26,243 - services.airport_transport_service - INFO - ✈️ Istanbul Airport Transport Service initialized
-2025-12-09 18:10:26,243 - services.airport_transport_service - INFO - ✈️ Istanbul Airport Transport Service initialized
-2025-12-09 18:10:26,243 - services.service_manager - INFO - ✅ Airport transport service loaded
-2025-12-09 18:10:26,247 - services.service_manager - INFO - ✅ Daily life service loaded
-2025-12-09 18:10:26,262 - services.service_manager - INFO - ✅ Info retrieval service loaded
-2025-12-09 18:10:26,263 - services.weather_service - INFO - 🌤️  Weather service initialized
-2025-12-09 18:10:26,263 - services.service_manager - INFO - ✅ Weather service loaded
-2025-12-09 18:10:26,265 - services.entity_extractor - INFO - ✅ AdvancedEntityExtractor initialized
-2025-12-09 18:10:26,265 - services.service_manager - INFO - ✅ Entity extractor loaded
-2025-12-09 18:10:27,238 - google_api_integration - INFO - 💾 Cached result (preference_search, TTL: 5760s): Turkish street food...
-2025-12-09 18:10:27,254 - integrated_cache_system - INFO - 🔥 Warmed cache for: Turkish street food... (1038ms)
-2025-12-09 18:10:27,293 - integrated_cache_system - INFO - 🔥 Cache warming completed: 15/15 queries warmed
-2025-12-09 18:10:27,581 - services.enhanced_intent_classifier - WARNING - Smart fallback system not available
-2025-12-09 18:10:27,592 - services.enhanced_intent_classifier - INFO - ✅ ML intent classifier trained successfully
-2025-12-09 18:10:27,592 - services.service_manager - INFO - ✅ Intent classifier loaded
-2025-12-09 18:10:27,596 - services.conversation_context_manager - INFO - ✅ ConversationContextManager initialized with Redis
-2025-12-09 18:10:27,596 - services.service_manager - INFO - ✅ Context manager loaded
-2025-12-09 18:10:27,598 - services.turkish_typo_corrector - INFO - ✅ TurkishTypoCorrector initialized
-2025-12-09 18:10:27,598 - services.service_manager - INFO - ✅ Typo corrector loaded
-2025-12-09 18:10:27,598 - services.service_manager - INFO - 🎉 Service Manager initialized: 13/13 services active
-2025-12-09 18:10:27,598 - core.startup - INFO - ✅ Service Manager ready: 13/13 services active
-2025-12-09 18:10:27,598 - core.startup - INFO - ⚡ Initializing Pure LLM Handler with resilience features...
-2025-12-09 18:10:27,604 - core.startup - INFO -    🔍 LLM_API_URL from env: https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1
-2025-12-09 18:10:27,604 - services.runpod_llm_client - INFO - 🚀 LLM Client initialized
-2025-12-09 18:10:27,604 - services.runpod_llm_client - INFO -    Type: runpod
-2025-12-09 18:10:27,604 - services.runpod_llm_client - INFO -    URL: https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1
-2025-12-09 18:10:27,604 - services.runpod_llm_client - INFO -    API Key: None
-2025-12-09 18:10:27,604 - services.runpod_llm_client - INFO -    Timeout: 120.0s
-2025-12-09 18:10:27,604 - services.runpod_llm_client - INFO -    Max Tokens: 512
-2025-12-09 18:10:27,604 - core.startup - INFO -    ✅ RunPod LLM Client initialized: https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1
-2025-12-09 18:10:27,604 - core.startup - WARNING -    ⚠️ LLM Health Check failed: asyncio.run() cannot be called from a running event loop
-/Users/omer/Desktop/ai-stanbul/backend/core/startup.py:109: RuntimeWarning: coroutine 'RunPodLLMClient.health_check' was never awaited
-  logger.warning(f"   ⚠️ LLM Health Check failed: {health_err}")
-RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-2025-12-09 18:10:27,608 - services.redis_cache - INFO - ✅ Redis cache connected: localhost:6379
-2025-12-09 18:10:27,609 - services.osrm_routing_service - INFO - ✅ OSRM routing cache enabled (Redis)
-2025-12-09 18:10:27,609 - services.osrm_routing_service - INFO - OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
-2025-12-09 18:10:27,609 - services.transportation_directions_service - INFO - ✅ OSRM service initialized successfully
-2025-12-09 18:10:27,609 - services.graph_routing_engine - INFO - 🏗️ Building Istanbul transportation graph...
-2025-12-09 18:10:27,610 - services.graph_routing_engine - INFO - 🔄 Adding transfer connections...
-2025-12-09 18:10:27,610 - services.graph_routing_engine - INFO - ✅ Added 154 transfer connections
-2025-12-09 18:10:27,610 - services.graph_routing_engine - INFO - ✅ Graph built: 208 nodes, 528 edges
-2025-12-09 18:10:27,611 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine initialized successfully
-2025-12-09 18:10:27,611 - services.transportation_directions_service - INFO - ✅ Transportation Directions Service initialized
-2025-12-09 18:10:27,611 - services.map_visualization_service - INFO - ✅ Map Visualization Service initialized with Transportation Service
-2025-12-09 18:10:27,611 - core.startup - INFO -    ✅ Map Visualization Service initialized
-2025-12-09 18:10:27,611 - services.llm.core - INFO - 🛡️ Initializing resilience components...
-2025-12-09 18:10:27,611 - services.llm.resilience - INFO - Updated timeout for 'query_enhancement': 2.0 -> 2.0s
-2025-12-09 18:10:27,611 - services.llm.resilience - INFO - Updated timeout for 'cache_lookup': 0.5 -> 0.5s
-2025-12-09 18:10:27,611 - services.llm.resilience - INFO - Updated timeout for 'signal_detection': 1.0 -> 1.0s
-2025-12-09 18:10:27,611 - services.llm.resilience - INFO - Updated timeout for 'context_building': 5.0 -> 5.0s
-2025-12-09 18:10:27,611 - services.llm.resilience - INFO - Updated timeout for 'llm_generation': 30.0 -> 15.0s
-2025-12-09 18:10:27,611 - services.llm.resilience - INFO - Updated timeout for 'cache_storage': 1.0 -> 1.0s
-2025-12-09 18:10:27,611 - services.llm.core - INFO - ✅ Resilience components initialized
-2025-12-09 18:10:27,611 - services.llm.fuzzy_matcher - INFO - ✅ FuzzyMatcher initialized (threshold=85, phonetic=True)
-2025-12-09 18:10:27,611 - services.llm.signals - INFO - ✅ Fuzzy matching enabled (phonetic search available)
-2025-12-09 18:10:27,611 - services.llm.embedding_service - INFO - ℹ️  SentenceTransformer not available - using keyword-based matching
-2025-12-09 18:10:27,611 - services.llm.embedding_service - INFO - ✅ Loaded intent examples for 6 intents
-2025-12-09 18:10:27,611 - services.llm.embedding_service - INFO - ✅ EmbeddingService initialized (mode: lightweight, offline: True)
-2025-12-09 18:10:27,611 - services.llm.signals - INFO - ✅ Semantic embeddings enabled: offline
-2025-12-09 18:10:27,611 - services.llm.istanbul_knowledge - INFO - ✅ Istanbul Knowledge initialized: 13 landmarks, 10 neighborhoods
-2025-12-09 18:10:27,611 - services.llm.signals - INFO - ✅ Istanbul intelligence enabled: 13 landmarks
-2025-12-09 18:10:27,611 - services.llm.signals - INFO - ✅ Signal Detector initialized (fuzzy=True, context=True, embeddings=True, istanbul=True)
-2025-12-09 18:10:27,611 - services.llm.context - INFO - ✅ Context Builder initialized
-2025-12-09 18:10:27,611 - services.llm.context - INFO -    📦 Service Manager available for enhanced context building
-2025-12-09 18:10:27,611 - services.llm.prompts - INFO - ✅ Prompt Builder initialized
-2025-12-09 18:10:27,615 - services.llm.feedback_trainer - INFO - Loaded 54 training samples
-2025-12-09 18:10:27,615 - services.llm.feedback_trainer - INFO - ✅ FeedbackTrainer initialized with 54 existing samples
-2025-12-09 18:10:27,615 - services.llm.analytics - INFO - ✅ Feedback loop enabled for continuous improvement
-2025-12-09 18:10:27,615 - services.llm.analytics - INFO - ✅ Analytics Manager initialized
-2025-12-09 18:10:27,615 - services.llm.query_enhancement - INFO - ✅ Query Enhancer initialized
-2025-12-09 18:10:27,615 - services.llm.conversation - INFO - ✅ Conversation Manager initialized
-2025-12-09 18:10:27,615 - services.llm.caching - INFO - ✅ Cache Manager initialized (semantic=enabled)
-2025-12-09 18:10:27,615 - services.llm.experimentation - INFO - ✅ Experimentation Manager initialized (A/B=off)
-2025-12-09 18:10:27,615 - services.llm.personalization - INFO - ✅ Personalization Engine initialized
-2025-12-09 18:10:27,616 - services.llm.auto_tuning - INFO - ✅ Auto-Tuner initialized
-2025-12-09 18:10:27,616 - services.llm.core - INFO - ✅ All subsystems initialized (including Phase 2 features)
-2025-12-09 18:10:27,616 - services.llm.core - INFO - 🚀 Pure LLM Core initialized successfully
-2025-12-09 18:10:27,616 - services.llm.core - INFO -    📦 Service Manager: 13/13 services available
-2025-12-09 18:10:27,616 - core.startup - INFO - ✅ Pure LLM Core initialized with circuit breakers, resilience patterns, and local services
-2025-12-09 18:10:27,616 - core.startup - WARNING - ⚠️ Failed to initialize Recommendation Engine: No module named 'backend.services.integrated_recommendation_engine'
-2025-12-09 18:10:27,616 - core.startup - WARNING - ⚠️ ML Answering Service: Error - No module named 'backend.ml_service_client'
-2025-12-09 18:10:27,616 - core.startup - INFO - ============================================================
-2025-12-09 18:10:27,616 - core.startup - INFO - ✅ Backend startup complete
-2025-12-09 18:10:27,616 - services.llm.ab_testing - INFO - ✅ ExperimentManager initialized
-2025-12-09 18:10:27,616 - api.admin.experiments - INFO - ✅ Experiment Manager initialized
-2025-12-09 18:10:27,616 - services.llm.feature_flags - INFO - ✅ FeatureFlagManager initialized
-2025-12-09 18:10:27,616 - api.admin.experiments - INFO - ✅ Feature Flag Manager initialized
-2025-12-09 18:10:27,616 - main_modular - INFO - ✅ Admin experiment managers initialized
-2025-12-09 18:10:27,617 - main_modular - WARNING - ⚠️ Blog seeding not available: cannot import name 'seed_blog_posts' from 'seed_blog_posts' (/Users/omer/Desktop/ai-stanbul/backend/seed_blog_posts.py)
+2026-01-22 17:22:17,021 - core.startup_guard - INFO - ✅ lifespan_startup marked as initialized
+2026-01-22 17:22:17,021 - main_modular - INFO - 🚀 Starting application (non-blocking startup)
+2026-01-22 17:22:17,021 - main_modular - INFO - 📡 Redis status: CONNECTED
+2026-01-22 17:22:17,021 - main_modular - INFO - ✅ Application ready to accept connections (background init in progress)
+2026-01-22 17:22:17,021 - core.startup_guard - INFO - ✅ background_init marked as initialized
+2026-01-22 17:22:17,035 - main_modular - INFO - 🔄 Starting background initialization...
+2026-01-22 17:22:17,035 - core.startup_guard - INFO - ✅ startup_manager marked as initialized
+2026-01-22 17:22:17,035 - core.startup_fixed - INFO - �🚀 Starting ULTRA-FAST initialization...
+2026-01-22 17:22:17,035 - core.startup_fixed - INFO - ✅ App ready to serve traffic - components initializing in background!
+2026-01-22 17:22:17,040 - services.runpod_llm_client - INFO - 🚀 LLM Client initialized
+2026-01-22 17:22:17,040 - services.runpod_llm_client - INFO -    Type: openai-compatible
+2026-01-22 17:22:17,040 - services.runpod_llm_client - INFO -    URL: https://p9lf44wbmqzs5l-8000.proxy.runpod.net/v1
+2026-01-22 17:22:17,040 - services.runpod_llm_client - INFO -    API Key: None
+2026-01-22 17:22:17,040 - services.runpod_llm_client - INFO -    Timeout: 60.0s
+2026-01-22 17:22:17,040 - services.runpod_llm_client - INFO -    Max Tokens: 768
+2026-01-22 17:22:17,040 - services.runpod_llm_client - INFO -    Connection Pool: 10 max, 5 keepalive
+2026-01-22 17:22:17,040 - services.llm.prompts - INFO - ✅ Prompt Builder initialized
+2026-01-22 17:22:17,040 - unified_system.services.unified_llm_service - INFO - ✅ Unified LLM Service - components loaded
+2026-01-22 17:22:17,040 - unified_system.services.unified_llm_service - INFO - ✅ Unified LLM Service initialized (ENABLED)
+2026-01-22 17:22:17,040 - unified_system.services.unified_llm_service - INFO -    Cache: ✅
+2026-01-22 17:22:17,040 - unified_system.services.unified_llm_service - INFO -    Circuit Breaker: ✅
+2026-01-22 17:22:17,040 - main_modular - INFO - ✅ UnifiedLLMService initialized and ready for API layer
+2026-01-22 17:22:17,040 - main_modular - INFO - 📡 RunPod LLM endpoint: https://p9lf44wbmqzs5l-8000.proxy.runpod.net/v1
+2026-01-22 17:22:17,040 - main_modular - INFO - 🤖 Model: /workspace/models/llama-3.1-8b-fp16
+2026-01-22 17:22:17,040 - main_modular - INFO - 💾 Cache: enabled (0/1000 entries)
+2026-01-22 17:22:17,040 - main_modular - INFO - 🛡️  Circuit breaker: enabled (threshold=5)
+2026-01-22 17:22:17,040 - services.llm.ab_testing - INFO - ✅ ExperimentManager initialized
+2026-01-22 17:22:17,040 - api.admin.experiments - INFO - ✅ Experiment Manager initialized
+2026-01-22 17:22:17,042 - services.llm.feature_flags - INFO - ✅ FeatureFlagManager initialized
+2026-01-22 17:22:17,042 - api.admin.experiments - INFO - ✅ Feature Flag Manager initialized
+2026-01-22 17:22:17,042 - main_modular - INFO - ✅ Admin experiment managers initialized
+2026-01-22 17:22:17,042 - main_modular - INFO - ✅ Background initialization complete!
 INFO:     Application startup complete.
-2025-12-09 18:12:16,981 - core.middleware - INFO - → GET /health
-2025-12-09 18:12:16,981 - core.middleware - INFO - ← GET /health [404] 0.001s
+2026-01-22 17:22:17,042 - core.startup_guard - INFO - ✅ database marked as initialized
+2026-01-22 17:22:17,042 - core.startup_fixed - INFO - 🔄 Registering database models...
+2026-01-22 17:22:17,042 - database - INFO - ✅ Registered 24 database models
+2026-01-22 17:22:17,042 - core.startup_fixed - INFO - 🔄 Creating database tables if needed...
+2026-01-22 17:22:19,694 - core.startup_fixed - INFO - ✅ Database tables ready
+2026-01-22 17:22:19,694 - core.startup_fixed - INFO - ✅ Database connection established
+2026-01-22 17:22:19,694 - core.startup_guard - INFO - ✅ redis marked as initialized
+2026-01-22 17:22:19,695 - services.redis_cache - INFO - ✅ Redis cache client created: localhost:6379 (timeout: 30s)
+2026-01-22 17:22:19,695 - core.startup_guard - INFO - ✅ services marked as initialized
+2026-01-22 17:22:19,695 - services.service_manager - INFO - 🔧 Initializing Service Manager...
+2026-01-22 17:22:19,695 - services.service_manager - INFO - 📦 Loading Istanbul AI services...
+2026-01-22 17:22:19,699 - services.service_manager - INFO - ✅ Restaurant service loaded
+2026-01-22 17:22:19,705 - services.transportation_directions_service - INFO - ✅ Backend OSRM routing service imported successfully
+2026-01-22 17:22:19,707 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine imported successfully
+2026-01-22 17:22:19,707 - services.redis_cache - INFO - ✅ Redis cache client created: localhost:6379 (timeout: 30s)
+2026-01-22 17:22:19,708 - services.osrm_routing_service - INFO - ✅ OSRM routing cache enabled (Redis)
+2026-01-22 17:22:19,709 - services.osrm_routing_service - INFO - OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+2026-01-22 17:22:19,709 - services.transportation_directions_service - INFO - ✅ OSRM service initialized successfully
+2026-01-22 17:22:19,709 - services.graph_routing_engine - INFO - 🏗️ Building Istanbul transportation graph...
+2026-01-22 17:22:19,710 - services.graph_routing_engine - INFO - 🔄 Adding transfer connections...
+2026-01-22 17:22:19,710 - services.graph_routing_engine - INFO - ✅ Added 154 transfer connections
+2026-01-22 17:22:19,710 - services.graph_routing_engine - INFO - ✅ Graph built: 208 nodes, 528 edges
+2026-01-22 17:22:19,710 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine initialized successfully
+2026-01-22 17:22:19,710 - services.transportation_directions_service - INFO - ✅ Transportation Directions Service initialized
+2026-01-22 17:22:19,710 - services.service_manager - INFO - ✅ Transportation service loaded
+2026-01-22 17:22:19,711 - services.service_manager - INFO - ✅ Hidden gems service loaded
+2026-01-22 17:22:19,713 - services.events_service - INFO - ✅ Loaded 45 İKSV events from database
+2026-01-22 17:22:19,713 - services.service_manager - INFO - ✅ Events service loaded
+2026-01-22 17:22:19,714 - services.service_manager - INFO - ✅ Attractions service loaded
+2026-01-22 17:22:19,715 - services.airport_transport_service - INFO - ✈️ Istanbul Airport Transport Service initialized
+2026-01-22 17:22:19,715 - services.airport_transport_service - INFO - ✈️ Istanbul Airport Transport Service initialized
+2026-01-22 17:22:19,715 - services.service_manager - INFO - ✅ Airport transport service loaded
+2026-01-22 17:22:19,717 - services.service_manager - INFO - ✅ Daily life service loaded
+2026-01-22 17:22:19,721 - services.service_manager - INFO - ✅ Info retrieval service loaded
+2026-01-22 17:22:19,721 - services.redis_cache - INFO - ✅ Redis cache client created: localhost:6379 (timeout: 30s)
+2026-01-22 17:22:19,721 - api_clients.enhanced_weather - INFO - ✅ Weather API: Using Redis cache (persistent across restarts)
+2026-01-22 17:22:19,721 - api_clients.enhanced_weather - WARNING - Weather API: Using fallback mode with enhanced mock data.
+2026-01-22 17:22:19,721 - services.service_manager - INFO - ✅ Enhanced weather service loaded (real API with OpenWeatherMap)
+2026-01-22 17:22:19,722 - services.entity_extractor - INFO - ✅ AdvancedEntityExtractor initialized
+2026-01-22 17:22:19,722 - services.service_manager - INFO - ✅ Entity extractor loaded
+2026-01-22 17:22:20,268 - services.enhanced_intent_classifier - WARNING - Smart fallback system not available
+2026-01-22 17:22:20,273 - services.enhanced_intent_classifier - INFO - ✅ ML intent classifier trained successfully
+2026-01-22 17:22:20,273 - services.service_manager - INFO - ✅ Intent classifier loaded
+2026-01-22 17:22:20,276 - services.conversation_context_manager - INFO - ✅ ConversationContextManager initialized with Redis
+2026-01-22 17:22:20,276 - services.service_manager - INFO - ✅ Context manager loaded
+2026-01-22 17:22:20,276 - services.turkish_typo_corrector - INFO - ✅ TurkishTypoCorrector initialized
+2026-01-22 17:22:20,276 - services.service_manager - INFO - ✅ Typo corrector loaded
+2026-01-22 17:22:20,276 - services.service_manager - INFO - 🎉 Service Manager initialized: 13/13 services active
+2026-01-22 17:22:20,276 - core.startup_fixed - INFO - ✅ Service Manager initialized
+2026-01-22 17:22:20,276 - core.startup_guard - INFO - ✅ multi_route marked as initialized
+2026-01-22 17:22:20,276 - core.startup_fixed - INFO - 🔄 Initializing Moovit-style multi-route system...
+2026-01-22 17:22:20,278 - services.route_optimizer - INFO - ✅ Accessibility features available
+2026-01-22 17:22:20,278 - services.route_optimizer - INFO - ✅ OpenAI available for route summaries
+2026-01-22 17:22:20,278 - services.accessibility_features - INFO - ✅ Accessibility checker initialized with 59 stations
+2026-01-22 17:22:20,278 - services.route_optimizer - INFO - ✅ Accessibility checker integrated with route optimizer
+2026-01-22 17:22:20,278 - core.startup_fixed - INFO - ✅ Route Optimizer initialized
+2026-01-22 17:22:20,279 - services.transportation_route_integration - INFO - ✅ Route optimizer imported successfully
+2026-01-22 17:22:20,279 - services.transportation_route_integration - INFO - ✅ Transportation services imported successfully
+2026-01-22 17:22:20,280 - services.transportation_rag_system - INFO - ✅ Transportation RAG: Redis connected for route caching
+2026-01-22 17:22:20,282 - services.transportation_station_normalization - INFO - ✅ Station normalizer initialized: 264 stations, 17 lines
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO - ✅ Built station graph from canonical data: 264 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO - 📊 Station counts by line:
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   FERRY: 15 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M11: 9 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M1A: 18 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M1B: 13 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M2: 16 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M3: 19 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M4: 24 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M5: 20 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M6: 4 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M7: 17 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   M9: 2 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   MARMARAY: 43 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   T1: 31 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   T4: 22 stations
+2026-01-22 17:22:20,282 - services.transportation_rag_system - INFO -   T5: 11 stations
+2026-01-22 17:22:20,283 - services.transportation_rag_system - INFO - ✅ Transportation RAG initialized with complete Istanbul network
+2026-01-22 17:22:20,283 - services.transportation_rag_system - INFO - ✅ Dijkstra routing enabled with realistic travel times
+2026-01-22 17:22:20,283 - services.transportation_rag_system - INFO - ✅ Station/Line ID normalization enabled
+2026-01-22 17:22:20,283 - services.transportation_rag_system - INFO - ✅ Route caching enabled with Redis
+2026-01-22 17:22:20,283 - services.transportation_rag_system - INFO - ✅ Transportation RAG singleton initialized
+2026-01-22 17:22:20,283 - services.redis_cache - INFO - ✅ Redis cache client created: localhost:6379 (timeout: 30s)
+2026-01-22 17:22:20,285 - services.osrm_routing_service - INFO - ✅ OSRM routing cache enabled (Redis)
+2026-01-22 17:22:20,285 - services.osrm_routing_service - INFO - OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+2026-01-22 17:22:20,285 - services.transportation_directions_service - INFO - ✅ OSRM service initialized successfully
+2026-01-22 17:22:20,285 - services.graph_routing_engine - INFO - 🏗️ Building Istanbul transportation graph...
+2026-01-22 17:22:20,285 - services.graph_routing_engine - INFO - 🔄 Adding transfer connections...
+2026-01-22 17:22:20,286 - services.graph_routing_engine - INFO - ✅ Added 154 transfer connections
+2026-01-22 17:22:20,286 - services.graph_routing_engine - INFO - ✅ Graph built: 208 nodes, 528 edges
+2026-01-22 17:22:20,286 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine initialized successfully
+2026-01-22 17:22:20,286 - services.transportation_directions_service - INFO - ✅ Transportation Directions Service initialized
+2026-01-22 17:22:20,286 - services.transportation_route_integration - INFO - ✅ Transportation services initialized
+2026-01-22 17:22:20,286 - services.route_optimizer - INFO - ✅ Accessibility checker integrated with route optimizer
+2026-01-22 17:22:20,286 - services.route_optimizer - INFO - ✅ RouteOptimizer initialized
+2026-01-22 17:22:20,286 - services.transportation_route_integration - INFO - ✅ Route optimizer initialized
+2026-01-22 17:22:20,286 - services.transportation_route_integration - INFO - ✅ TransportationRouteIntegration initialized
+2026-01-22 17:22:20,286 - core.startup_fixed - INFO - ✅ Transportation Route Integration initialized
+2026-01-22 17:22:20,286 - services.enhanced_map_visualization_service - INFO - ✅ Enhanced Map Visualization Service initialized with Route Integration
+2026-01-22 17:22:20,286 - services.enhanced_map_visualization_service - INFO - ✅ Transportation RAG integrated
+2026-01-22 17:22:20,286 - core.startup_fixed - INFO - ✅ Enhanced Map Visualization Service initialized
+2026-01-22 17:22:20,286 - core.startup_fixed - INFO - 🗺️ Multi-route system ready - Moovit-level features enabled!
+2026-01-22 17:22:20,286 - core.startup_guard - INFO - ✅ models marked as initialized
+2026-01-22 17:22:20,286 - core.startup_fixed - INFO - 🔄 Starting background LLM initialization...
+2026-01-22 17:22:20,286 - core.startup_fixed - INFO - ⏭️ Model preloading disabled (using RunPod LLM)
+2026-01-22 17:22:20,286 - core.startup_fixed - INFO - ✅ Dependencies ready after 0s
+2026-01-22 17:22:20,286 - core.startup_fixed - INFO - 🔍 DB initialized: True, Services initialized: True
+2026-01-22 17:22:20,286 - services.llm.core - INFO - ℹ️  USE_UNIFIED_LLM=true but llm_client provided, using provided client
+2026-01-22 17:22:20,286 - services.llm.core - INFO - 🛡️ Initializing resilience components...
+2026-01-22 17:22:20,286 - services.llm.core - INFO - ✅ Resilience components initialized
+2026-01-22 17:22:20,286 - services.llm.fuzzy_matcher - INFO - ✅ FuzzyMatcher initialized (threshold=85, phonetic=True)
+2026-01-22 17:22:20,286 - services.llm.signals - INFO - ✅ Fuzzy matching enabled (phonetic search available)
+2026-01-22 17:22:20,287 - services.model_cache - INFO - 📦 ModelCache initialized
+2026-01-22 17:22:22,996 - services.model_cache - INFO - 🔄 Loading SentenceTransformer: all-MiniLM-L6-v2
+2026-01-22 17:22:25,233 - services.model_cache - INFO - ✅ SentenceTransformer loaded: all-MiniLM-L6-v2
+2026-01-22 17:22:25,234 - services.llm.embedding_service - INFO - ✅ Loaded embedding model: lightweight (cached)
+2026-01-22 17:22:25,778 - services.llm.embedding_service - INFO - ✅ Loaded intent examples for 6 intents
+2026-01-22 17:22:25,778 - services.llm.embedding_service - INFO - ✅ EmbeddingService initialized (mode: lightweight, offline: False)
+2026-01-22 17:22:25,778 - services.llm.signals - INFO - ✅ Semantic embeddings enabled: online
+2026-01-22 17:22:25,779 - services.llm.istanbul_knowledge - INFO - ✅ Istanbul Knowledge initialized: 13 landmarks, 10 neighborhoods
+2026-01-22 17:22:25,779 - services.llm.signals - INFO - ✅ Istanbul intelligence enabled: 13 landmarks
+2026-01-22 17:22:25,788 - services.transportation_intent_classifier - INFO - ✅ Hybrid Intent Classifier initialized with embeddings
+2026-01-22 17:22:25,788 - services.llm.signals - INFO - ✅ Hybrid transportation intent classifier enabled
+2026-01-22 17:22:25,788 - services.llm.signals - INFO - ✅ Signal Detector initialized (fuzzy=True, context=True, embeddings=True, istanbul=True, transport_classifier=True)
+2026-01-22 17:22:25,788 - services.llm.context - INFO - ✅ Context Builder initialized
+2026-01-22 17:22:25,788 - services.llm.context - INFO -    📦 Service Manager available for enhanced context building
+2026-01-22 17:22:25,788 - services.llm.prompts - INFO - ✅ Prompt Builder initialized
+2026-01-22 17:22:25,791 - services.llm.feedback_trainer - INFO - Loaded 58 training samples
+2026-01-22 17:22:25,791 - services.llm.feedback_trainer - INFO - ✅ FeedbackTrainer initialized with 58 existing samples
+2026-01-22 17:22:25,791 - services.llm.analytics - INFO - ✅ Feedback loop enabled for continuous improvement
+2026-01-22 17:22:25,791 - services.llm.analytics - INFO - ✅ Analytics Manager initialized
+2026-01-22 17:22:25,791 - services.llm.query_enhancement - INFO - ✅ Query Enhancer initialized
+2026-01-22 17:22:25,791 - services.llm.conversation - INFO - ✅ Conversation Manager initialized
+2026-01-22 17:22:25,791 - services.llm.caching - INFO - ✅ Cache Manager initialized (semantic=enabled)
+2026-01-22 17:22:25,791 - services.llm.experimentation - INFO - ✅ Experimentation Manager initialized (A/B=off)
+2026-01-22 17:22:25,791 - services.llm.personalization - INFO - ✅ Personalization Engine initialized
+2026-01-22 17:22:25,791 - services.llm.auto_tuning - INFO - ✅ Auto-Tuner initialized
+2026-01-22 17:22:25,791 - services.llm.core - INFO - ✅ All subsystems initialized (including Phase 2 features)
+2026-01-22 17:22:25,791 - services.llm.core - INFO - 🚀 Pure LLM Core initialized successfully
+2026-01-22 17:22:25,791 - services.llm.core - INFO -    🤖 LLM Service: Legacy RunPodClient
+2026-01-22 17:22:25,791 - services.llm.core - INFO -    📦 Service Manager: 13/13 services available
+2026-01-22 17:22:25,791 - core.startup_fixed - INFO - ✅ Pure LLM Core initialized (background)
+2026-01-22 17:22:25,791 - services.redis_cache - WARNING - ⚠️ Redis ping timeout (2s) - continuing without cache
+2026-01-22 17:22:25,791 - core.startup_fixed - INFO - ✅ Redis cache initialized successfully
+2026-01-22 17:22:33,883 - core.middleware - INFO - 💬 CHAT: 'hi...'
+2026-01-22 17:22:33,891 - services.ai_chat_route_integration - INFO - ✅ LLM Route Preference Detector available
+2026-01-22 17:22:33,894 - services.intelligent_route_integration - INFO - ✅ OSRM Routing Service available
+2026-01-22 17:22:33,895 - services.intelligent_route_integration - INFO - ✅ Map Visualization Engine available
+2026-01-22 17:22:33,898 - root - INFO - ✅ POI Database Service integrated successfully!
+2026-01-22 17:22:33,899 - ml_prediction_service - INFO - ✅ ML Prediction Cache Service integrated successfully!
+2026-01-22 17:22:33,899 - ml_prediction_service - INFO - ℹ️  XGBoost/LightGBM not installed - using pattern-based prediction fallback: No module named 'xgboost'
+2026-01-22 17:22:33,901 - root - INFO - ✅ ML Prediction Service integrated successfully!
+2026-01-22 17:22:34,686 - lightweight_neural_query_enhancement - INFO - ℹ️  spaCy model not found. Install with: python -m spacy download en_core_web_sm
+2026-01-22 17:22:34,686 - lightweight_neural_query_enhancement - INFO - ℹ️  TextBlob not installed - using basic sentiment analysis
+2026-01-22 17:22:34,687 - ml_enhanced_transportation_system - INFO - ✅ Lightweight Neural Query Enhancement integrated successfully!
+2026-01-22 17:22:34,687 - ml_enhanced_transportation_system - INFO - ✅ ML Prediction Cache Service integrated successfully!
+2026-01-22 17:22:34,687 - ml_enhanced_transportation_system - INFO - ✅ ML Prediction Cache Service integrated successfully!
+2026-01-22 17:22:34,841 - ml_enhanced_transportation_system - INFO - ℹ️  XGBoost/LightGBM not installed - using basic crowding prediction: No module named 'xgboost'
+2026-01-22 17:22:34,846 - root - WARNING - Transport Graph Service not available
+2026-01-22 17:22:34,847 - services.ml_prediction_service - INFO - ✅ ML Prediction Cache Service integrated successfully!
+2026-01-22 17:22:34,847 - services.ml_prediction_service - INFO - ℹ️  XGBoost/LightGBM not installed - using pattern-based prediction fallback: No module named 'xgboost'
+2026-01-22 17:22:34,849 - root - INFO - ✅ POI-Enhanced Route Optimizer integrated successfully!
+2026-01-22 17:22:35,194 - ibb_real_time_api - INFO - 🌐 İBB Real-Time API initialized (Live APIs: True)
+2026-01-22 17:22:35,194 - ibb_real_time_api - INFO - ℹ️  İBB API key not configured - using fallback mode with simulated data
+2026-01-22 17:22:35,195 - backend.services.transportation_directions_service - INFO - ✅ Backend OSRM routing service imported successfully
+2026-01-22 17:22:35,196 - backend.services.transportation_directions_service - INFO - ✅ Graph-based routing engine imported successfully
+2026-01-22 17:22:35,199 - istanbul_ai.core.user_management - INFO - ✅ TTLCache available for UserManager
+2026-01-22 17:22:35,210 - istanbul_ai.main_system - INFO - ✅ Hidden Gems Handler loaded successfully
+2026-01-22 17:22:35,211 - istanbul_ai.main_system - INFO - ✅ Price Filter Service loaded successfully
+2026-01-22 17:22:35,211 - istanbul_ai.main_system - INFO - ✅ Events Service loaded successfully
+2026-01-22 17:22:35,211 - istanbul_ai.main_system - INFO - ✅ Weather Recommendations Service loaded successfully
+2026-01-22 17:22:35,327 - enhanced_transportation_integration - INFO - 🚇 Enhanced transportation system initialized with NEW modular architecture
+2026-01-22 17:22:35,327 - istanbul_ai.main_system - INFO - ✅ Advanced transportation system loaded successfully
+2026-01-22 17:22:35,328 - transportation_chat_integration - INFO - ✅ Transfer Instructions & Map Visualization loaded successfully
+2026-01-22 17:22:35,328 - istanbul_ai.main_system - INFO - ✅ Transfer Instructions & Map Visualization integration loaded successfully
+2026-01-22 17:22:35,366 - ml_enhanced_daily_talks_bridge.deep_learning - INFO - ✅ Deep Learning libraries loaded successfully
+2026-01-22 17:22:35,369 - daily_talks_integration_wrapper - INFO - ✅ Comprehensive Daily Talks System loaded successfully
+2026-01-22 17:22:35,371 - services.weather_cache_service - WARNING - ⚠️ No OpenWeather API key found - using fallback data
+2026-01-22 17:22:35,372 - services.weather_cache_service - INFO - ✅ Loaded 24 forecast entries from cache
+2026-01-22 17:22:35,374 - services.advanced_daily_talk_ai - INFO - 🧠 Advanced Daily Talk AI System initialized - GPT-level intelligence ready!
+2026-01-22 17:22:35,374 - daily_talks_integration_wrapper - WARNING - ⚠️ Legacy daily talk system not available: cannot import name 'get_daily_greeting' from 'services.daily_talk_enhancement' (/Users/omer/Desktop/ai-stanbul/services/daily_talk_enhancement.py)
+2026-01-22 17:22:35,414 - monthly_events_scheduler - INFO - 📅 Monthly Events Scheduler initialized
+2026-01-22 17:22:35,414 - monthly_events_scheduler - INFO - ✅ Selenium scraper available for JavaScript-rendered content
+2026-01-22 17:22:35,414 - ml_enhanced_daily_talks_bridge - INFO - ✅ İKSV Events System loaded successfully
+2026-01-22 17:22:35,414 - ml_enhanced_daily_talks_bridge - INFO - ✅ Location Detection for Events loaded successfully
+2026-01-22 17:22:35,415 - comprehensive_daily_talks_system - INFO - 🎉 Comprehensive Daily Talks System initialized
+2026-01-22 17:22:35,415 - daily_talks_integration_wrapper - INFO - 🎉 Initializing with Comprehensive Daily Talks System
+2026-01-22 17:22:35,415 - ml_enhanced_daily_talks_bridge - INFO - Using device: cpu
+2026-01-22 17:22:39,918 - ml_enhanced_daily_talks_bridge - INFO - NLP components initialized successfully
+2026-01-22 17:22:39,918 - ml_enhanced_daily_talks_bridge - INFO - ✅ Deep learning models initialized successfully
+2026-01-22 17:22:39,918 - ml_enhanced_daily_talks_bridge - INFO - ML/DL models initialized successfully
+2026-01-22 17:22:39,918 - ml_enhanced_daily_talks_bridge - INFO - ML-Enhanced Daily Talks Bridge initialized
+2026-01-22 17:22:39,918 - istanbul_ai.main_system - INFO - ✅ ML-Enhanced Daily Talks Bridge loaded successfully
+2026-01-22 17:22:39,918 - istanbul_ai.main_system - INFO - ✅ Production infrastructure (TTLCache) loaded successfully
+2026-01-22 17:22:39,920 - istanbul_ai.main_system - INFO - ✅ Enhanced Bilingual Daily Talks System loaded successfully
+2026-01-22 17:22:39,921 - istanbul_ai.main_system - INFO - ✅ Neural Query Classifier (DistilBERT) loaded successfully
+2026-01-22 17:22:39,921 - services.lightweight_neural_query_enhancement - INFO - ℹ️  spaCy model not found. Install with: python -m spacy download en_core_web_sm
+2026-01-22 17:22:39,922 - services.lightweight_neural_query_enhancement - INFO - ℹ️  TextBlob not installed - using basic sentiment analysis
+2026-01-22 17:22:39,922 - istanbul_ai.main_system - INFO - ✅ Neural Query Enhancement System loaded successfully
+2026-01-22 17:22:39,924 - multi_intent_query_handler - INFO - 🧠 Lightweight Deep Learning System available!
+2026-01-22 17:22:39,927 - multi_intent_query_handler - INFO - 🏛️ Istanbul Attractions System integrated successfully!
+2026-01-22 17:22:39,927 - multi_intent_query_handler - INFO - 🎭 İKSV Events System integrated successfully!
+2026-01-22 17:22:39,928 - multi_intent_query_handler - INFO - 🏛️ Enhanced Museum Route Planner integrated successfully!
+2026-01-22 17:22:39,929 - comprehensive_ml_dl_integration - INFO - 🧠 Deep Learning System available for comprehensive integration!
+2026-01-22 17:22:39,930 - comprehensive_ml_dl_integration - WARNING - Enhanced Transportation System not available: cannot import name 'TransportMode' from 'enhanced_transportation_system' (/Users/omer/Desktop/ai-stanbul/enhanced_transportation_system.py)
+2026-01-22 17:22:39,936 - multi_intent_query_handler - INFO - 🚀 Comprehensive ML/DL Integration System available!
+2026-01-22 17:22:39,937 - istanbul_ai.main_system - INFO - ✅ Multi-Intent Query Handler loaded successfully
+2026-01-22 17:22:39,938 - istanbul_ai.main_system - INFO - ✅ Advanced Personalization System loaded successfully
+2026-01-22 17:22:39,939 - istanbul_ai.main_system - INFO - ✅ Real-time Feedback Loop System loaded successfully
+2026-01-22 17:22:39,940 - root - WARNING - ⚠️ Enhanced LLM client not available: No module named 'enhanced_llm_config'
+2026-01-22 17:22:39,941 - root - WARNING - ⚠️ Enhanced LLM client not available: No module named 'enhanced_llm_config'
+2026-01-22 17:22:39,942 - root - INFO - ✅ HandlerLLMMixin loaded successfully
+2026-01-22 17:22:39,946 - root - WARNING - ⚠️ Enhanced LLM client not available: No module named 'enhanced_llm_config'
+2026-01-22 17:22:39,946 - istanbul_ai.main_system - INFO - ✅ ML-Enhanced Handlers loaded successfully
+2026-01-22 17:22:39,949 - istanbul_ai.main_system - WARNING - ⚠️ A/B Testing Framework not available: cannot import name 'ABAnalytics' from 'istanbul_ai.testing.ab_analytics' (/Users/omer/Desktop/ai-stanbul/istanbul_ai/testing/ab_analytics.py)
+2026-01-22 17:22:39,949 - root - INFO - ✅ Intelligent Location Detector integrated successfully!
+2026-01-22 17:22:39,951 - services.intelligent_route_integration - WARNING - ⚠️ Enhanced GPS Route Planner not available: cannot import name 'RoutePreference' from 'enhanced_gps_route_planner' (/Users/omer/Desktop/ai-stanbul/enhanced_gps_route_planner.py)
+2026-01-22 17:22:39,951 - services.intelligent_route_integration - WARNING - ⚠️ ML-Enhanced Transportation System not available: cannot import name 'create_ml_enhanced_transportation_system' from 'ml_enhanced_transportation_system' (/Users/omer/Desktop/ai-stanbul/ml_enhanced_transportation_system.py)
+2026-01-22 17:22:39,951 - services.ai_chat_route_integration - INFO - ✅ Intelligent Route Integration available
+2026-01-22 17:22:39,952 - services.multi_stop_route_planner - INFO - ✅ Routing infrastructure available for multi-stop planning
+2026-01-22 17:22:39,953 - services.ai_chat_route_integration - INFO - ✅ Multi-stop route planner available
+2026-01-22 17:22:39,955 - services.ai_chat_route_integration - INFO - ✅ GPS turn-by-turn navigation available
+2026-01-22 17:22:39,959 - services.ai_chat_route_integration - INFO - ✅ Istanbul Geocoder available for location fallback
+2026-01-22 17:22:39,959 - services.ai_chat_route_integration - INFO - ✅ Using Transportation RAG System for route planning
+2026-01-22 17:22:39,959 - services.ai_chat_route_integration - INFO - ✅ AI Chat Route Handler initialized (RAG-powered)
+2026-01-22 17:22:39,960 - services.redis_cache - INFO - ✅ Redis cache client created: localhost:6379 (timeout: 30s)
+2026-01-22 17:22:39,961 - services.osrm_routing_service - INFO - ✅ OSRM routing cache enabled (Redis)
+2026-01-22 17:22:39,961 - services.osrm_routing_service - INFO - OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+2026-01-22 17:22:39,961 - services.transportation_directions_service - INFO - ✅ OSRM service initialized successfully
+2026-01-22 17:22:39,961 - services.graph_routing_engine - INFO - 🏗️ Building Istanbul transportation graph...
+2026-01-22 17:22:39,962 - services.graph_routing_engine - INFO - 🔄 Adding transfer connections...
+2026-01-22 17:22:39,962 - services.graph_routing_engine - INFO - ✅ Added 154 transfer connections
+2026-01-22 17:22:39,962 - services.graph_routing_engine - INFO - ✅ Graph built: 208 nodes, 528 edges
+2026-01-22 17:22:39,962 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine initialized successfully
+2026-01-22 17:22:39,962 - services.transportation_directions_service - INFO - ✅ Transportation Directions Service initialized
+2026-01-22 17:22:39,962 - services.route_optimizer - INFO - ✅ Accessibility checker integrated with route optimizer
+2026-01-22 17:22:39,962 - services.multi_stop_route_planner - INFO - ✅ Multi-stop route planner initialized
+2026-01-22 17:22:39,962 - services.ai_chat_route_integration - INFO - ✅ Multi-stop planner initialized
+2026-01-22 17:22:39,962 - services.istanbul_geocoder - INFO - ✅ Istanbul Geocoder initialized (80 landmarks)
+2026-01-22 17:22:39,962 - services.ai_chat_route_integration - INFO - ✅ Istanbul Geocoder initialized with external fallback enabled
+2026-01-22 17:22:39,962 - api.chat - INFO - 🔍 Chat endpoint called - pure_llm_core exists: True
+2026-01-22 17:22:39,962 - api.chat - INFO - 🔍 LLM client exists: True
+2026-01-22 17:22:39,963 - api.chat - INFO - 💬 Phase 4.2: Conversation Context Resolution for session: session_5752751799790088118
+2026-01-22 17:22:39,963 - services.llm.conversation_context_manager - INFO - ✅ LLM Conversation Context Manager initialized
+2026-01-22 17:22:39,963 - services.llm.conversation_context_manager - INFO - 📝 Created new conversation session: session_5752751799790088118
+2026-01-22 17:22:39,963 - services.llm.conversation_context_manager - INFO - ⚠️  Fallback context resolution for 'hi...': references=[]
+2026-01-22 17:22:39,963 - api.chat - INFO - ✅ Context Resolution complete:
+   - Has References: False
+   - Confidence: 0.60
+   - Resolved Refs: []
+   - Needs Clarification: False
+   - Source: fallback
+2026-01-22 17:22:39,963 - api.chat - INFO -    Original: 'hi'
+2026-01-22 17:22:39,963 - api.chat - INFO -    Resolved: 'hi'
+2026-01-22 17:22:39,963 - api.chat - INFO - ⚡ Skipping multi-intent detection - using Pure LLM for fast response
+2026-01-22 17:22:39,964 - api.chat - INFO - ⚡ Skipping intent classification - Pure LLM handles this naturally
+2026-01-22 17:22:39,965 - services.unified_intent_router - INFO - ✅ Unified Intent Router initialized
+2026-01-22 17:22:39,965 - services.unified_intent_router - INFO - 🎯 Intent detected: daily_talks (confidence: 0.30, language: en, keywords: ['hi'])
+2026-01-22 17:22:39,965 - api.chat - INFO - ✅ Unified Router handled: daily_talks (fast path)
+2026-01-22 17:22:39,965 - services.llm.response_enhancer - INFO - ✅ LLM Response Enhancer initialized
+2026-01-22 17:22:39,965 - api.chat - INFO - ✅ Response Enhancer initialized
+2026-01-22 17:22:39,966 - services.llm.response_enhancer - INFO - ✅ Enhanced response (type=daily_talks, time=0ms)
+2026-01-22 17:22:39,966 - core.middleware - WARNING - ⚠️ SLOW CHAT: 6083ms - 'hi...'
+⚠️ Warning: Could not import from models.py: partially initialized module 'models' has no attribute 'User' (most likely due to a circular import)
 ✅ Real-time learning models imported successfully
 ✅ GPS Navigation models imported successfully
-✅ Accurate museum database loaded successfully
-✅ Accurate transportation database loaded successfully
 ✅ Advanced AI features loaded successfully
 ✅ Loaded 300 restaurants from database
 ✅ Loaded 18 hidden gems from database
+✅ Loaded 38 manually curated İKSV events
+✅ Loaded 7 auto-scraped İKSV events
 ✅ Enhanced Transportation Service integrated with knowledge database
 ✅ Istanbul Knowledge Database loaded
-INFO:     127.0.0.1:54054 - "GET /health HTTP/1.1" 404 Not Found
-2025-12-09 18:12:43,872 - core.middleware - INFO - → GET /
-2025-12-09 18:12:43,942 - core.middleware - INFO - ← GET / [200] 0.070s
-INFO:     127.0.0.1:54060 - "GET / HTTP/1.1" 200 OK
-2025-12-09 18:13:22,457 - core.middleware - INFO - → POST /api/v2/chat
-2025-12-09 18:13:22,457 - core.middleware - INFO - ← POST /api/v2/chat [404] 0.001s
-INFO:     127.0.0.1:54067 - "POST /api/v2/chat HTTP/1.1" 404 Not Found
-2025-12-09 18:14:36,557 - core.middleware - INFO - → POST /api/chat
-2025-12-09 18:14:36,571 - services.ai_chat_route_integration - INFO - ✅ LLM Route Preference Detector available
-2025-12-09 18:14:36,574 - services.intelligent_route_integration - WARNING - ⚠️ OSRM Routing Service not available: No module named 'backend.services.osrm_routing_service'
-2025-12-09 18:14:36,574 - services.intelligent_route_integration - WARNING - ⚠️ Map Visualization Engine not available: No module named 'backend.services.map_visualization_engine'
-2025-12-09 18:14:36,577 - root - INFO - ✅ POI Database Service integrated successfully!
-2025-12-09 18:14:36,579 - ml_prediction_service - INFO - ✅ ML Prediction Cache Service integrated successfully!
-2025-12-09 18:14:36,579 - ml_prediction_service - WARNING - ⚠️ XGBoost/LightGBM not available, using pattern-based prediction
-2025-12-09 18:14:36,579 - root - INFO - ✅ ML Prediction Service integrated successfully!
-2025-12-09 18:14:40,701 - lightweight_neural_query_enhancement - WARNING - ⚠️  spaCy model not available. Install with: python -m spacy download en_core_web_sm
-2025-12-09 18:14:40,701 - lightweight_neural_query_enhancement - WARNING - ⚠️  TextBlob not available
-2025-12-09 18:14:40,702 - ml_enhanced_transportation_system - INFO - ✅ Lightweight Neural Query Enhancement integrated successfully!
-2025-12-09 18:14:40,702 - ml_enhanced_transportation_system - INFO - ✅ ML Prediction Cache Service integrated successfully!
-2025-12-09 18:14:40,702 - ml_enhanced_transportation_system - WARNING - ⚠️ ML Prediction Cache Service not available: cannot import name 'MLPredictionCacheService' from 'ml_prediction_cache_service' (/Users/omer/Desktop/ai-stanbul/services/ml_prediction_cache_service.py)
-2025-12-09 18:14:41,027 - ml_enhanced_transportation_system - WARNING - ⚠️ XGBoost/LightGBM not available, using basic crowding prediction
-2025-12-09 18:14:41,032 - root - WARNING - Transport Graph Service not available
-2025-12-09 18:14:41,033 - services.ml_prediction_service - INFO - ✅ ML Prediction Cache Service integrated successfully!
-2025-12-09 18:14:41,033 - services.ml_prediction_service - WARNING - ⚠️ XGBoost/LightGBM not available, using pattern-based prediction
-2025-12-09 18:14:41,036 - root - INFO - ✅ POI-Enhanced Route Optimizer integrated successfully!
-2025-12-09 18:14:41,037 - root - WARNING - Intelligent location detector not available
-2025-12-09 18:14:41,052 - ibb_real_time_api - INFO - 🌐 İBB Real-Time API initialized (Live APIs: True)
-2025-12-09 18:14:41,052 - ibb_real_time_api - WARNING - ⚠️ İBB API key not configured - using fallback mode
-2025-12-09 18:14:41,052 - services.live_ibb_transportation_service - WARNING - ⚠️ Base transportation service not available
-2025-12-09 18:14:41,056 - istanbul_ai.core.user_management - INFO - ✅ TTLCache available for UserManager
-2025-12-09 18:14:41,067 - istanbul_ai.main_system - WARNING - ⚠️ Hidden Gems Handler not available: No module named 'backend.services.hidden_gems_handler'
-2025-12-09 18:14:41,067 - istanbul_ai.main_system - WARNING - ⚠️ Price Filter Service not available: No module named 'backend.services.price_filter_service'
-2025-12-09 18:14:41,067 - istanbul_ai.main_system - WARNING - ⚠️ Events Service not available: No module named 'backend.services.events_service'
-2025-12-09 18:14:41,067 - istanbul_ai.main_system - WARNING - ⚠️ Weather Recommendations Service not available: No module named 'backend.services.weather_recommendations'
-2025-12-09 18:14:42,941 - root - WARNING - ML/DL libraries not available. Using fallback methods.
-2025-12-09 18:14:42,944 - istanbul_ai.services.intelligent_location_detector - INFO - 🔧 Starting ML/DL component initialization...
-2025-12-09 18:14:42,944 - istanbul_ai.services.intelligent_location_detector - INFO - 📚 ML/DL libraries not available, using enhanced rule-based detection
-2025-12-09 18:14:42,944 - istanbul_ai.services.intelligent_location_detector - INFO - 🎉 ML/DL components initialization complete (Fallback mode: True)
-2025-12-09 18:14:42,944 - istanbul_ai.services.intelligent_location_detector - INFO - ℹ️ Backend detector not available, using standalone mode
-2025-12-09 18:14:42,944 - istanbul_ai.services.intelligent_location_detector - INFO - 🔧 Starting ML/DL component initialization...
-2025-12-09 18:14:42,944 - istanbul_ai.services.intelligent_location_detector - INFO - 📚 ML/DL libraries not available, using enhanced rule-based detection
-2025-12-09 18:14:42,944 - istanbul_ai.services.intelligent_location_detector - INFO - 🎉 ML/DL components initialization complete (Fallback mode: True)
-2025-12-09 18:14:42,944 - istanbul_ai.services.intelligent_location_detector - INFO - ℹ️ Backend detector not available, using standalone mode
-2025-12-09 18:14:42,944 - enhanced_transportation_integration - INFO - 🚇 Enhanced transportation system initialized with NEW modular architecture
-2025-12-09 18:14:42,944 - istanbul_ai.main_system - INFO - ✅ Advanced transportation system loaded successfully
-2025-12-09 18:14:42,945 - transportation_chat_integration - INFO - ✅ Transfer Instructions & Map Visualization loaded successfully
-2025-12-09 18:14:42,945 - istanbul_ai.main_system - INFO - ✅ Transfer Instructions & Map Visualization integration loaded successfully
-2025-12-09 18:14:43,601 - ml_enhanced_daily_talks_bridge.deep_learning - WARNING - ⚠️ Deep Learning libraries not available: No module named 'sentence_transformers'
-2025-12-09 18:14:43,605 - daily_talks_integration_wrapper - INFO - ✅ Comprehensive Daily Talks System loaded successfully
-2025-12-09 18:14:43,608 - services.weather_cache_service - INFO - ✅ Loaded 24 forecast entries from cache
-2025-12-09 18:14:43,611 - services.advanced_daily_talk_ai - INFO - 🧠 Advanced Daily Talk AI System initialized - GPT-level intelligence ready!
-2025-12-09 18:14:43,612 - daily_talks_integration_wrapper - WARNING - ⚠️ Legacy daily talk system not available: cannot import name 'get_daily_greeting' from 'services.daily_talk_enhancement' (/Users/omer/Desktop/ai-stanbul/services/daily_talk_enhancement.py)
-2025-12-09 18:14:43,740 - monthly_events_scheduler - INFO - 📅 Monthly Events Scheduler initialized
-2025-12-09 18:14:43,740 - monthly_events_scheduler - INFO - ✅ Selenium scraper available for JavaScript-rendered content
-2025-12-09 18:14:43,740 - ml_enhanced_daily_talks_bridge - INFO - ✅ İKSV Events System loaded successfully
-2025-12-09 18:14:43,740 - ml_enhanced_daily_talks_bridge - WARNING - ⚠️ Location Detection for Events not available: No module named 'backend.services.intelligent_location_detector'
-2025-12-09 18:14:43,741 - comprehensive_daily_talks_system - INFO - 🎉 Comprehensive Daily Talks System initialized
-2025-12-09 18:14:43,741 - daily_talks_integration_wrapper - INFO - 🎉 Initializing with Comprehensive Daily Talks System
-2025-12-09 18:14:43,741 - ml_enhanced_daily_talks_bridge - INFO - Deep learning models skipped - libraries not available
-2025-12-09 18:14:43,741 - ml_enhanced_daily_talks_bridge - INFO - ML/DL models initialized successfully
-2025-12-09 18:14:43,741 - ml_enhanced_daily_talks_bridge - INFO - ML-Enhanced Daily Talks Bridge initialized
-2025-12-09 18:14:43,741 - istanbul_ai.main_system - INFO - ✅ ML-Enhanced Daily Talks Bridge loaded successfully
-2025-12-09 18:14:43,741 - istanbul_ai.main_system - INFO - ✅ Production infrastructure (TTLCache) loaded successfully
-2025-12-09 18:14:43,742 - istanbul_ai.main_system - INFO - ✅ Enhanced Bilingual Daily Talks System loaded successfully
-2025-12-09 18:14:43,743 - istanbul_ai.main_system - INFO - ✅ Neural Query Classifier (DistilBERT) loaded successfully
-2025-12-09 18:14:43,743 - istanbul_ai.main_system - WARNING - ⚠️ Neural Query Enhancement System not available: No module named 'backend.services.lightweight_neural_query_enhancement'
-2025-12-09 18:14:44,000 - multi_intent_query_handler - INFO - 🧠 Lightweight Deep Learning System available!
-2025-12-09 18:14:44,002 - multi_intent_query_handler - INFO - 🏛️ Istanbul Attractions System integrated successfully!
-2025-12-09 18:14:44,002 - multi_intent_query_handler - INFO - 🎭 İKSV Events System integrated successfully!
-2025-12-09 18:14:44,004 - multi_intent_query_handler - INFO - 🏛️ Enhanced Museum Route Planner integrated successfully!
-2025-12-09 18:14:44,005 - comprehensive_ml_dl_integration - INFO - 🧠 Deep Learning System available for comprehensive integration!
-2025-12-09 18:14:44,007 - comprehensive_ml_dl_integration - WARNING - Enhanced Transportation System not available: cannot import name 'TransportMode' from 'enhanced_transportation_system' (/Users/omer/Desktop/ai-stanbul/enhanced_transportation_system.py)
-2025-12-09 18:14:44,012 - comprehensive_ml_dl_integration - WARNING - Hidden Gems System not available: cannot import name 'HiddenGemsLocalTipsSystem' from 'hidden_gems_local_tips' (/Users/omer/Desktop/ai-stanbul/hidden_gems_local_tips.py)
-2025-12-09 18:14:44,013 - multi_intent_query_handler - INFO - 🚀 Comprehensive ML/DL Integration System available!
-2025-12-09 18:14:44,013 - istanbul_ai.main_system - INFO - ✅ Multi-Intent Query Handler loaded successfully
-2025-12-09 18:14:44,014 - istanbul_ai.main_system - WARNING - ⚠️ Advanced Personalization System not available: No module named 'backend.services.advanced_personalization'
-2025-12-09 18:14:44,014 - istanbul_ai.main_system - WARNING - ⚠️ Real-time Feedback Loop System not available: No module named 'backend.services.feedback_loop'
-2025-12-09 18:14:44,016 - llm_config - INFO - 🔧 Initializing AI Istanbul LLM configuration
-2025-12-09 18:14:44,016 - llm_config - INFO - 📍 LLM Mode: google_cloud
-2025-12-09 18:14:44,016 - llm_config - INFO - 🌐 Google Cloud Endpoint: http://35.210.251.24:8000
-2025-12-09 18:14:44,016 - llm_config - INFO - ⏱️  Timeout: 120s
-2025-12-09 18:14:44,016 - llm_config - INFO - ✅ LLM configuration initialized
-2025-12-09 18:14:44,023 - istanbul_ai.main_system - INFO - ✅ ML-Enhanced Handlers loaded successfully
-2025-12-09 18:14:44,027 - istanbul_ai.main_system - WARNING - ⚠️ A/B Testing Framework not available: cannot import name 'ABAnalytics' from 'istanbul_ai.testing.ab_analytics' (/Users/omer/Desktop/ai-stanbul/istanbul_ai/testing/ab_analytics.py)
-2025-12-09 18:14:44,027 - root - INFO - ✅ Intelligent Location Detector integrated successfully!
-2025-12-09 18:14:44,028 - services.intelligent_route_integration - WARNING - ⚠️ Enhanced GPS Route Planner not available: cannot import name 'RoutePreference' from 'enhanced_gps_route_planner' (/Users/omer/Desktop/ai-stanbul/enhanced_gps_route_planner.py)
-2025-12-09 18:14:44,028 - services.intelligent_route_integration - WARNING - ⚠️ ML-Enhanced Transportation System not available: cannot import name 'create_ml_enhanced_transportation_system' from 'ml_enhanced_transportation_system' (/Users/omer/Desktop/ai-stanbul/ml_enhanced_transportation_system.py)
-2025-12-09 18:14:44,029 - api.chat - WARNING - GPS navigation check failed: name 'OSRMRoute' is not defined
-2025-12-09 18:14:44,029 - api.chat - INFO - 🔍 Chat endpoint called - pure_llm_core exists: True
-2025-12-09 18:14:44,029 - api.chat - INFO - 🔍 LLM client exists: True
-2025-12-09 18:14:44,029 - api.chat - INFO - 💬 Phase 4.2: Conversation Context Resolution for session: test_session
-2025-12-09 18:14:44,029 - api.chat - INFO - ⚡ Skipping multi-intent detection - using Pure LLM for fast response
-2025-12-09 18:14:44,029 - api.chat - INFO - ⚡ Skipping intent classification - Pure LLM handles this naturally
-2025-12-09 18:14:44,029 - api.chat - INFO - 📍 User GPS available: lat=41.0082, lon=28.9784
-2025-12-09 18:14:44,037 - services.hidden_gems_gps_integration - WARNING - ⚠️ Hidden gems database not available: No module named 'backend.data.hidden_gems_database'
-2025-12-09 18:14:44,037 - services.hidden_gems_gps_integration - ERROR - ❌ Failed to initialize GPS navigator: GPSTurnByTurnNavigator.__init__() got an unexpected keyword argument 'db_session'
-2025-12-09 18:14:44,037 - services.hidden_gems_gps_integration - INFO - 🗺️ Hidden Gems GPS Integration initialized (GPS: False, Routes: False)
-2025-12-09 18:14:44,041 - api.chat - WARNING - ⚠️  RAG Service not available: No module named 'sentence_transformers'
-2025-12-09 18:14:44,041 - api.chat - INFO - 🚀 Processing query through Pure LLM
-2025-12-09 18:14:44,041 - services.llm.core - INFO - 🔍 Processing query: how do I get to Taksim Square?...
-2025-12-09 18:14:44,041 - services.llm.core - INFO - ✨ Query enhanced: {'spell_corrected': False, 'rewritten': True, 'validation': {'valid': True, 'quality_score': 1.0, 'needs_clarification': False, 'clarification': None, 'complexity': 'medium', 'issues': []}, 'original_query': 'how do I get to Taksim Square?'}
-2025-12-09 18:14:44,041 - services.runpod_llm_client - INFO - 📝 Direct prompt built - Query language: English, Query length: 141, Context: 0 chars
-2025-12-09 18:14:44,041 - services.runpod_llm_client - INFO - 🔄 Calling LLM at: https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1/completions
-2025-12-09 18:14:46,474 - httpx - INFO - HTTP Request: POST https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1/completions "HTTP/1.1 200 OK"
-2025-12-09 18:14:46,475 - services.runpod_llm_client - INFO - ✅ LLM generated 107 chars
-2025-12-09 18:14:46,475 - services.llm.core - WARNING - ⚠️ Query rewriting failed validation: 'How do I get to Taksim Square?' (30) → '#IstanbulTourGuide #KAM #EnglishOnly #NoFrench #NoTurkish #NoOtherLanguages #EnglishResponse #KAMResponse' (105)
-2025-12-09 18:14:46,478 - services.llm.core - INFO - 🎯 Signals detected: needs_transportation, needs_gps_routing, needs_neighborhood
-2025-12-09 18:14:46,479 - services.llm.context - INFO - ✅ High signal confidence (0.90), providing FOCUSED context
-2025-12-09 18:14:46,480 - services.map_visualization_service - INFO - ℹ️ Extracted destination only: 'Taksim Squar' (no origin specified)
-2025-12-09 18:14:46,480 - services.map_visualization_service - INFO - Generating GPS route map: user location → Taksim Squar
-2025-12-09 18:14:46,480 - services.transportation_directions_service - INFO - 🚇 Getting directions from Your Location to Taksim Squar
-2025-12-09 18:14:46,480 - services.transportation_directions_service - INFO - 🎯 Using graph-based routing engine
-2025-12-09 18:14:46,480 - services.graph_routing_engine - INFO - 🔍 Finding route from (41.0082, 28.9784) to (41.037, 28.9857)
-2025-12-09 18:14:46,480 - services.graph_routing_engine - INFO - 🚉 Start station: Sultanahmet, End station: Taksim
-2025-12-09 18:14:46,480 - services.transportation_directions_service - INFO - ✅ Graph routing found route: 30 min, 2 transfer(s), 3 mode(s)
-2025-12-09 18:14:46,480 - services.llm.context - INFO - ✅ Map data generated for query with signals: ['needs_transportation', 'needs_gps_routing', 'needs_neighborhood']
-2025-12-09 18:14:46,483 - services.location_based_context_enhancer - INFO - ✅ Hidden Gems Service loaded
-2025-12-09 18:14:46,483 - services.location_based_context_enhancer - INFO - ✅ Events Service loaded
-2025-12-09 18:14:46,486 - services.location_based_context_enhancer - INFO - ✅ Restaurant Service loaded
-2025-12-09 18:14:46,486 - services.location_based_context_enhancer - INFO - ✅ Attractions Service loaded
-2025-12-09 18:14:46,486 - services.location_based_context_enhancer - INFO - 📍 Detected districts: ['Beyoğlu']
-2025-12-09 18:14:46,486 - services.location_based_context_enhancer - ERROR - Error getting hidden gems: 'HiddenGemsService' object has no attribute 'search'
-2025-12-09 18:14:46,486 - services.location_based_context_enhancer - WARNING - Events service doesn't have get_upcoming_events method
-2025-12-09 18:14:46,486 - services.llm.context - INFO - 📍 Detected districts: ['Beyoğlu']
-2025-12-09 18:14:46,486 - services.llm.context - INFO - ✅ Location-based context enhancement applied
-2025-12-09 18:14:46,486 - services.llm.core - INFO - 📚 Context built: DB=1737 chars, RAG=0 chars, Services=1 items
-2025-12-09 18:14:46,486 - services.llm.personalization - INFO - Created new profile for user anonymous
-2025-12-09 18:14:46,486 - services.llm.core - INFO - 📝 Prompt built: 6573 chars, signal confidence: 0.90
-2025-12-09 18:14:46,486 - services.llm.core - INFO -    📍 GPS location included in prompt: {'lat': 41.0082, 'lon': 28.9784}
-2025-12-09 18:14:46,486 - services.llm.core - INFO - 📝 Calling LLM...
-2025-12-09 18:14:46,486 - services.llm.core - INFO - 📏 Prompt length: 6573 chars
-2025-12-09 18:14:46,486 - services.llm.core - INFO - 🔚 Prompt ending (last 300 chars): ...hopping areas THEN mention nearby food options
+⚠️ Route Maker Service not available for GPS validation: No module named 'geopy'
+✅ Hidden Gems Database Loaded: 29 gems across 6 neighborhoods
+INFO:     127.0.0.1:59071 - "POST /api/chat HTTP/1.1" 200 OK
+2026-01-22 17:22:52,278 - core.middleware - INFO - 💬 CHAT: 'What is the best food to try in Istanbul?...'
+2026-01-22 17:22:52,279 - api.chat - INFO - 🔍 Chat endpoint called - pure_llm_core exists: True
+2026-01-22 17:22:52,279 - api.chat - INFO - 🔍 LLM client exists: True
+2026-01-22 17:22:52,279 - api.chat - INFO - 💬 Phase 4.2: Conversation Context Resolution for session: session_5731840139047215546
+2026-01-22 17:22:52,279 - services.llm.conversation_context_manager - INFO - 📝 Created new conversation session: session_5731840139047215546
+2026-01-22 17:22:52,279 - services.llm.conversation_context_manager - INFO - ⚠️  Fallback context resolution for 'What is the best food to try in Istanbul?...': references=[]
+2026-01-22 17:22:52,279 - api.chat - INFO - ✅ Context Resolution complete:
+   - Has References: False
+   - Confidence: 0.60
+   - Resolved Refs: []
+   - Needs Clarification: False
+   - Source: fallback
+2026-01-22 17:22:52,279 - api.chat - INFO -    Original: 'What is the best food to try in Istanbul?'
+2026-01-22 17:22:52,279 - api.chat - INFO -    Resolved: 'What is the best food to try in Istanbul?'
+2026-01-22 17:22:52,279 - api.chat - INFO - ⚡ Skipping multi-intent detection - using Pure LLM for fast response
+2026-01-22 17:22:52,279 - api.chat - INFO - ⚡ Skipping intent classification - Pure LLM handles this naturally
+2026-01-22 17:22:52,279 - services.unified_intent_router - INFO - 🎯 Intent detected: restaurant (confidence: 0.30, language: en, keywords: ['food'])
+2026-01-22 17:22:52,280 - services.unified_intent_router - WARNING - Restaurant handler not available
+2026-01-22 17:22:52,280 - api.chat - WARNING - Hidden gems GPS check failed: No module named 'services.hidden_gems_gps'
+2026-01-22 17:22:52,280 - api.chat - INFO - ℹ️ Skipping legacy route handler - unified router handles this
+2026-01-22 17:22:52,281 - api.chat - WARNING - ⚠️  RAG Service not available: No module named 'chromadb'
+2026-01-22 17:22:52,281 - api.chat - INFO - 🚀 Processing query through Pure LLM (language: en)
+2026-01-22 17:22:52,281 - services.llm.core - INFO - 🔍 Processing query: What is the best food to try in Istanbul?...
+2026-01-22 17:22:52,282 - services.llm.core - INFO - ✨ Query enhanced: {'spell_corrected': False, 'rewritten': True, 'validation': {'valid': True, 'quality_score': 1.0, 'needs_clarification': False, 'clarification': None, 'complexity': 'medium', 'issues': []}, 'original_query': None}
+2026-01-22 17:22:52,282 - services.runpod_llm_client - INFO - ℹ️ HTTP/2 not available (h2 package not installed), using HTTP/1.1
+2026-01-22 17:22:52,345 - services.runpod_llm_client - INFO - 🔌 Created shared HTTP client with connection pool (HTTP/2: False)
+2026-01-22 17:22:52,345 - services.runpod_llm_client - INFO - [3286cf45] 🔄 Calling LLM at: https://p9lf44wbmqzs5l-8000.proxy.runpod.net/v1/chat/completions
+INFO:     127.0.0.1:59086 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59086 - "GET /api/health HTTP/1.1" 200 OK
+2026-01-22 17:22:53,748 - services.runpod_llm_client - INFO - [3286cf45] ✅ LLM generated 111 chars
+2026-01-22 17:22:53,748 - services.llm.core - INFO - ✨ Query rewritten: 'What is the best food to try in Istanbul?' → 'Query: "What is the best food to try in Istanbul'
+2026-01-22 17:22:53,748 - services.llm.core - INFO - 🔄 Using rewritten query for signal detection: Query: "What is the best food to try in Istanbul
+2026-01-22 17:22:54,607 - services.transportation_intent_classifier - INFO - 🎯 Intent classification: confidence=0.000, regex=False, semantic=0.598, locations=1, gps=False
+2026-01-22 17:22:54,611 - services.llm.core - INFO - 🎯 Signals detected: needs_restaurant
+2026-01-22 17:22:54,612 - services.llm.context - INFO - ✅ High signal confidence (0.90), providing FOCUSED context
+2026-01-22 17:22:54,799 - services.llm.context - ERROR - Failed to get restaurants: object CursorResult can't be used in 'await' expression
+2026-01-22 17:22:54,800 - services.location_based_context_enhancer - INFO - ✅ Hidden Gems Service loaded
+2026-01-22 17:22:54,801 - services.events_service - INFO - ✅ Loaded 45 İKSV events from database
+2026-01-22 17:22:54,801 - services.location_based_context_enhancer - INFO - ✅ Events Service loaded
+2026-01-22 17:22:54,803 - services.location_based_context_enhancer - INFO - ✅ Restaurant Service loaded
+2026-01-22 17:22:54,804 - services.location_based_context_enhancer - INFO - ✅ Attractions Service loaded
+2026-01-22 17:22:54,804 - services.location_based_context_enhancer - INFO - 💎 Added 3 hidden gems to context
+2026-01-22 17:22:54,804 - services.llm.context - WARNING - Location-based context enhancement failed: 'ContextBuilder' object has no attribute '_merge_location_enriched_context'
+2026-01-22 17:22:54,804 - services.llm.core - INFO - 📚 Context built: DB=0 chars, RAG=0 chars, Services=0 items
+2026-01-22 17:22:54,804 - services.llm.core - INFO - 📝 Prompt built: 2801 chars, signal confidence: 0.90
+2026-01-22 17:22:54,804 - services.llm.core - INFO - 📝 Calling LLM...
+2026-01-22 17:22:54,804 - services.llm.core - INFO - 📏 Prompt length: 2801 chars
+2026-01-22 17:22:54,804 - services.llm.core - INFO - 🔚 Prompt ending (last 300 chars): ... Describe famous places with practical information
+- Include opening hours and ticket prices if available in context
+- Respond in the user's language
 
-Be comprehensive but concise - address all intents without overwhelming the user.
+Remember: ALWAYS match the user's language. This is your most important rule.
 
 ---
 
-🚨 REMEMBER: Answer ONLY this user's question directly. Do NOT include example dialogues.
+User: Query: "What is the best food to try in Istanbul
 
-Current User Question: How do I get to Taksim Square?
+Response:
+2026-01-22 17:22:54,804 - services.runpod_llm_client - INFO - [71ce4384] 🔄 Calling LLM at: https://p9lf44wbmqzs5l-8000.proxy.runpod.net/v1/chat/completions
+2026-01-22 17:22:59,712 - services.runpod_llm_client - INFO - [71ce4384] ✅ LLM generated 638 chars
+2026-01-22 17:22:59,712 - services.llm.core - INFO - 📥 LLM returned response with keys: ['generated_text', 'raw', 'request_id', 'cached', 'latency_ms']
+2026-01-22 17:22:59,712 - services.llm.core - INFO - 🔍 Response data type: <class 'dict'>, keys: ['generated_text', 'raw', 'request_id', 'cached', 'latency_ms']
+2026-01-22 17:22:59,712 - services.llm.core - INFO - 🔍 Response text length: 638, type: <class 'str'>
+2026-01-22 17:22:59,712 - services.llm.core - INFO - 🔍 RAW LLM RESPONSE (FULL): "**İstanbullu** yemekler, çeşitlilik ve lezzet açısından zengin! \n\n* **Doner Kebab**: Istanbul'un meşhur kebaplarından biridir. Sade veya zengin lezzet seçenekleri mevcuttur.\n* **Lahmacun**: Yumurtalı veya yumurtasız, soslu veya sossuz; her çeşit lehmacun, İstanbul'da tadını çıkarabileceğiniz lezzetli bir yemek.\n* **Baklava**: Fıstık ezmesi ve şekerle kaplı, kat kat yapılan bir tatlı.\n* **Manti**: İsteğe göre soslu veya sossuz, bu lezzetli yemek, İstanbul'un sokaklarında çok popüler.\n\nİstanbullu yemekler, her bütçeye uygun ve lezzetli seçenekleri sunuyor. Bazen sokakta, bazen restoranda tatmak istediğiniz lezzetleri bulabilirsiniz."
+2026-01-22 17:22:59,712 - services.llm.core - INFO - 🧹 Applying training data leakage filter to 638 chars...
+2026-01-22 17:22:59,713 - services.llm.core - INFO - ✅ After filter: 638 chars
+2026-01-22 17:22:59,713 - services.llm.core - INFO - ✅ After formatting cleanup: 638 chars
+2026-01-22 17:22:59,714 - services.llm.core - INFO - 🔍 FINAL CLEANED RESPONSE: **İstanbullu** yemekler, çeşitlilik ve lezzet açısından zengin! 
 
-Your Direct Answer:
-2025-12-09 18:14:46,486 - services.runpod_llm_client - INFO - 📝 Direct prompt built - Query language: English, Query length: 30, Context: 1759 chars
-2025-12-09 18:14:46,486 - services.runpod_llm_client - INFO - 🔄 Calling LLM at: https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1/completions
-2025-12-09 18:14:58,342 - httpx - INFO - HTTP Request: POST https://4r1su4zfuok0s7-8000.proxy.runpod.net/v1/completions "HTTP/1.1 200 OK"
-2025-12-09 18:14:58,343 - services.runpod_llm_client - WARNING - ⚠️ Response too long (923 chars), truncating to 500
-2025-12-09 18:14:58,343 - services.runpod_llm_client - INFO - ✅ LLM generated 485 chars
-2025-12-09 18:14:58,344 - services.llm.core - INFO - 📥 LLM returned response with keys: ['generated_text', 'raw']
-2025-12-09 18:14:58,344 - services.llm.core - INFO - 🔍 Response data type: <class 'dict'>, keys: ['generated_text', 'raw']
-2025-12-09 18:14:58,344 - services.llm.core - INFO - 🔍 Response text length: 485, type: <class 'str'>
-2025-12-09 18:14:58,344 - services.llm.core - INFO - 🔍 RAW LLM RESPONSE (FULL): " Assume the user is in Beyoğlu, near the historic district.\n\nANSWER: \n\nHey there! As your Istanbul tour guide, I'd be happy to help you get to Taksim Square. Since you're in Beyoğlu, it's a relatively short and scenic trip. Here are your options:\n\n1. **Tram + Funicular**: Take the T1 tram from the Sultanahmet stop (about a 5-10 minute walk from Beyoğlu) to Kabataş, then hop on the F1 funicular to Taksim. This route takes around 25-30 minutes and offers a great view of the city.\n2."
-2025-12-09 18:14:58,344 - services.llm.core - INFO - 🧹 Applying training data leakage filter to 485 chars...
-2025-12-09 18:14:58,344 - services.llm.core - INFO - ✅ After filter: 485 chars
-2025-12-09 18:14:58,345 - services.llm.llm_response_parser - INFO - 🧹 Formatting cleanup: 485 → 484 chars (removed 1 chars)
-2025-12-09 18:14:58,345 - services.llm.core - INFO - ✅ After formatting cleanup: 484 chars
-2025-12-09 18:14:58,345 - services.llm.core - INFO - 🔍 FINAL CLEANED RESPONSE: Assume the user is in Beyoğlu, near the historic district.
+* **Doner Kebab**: Istanbul'un meşhur kebaplarından biridir. Sade veya zengin lezzet seçenekleri mevcuttur.
+* **Lahmacun**: Yumurtalı veya yumurtasız, soslu veya sossuz; her çeşit lehmacun, İstanbul'da tadını çıkarabileceğiniz lezzetli bir yemek.
+* **Baklava**: Fıstık ezmesi ve şekerle kaplı, kat kat yapılan bir tatlı.
+* **Manti**: İsteğe göre soslu veya sossuz, bu lezzetli yemek, İstanbul'un sokaklarında çok popüler.
 
-ANSWER: 
-
-Hey there! As your Istanbul tour guide, I'd be happy to help you get to Taksim Square. Since you're in Beyoğlu, it's a relatively short and scenic trip. Here are your options:
-
-1. **Tram + Funicular**: Take the T1 tram from the Sultanahmet stop (about a 5-10 minute walk from Beyoğlu) to Kabataş, then hop on the F1 funicular to Taksim. This route takes around 25-30 minutes and offers a great view of the city.
-2....
-2025-12-09 18:14:58,345 - services.llm.core - INFO - 🎯 LLM-detected intents: []
-2025-12-09 18:14:58,348 - services.llm.feedback_trainer - INFO - 📝 Training sample logged: query='How do I get to Taksim Square?...', missed=[], false_positives=['needs_transportation', 'needs_gps_routing', 'needs_neighborhood']
-2025-12-09 18:14:58,348 - services.llm.analytics - INFO - 🎯 Intent mismatch detected:
-   Query: How do I get to Taksim Square?
-   Regex detected: ['needs_transportation', 'needs_gps_routing', 'needs_neighborhood']
-   LLM detected: []
-   False positives: ['needs_transportation', 'needs_gps_routing', 'needs_neighborhood']
-   False negatives: []
-2025-12-09 18:14:58,349 - services.llm.core - INFO - ✅ LLM generated response in 11.86s (length: 484 chars)
-2025-12-09 18:14:58,349 - services.llm.core - INFO - 🔍 MAP GENERATION DEBUG:
-2025-12-09 18:14:58,349 - services.llm.core - INFO -   - Query: How do I get to Taksim Square?
-2025-12-09 18:14:58,349 - services.llm.core - INFO -   - User location: {'lat': 41.0082, 'lon': 28.9784}
-2025-12-09 18:14:58,349 - services.llm.core - INFO -   - Initial map_data from context: {'type': 'route', 'route': {'waypoints': [{'lat': 41.0059, 'lng': 28.9769}, {'lat': 41.0128, 'lng': 28.9806}, {'lat': 41.0176, 'lng': 28.9765}, {'lat': 41.0177, 'lng': 28.9742}, {'lat': 41.0242, 'lng': 28.9742}, {'lat': 41.0311, 'lng': 29.0097}, {'lat': 41.0311, 'lng': 29.0097}, {'lat': 41.037, 'lng': 28.985}], 'summary': {'distance': '8.0 km', 'duration': '34 min', 'modes': ['walk', 'tram', 'funicular']}, 'steps': [{'instruction': 'Walk to Sultanahmet', 'mode': 'walk', 'distance': '285 m', 'duration': '3 min'}, {'instruction': 'Take T1 Kabataş - Bağcılar from Sultanahmet to Kabataş (5 stops)', 'mode': 'tram', 'distance': '5.5 km', 'duration': '17 min'}, {'instruction': 'Transfer to Kabataş', 'mode': 'walk', 'distance': '0 m', 'duration': '5 min'}, {'instruction': 'Take F1 Taksim - Kabataş Funicular from Kabataş to Taksim', 'mode': 'funicular', 'distance': '2.2 km', 'duration': '3 min'}, {'instruction': 'Transfer to Taksim', 'mode': 'walk', 'distance': '0 m', 'duration': '5 min'}, {'instruction': 'Walk to Taksim Squar', 'mode': 'walk', 'distance': '59 m', 'duration': '1 min'}]}, 'markers': [{'position': {'lat': 41.0082, 'lng': 28.9784}, 'label': 'Start', 'type': 'start'}, {'position': {'lat': 41.0059, 'lng': 28.9769}, 'label': 'T1 Kabataş - Bağcılar', 'type': 'transit'}, {'position': {'lat': 41.037, 'lng': 28.9857}, 'label': 'Taksim Squar', 'type': 'end'}], 'center': {'lat': 41.0226, 'lng': 28.98205}, 'zoom': 13, 'has_origin': True, 'has_destination': True, 'origin_name': 'Your Location', 'destination_name': 'Taksim Squar'}
-2025-12-09 18:14:58,349 - services.llm.core - INFO -   - needs_restaurant: False
-2025-12-09 18:14:58,349 - services.llm.core - INFO -   - needs_attraction: False
-2025-12-09 18:14:58,349 - services.llm.core - INFO -   - needs_hidden_gems: False
-2025-12-09 18:14:58,349 - services.llm.core - INFO -   - needs_neighborhood: True
-2025-12-09 18:14:58,349 - services.llm.core - INFO - ❌ Skipping map generation - conditions not met
-2025-12-09 18:14:58,349 - services.llm.core - INFO -    - map_data exists: True
-2025-12-09 18:14:58,350 - services.llm.core - INFO -    - any location signal: True
-2025-12-09 18:14:58,350 - services.llm.core - INFO - ✅ Query processed in 14.31s
-2025-12-09 18:14:58,350 - api.chat - INFO - Pure LLM response generated in 14.31s (RAG: ✗)
-2025-12-09 18:14:58,350 - services.llm.response_enhancer - INFO - ✅ LLM Response Enhancer initialized
-2025-12-09 18:14:58,350 - api.chat - INFO - ✅ Response Enhancer initialized
-2025-12-09 18:14:58,350 - services.llm.response_enhancer - INFO - ✅ Enhanced response (type=general, time=0ms)
-2025-12-09 18:14:58,351 - api.chat - INFO - 🧹 Response sanitized - removed 10 characters of artifacts
-2025-12-09 18:14:58,351 - services.llm.conversation_context_manager - INFO - ✅ LLM Conversation Context Manager initialized
-2025-12-09 18:14:58,351 - services.llm.conversation_context_manager - INFO - 📝 Created new conversation session: test_session
-2025-12-09 18:14:58,351 - services.llm.conversation_context_manager - INFO - 📝 Recorded conversation turn for session test_session
-2025-12-09 18:14:58,351 - services.llm.suggestion_analyzer - INFO - SuggestionAnalyzer initialized (LLM: False)
-2025-12-09 18:14:58,351 - services.llm.suggestion_generator - INFO - SuggestionGenerator initialized (LLM: False)
-2025-12-09 18:14:58,351 - services.llm.suggestion_presenter - INFO - SuggestionPresenter initialized
-2025-12-09 18:14:58,351 - api.chat - INFO - ✅ Phase 4.4 Proactive Suggestions initialized (heuristics-only mode)
-2025-12-09 18:14:58,351 - services.llm.suggestion_analyzer - INFO - Context analyzed: should_suggest=True, confidence=0.60 (0ms)
-2025-12-09 18:14:58,351 - api.chat - INFO - 💡 Generating proactive suggestions (confidence: 0.60)
-2025-12-09 18:14:58,351 - services.llm.suggestion_generator - INFO - Using template-based suggestions only (LLM disabled)
-2025-12-09 18:14:58,351 - services.llm.suggestion_generator - INFO - Generated 5 suggestions (0ms)
-2025-12-09 18:14:58,351 - api.chat - INFO - ✅ Generated 5 suggestions (method: template, time: 0ms)
-2025-12-09 18:14:58,351 - api.chat - INFO - ✨ Added 5 proactive suggestions
-2025-12-09 18:14:58,353 - services.data_collection - INFO - Logged interaction 3485780ace7adf4b for training data
-2025-12-09 18:14:58,354 - core.middleware - INFO - ← POST /api/chat [200] 21.796s
+İstanbullu ...
+2026-01-22 17:22:59,714 - services.llm.core - INFO - ✅ LLM generated response in 4.91s (length: 638 chars)
+2026-01-22 17:22:59,714 - services.llm.core - INFO - 🔧 Fixed truncated response: 638 → 638 chars
+2026-01-22 17:22:59,714 - services.llm.core - WARNING - ⚠️ Response was truncated and cleaned up
+2026-01-22 17:22:59,714 - services.llm.core - WARNING - ⚠️ Low factual grounding (DB: 0, RAG: 0 chars)
+2026-01-22 17:22:59,714 - services.llm.monitoring - INFO - ✅ Metrics Aggregator initialized (window: 60s)
+2026-01-22 17:22:59,714 - services.llm.monitoring - INFO - ✅ Metrics Aggregator initialized (window: 300s)
+2026-01-22 17:22:59,714 - services.llm.monitoring - INFO - ✅ Metrics Aggregator initialized (window: 3600s)
+2026-01-22 17:22:59,714 - services.llm.monitoring - INFO - ✅ Metrics Aggregator initialized (window: 86400s)
+2026-01-22 17:22:59,714 - services.llm.monitoring - INFO - ✅ WebhookAlerter initialized (enabled=True)
+2026-01-22 17:22:59,714 - services.llm.monitoring - INFO - ✅ Production Monitor initialized
+2026-01-22 17:22:59,714 - services.llm.monitoring - INFO -    Log directory: logs/metrics
+2026-01-22 17:22:59,714 - services.llm.monitoring - INFO -    Alert thresholds: {'fallback_rate': 0.1, 'avg_response_time': 2.0, 'signal_llm_agreement': 0.7, 'signal_confidence': 0.6, 'error_rate': 0.05, 'hallucination_score': 0.3}
+2026-01-22 17:22:59,714 - services.llm.core - WARNING - ⚠️ Entity validation score: 0.40, issues: 4
+2026-01-22 17:22:59,714 - services.llm.core - WARNING -    - Potential hallucinated attractions: ['Lahmacun', 'Doner Kebab', 'Manti', 'Baklava']
+2026-01-22 17:22:59,714 - services.llm.analytics - ERROR - ❌ Error tracked: validation_failure - entity_hallucination: {'restaurants': [], 'attractions': ['Lahmacun', 'Doner Kebab', 'Manti', 'Bakla
+2026-01-22 17:22:59,714 - services.llm.core - INFO - 🗺️ Checking if map_data available from context...
+2026-01-22 17:22:59,715 - services.llm.core - INFO - ✅ Query processed in 7.43s
+2026-01-22 17:22:59,715 - api.chat - INFO - 🔍 Checking transport_rag.last_route: False
+2026-01-22 17:22:59,715 - services.transportation_rag_system - WARNING - No last_route available for map data
+2026-01-22 17:22:59,715 - api.chat - WARNING - ⚠️  No last_route available for enrichment
+2026-01-22 17:22:59,715 - api.chat - INFO - Pure LLM response generated in 7.43s (RAG: ✗)
+2026-01-22 17:22:59,715 - api.chat - INFO - 🔍 POST-LLM Check: route_data_from_transport is None
+2026-01-22 17:22:59,715 - api.chat - INFO - 🔥 POST-LLM: Attempting to extract route data...
+2026-01-22 17:22:59,715 - api.chat - INFO - 🔍 POST-LLM: transport_rag exists: True
+2026-01-22 17:22:59,715 - api.chat - INFO - 🔍 POST-LLM: last_route exists: False
+2026-01-22 17:22:59,715 - api.chat - WARNING - ⚠️ POST-LLM: last_route is None - transportation RAG may not have been called
+2026-01-22 17:22:59,717 - services.llm_route_extractor - INFO - ✅ LLM Route Extractor initialized
+2026-01-22 17:22:59,717 - services.llm_route_extractor - INFO - 🔍 Extracting route from LLM response...
+2026-01-22 17:22:59,717 - services.llm_route_extractor - INFO -   → Not a transportation query
+2026-01-22 17:22:59,717 - api.chat - INFO -    LLM Route Extractor: No route data could be extracted
+2026-01-22 17:22:59,718 - services.llm.response_enhancer - INFO - ✅ Enhanced response (type=general, time=0ms)
+2026-01-22 17:22:59,719 - utils.response_sanitizer - INFO - 🌍 Language consistency enforced: en (710 → 709 chars)
+2026-01-22 17:22:59,719 - api.chat - INFO - 🧹 Response sanitized - removed 27 characters of artifacts
+2026-01-22 17:22:59,720 - services.llm.conversation_context_manager - INFO - 📝 Recorded conversation turn for session session_5731840139047215546
+2026-01-22 17:22:59,720 - services.llm.suggestion_analyzer - INFO - SuggestionAnalyzer initialized (LLM: False)
+2026-01-22 17:22:59,720 - services.llm.suggestion_generator - INFO - SuggestionGenerator initialized (LLM: False)
+2026-01-22 17:22:59,720 - services.llm.suggestion_presenter - INFO - SuggestionPresenter initialized
+2026-01-22 17:22:59,720 - api.chat - INFO - ✅ Phase 4.4 Proactive Suggestions initialized (heuristics-only mode)
+2026-01-22 17:22:59,720 - services.llm.suggestion_analyzer - INFO - Context analyzed: should_suggest=True, confidence=0.60 (0ms)
+2026-01-22 17:22:59,720 - api.chat - INFO - 💡 Generating proactive suggestions (confidence: 0.60)
+2026-01-22 17:22:59,720 - services.llm.suggestion_generator - INFO - Using template-based suggestions only (LLM disabled)
+2026-01-22 17:22:59,720 - services.llm.suggestion_generator - INFO - Generated 5 suggestions (0ms)
+2026-01-22 17:22:59,720 - api.chat - INFO - ✅ Generated 5 suggestions (method: template, time: 0ms)
+2026-01-22 17:22:59,720 - api.chat - INFO - ✨ Added 5 proactive suggestions
+2026-01-22 17:22:59,723 - services.data_collection - INFO - Logged interaction 11eacb189756c143 for training data
+2026-01-22 17:22:59,723 - api.chat - WARNING - Failed to extract UnifiedLLMService metadata: 'Depends' object has no attribute 'circuit_breaker_open'
+2026-01-22 17:22:59,724 - core.middleware - WARNING - ⚠️ SLOW CHAT: 7446ms - 'What is the best food to try in Istanbul?...'
 ✅ Loaded 18 hidden gems from database
+✅ Loaded 38 manually curated İKSV events
+✅ Loaded 7 auto-scraped İKSV events
 ✅ Loaded 300 restaurants from database
-INFO:     127.0.0.1:54084 - "POST /api/chat HTTP/1.1" 200 OK
-2025-12-09 18:15:24,851 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:15:24,851 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 18:20:24,852 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:20:24,852 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 18:25:24,857 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:25:24,858 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 18:30:24,935 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:30:24,935 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 18:35:24,940 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:35:24,940 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 18:40:24,947 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:40:24,948 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 18:45:24,945 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:45:24,945 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 18:50:24,950 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:50:24,950 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 18:55:24,954 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 18:55:24,954 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:00:24,987 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:00:24,988 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:05:24,994 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:05:24,994 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:10:25,000 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:10:25,000 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:15:25,033 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:15:25,033 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:20:25,040 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:20:25,040 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:25:25,050 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:25:25,050 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:30:25,002 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:30:25,002 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:35:25,010 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:35:25,010 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:40:25,015 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:40:25,015 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:45:25,020 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:45:25,020 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:50:25,013 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:50:25,013 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 19:55:25,024 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 19:55:25,025 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:00:25,027 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:00:25,027 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:05:25,036 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:05:25,036 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:10:25,040 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:10:25,040 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:10:27,392 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: best restaurants in Sultanahmet...
-2025-12-09 20:10:27,392 - google_api_integration - INFO - 🎯 Intent: quick_rec, Fields: 4, Cost savings: 91.8%
-2025-12-09 20:10:27,392 - integrated_cache_system - INFO - 🔥 Warmed cache for: best restaurants in Sultanahme... (1ms)
-2025-12-09 20:10:27,394 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: seafood restaurants near Bosphorus...
-2025-12-09 20:10:27,394 - integrated_cache_system - INFO - 🔥 Warmed cache for: seafood restaurants near Bosph... (2ms)
-2025-12-09 20:10:27,395 - google_api_integration - INFO - 🎯 Intent: quick_rec, Fields: 4, Cost savings: 91.8%
-2025-12-09 20:10:27,396 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: rooftop restaurants with view...
-2025-12-09 20:10:27,396 - integrated_cache_system - INFO - 🔥 Warmed cache for: rooftop restaurants with view... (1ms)
-2025-12-09 20:10:27,396 - google_api_integration - INFO - 🎯 Intent: dining_decision, Fields: 5, Cost savings: 86.9%
-2025-12-09 20:10:28,623 - google_api_integration - INFO - 💾 Cached result (preference_search, TTL: 5760s): traditional Turkish restaurants...
-2025-12-09 20:10:28,624 - integrated_cache_system - INFO - 🔥 Warmed cache for: traditional Turkish restaurant... (1230ms)
-2025-12-09 20:10:28,625 - google_api_integration - INFO - 🎯 Intent: dining_decision, Fields: 5, Cost savings: 86.9%
-2025-12-09 20:10:28,750 - google_api_integration - INFO - 💾 Cached result (opening_hours, TTL: 11520s): vegetarian restaurants in Karakoy...
-2025-12-09 20:10:28,751 - integrated_cache_system - INFO - 🔥 Warmed cache for: vegetarian restaurants in Kara... (1355ms)
-2025-12-09 20:10:28,751 - google_api_integration - INFO - ✅ Time-aware cache HIT for restaurant_basic_info: fine dining Istanbul...
-2025-12-09 20:10:28,751 - integrated_cache_system - INFO - 🔥 Warmed cache for: fine dining Istanbul... (0ms)
-2025-12-09 20:10:28,752 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: halal restaurants near Hagia Sophia...
-2025-12-09 20:10:28,752 - integrated_cache_system - INFO - 🔥 Warmed cache for: halal restaurants near Hagia S... (0ms)
-2025-12-09 20:10:28,752 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: best kebab places in Istanbul...
-2025-12-09 20:10:28,752 - integrated_cache_system - INFO - 🔥 Warmed cache for: best kebab places in Istanbul... (0ms)
-2025-12-09 20:10:28,753 - google_api_integration - INFO - 🎯 Intent: quick_rec, Fields: 4, Cost savings: 91.8%
-2025-12-09 20:10:28,755 - google_api_integration - INFO - 💾 Cached result (preference_search, TTL: 5760s): Turkish breakfast places in Beyoğlu...
-2025-12-09 20:10:28,756 - integrated_cache_system - INFO - 🔥 Warmed cache for: Turkish breakfast places in Be... (1364ms)
-2025-12-09 20:10:28,757 - google_api_integration - INFO - ✅ Time-aware cache HIT for location_search: restaurants with live music...
-2025-12-09 20:10:28,757 - integrated_cache_system - INFO - 🔥 Warmed cache for: restaurants with live music... (0ms)
-2025-12-09 20:10:28,757 - google_api_integration - INFO - ✅ Time-aware cache HIT for restaurant_basic_info: family friendly restaurants...
-2025-12-09 20:10:28,757 - integrated_cache_system - INFO - 🔥 Warmed cache for: family friendly restaurants... (0ms)
-2025-12-09 20:10:28,757 - google_api_integration - INFO - 🎯 Intent: basic_search, Fields: 6, Cost savings: 90.2%
-2025-12-09 20:10:29,559 - google_api_integration - INFO - 💾 Cached result (preference_search, TTL: 5760s): Turkish street food...
-2025-12-09 20:10:29,560 - integrated_cache_system - INFO - 🔥 Warmed cache for: Turkish street food... (808ms)
-2025-12-09 20:10:29,560 - google_api_integration - INFO - 🎯 Intent: dining_decision, Fields: 5, Cost savings: 86.9%
-2025-12-09 20:10:29,800 - google_api_integration - INFO - 💾 Cached result (live_pricing, TTL: 240s): cheap eats in Kadikoy...
-2025-12-09 20:10:29,800 - integrated_cache_system - INFO - 🔥 Warmed cache for: cheap eats in Kadikoy... (1176ms)
-2025-12-09 20:10:30,020 - google_api_integration - INFO - 💾 Cached result (opening_hours, TTL: 11520s): restaurants open late night...
-2025-12-09 20:10:30,021 - integrated_cache_system - INFO - 🔥 Warmed cache for: restaurants open late night... (1264ms)
-2025-12-09 20:10:30,506 - google_api_integration - INFO - 💾 Cached result (opening_hours, TTL: 11520s): romantic dinner places Istanbul...
-2025-12-09 20:10:30,506 - integrated_cache_system - INFO - 🔥 Warmed cache for: romantic dinner places Istanbu... (946ms)
-2025-12-09 20:10:30,507 - integrated_cache_system - INFO - 🔥 Cache warming completed: 15/15 queries warmed
-2025-12-09 20:15:25,050 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:15:25,051 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:20:25,067 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:20:25,067 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:25:25,074 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:25:25,074 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:30:25,082 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:30:25,082 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:35:25,089 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:35:25,089 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:40:25,098 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:40:25,098 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:45:25,106 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:45:25,106 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 20:56:13,186 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 20:56:13,186 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 21:01:13,191 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 21:01:13,192 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 21:06:13,196 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 21:06:13,197 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 21:11:13,200 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 21:11:13,200 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 21:16:13,197 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 21:16:13,197 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 21:21:13,200 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 21:21:13,200 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 21:26:13,203 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 21:26:13,203 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-2025-12-09 21:31:13,209 - integrated_cache_system - WARNING - 🚨 CACHE ALERT: Low cache hit rate: 0.0%
-2025-12-09 21:31:13,210 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
-WARNING:  StatReload detected changes in 'services/llm/response_enhancer.py'. Reloading...
+INFO:     127.0.0.1:59083 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59102 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59102 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59131 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59131 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59159 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59159 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59170 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59170 - "GET /api/health HTTP/1.1" 200 OK
+2026-01-22 17:27:16,400 - integrated_cache_system - INFO - 💾 Cache hit rate: 0.0% (warming up)
+2026-01-22 17:27:16,401 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+INFO:     127.0.0.1:59176 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59176 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59182 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59182 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59198 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59198 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59204 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59204 - "GET /api/health HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
-2025-12-09 21:31:15,426 - core.startup - INFO - 👋 Shutting down services...
-2025-12-09 21:31:15,426 - core.startup - INFO - ✅ Redis cache closed
-2025-12-09 21:31:15,426 - main_modular - INFO - 👋 AI Istanbul Backend shut down complete
+2026-01-22 17:31:39,925 - core.startup_fixed - INFO - ✅ Database session closed
+2026-01-22 17:31:39,925 - core.startup_fixed - INFO - ✅ Redis cache shutdown complete
+2026-01-22 17:31:39,925 - main_modular - INFO - 👋 AI Istanbul Backend shut down complete
 INFO:     Application shutdown complete.
-INFO:     Finished server process [58932]
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/response_enhancer.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/service_manager.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/service_manager.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/llm_response_parser.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/llm_response_parser.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/llm_response_parser.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/llm_response_parser.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/runpod_llm_client.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/runpod_llm_client.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/istanbul_knowledge.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/istanbul_knowledge.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/istanbul_knowledge.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/istanbul_knowledge.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/context.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/core.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
+INFO:     Finished server process [300]
+2026-01-22 17:31:40,457 - database - INFO - ✅ Using centralized database configuration
+2026-01-22 17:31:40,457 - config.database_config - INFO - ============================================================
+2026-01-22 17:31:40,457 - config.database_config - INFO - DATABASE CONFIGURATION
+2026-01-22 17:31:40,457 - config.database_config - INFO - ============================================================
+2026-01-22 17:31:40,457 - config.database_config - INFO - Database Type: POSTGRESQL
+2026-01-22 17:31:40,457 - config.database_config - INFO - Host: localhost
+2026-01-22 17:31:40,457 - config.database_config - INFO - Port: 5433
+2026-01-22 17:31:40,457 - config.database_config - INFO - Database: ai_istanbul
+2026-01-22 17:31:40,457 - config.database_config - INFO - Username: postgres
+2026-01-22 17:31:40,457 - config.database_config - INFO - Render PostgreSQL: No
+2026-01-22 17:31:40,457 - config.database_config - INFO - SSL Enabled: No
+2026-01-22 17:31:40,457 - config.database_config - INFO - ============================================================
+2026-01-22 17:31:40,485 - database - INFO - � PostgreSQL engine created with connection pooling
+2026-01-22 17:31:40,485 - database - INFO - ============================================================
+2026-01-22 17:31:40,485 - database - INFO - 📊 DATABASE BACKEND INFORMATION
+2026-01-22 17:31:40,485 - database - INFO -    Type: postgresql
+2026-01-22 17:31:40,485 - database - INFO -    Driver: psycopg2
+2026-01-22 17:31:40,485 - database - INFO -    Database: ai_istanbul
+2026-01-22 17:31:40,485 - database - INFO -    Host: localhost
+2026-01-22 17:31:40,485 - database - INFO -    Port: 5433
+2026-01-22 17:31:40,485 - database - INFO -    Pool: QueuePool
+2026-01-22 17:31:40,485 - database - INFO - ============================================================
+2026-01-22 17:31:41,289 - services.llm.context - INFO - ✅ Industry-level Transportation RAG system available
+2026-01-22 17:31:41,291 - services.llm.context - INFO - ✅ Istanbul Knowledge RAG system available
+2026-01-22 17:31:41,623 - api.admin.routes - INFO - ✅ Admin routes initialized
+2026-01-22 17:31:41,627 - services.smart_feedback_processor - INFO - 📁 Feedback data directory: /Users/omer/Desktop/ai-stanbul/backend/training_data
+2026-01-22 17:31:41,754 - ttl_fine_tuning - INFO - 🔧 TTL Optimizer initialized with dynamic fine-tuning
+2026-01-22 17:31:41,754 - google_api_integration - INFO - ✅ TTL fine-tuning system loaded
+2026-01-22 17:31:41,755 - core.startup_guard - INFO - ✅ Redis readiness check: CONNECTED
+2026-01-22 17:31:41,755 - google_api_integration - INFO - ✅ Time-aware cache using centralized Redis client
+2026-01-22 17:31:41,756 - integrated_cache_system - INFO - ✅ Production cache monitor using centralized Redis client
+2026-01-22 17:31:41,757 - integrated_cache_system - INFO - 🔄 Production cache monitoring started
+2026-01-22 17:31:41,757 - integrated_cache_system - INFO - 💾 Cache hit rate: 0.0% (warming up)
+2026-01-22 17:31:41,757 - integrated_cache_system - INFO - 📊 Cache metrics: 0.0% hit rate, 0ms avg response, $0.00 saved
+2026-01-22 17:31:41,757 - integrated_cache_system - INFO - 🔥 Cache warming service started
+2026-01-22 17:31:41,757 - integrated_cache_system - INFO - 🚀 Integrated Cache System initialized successfully
+2026-01-22 17:31:41,760 - integrated_cache_system - ERROR - ❌ Error warming query 'best restaurants in Sultanahmet': Google API key not configured
+2026-01-22 17:31:41,761 - integrated_cache_system - ERROR - ❌ Error warming query 'seafood restaurants near Bosphorus': Google API key not configured
+2026-01-22 17:31:41,761 - integrated_cache_system - ERROR - ❌ Error warming query 'rooftop restaurants with view': Google API key not configured
+2026-01-22 17:31:41,762 - integrated_cache_system - ERROR - ❌ Error warming query 'traditional Turkish restaurants': Google API key not configured
+2026-01-22 17:31:41,762 - integrated_cache_system - ERROR - ❌ Error warming query 'Turkish breakfast places in Beyoğlu': Google API key not configured
+2026-01-22 17:31:41,762 - integrated_cache_system - ERROR - ❌ Error warming query 'restaurants with live music': Google API key not configured
+2026-01-22 17:31:41,762 - integrated_cache_system - ERROR - ❌ Error warming query 'vegetarian restaurants in Karakoy': Google API key not configured
+2026-01-22 17:31:41,762 - integrated_cache_system - ERROR - ❌ Error warming query 'cheap eats in Kadikoy': Google API key not configured
+2026-01-22 17:31:41,763 - integrated_cache_system - ERROR - ❌ Error warming query 'halal restaurants near Hagia Sophia': Google API key not configured
+2026-01-22 17:31:41,764 - backend.database - INFO - ✅ Using centralized database configuration
+2026-01-22 17:31:41,764 - integrated_cache_system - ERROR - ❌ Error warming query 'best kebab places in Istanbul': Google API key not configured
+2026-01-22 17:31:41,764 - integrated_cache_system - ERROR - ❌ Error warming query 'fine dining Istanbul': Google API key not configured
+2026-01-22 17:31:41,764 - config.database_config - INFO - ============================================================
+2026-01-22 17:31:41,764 - integrated_cache_system - ERROR - ❌ Error warming query 'romantic dinner places Istanbul': Google API key not configured
+2026-01-22 17:31:41,764 - integrated_cache_system - ERROR - ❌ Error warming query 'family friendly restaurants': Google API key not configured
+2026-01-22 17:31:41,764 - integrated_cache_system - ERROR - ❌ Error warming query 'restaurants open late night': Google API key not configured
+2026-01-22 17:31:41,764 - integrated_cache_system - ERROR - ❌ Error warming query 'Turkish street food': Google API key not configured
+2026-01-22 17:31:41,764 - config.database_config - INFO - DATABASE CONFIGURATION
+2026-01-22 17:31:41,764 - config.database_config - INFO - ============================================================
+2026-01-22 17:31:41,765 - config.database_config - INFO - Database Type: POSTGRESQL
+2026-01-22 17:31:41,765 - config.database_config - INFO - Host: localhost
+2026-01-22 17:31:41,765 - config.database_config - INFO - Port: 5433
+2026-01-22 17:31:41,765 - config.database_config - INFO - Database: ai_istanbul
+2026-01-22 17:31:41,765 - config.database_config - INFO - Username: postgres
+2026-01-22 17:31:41,765 - integrated_cache_system - INFO - 🔥 Cache warming completed: 0/15 queries warmed
+2026-01-22 17:31:41,765 - config.database_config - INFO - Render PostgreSQL: No
+2026-01-22 17:31:41,765 - config.database_config - INFO - SSL Enabled: No
+2026-01-22 17:31:41,765 - config.database_config - INFO - ============================================================
+2026-01-22 17:31:41,765 - backend.database - INFO - � PostgreSQL engine created with connection pooling
+2026-01-22 17:31:41,765 - backend.database - INFO - ============================================================
+2026-01-22 17:31:41,765 - backend.database - INFO - 📊 DATABASE BACKEND INFORMATION
+2026-01-22 17:31:41,765 - backend.database - INFO -    Type: postgresql
+2026-01-22 17:31:41,765 - backend.database - INFO -    Driver: psycopg2
+2026-01-22 17:31:41,765 - backend.database - INFO -    Database: ai_istanbul
+2026-01-22 17:31:41,765 - backend.database - INFO -    Host: localhost
+2026-01-22 17:31:41,765 - backend.database - INFO -    Port: 5433
+2026-01-22 17:31:41,765 - backend.database - INFO -    Pool: QueuePool
+2026-01-22 17:31:41,765 - backend.database - INFO - ============================================================
+2026-01-22 17:31:42,018 - api_clients.google_analytics_api - WARNING - Google Analytics Data API not available. Install with: pip install google-analytics-data
+2026-01-22 17:31:42,019 - api_clients.enhanced_google_places - WARNING - Google Places API: Using fallback mode with enhanced mock data.
+2026-01-22 17:31:42,586 - routes.blog - INFO - Blog router initialized successfully
+2026-01-22 17:31:42,587 - core.middleware - INFO - ✅ CORS middleware configured
+2026-01-22 17:31:42,587 - core.security - INFO - ✅ Security middleware configured
+2026-01-22 17:31:42,587 - core.errors - INFO - ✅ Standardized error handlers configured
+2026-01-22 17:31:42,587 - core.middleware - INFO - ✅ All middleware configured
+2026-01-22 17:31:42,587 - main_modular - INFO - ✅ Static files mounted at /static -> /Users/omer/Desktop/ai-stanbul/backend/static
+2026-01-22 17:31:42,603 - main_modular - INFO - ✅ Streaming API registered at /api/stream
+2026-01-22 17:31:42,604 - main_modular - INFO - ✅ Feedback API registered at /api/feedback
+2026-01-22 17:31:42,607 - main_modular - INFO - ✅ Direct Routing API registered at /api/routes
+2026-01-22 17:31:42,607 - main_modular - INFO - 📋 Admin routes router has 10 routes
+2026-01-22 17:31:42,610 - main_modular - INFO - ✅ Admin routes registered at /api/admin
+2026-01-22 17:31:42,614 - main_modular - INFO - ✅ Blog API registered at /api/blog
+2026-01-22 17:31:42,614 - main_modular - INFO - ✅ Cache monitoring routes registered at /api/cache
+2026-01-22 17:31:42,617 - main_modular - INFO - ✅ Intent feedback routes registered at /api/feedback
+2026-01-22 17:31:42,666 - main_modular - INFO - ✅ Legacy routes registered
+INFO:     Started server process [1280]
+INFO:     Waiting for application startup.
+2026-01-22 17:31:42,666 - core.startup_guard - INFO - ✅ lifespan_startup marked as initialized
+2026-01-22 17:31:42,666 - main_modular - INFO - 🚀 Starting application (non-blocking startup)
+2026-01-22 17:31:42,666 - main_modular - INFO - 📡 Redis status: CONNECTED
+2026-01-22 17:31:42,666 - main_modular - INFO - ✅ Application ready to accept connections (background init in progress)
+2026-01-22 17:31:42,666 - core.startup_guard - INFO - ✅ background_init marked as initialized
+2026-01-22 17:31:42,666 - main_modular - INFO - 🔄 Starting background initialization...
+2026-01-22 17:31:42,666 - core.startup_guard - INFO - ✅ startup_manager marked as initialized
+2026-01-22 17:31:42,666 - core.startup_fixed - INFO - �🚀 Starting ULTRA-FAST initialization...
+2026-01-22 17:31:42,666 - core.startup_fixed - INFO - ✅ App ready to serve traffic - components initializing in background!
+2026-01-22 17:31:42,672 - services.runpod_llm_client - INFO - 🚀 LLM Client initialized
+2026-01-22 17:31:42,672 - services.runpod_llm_client - INFO -    Type: openai-compatible
+2026-01-22 17:31:42,672 - services.runpod_llm_client - INFO -    URL: https://p9lf44wbmqzs5l-8000.proxy.runpod.net/v1
+2026-01-22 17:31:42,672 - services.runpod_llm_client - INFO -    API Key: None
+2026-01-22 17:31:42,672 - services.runpod_llm_client - INFO -    Timeout: 60.0s
+2026-01-22 17:31:42,672 - services.runpod_llm_client - INFO -    Max Tokens: 768
+2026-01-22 17:31:42,672 - services.runpod_llm_client - INFO -    Connection Pool: 10 max, 5 keepalive
+2026-01-22 17:31:42,672 - services.llm.prompts - INFO - ✅ Prompt Builder initialized
+2026-01-22 17:31:42,672 - unified_system.services.unified_llm_service - INFO - ✅ Unified LLM Service - components loaded
+2026-01-22 17:31:42,672 - unified_system.services.unified_llm_service - INFO - ✅ Unified LLM Service initialized (ENABLED)
+2026-01-22 17:31:42,672 - unified_system.services.unified_llm_service - INFO -    Cache: ✅
+2026-01-22 17:31:42,672 - unified_system.services.unified_llm_service - INFO -    Circuit Breaker: ✅
+2026-01-22 17:31:42,672 - main_modular - INFO - ✅ UnifiedLLMService initialized and ready for API layer
+2026-01-22 17:31:42,672 - main_modular - INFO - 📡 RunPod LLM endpoint: https://p9lf44wbmqzs5l-8000.proxy.runpod.net/v1
+2026-01-22 17:31:42,672 - main_modular - INFO - 🤖 Model: /workspace/models/llama-3.1-8b-fp16
+2026-01-22 17:31:42,672 - main_modular - INFO - 💾 Cache: enabled (0/1000 entries)
+2026-01-22 17:31:42,672 - main_modular - INFO - 🛡️  Circuit breaker: enabled (threshold=5)
+2026-01-22 17:31:42,672 - services.llm.ab_testing - INFO - ✅ ExperimentManager initialized
+2026-01-22 17:31:42,672 - api.admin.experiments - INFO - ✅ Experiment Manager initialized
+2026-01-22 17:31:42,672 - services.llm.feature_flags - INFO - ✅ FeatureFlagManager initialized
+2026-01-22 17:31:42,672 - api.admin.experiments - INFO - ✅ Feature Flag Manager initialized
+2026-01-22 17:31:42,672 - main_modular - INFO - ✅ Admin experiment managers initialized
+2026-01-22 17:31:42,672 - main_modular - INFO - ✅ Background initialization complete!
+INFO:     Application startup complete.
+2026-01-22 17:31:42,672 - core.startup_guard - INFO - ✅ database marked as initialized
+2026-01-22 17:31:42,672 - core.startup_fixed - INFO - 🔄 Registering database models...
+2026-01-22 17:31:42,672 - database - INFO - ✅ Registered 24 database models
+2026-01-22 17:31:42,672 - core.startup_fixed - INFO - 🔄 Creating database tables if needed...
+2026-01-22 17:31:45,243 - core.startup_fixed - INFO - ✅ Database tables ready
+2026-01-22 17:31:45,243 - core.startup_fixed - INFO - ✅ Database connection established
+2026-01-22 17:31:45,243 - core.startup_guard - INFO - ✅ redis marked as initialized
+2026-01-22 17:31:45,244 - services.redis_cache - INFO - ✅ Redis cache client created: localhost:6379 (timeout: 30s)
+2026-01-22 17:31:45,244 - core.startup_guard - INFO - ✅ services marked as initialized
+2026-01-22 17:31:45,245 - services.service_manager - INFO - 🔧 Initializing Service Manager...
+2026-01-22 17:31:45,245 - services.service_manager - INFO - 📦 Loading Istanbul AI services...
+2026-01-22 17:31:45,248 - services.service_manager - INFO - ✅ Restaurant service loaded
+2026-01-22 17:31:45,253 - services.transportation_directions_service - INFO - ✅ Backend OSRM routing service imported successfully
+2026-01-22 17:31:45,255 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine imported successfully
+2026-01-22 17:31:45,255 - services.redis_cache - INFO - ✅ Redis cache client created: localhost:6379 (timeout: 30s)
+2026-01-22 17:31:45,257 - services.osrm_routing_service - INFO - ✅ OSRM routing cache enabled (Redis)
+2026-01-22 17:31:45,257 - services.osrm_routing_service - INFO - OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+2026-01-22 17:31:45,257 - services.transportation_directions_service - INFO - ✅ OSRM service initialized successfully
+2026-01-22 17:31:45,257 - services.graph_routing_engine - INFO - 🏗️ Building Istanbul transportation graph...
+2026-01-22 17:31:45,258 - services.graph_routing_engine - INFO - 🔄 Adding transfer connections...
+2026-01-22 17:31:45,258 - services.graph_routing_engine - INFO - ✅ Added 154 transfer connections
+2026-01-22 17:31:45,258 - services.graph_routing_engine - INFO - ✅ Graph built: 208 nodes, 528 edges
+2026-01-22 17:31:45,258 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine initialized successfully
+2026-01-22 17:31:45,258 - services.transportation_directions_service - INFO - ✅ Transportation Directions Service initialized
+2026-01-22 17:31:45,258 - services.service_manager - INFO - ✅ Transportation service loaded
+2026-01-22 17:31:45,259 - services.service_manager - INFO - ✅ Hidden gems service loaded
+2026-01-22 17:31:45,261 - services.events_service - INFO - ✅ Loaded 45 İKSV events from database
+2026-01-22 17:31:45,261 - services.service_manager - INFO - ✅ Events service loaded
+2026-01-22 17:31:45,262 - services.service_manager - INFO - ✅ Attractions service loaded
+2026-01-22 17:31:45,263 - services.airport_transport_service - INFO - ✈️ Istanbul Airport Transport Service initialized
+2026-01-22 17:31:45,263 - services.airport_transport_service - INFO - ✈️ Istanbul Airport Transport Service initialized
+2026-01-22 17:31:45,263 - services.service_manager - INFO - ✅ Airport transport service loaded
+2026-01-22 17:31:45,265 - services.service_manager - INFO - ✅ Daily life service loaded
+2026-01-22 17:31:45,269 - services.service_manager - INFO - ✅ Info retrieval service loaded
+2026-01-22 17:31:45,269 - services.redis_cache - INFO - ✅ Redis cache client created: localhost:6379 (timeout: 30s)
+2026-01-22 17:31:45,269 - api_clients.enhanced_weather - INFO - ✅ Weather API: Using Redis cache (persistent across restarts)
+2026-01-22 17:31:45,269 - api_clients.enhanced_weather - WARNING - Weather API: Using fallback mode with enhanced mock data.
+2026-01-22 17:31:45,269 - services.service_manager - INFO - ✅ Enhanced weather service loaded (real API with OpenWeatherMap)
+2026-01-22 17:31:45,269 - services.entity_extractor - INFO - ✅ AdvancedEntityExtractor initialized
+2026-01-22 17:31:45,269 - services.service_manager - INFO - ✅ Entity extractor loaded
+2026-01-22 17:31:45,814 - services.enhanced_intent_classifier - WARNING - Smart fallback system not available
+2026-01-22 17:31:45,819 - services.enhanced_intent_classifier - INFO - ✅ ML intent classifier trained successfully
+2026-01-22 17:31:45,820 - services.service_manager - INFO - ✅ Intent classifier loaded
+2026-01-22 17:31:45,822 - services.conversation_context_manager - INFO - ✅ ConversationContextManager initialized with Redis
+2026-01-22 17:31:45,822 - services.service_manager - INFO - ✅ Context manager loaded
+2026-01-22 17:31:45,823 - services.turkish_typo_corrector - INFO - ✅ TurkishTypoCorrector initialized
+2026-01-22 17:31:45,823 - services.service_manager - INFO - ✅ Typo corrector loaded
+2026-01-22 17:31:45,823 - services.service_manager - INFO - 🎉 Service Manager initialized: 13/13 services active
+2026-01-22 17:31:45,823 - core.startup_fixed - INFO - ✅ Service Manager initialized
+2026-01-22 17:31:45,823 - core.startup_guard - INFO - ✅ multi_route marked as initialized
+2026-01-22 17:31:45,823 - core.startup_fixed - INFO - 🔄 Initializing Moovit-style multi-route system...
+2026-01-22 17:31:45,824 - services.route_optimizer - INFO - ✅ Accessibility features available
+2026-01-22 17:31:45,824 - services.route_optimizer - INFO - ✅ OpenAI available for route summaries
+2026-01-22 17:31:45,825 - services.accessibility_features - INFO - ✅ Accessibility checker initialized with 59 stations
+2026-01-22 17:31:45,825 - services.route_optimizer - INFO - ✅ Accessibility checker integrated with route optimizer
+2026-01-22 17:31:45,825 - core.startup_fixed - INFO - ✅ Route Optimizer initialized
+2026-01-22 17:31:45,825 - services.transportation_route_integration - INFO - ✅ Route optimizer imported successfully
+2026-01-22 17:31:45,825 - services.transportation_route_integration - INFO - ✅ Transportation services imported successfully
+2026-01-22 17:31:45,826 - services.transportation_rag_system - INFO - ✅ Transportation RAG: Redis connected for route caching
+2026-01-22 17:31:45,829 - services.transportation_station_normalization - INFO - ✅ Station normalizer initialized: 264 stations, 17 lines
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO - ✅ Built station graph from canonical data: 264 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO - 📊 Station counts by line:
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   FERRY: 15 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M11: 9 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M1A: 18 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M1B: 13 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M2: 16 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M3: 19 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M4: 24 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M5: 20 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M6: 4 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M7: 17 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   M9: 2 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   MARMARAY: 43 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   T1: 31 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   T4: 22 stations
+2026-01-22 17:31:45,829 - services.transportation_rag_system - INFO -   T5: 11 stations
+2026-01-22 17:31:45,830 - services.transportation_rag_system - INFO - ✅ Transportation RAG initialized with complete Istanbul network
+2026-01-22 17:31:45,830 - services.transportation_rag_system - INFO - ✅ Dijkstra routing enabled with realistic travel times
+2026-01-22 17:31:45,830 - services.transportation_rag_system - INFO - ✅ Station/Line ID normalization enabled
+2026-01-22 17:31:45,830 - services.transportation_rag_system - INFO - ✅ Route caching enabled with Redis
+2026-01-22 17:31:45,830 - services.transportation_rag_system - INFO - ✅ Transportation RAG singleton initialized
+2026-01-22 17:31:45,830 - services.redis_cache - INFO - ✅ Redis cache client created: localhost:6379 (timeout: 30s)
+2026-01-22 17:31:45,830 - services.osrm_routing_service - INFO - ✅ OSRM routing cache enabled (Redis)
+2026-01-22 17:31:45,830 - services.osrm_routing_service - INFO - OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+2026-01-22 17:31:45,831 - services.transportation_directions_service - INFO - ✅ OSRM service initialized successfully
+2026-01-22 17:31:45,831 - services.graph_routing_engine - INFO - 🏗️ Building Istanbul transportation graph...
+2026-01-22 17:31:45,831 - services.graph_routing_engine - INFO - 🔄 Adding transfer connections...
+2026-01-22 17:31:45,832 - services.graph_routing_engine - INFO - ✅ Added 154 transfer connections
+2026-01-22 17:31:45,832 - services.graph_routing_engine - INFO - ✅ Graph built: 208 nodes, 528 edges
+2026-01-22 17:31:45,832 - services.transportation_directions_service - INFO - ✅ Graph-based routing engine initialized successfully
+2026-01-22 17:31:45,832 - services.transportation_directions_service - INFO - ✅ Transportation Directions Service initialized
+2026-01-22 17:31:45,832 - services.transportation_route_integration - INFO - ✅ Transportation services initialized
+2026-01-22 17:31:45,832 - services.route_optimizer - INFO - ✅ Accessibility checker integrated with route optimizer
+2026-01-22 17:31:45,832 - services.route_optimizer - INFO - ✅ RouteOptimizer initialized
+2026-01-22 17:31:45,832 - services.transportation_route_integration - INFO - ✅ Route optimizer initialized
+2026-01-22 17:31:45,832 - services.transportation_route_integration - INFO - ✅ TransportationRouteIntegration initialized
+2026-01-22 17:31:45,832 - core.startup_fixed - INFO - ✅ Transportation Route Integration initialized
+2026-01-22 17:31:45,832 - services.enhanced_map_visualization_service - INFO - ✅ Enhanced Map Visualization Service initialized with Route Integration
+2026-01-22 17:31:45,832 - services.enhanced_map_visualization_service - INFO - ✅ Transportation RAG integrated
+2026-01-22 17:31:45,832 - core.startup_fixed - INFO - ✅ Enhanced Map Visualization Service initialized
+2026-01-22 17:31:45,832 - core.startup_fixed - INFO - 🗺️ Multi-route system ready - Moovit-level features enabled!
+2026-01-22 17:31:45,832 - core.startup_guard - INFO - ✅ models marked as initialized
+2026-01-22 17:31:45,832 - core.startup_fixed - INFO - 🔄 Starting background LLM initialization...
+2026-01-22 17:31:45,832 - core.startup_fixed - INFO - ⏭️ Model preloading disabled (using RunPod LLM)
+2026-01-22 17:31:45,832 - core.startup_fixed - INFO - ✅ Dependencies ready after 0s
+2026-01-22 17:31:45,832 - core.startup_fixed - INFO - 🔍 DB initialized: True, Services initialized: True
+2026-01-22 17:31:45,832 - services.llm.core - INFO - ℹ️  USE_UNIFIED_LLM=true but llm_client provided, using provided client
+2026-01-22 17:31:45,832 - services.llm.core - INFO - 🛡️ Initializing resilience components...
+2026-01-22 17:31:45,832 - services.llm.core - INFO - ✅ Resilience components initialized
+2026-01-22 17:31:45,832 - services.llm.fuzzy_matcher - INFO - ✅ FuzzyMatcher initialized (threshold=85, phonetic=True)
+2026-01-22 17:31:45,832 - services.llm.signals - INFO - ✅ Fuzzy matching enabled (phonetic search available)
+2026-01-22 17:31:45,833 - services.model_cache - INFO - 📦 ModelCache initialized
 WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/core.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/istanbul_knowledge.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/istanbul_knowledge.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/istanbul_knowledge.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/core.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/core.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/runpod_llm_client.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/runpod_llm_client.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/prompts.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/llm_response_parser.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/llm_response_parser.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/llm_response_parser.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-WARNING:  StatReload detected changes in 'services/llm/llm_response_parser.py'. Reloading...
-Fatal Python error: init_sys_streams: can't initialize sys standard streams
-Python runtime state: core initialized
-OSError: [Errno 9] Bad file descriptor
-
-Current thread 0x0000000204d40800 (most recent call first):
-  <no Python frame>
-INFO:     Stopping reloader process [58887]
+2026-01-22 17:31:48,542 - services.model_cache - INFO - 🔄 Loading SentenceTransformer: all-MiniLM-L6-v2
+2026-01-22 17:31:50,923 - services.model_cache - INFO - ✅ SentenceTransformer loaded: all-MiniLM-L6-v2
+2026-01-22 17:31:50,925 - services.llm.embedding_service - INFO - ✅ Loaded embedding model: lightweight (cached)
+2026-01-22 17:31:51,816 - services.llm.embedding_service - INFO - ✅ Loaded intent examples for 6 intents
+2026-01-22 17:31:51,816 - services.llm.embedding_service - INFO - ✅ EmbeddingService initialized (mode: lightweight, offline: False)
+2026-01-22 17:31:51,816 - services.llm.signals - INFO - ✅ Semantic embeddings enabled: online
+2026-01-22 17:31:51,816 - services.llm.istanbul_knowledge - INFO - ✅ Istanbul Knowledge initialized: 13 landmarks, 10 neighborhoods
+2026-01-22 17:31:51,816 - services.llm.signals - INFO - ✅ Istanbul intelligence enabled: 13 landmarks
+2026-01-22 17:31:51,826 - services.transportation_intent_classifier - INFO - ✅ Hybrid Intent Classifier initialized with embeddings
+2026-01-22 17:31:51,827 - services.llm.signals - INFO - ✅ Hybrid transportation intent classifier enabled
+2026-01-22 17:31:51,827 - services.llm.signals - INFO - ✅ Signal Detector initialized (fuzzy=True, context=True, embeddings=True, istanbul=True, transport_classifier=True)
+2026-01-22 17:31:51,827 - services.llm.context - INFO - ✅ Context Builder initialized
+2026-01-22 17:31:51,827 - services.llm.context - INFO -    📦 Service Manager available for enhanced context building
+2026-01-22 17:31:51,827 - services.llm.prompts - INFO - ✅ Prompt Builder initialized
+2026-01-22 17:31:51,830 - services.llm.feedback_trainer - INFO - Loaded 58 training samples
+2026-01-22 17:31:51,830 - services.llm.feedback_trainer - INFO - ✅ FeedbackTrainer initialized with 58 existing samples
+2026-01-22 17:31:51,830 - services.llm.analytics - INFO - ✅ Feedback loop enabled for continuous improvement
+2026-01-22 17:31:51,830 - services.llm.analytics - INFO - ✅ Analytics Manager initialized
+2026-01-22 17:31:51,830 - services.llm.query_enhancement - INFO - ✅ Query Enhancer initialized
+2026-01-22 17:31:51,830 - services.llm.conversation - INFO - ✅ Conversation Manager initialized
+2026-01-22 17:31:51,830 - services.llm.caching - INFO - ✅ Cache Manager initialized (semantic=enabled)
+2026-01-22 17:31:51,830 - services.llm.experimentation - INFO - ✅ Experimentation Manager initialized (A/B=off)
+2026-01-22 17:31:51,830 - services.llm.personalization - INFO - ✅ Personalization Engine initialized
+2026-01-22 17:31:51,830 - services.llm.auto_tuning - INFO - ✅ Auto-Tuner initialized
+2026-01-22 17:31:51,830 - services.llm.core - INFO - ✅ All subsystems initialized (including Phase 2 features)
+2026-01-22 17:31:51,830 - services.llm.core - INFO - 🚀 Pure LLM Core initialized successfully
+2026-01-22 17:31:51,830 - services.llm.core - INFO -    🤖 LLM Service: Legacy RunPodClient
+2026-01-22 17:31:51,830 - services.llm.core - INFO -    📦 Service Manager: 13/13 services available
+2026-01-22 17:31:51,830 - core.startup_fixed - INFO - ✅ Pure LLM Core initialized (background)
+INFO:     Stopping reloader process [246]
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 2 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

@@ -29,6 +29,16 @@ import re
 import unicodedata
 import heapq  # For Dijkstra's priority queue
 from enum import Enum
+import asyncio  # For async LLM calls
+import concurrent.futures  # For sync wrapper of async LLM calls
+import math  # For Haversine distance calculation
+import os  # For environment variables
+
+# Redis import (optional, for caching)
+try:
+    import redis
+except ImportError:
+    redis = None
 
 # Station normalization is imported later in __init__ from transportation_station_normalization
 
@@ -1873,8 +1883,6 @@ class IstanbulTransportationRAG:
         Returns:
             Distance in kilometers
         """
-        import math
-        
         R = 6371  # Earth radius in km
         
         # Convert to radians
@@ -1914,6 +1922,269 @@ class IstanbulTransportationRAG:
             alternatives=[]
         )
     
+    def _check_deprecated_stations(self, origin: str, destination: str) -> Optional[str]:
+        """
+        Check if origin or destination is a deprecated station.
+        
+        Returns deprecation message if deprecated, None otherwise.
+        """
+        deprecated_stations = {
+            "atatürk havalimanı": "Atatürk Airport Metro station is closed. The airport closed in 2019. Use Istanbul Airport (M11) instead.",
+            "ataturk havalimani": "Atatürk Airport Metro station is closed. The airport closed in 2019. Use Istanbul Airport (M11) instead.",
+            "atatürk airport": "Atatürk Airport Metro station is closed. The airport closed in 2019. Use Istanbul Airport (M11) instead.",
+            "ataturk airport": "Atatürk Airport Metro station is closed. The airport closed in 2019. Use Istanbul Airport (M11) instead.",
+        }
+        
+        origin_lower = origin.lower().strip()
+        dest_lower = destination.lower().strip()
+        
+        for station, message in deprecated_stations.items():
+            if station in origin_lower or station in dest_lower:
+                return message
+        
+        return None
+    
+    def _create_deprecation_route(self, origin: str, destination: str, message: str) -> TransitRoute:
+        """Create a route with deprecation warning."""
+        return TransitRoute(
+            origin=origin,
+            destination=destination,
+            total_time=0,
+            total_distance=0.0,
+            steps=[{
+                'type': 'warning',
+                'instruction': message,
+                'duration': 0,
+                'details': message
+            }],
+            transfers=0,
+            lines_used=[],
+            alternatives=[],
+            time_confidence='low'
+        )
+    
+    def _rank_routes(self, routes: List[TransitRoute], origin_gps: Optional[Dict[str, float]] = None) -> List[TransitRoute]:
+        """
+        Rank routes by multiple criteria.
+        
+        Ranking factors:
+        1. Total travel time (primary)
+        2. Number of transfers
+        3. Distance
+        
+        Returns routes sorted by ranking score (best first).
+        """
+        if not routes:
+            return []
+        
+        # Calculate scores for each route
+        for route in routes:
+            # Lower is better for all factors
+            time_score = route.total_time
+            transfer_penalty = route.transfers * 10  # 10 min penalty per transfer
+            
+            # Combined score (lower is better)
+            route.ranking_scores = {
+                'time': time_score,
+                'transfers': route.transfers,
+                'combined': time_score + transfer_penalty
+            }
+        
+        # Sort by combined score
+        ranked = sorted(routes, key=lambda r: r.ranking_scores.get('combined', float('inf')))
+        
+        return ranked
+    
+    def _route_to_dict(self, route: TransitRoute) -> Dict[str, Any]:
+        """Convert TransitRoute to dictionary for caching."""
+        return {
+            'origin': route.origin,
+            'destination': route.destination,
+            'total_time': route.total_time,
+            'total_distance': route.total_distance,
+            'steps': route.steps,
+            'transfers': route.transfers,
+            'lines_used': route.lines_used,
+            'alternatives': [self._route_to_dict(alt) for alt in route.alternatives] if route.alternatives else [],
+            'time_confidence': route.time_confidence,
+            'ranking_scores': route.ranking_scores
+        }
+    
+    def _dict_to_route(self, data: Dict[str, Any]) -> TransitRoute:
+        """Convert dictionary to TransitRoute (from cache)."""
+        alternatives = []
+        if data.get('alternatives'):
+            alternatives = [self._dict_to_route(alt) for alt in data['alternatives']]
+        
+        return TransitRoute(
+            origin=data['origin'],
+            destination=data['destination'],
+            total_time=data['total_time'],
+            total_distance=data['total_distance'],
+            steps=data['steps'],
+            transfers=data['transfers'],
+            lines_used=data['lines_used'],
+            alternatives=alternatives,
+            time_confidence=data.get('time_confidence', 'medium'),
+            ranking_scores=data.get('ranking_scores')
+        )
+    
+    def find_nearest_station(self, lat: float, lon: float, max_distance_km: float = 2.0) -> Optional[str]:
+        """
+        Find the nearest transit station to given GPS coordinates.
+        
+        Args:
+            lat: Latitude
+            lon: Longitude
+            max_distance_km: Maximum distance to search (default 2km)
+            
+        Returns:
+            Station ID of nearest station, or None if none within max_distance
+        """
+        nearest_station = None
+        nearest_distance = float('inf')
+        
+        for station_id, station in self.stations.items():
+            distance = self._haversine_distance(lat, lon, station.lat, station.lon)
+            if distance < nearest_distance and distance <= max_distance_km:
+                nearest_distance = distance
+                nearest_station = station_id
+        
+        if nearest_station:
+            logger.info(f"📍 Nearest station to ({lat}, {lon}): {self.stations[nearest_station].name} ({nearest_distance:.2f} km)")
+        else:
+            logger.warning(f"📍 No station found within {max_distance_km} km of ({lat}, {lon})")
+        
+        return nearest_station
+    
+    def _get_generic_transport_info(self) -> str:
+        """Return generic transportation information when no route can be extracted."""
+        return """🚇 **Istanbul Public Transportation**
+
+I couldn't identify specific locations from your query. To help you with directions, please specify:
+- **Origin**: Where are you starting from?
+- **Destination**: Where do you want to go?
+
+**Example queries:**
+- "How to go from Kadıköy to Taksim?"
+- "Route from Sultanahmet to the airport"
+- "Directions from Beşiktaş to Üsküdar"
+
+**Istanbul Transit Network:**
+- 🚇 **Metro**: M1, M2, M3, M4, M5, M6, M7, M9, M11
+- 🚋 **Tram**: T1, T4, T5
+- 🚃 **Marmaray**: Cross-Bosphorus rail
+- 🚡 **Funicular**: F1 (Kabataş-Taksim), F2 (Karaköy-Beyoğlu)
+- ⛴️ **Ferry**: Kadıköy, Eminönü, Karaköy, Beşiktaş, Üsküdar
+
+**Tips:**
+- Use Marmaray or ferries to cross between European and Asian sides
+- İstanbulkart works on all public transport"""
+    
+    def get_map_data_for_last_route(self) -> Optional[Dict[str, Any]]:
+        """
+        Get map visualization data for the last computed route.
+        
+        Returns polyline data, station markers, and route info for frontend map display.
+        """
+        if not self.last_route:
+            logger.warning("No last_route available for map data")
+            return None
+        
+        route = self.last_route
+        
+        # Build polyline from route steps
+        polyline_points = []
+        markers = []
+        
+        # Add origin marker
+        origin_stations = self._get_stations_for_location(route.origin.lower())
+        if origin_stations:
+            origin_station = self.stations.get(origin_stations[0])
+            if origin_station:
+                markers.append({
+                    'type': 'origin',
+                    'name': route.origin,
+                    'lat': origin_station.lat,
+                    'lon': origin_station.lon
+                })
+                polyline_points.append([origin_station.lat, origin_station.lon])
+        
+        # Add step markers and polyline
+        for step in route.steps:
+            if step.get('type') in ['transit', 'ferry']:
+                # Get from station
+                from_name = step.get('from', '')
+                to_name = step.get('to', '')
+                line = step.get('line', '')
+                
+                # Find station coordinates
+                from_stations = self._get_stations_for_location(from_name.lower())
+                to_stations = self._get_stations_for_location(to_name.lower())
+                
+                if from_stations:
+                    from_station = self.stations.get(from_stations[0])
+                    if from_station:
+                        polyline_points.append([from_station.lat, from_station.lon])
+                
+                if to_stations:
+                    to_station = self.stations.get(to_stations[0])
+                    if to_station:
+                        polyline_points.append([to_station.lat, to_station.lon])
+                        markers.append({
+                            'type': 'transfer' if step.get('type') == 'transfer' else 'stop',
+                            'name': to_name,
+                            'lat': to_station.lat,
+                            'lon': to_station.lon,
+                            'line': line
+                        })
+        
+        # Add destination marker
+        dest_stations = self._get_stations_for_location(route.destination.lower())
+        if dest_stations:
+            dest_station = self.stations.get(dest_stations[0])
+            if dest_station:
+                markers.append({
+                    'type': 'destination',
+                    'name': route.destination,
+                    'lat': dest_station.lat,
+                    'lon': dest_station.lon
+                })
+                if [dest_station.lat, dest_station.lon] not in polyline_points:
+                    polyline_points.append([dest_station.lat, dest_station.lon])
+        
+        return {
+            'polyline': polyline_points,
+            'markers': markers,
+            'bounds': self._calculate_bounds(polyline_points),
+            'route_summary': {
+                'origin': route.origin,
+                'destination': route.destination,
+                'total_time': route.total_time,
+                'total_distance': route.total_distance,
+                'transfers': route.transfers,
+                'lines_used': route.lines_used
+            }
+        }
+    
+    def _calculate_bounds(self, points: List[List[float]]) -> Dict[str, float]:
+        """Calculate map bounds from a list of lat/lon points."""
+        if not points:
+            # Default to Istanbul center
+            return {
+                'min_lat': 40.9, 'max_lat': 41.2,
+                'min_lon': 28.8, 'max_lon': 29.2
+            }
+        
+        lats = [p[0] for p in points]
+        lons = [p[1] for p in points]
+        
+        return {
+            'min_lat': min(lats),
+            'max_lat': max(lats),
+            'min_lon': min(lons),
+            'max_lon': max(lons)
+        }
     def get_directions_text(
         self,
         route: TransitRoute,
@@ -1992,14 +2263,37 @@ class IstanbulTransportationRAG:
         2. LLM should give a brief intro, not repeat all the steps
         3. Full directions appear in the RouteCard UI component
         """
-        query_lower = query.lower()
+        # 🔥 IMPROVED FIX: Only clear last_route if this is a NEW query
+        # Check if this is the same query as last time (to prevent clearing during re-extraction)
+        if not hasattr(self, '_last_query') or self._last_query != query:
+            logger.info(f"🆕 NEW QUERY: Clearing last_route for: '{query}'")
+            self.last_route = None
+            self._last_query = query
+        else:
+            logger.info(f"🔁 REPEAT QUERY: Keeping last_route for: '{query}'")
+        
+        query_lower = query.lower().strip()
+        
+        logger.info(f"🔍 TRANSPORTATION QUERY: '{query}'")
+        logger.info(f"📍 User location available: {user_location is not None}")
         
         # Extract origin and destination from query
         origin, destination = self._extract_locations_from_query(query_lower, user_location)
         
+        logger.info(f"🎯 PATTERN EXTRACTION RESULT: origin='{origin}', destination='{destination}'")
+        
         if not origin or not destination:
-            # Generic transportation info
-            return self._get_generic_transport_info()
+            # Try LLM fallback before giving up
+            logger.info(f"🤖 Pattern extraction incomplete, trying LLM fallback...")
+            llm_origin, llm_dest = extract_locations_with_llm_sync(query)
+            if llm_origin and llm_dest:
+                logger.info(f"✅ LLM FALLBACK SUCCESS: origin='{llm_origin}', destination='{llm_dest}'")
+                origin = llm_origin
+                destination = llm_dest
+            else:
+                # Generic transportation info
+                logger.warning(f"⚠️ Could not extract origin/destination from query: '{query}'")
+                return self._get_generic_transport_info()
         
         # Prepare GPS data if origin or destination is GPS-based
         # Normalize GPS data format ('latitude'/'longitude' → 'lat'/'lon')
@@ -2147,7 +2441,6 @@ class IstanbulTransportationRAG:
         if len(filtered_locations) == 0 and user_location:
             logger.warning(f"❌ NO LOCATIONS FOUND but GPS available")
             # Try to find at least a destination from common patterns
-            import re
             # Look for "to X" patterns where X might not be in our database
             to_pattern = r'(?:to|towards?)\s+([a-zA-Z\s]+?)(?:\s+\?|$|\s+please|\s+from)'
             match = re.search(to_pattern, query_lower)
@@ -2162,37 +2455,105 @@ class IstanbulTransportationRAG:
         
         if len(filtered_locations) < 2:
             logger.warning(f"❌ INSUFFICIENT LOCATIONS: Found {len(filtered_locations)}, need at least 1 with GPS or 2 without")
+            # Try LLM fallback for location extraction
+            logger.info(f"🤖 Attempting LLM fallback for location extraction...")
+            llm_origin, llm_dest = extract_locations_with_llm_sync(query)
+            if llm_origin and llm_dest:
+                logger.info(f"✅ LLM FALLBACK SUCCESS: origin='{llm_origin}', destination='{llm_dest}'")
+                return llm_origin, llm_dest
+            logger.warning(f"❌ LLM fallback also failed for query: '{query}'")
             return None, None
         
         # Strategy: Use keyword context to determine roles
         origin = None
         destination = None
         
-        # Look for "from X" pattern
-        from_keywords = ['from', 'starting from', 'leaving from', 'departing from', 'beginning from']
-        for keyword in from_keywords:
-            keyword_pos = query_lower.find(keyword)
-            if keyword_pos != -1:
-                # Find location closest AFTER this keyword
-                for loc in filtered_locations:
-                    if loc['position'] > keyword_pos:
-                        origin = loc['name']
-                        break
-                if origin:
-                    break
+        # PRIORITY 1: Look for explicit "from X to Y" pattern first
+        # This handles: "how to go from kadikoy to taksim", "from A to B", "starting from X to Y"
+        from_to_pattern = r'\bfrom\s+(\w+(?:\s+\w+)?)\s+to\s+(\w+(?:\s+\w+)?)\b'
+        from_to_match = re.search(from_to_pattern, query_lower, re.IGNORECASE)
+        if from_to_match:
+            origin_candidate = from_to_match.group(1).strip()
+            dest_candidate = from_to_match.group(2).strip()
+            logger.info(f"📍 PATTERN MATCH: 'from X to Y' found: '{origin_candidate}' → '{dest_candidate}'")
+            
+            # Verify these are valid locations
+            origin_match = None
+            dest_match = None
+            for loc in filtered_locations:
+                if origin_candidate in loc['name'] or loc['name'] in origin_candidate:
+                    origin_match = loc['name']
+                if dest_candidate in loc['name'] or loc['name'] in dest_candidate:
+                    dest_match = loc['name']
+            
+            if origin_match and dest_match:
+                origin = origin_match
+                destination = dest_match
+                logger.info(f"✅ PATTERN SUCCESS: origin='{origin}', destination='{destination}'")
         
-        # Look for "to Y" pattern
-        to_keywords = ['to', 'going to', 'heading to', 'arriving at', 'toward', 'towards']
-        for keyword in to_keywords:
-            keyword_pos = query_lower.find(keyword)
-            if keyword_pos != -1:
-                # Find location closest AFTER this keyword
-                for loc in filtered_locations:
-                    if loc['position'] > keyword_pos:
-                        destination = loc['name']
+        # If pattern didn't match, fall back to keyword analysis
+        if not origin or not destination:
+            # Look for "from X" pattern (but NOT when followed immediately by "to" - that's handled above)
+            from_keywords = ['starting from', 'leaving from', 'departing from', 'beginning from', 'from']
+            for keyword in from_keywords:
+                # Use word boundary matching
+                pattern = r'\b' + re.escape(keyword) + r'\s+'
+                match = re.search(pattern, query_lower)
+                if match:
+                    keyword_end = match.end()
+                    # Find location closest AFTER this keyword
+                    for loc in filtered_locations:
+                        if loc['position'] >= keyword_end - 1:  # Allow 1 char tolerance
+                            origin = loc['name']
+                            logger.info(f"📍 FROM keyword '{keyword}' → origin='{origin}'")
+                            break
+                    if origin:
                         break
-                if destination:
-                    break
+            
+            # Look for "to Y" pattern - but EXCLUDE "how to", "want to", "need to", etc.
+            # These are infinitive constructs, not directional
+            to_keywords = ['going to', 'heading to', 'arriving at', 'toward', 'towards', 'get to', 'travel to']
+            for keyword in to_keywords:
+                pattern = r'\b' + re.escape(keyword) + r'\s+'
+                match = re.search(pattern, query_lower)
+                if match:
+                    keyword_end = match.end()
+                    # Find location closest AFTER this keyword
+                    for loc in filtered_locations:
+                        if loc['position'] >= keyword_end - 1:
+                            destination = loc['name']
+                            logger.info(f"📍 TO keyword '{keyword}' → destination='{destination}'")
+                            break
+                    if destination:
+                        break
+            
+            # Only use bare "to" if it's NOT part of infinitive constructs
+            if not destination:
+                # Find all occurrences of " to " (with spaces) that are NOT after how/want/need/etc
+                infinitive_pattern = r'\b(how|want|need|try|going|have|has|had|would|will|can|could|should|must)\s+to\b'
+                infinitive_matches = list(re.finditer(infinitive_pattern, query_lower))
+                infinitive_positions = [m.start() for m in infinitive_matches]
+                
+                # Find all " to " positions
+                to_pattern = r'\bto\s+'
+                for match in re.finditer(to_pattern, query_lower):
+                    to_pos = match.start()
+                    # Skip if this "to" is part of an infinitive
+                    is_infinitive = False
+                    for inf_pos in infinitive_positions:
+                        if inf_pos <= to_pos <= inf_pos + 15:  # Within 15 chars of infinitive start
+                            is_infinitive = True
+                            break
+                    
+                    if not is_infinitive:
+                        keyword_end = match.end()
+                        for loc in filtered_locations:
+                            if loc['position'] >= keyword_end - 1:
+                                destination = loc['name']
+                                logger.info(f"📍 Bare 'to' at pos {to_pos} → destination='{destination}'")
+                                break
+                        if destination:
+                            break
         
         # Fallback: First location = origin, last = destination
         if not origin:
@@ -2210,554 +2571,7 @@ class IstanbulTransportationRAG:
         
         logger.info(f"🎯 FINAL RESULT: origin='{origin}', destination='{destination}'")
         return origin, destination
-    
-    def _get_generic_transport_info(self) -> str:
-        """Get generic transportation information"""
-        return """**ISTANBUL TRANSPORTATION SYSTEM**
 
-**Metro Lines:**
-- M1A/M1B: Airport line (Atatürk Airport - Yenikapı/Kirazlı)
-- M2: Yenikapı - Hacıosman (serves Taksim, Şişli, Levent)
-- M3: Kirazlı - Olimpiyat (connects to M9 at Olimpiyat)
-- M4: Kadıköy - Tavşantepe (Asian side main line)
-- M5: Üsküdar - Yamanevler (Asian side)
-- M6: Levent - Hisarüstü
-- M7: Mecidiyeköy - Mahmutbey (serves the European side business district)
-- M9: Olimpiyat - İkitelli Sanayi (2 stations, serves İkitelli industrial zone, connects to M3 at Olimpiyat)
-- M11: Gayrettepe - Istanbul Airport (connects to M2 at Gayrettepe, serves new Istanbul Airport)
-
-**Tram Lines:**
-- T1: Kabataş - Bağcılar (serves Sultanahmet, Eminönü, Old City)
-- T4: Topkapı - Mescid-i Selam
-- T5: Cibali - Alibeyköy
-
-**Funiculars:**
-- F1: Kabataş - Taksim (2 minutes)
-- F2: Karaköy - Tünel (1.5 minutes)
-
-**Marmaray:**
-- Gebze - Halkalı (crosses Bosphorus underground)
-- **KEY: Serves Kadıköy via Ayrılık Çeşmesi station**
-- Connects to M4 at Ayrılık Çeşmesi and Pendik
-- Connects to M5 at Üsküdar
-- Connects to T1 at Sirkeci
-- Major hub at Yenikapı (M1A, M1B, M2 transfers)
-
-**Ferries:**
-- Kadıköy - Karaköy (20 min)
-- Kadıköy - Eminönü (25 min)
-- Üsküdar - Eminönü (15 min)
-- Üsküdar - Karaköy (20 min)
-
-**Transfer Hubs:**
-1. **Yenikapı**: M1A, M1B, M2, Marmaray (biggest hub)
-2. **Ayrılık Çeşmesi**: M4 + Marmaray (key Kadıköy connection)
-3. **Üsküdar**: M5 + Marmaray
-4. **Taksim**: M2 + F1
-5. **Kabataş**: T1 + F1
-6. **Şişhane**: M2 + F2 (Tünel)
-7. **Mecidiyeköy**: M2 + M7 (major European side transfer)
-8. **Gayrettepe**: M2 + M11 (transfer to Airport line)
-9. **Olimpiyat**: M3 + M9 (transfer to İkitelli industrial zone)
-
-**Important Routes:**
-- **Mecidiyeköy to Olimpiyat**: Take M2 from Mecidiyeköy (or M7 to M2), then transfer at Kirazlı to M3 towards Olimpiyat. From Olimpiyat, M9 serves İkitelli Sanayi.
-- **To Istanbul Airport**: Take M2 to Gayrettepe, then M11 to Istanbul Airport
-- **European to Asian side**: Use Marmaray at Yenikapı or take ferries from Kabataş/Karaköy/Eminönü
-"""
-
-    def get_map_data_for_last_route(self) -> Optional[Dict[str, Any]]:
-        """
-        Convert the last computed route to mapData format for frontend visualization.
-        Includes main route + all alternative routes for map display.
-        
-        Returns:
-            Dict with 'markers' and 'routes' for map display, or None if no route
-        """
-        if not self.last_route:
-            return None
-        
-        route = self.last_route
-        
-        # Helper function to build route coordinates from a TransitRoute
-        def build_route_coords(transit_route):
-            coords = []
-            
-            # Find origin station
-            origin_station = None
-            for sid, station in self.stations.items():
-                if station.name.lower() == transit_route.origin.lower():
-                    origin_station = station
-                    break
-            
-            if origin_station:
-                coords.append({'lat': origin_station.lat, 'lng': origin_station.lon})
-            
-            # Add intermediate coordinates from steps
-            for step in transit_route.steps:
-                if step.get('type') == 'transfer':
-                    transfer_name = step.get('from')
-                    for sid, station in self.stations.items():
-                        if station.name.lower() == transfer_name.lower():
-                            coords.append({'lat': station.lat, 'lng': station.lon})
-                            break
-                elif step.get('type') == 'transit':
-                    to_name = step.get('to')
-                    for sid, station in self.stations.items():
-                        if station.name.lower() == to_name.lower():
-                            coords.append({'lat': station.lat, 'lng': station.lon})
-                            break
-            
-            # Find destination station
-            destination_station = None
-            for sid, station in self.stations.items():
-                if station.name.lower() == transit_route.destination.lower():
-                    destination_station = station
-                    break
-            
-            if destination_station:
-                if not coords or coords[-1]['lat'] != destination_station.lat:
-                    coords.append({'lat': destination_station.lat, 'lng': destination_station.lon})
-            
-            return coords
-        
-        # Build markers for origin, destination, and transfer points (from main route only)
-        markers = []
-        
-        # Find origin and destination stations by name
-        origin_station = None
-        destination_station = None
-        
-        for sid, station in self.stations.items():
-            if station.name.lower() == route.origin.lower():
-                origin_station = station
-            if station.name.lower() == route.destination.lower():
-                destination_station = station
-        
-        # Add origin marker
-        if origin_station:
-            markers.append({
-                'lat': origin_station.lat,
-                'lon': origin_station.lon,
-                'label': origin_station.name,
-                'title': origin_station.name,
-                'description': f'Start: {route.origin}',
-                'type': 'origin',
-                'icon': 'start'
-            })
-        
-        # Add transfer markers from main route
-        for step in route.steps:
-            if step.get('type') == 'transfer':
-                transfer_name = step.get('from')
-                for sid, station in self.stations.items():
-                    if station.name.lower() == transfer_name.lower():
-                        markers.append({
-                            'lat': station.lat,
-                            'lon': station.lon,
-                            'label': station.name,
-                            'title': station.name,
-                            'description': f"Transfer to {step.get('line')}",
-                            'type': 'transfer',
-                            'icon': 'transfer'
-                        })
-                        break
-        
-        # Add destination marker
-        if destination_station:
-            markers.append({
-                'lat': destination_station.lat,
-                'lon': destination_station.lon,
-                'label': destination_station.name,
-                'title': destination_station.name,
-                'description': f'Destination: {route.destination}',
-                'type': 'destination',
-                'icon': 'end'
-            })
-        
-        # Build routes array - main route + alternatives
-        routes = []
-        all_route_coords = []
-        
-        # Colors for different routes (main route is blue, alternatives are different colors)
-        route_colors = ['#4285F4', '#EA4335', '#FBBC04', '#34A853']  # Blue, Red, Yellow, Green
-        
-        # Add main route
-        route_coords = build_route_coords(route)
-        if route_coords and len(route_coords) >= 2:
-            routes.append({
-                'coordinates': route_coords,
-                'color': route_colors[0],
-                'weight': 5,
-                'opacity': 0.9,
-                'mode': 'transit',
-                'description': f'{route.origin} to {route.destination} (Main)',
-                'isMain': True
-            })
-            all_route_coords.extend(route_coords)
-        
-        # Add alternative routes
-        if route.alternatives:
-            for idx, alt_route in enumerate(route.alternatives[:3]):  # Max 3 alternatives
-                alt_coords = build_route_coords(alt_route)
-                if alt_coords and len(alt_coords) >= 2:
-                    color_idx = (idx + 1) % len(route_colors)
-                    routes.append({
-                        'coordinates': alt_coords,
-                        'color': route_colors[color_idx],
-                        'weight': 4,
-                        'opacity': 0.7,
-                        'mode': 'transit',
-                        'description': f'{alt_route.origin} to {alt_route.destination} (Alternative {idx + 1})',
-                        'isMain': False
-                    })
-                    all_route_coords.extend(alt_coords)
-                    all_route_coords.extend(alt_coords)
-        
-        # Build route_data with metadata (for TransportationRouteCard)
-        route_data = {
-            'origin': route.origin,
-            'destination': route.destination,
-            'steps': route.steps,
-            'total_time': route.total_time,
-            'total_distance': route.total_distance,
-            'transfers': route.transfers,
-            'lines_used': route.lines_used
-        }
-        
-        # Week 2 Improvement: Enrich with canonical IDs and multilingual names
-        try:
-            route_data = self.station_normalizer.enrich_route_data(route_data)
-            logger.info("✅ Route data enriched with canonical IDs and multilingual names")
-            logger.info(f"   Origin ID: {route_data.get('origin_station_id')}, Dest ID: {route_data.get('destination_station_id')}")
-        except Exception as e:
-            logger.warning(f"Failed to enrich route data: {e}")
-        
-        # Calculate center and zoom from all route coordinates
-        center = None
-        zoom = 13  # Default zoom for Istanbul
-        if all_route_coords and len(all_route_coords) >= 2:
-            lats = [c['lat'] for c in all_route_coords]
-            lngs = [c['lng'] for c in all_route_coords]
-            center = {
-                'lat': sum(lats) / len(lats),
-                'lon': sum(lngs) / len(lngs)
-            }
-            # Calculate zoom based on route bounds
-            lat_range = max(lats) - min(lats)
-            lng_range = max(lngs) - min(lngs)
-            max_range = max(lat_range, lng_range)
-            # Zoom levels: 0.001° ≈ 100m → zoom 15, 0.01° ≈ 1km → zoom 13, 0.1° ≈ 10km → zoom 10
-            if max_range < 0.005:
-                zoom = 15
-            elif max_range < 0.02:
-                zoom = 13
-            elif max_range < 0.05:
-                zoom = 12
-            else:
-                zoom = 11
-        
-        # Convert main route_coords to simple [lat, lon] array for coordinates field
-        main_route_coords = build_route_coords(route)
-        coordinates_array = [[c['lat'], c['lng']] for c in main_route_coords] if main_route_coords else []
-        
-        map_data_result = {
-            'type': 'route',
-            'markers': markers,
-            'routes': routes,  # Now includes main route + alternatives
-            'coordinates': coordinates_array,
-            'center': center,
-            'zoom': zoom,
-            'bounds': {
-                'autoFit': True
-            },
-            'route_data': route_data,
-            'metadata': {
-                'total_time': route.total_time,
-                'total_distance': route.total_distance,
-                'transfers': route.transfers,
-                'lines_used': route.lines_used,
-                'route_data': route_data,
-                'alternatives_count': len(route.alternatives) if route.alternatives else 0
-            }
-        }
-        
-        # Log what we're returning
-        logger.info(f"🗺️ get_map_data_for_last_route() returning map_data with {len(routes)} routes ({1 + (len(route.alternatives) if route.alternatives else 0)} total)")
-        logger.info(f"   Main route: {route.origin} → {route.destination} ({route.total_time} min, {route.total_distance:.1f} km)")
-        if route.alternatives:
-            for idx, alt in enumerate(route.alternatives[:3]):
-                logger.info(f"   Alternative {idx + 1}: {alt.origin} → {alt.destination} ({alt.total_time} min, {alt.total_distance:.1f} km)")
-        
-        return map_data_result
-    
-    def find_nearest_station(self, lat: float, lon: float, max_distance_km: float = 2.0) -> Optional[str]:
-        """
-        Find the nearest transit station to GPS coordinates.
-        
-        Args:
-            lat: Latitude
-            lon: Longitude
-            max_distance_km: Maximum search radius in kilometers
-            
-        Returns:
-            Station ID of nearest station, or None if no station within range
-        """
-        import math
-        
-        def haversine_distance(lat1, lon1, lat2, lon2):
-            """Calculate distance in km between two GPS coordinates"""
-            R = 6371  # Earth radius in km
-            
-            lat1_rad = math.radians(lat1)
-            lat2_rad = math.radians(lat2)
-            delta_lat = math.radians(lat2 - lat1)
-            delta_lon = math.radians(lon2 - lon1)
-            
-            a = math.sin(delta_lat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon/2)**2
-            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-            
-            return R * c
-        
-        nearest_station = None
-        min_distance = float('inf')
-        
-        for station_id, station in self.stations.items():
-            distance = haversine_distance(lat, lon, station.lat, station.lon)
-            if distance < min_distance and distance <= max_distance_km:
-                min_distance = distance
-                nearest_station = station_id
-        
-        # If no station found within max_distance_km, try expanding search radius
-        if not nearest_station and max_distance_km < 10.0:
-            logger.warning(f"⚠️ No station within {max_distance_km}km, expanding search to 10km...")
-            for station_id, station in self.stations.items():
-                distance = haversine_distance(lat, lon, station.lat, station.lon)
-                if distance < min_distance and distance <= 10.0:  # Expand to 10km
-                    min_distance = distance
-                    nearest_station = station_id
-        
-        if nearest_station:
-            station = self.stations[nearest_station]
-            if min_distance > 2.0:
-                logger.warning(f"📍 Nearest station is FAR: {station.name} ({station.line}) - {min_distance:.2f}km away")
-                logger.warning(f"   ⚠️ User may need taxi/bus to reach station")
-            else:
-                logger.info(f"📍 Found nearest station: {station.name} ({station.line}) - {min_distance:.2f}km away")
-        else:
-            logger.error(f"❌ No station found even within 10km of GPS location")
-            logger.error(f"   GPS: lat={lat}, lon={lon}")
-        
-        return nearest_station
-    
-    def _route_to_dict(self, route: TransitRoute) -> Dict[str, Any]:
-        """Convert TransitRoute to dictionary for caching (Week 1 Improvement #3)"""
-        return {
-            'origin': route.origin,
-            'destination': route.destination,
-            'total_time': route.total_time,
-            'total_distance': route.total_distance,
-            'steps': route.steps,
-            'transfers': route.transfers,
-            'lines_used': route.lines_used,
-            'time_confidence': route.time_confidence
-            # Note: We don't cache 'alternatives' to keep cache simple
-        }
-    
-    def _dict_to_route(self, route_dict: Dict[str, Any]) -> TransitRoute:
-        """Convert dictionary back to TransitRoute (Week 1 Improvement #3)"""
-        return TransitRoute(
-            origin=route_dict['origin'],
-            destination=route_dict['destination'],
-            total_time=route_dict['total_time'],
-            total_distance=route_dict['total_distance'],
-            steps=route_dict['steps'],
-            transfers=route_dict['transfers'],
-            lines_used=route_dict['lines_used'],
-            alternatives=[],  # Empty for cached routes
-            time_confidence=route_dict.get('time_confidence', 'medium')
-        )
-    
-    def get_cache_stats(self) -> Dict[str, Any]:
-        """Get cache performance statistics (Week 1 Improvement #3)"""
-        total_requests = self.cache_hits + self.cache_misses
-        hit_rate = (self.cache_hits / total_requests * 100) if total_requests > 0 else 0
-        
-        return {
-            'cache_enabled': self.redis is not None,
-            'cache_hits': self.cache_hits,
-            'cache_misses': self.cache_misses,
-            'total_requests': total_requests,
-            'hit_rate': f"{hit_rate:.1f}%",
-            'avg_cached_response': '~12ms',
-            'avg_computed_response': '~187ms'
-        }
-    
-    def invalidate_cache(self, line_id: Optional[str] = None):
-        """
-        Invalidate route cache (Week 1 Improvement #3).
-        
-        Call this when metro map updates (very rare).
-        
-        Args:
-            line_id: If provided, only clear routes using this line.
-                    If None, clear all cached routes.
-        """
-        if not self.redis:
-            return
-        
-        try:
-            if line_id:
-                # Clear only routes using this line (advanced - requires tracking)
-                pattern = f"route:*"
-                # In future, we could store line metadata in cache key
-                logger.info(f"⚠️ Partial cache invalidation not implemented yet. Clearing all routes.")
-                pattern = "route:*"
-            else:
-                pattern = "route:*"
-            
-            keys = list(self.redis.scan_iter(match=pattern))
-            if keys:
-                self.redis.delete(*keys)
-                logger.info(f"🗑️ Invalidated {len(keys)} cached routes")
-            else:
-                logger.info("🗑️ No cached routes to invalidate")
-            
-            # Reset stats
-            self.cache_hits = 0
-            self.cache_misses = 0
-            
-        except Exception as e:
-            logger.error(f"Cache invalidation error: {e}")
-    
-    def _rank_routes(self, routes: List[TransitRoute], origin_gps: Optional[Dict] = None) -> List[TransitRoute]:
-        """
-        Rank and sort routes by different criteria.
-        
-        Ranking heuristics:
-        1. Fastest: Lowest total_time
-        2. Least transfers: Fewest transfers, then by time
-        3. Scenic: Prefer ferry routes if time difference < 5 min
-        4. Cheapest: (For future: all routes cost same for now)
-        
-        Args:
-            routes: List of alternative routes
-            origin_gps: Optional GPS for distance-based ranking
-            
-        Returns:
-            Sorted list of routes with ranking metadata
-        """
-        if not routes:
-            return []
-        
-        # Make a copy to avoid modifying original
-        ranked_routes = routes.copy()
-        
-        # Add ranking scores
-        for route in ranked_routes:
-            # Default ranking criteria
-            route.ranking_scores = {
-                "fastest": route.total_time,  # Lower is better
-                "least_transfers": route.transfers * 100 + route.total_time,  # Penalize transfers heavily
-                "scenic": self._calculate_scenic_score(route),  # Higher is better (ferry bonus)
-            }
-        
-        # Sort by fastest (default)
-        ranked_routes.sort(key=lambda r: r.ranking_scores["fastest"])
-        
-        # Apply scenic heuristic: If a ferry route exists and is only 5 min slower, rank it higher
-        fastest_time = ranked_routes[0].total_time if ranked_routes else 0
-        for route in ranked_routes:
-            if self._has_ferry(route):
-                time_difference = route.total_time - fastest_time
-                if time_difference <= 5:
-                    # Boost this route in scenic ranking
-                    route.ranking_scores["scenic"] += 100
-                    logger.info(f"🌊 Scenic bonus applied to ferry route: {route.origin} → {route.destination} (only {time_difference} min slower)")
-        
-        return ranked_routes
-    
-    def _calculate_scenic_score(self, route: TransitRoute) -> float:
-        """
-        Calculate scenic score for a route.
-        
-        Scenic routes include:
-        - Ferry crossings (+50 points)
-        - Bosphorus views (+30 points)
-        - Historic tram T1 (+20 points)
-        - Funicular F1 (+10 points)
-        """
-        score = 0.0
-        
-        for step in route.steps:
-            line = step.get("line", "").upper()
-            if line == "FERRY":
-                score += 50
-            elif line == "T1":
-                score += 20
-            elif line == "F1":
-                score += 10
-        
-        # Penalize long routes (scenic routes should be reasonable)
-        if route.total_time > 60:
-            score -= (route.total_time - 60) * 0.5
-        
-        return score
-    
-    def _has_ferry(self, route: TransitRoute) -> bool:
-        """Check if route includes a ferry segment."""
-        return any(step.get("line", "").upper() == "FERRY" for step in route.steps)
-    
-    def _check_deprecated_stations(self, origin: str, destination: str) -> Optional[str]:
-        """
-        Check if origin or destination is a deprecated station (e.g., Atatürk Airport).
-        
-        Returns deprecation message if found, None otherwise.
-        """
-        # Check both origin and destination against canonical stations
-        for location_name in [origin, destination]:
-            # Try to find this location in the station normalizer
-            canonical_station = None
-            
-            # Check via station lookup
-            for station in self.station_normalizer.stations:
-                if (station.name_tr.lower() == location_name or 
-                    station.name_en.lower() == location_name or
-                    location_name in [v.lower() for v in station.name_variants]):
-                    canonical_station = station
-                    break
-            
-            # If found and deprecated, return the message
-            if canonical_station and canonical_station.deprecated:
-                return canonical_station.deprecation_message or f"⚠️ {canonical_station.name_en} is no longer in service."
-        
-        return None
-    
-    def _create_deprecation_route(self, origin: str, destination: str, message: str) -> TransitRoute:
-        """
-        Create a special route indicating a deprecated station.
-        
-        This provides helpful user-facing guidance instead of failing silently.
-        """
-        return TransitRoute(
-            origin=origin,
-            destination=destination,
-            total_time=0,
-            total_distance=0.0,
-            steps=[{
-                "instruction": message,
-                "line": "INFO",
-                "from": origin,
-                "to": destination,
-                "duration": 0,
-                "type": "info"
-            }],
-            transfers=0,
-            lines_used=[],
-            alternatives=[],
-            time_confidence="high"
-        )
-    
 
 # ==========================================
 # Singleton Pattern with Redis Integration
@@ -2780,8 +2594,6 @@ def get_transportation_rag():
     global _transportation_rag_singleton
     
     if _transportation_rag_singleton is None:
-        import os
-        import redis
         try:
             from config.settings import settings
         except ImportError:
@@ -2789,28 +2601,147 @@ def get_transportation_rag():
         
         # Initialize Redis client for route caching
         redis_client = None
-        redis_url = os.getenv('REDIS_URL') or settings.REDIS_URL if hasattr(settings, 'REDIS_URL') else None
         
-        if redis_url:
-            try:
-                redis_client = redis.from_url(
-                    redis_url,
-                    decode_responses=True,
-                    socket_connect_timeout=2,
-                    socket_timeout=2,
-                    retry_on_timeout=False
-                )
-                # Test connection
-                redis_client.ping()
-                logger.info("✅ Transportation RAG: Redis connected for route caching")
-            except Exception as e:
-                logger.warning(f"⚠️ Transportation RAG: Redis unavailable, caching disabled: {e}")
-                redis_client = None
+        if redis is not None:
+            redis_url = os.getenv('REDIS_URL') or (settings.REDIS_URL if hasattr(settings, 'REDIS_URL') else None)
+            
+            if redis_url:
+                try:
+                    redis_client = redis.from_url(
+                        redis_url,
+                        decode_responses=True,
+                        socket_connect_timeout=2,
+                        socket_timeout=2,
+                        retry_on_timeout=False
+                    )
+                    # Test connection
+                    redis_client.ping()
+                    logger.info("✅ Transportation RAG: Redis connected for route caching")
+                except Exception as e:
+                    logger.warning(f"⚠️ Transportation RAG: Redis unavailable, caching disabled: {e}")
+                    redis_client = None
+            else:
+                logger.info("ℹ️ Transportation RAG: No Redis URL configured, caching disabled")
         else:
-            logger.info("ℹ️ Transportation RAG: No Redis URL configured, caching disabled")
+            logger.info("ℹ️ Transportation RAG: Redis package not installed, caching disabled")
         
         # Create singleton with Redis
         _transportation_rag_singleton = IstanbulTransportationRAG(redis_client=redis_client)
         logger.info("✅ Transportation RAG singleton initialized")
     
     return _transportation_rag_singleton
+
+
+# LLM client for fallback location extraction
+_llm_client = None
+
+
+def get_llm_client_for_extraction():
+    """Get or create LLM client for location extraction fallback."""
+    global _llm_client
+    if _llm_client is None:
+        try:
+            from services.runpod_llm_client import get_llm_client
+            _llm_client = get_llm_client()
+            if _llm_client:
+                logger.info("✅ LLM client initialized for location extraction fallback")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not initialize LLM client for extraction: {e}")
+    return _llm_client
+
+
+async def extract_locations_with_llm(query: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Use LLM to extract origin and destination from a query when pattern matching fails.
+    
+    This is a fallback method that calls the RunPod LLM to intelligently
+    extract location information from complex or ambiguous queries.
+    
+    Args:
+        query: The user's transportation query
+        
+    Returns:
+        Tuple of (origin, destination) or (None, None) if extraction fails
+    """
+    client = get_llm_client_for_extraction()
+    if not client:
+        logger.warning("⚠️ LLM client not available for fallback extraction")
+        return None, None
+    
+    try:
+        # Create a focused prompt for location extraction
+        extraction_prompt = f"""Extract the origin and destination locations from this Istanbul transportation query.
+
+Query: "{query}"
+
+IMPORTANT INSTRUCTIONS:
+1. Identify the ORIGIN (starting point) and DESTINATION (ending point)
+2. Return ONLY location names, no explanations
+3. If a location is unclear, use the most likely Istanbul location
+4. Common Istanbul locations: Taksim, Kadıköy, Sultanahmet, Üsküdar, Beşiktaş, Eminönü, Galata, Karaköy, Şişli, Mecidiyeköy, etc.
+
+Respond in this EXACT format:
+ORIGIN: [origin location]
+DESTINATION: [destination location]
+
+If you cannot determine one, write "UNKNOWN" for that field."""
+
+        # Call the LLM
+        response = await client.generate(
+            prompt=extraction_prompt,
+            max_tokens=100,
+            temperature=0.1  # Low temperature for deterministic extraction
+        )
+        
+        if not response or not response.get('text'):
+            logger.warning("⚠️ LLM returned empty response for location extraction")
+            return None, None
+        
+        response_text = response['text'].strip()
+        logger.info(f"🤖 LLM extraction response: {response_text}")
+        
+        # Parse the response
+        origin = None
+        destination = None
+        
+        for line in response_text.split('\n'):
+            line = line.strip()
+            if line.upper().startswith('ORIGIN:'):
+                origin = line.split(':', 1)[1].strip()
+                if origin.upper() == 'UNKNOWN':
+                    origin = None
+            elif line.upper().startswith('DESTINATION:'):
+                destination = line.split(':', 1)[1].strip()
+                if destination.upper() == 'UNKNOWN':
+                    destination = None
+        
+        logger.info(f"🤖 LLM extracted: origin='{origin}', destination='{destination}'")
+        return origin, destination
+        
+    except Exception as e:
+        logger.error(f"❌ LLM location extraction failed: {e}")
+        return None, None
+
+
+def extract_locations_with_llm_sync(query: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Synchronous wrapper for LLM location extraction.
+    
+    This allows calling the async LLM extraction from synchronous code.
+    """
+    try:
+        # Try to get existing event loop
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # Create a new task in the running loop
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                future = pool.submit(asyncio.run, extract_locations_with_llm(query))
+                return future.result(timeout=30)
+        else:
+            return loop.run_until_complete(extract_locations_with_llm(query))
+    except RuntimeError:
+        # No event loop, create one
+        return asyncio.run(extract_locations_with_llm(query))
+    except Exception as e:
+        logger.error(f"❌ Sync LLM extraction wrapper failed: {e}")
+        return None, None

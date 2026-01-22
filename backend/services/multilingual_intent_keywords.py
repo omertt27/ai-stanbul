@@ -105,6 +105,44 @@ TRANSPORTATION_KEYWORDS: Dict[str, List[str]] = {
 }
 
 # =============================================================================
+# LANDMARK KEYWORDS - Multilingual (Specific landmarks and monuments)
+# =============================================================================
+LANDMARK_KEYWORDS: Dict[str, List[str]] = {
+    "en": [
+        "hagia sophia", "aya sofya", "ayasofya", "blue mosque", "sultanahmet mosque",
+        "galata tower", "galata kulesi", "topkapi palace", "topkapı palace",
+        "dolmabahce palace", "dolmabahçe palace", "basilica cistern", "yerebatan",
+        "grand bazaar", "kapalıçarşı", "spice bazaar", "egyptian bazaar",
+        "maiden tower", "kız kulesi", "rumeli fortress", "rumeli hisarı",
+        "chora church", "kariye", "suleymaniye mosque", "süleymaniye",
+        "what is", "tell me about", "history of", "about the", "learn about",
+        "information about", "facts about", "who built", "when was built"
+    ],
+    "tr": [
+        "ayasofya", "sultanahmet camii", "galata kulesi", "topkapı sarayı",
+        "dolmabahçe sarayı", "yerebatan sarnıcı", "kapalıçarşı",
+        "mısır çarşısı", "kız kulesi", "rumeli hisarı", "kariye müzesi",
+        "süleymaniye camii", "nedir", "hakkında", "tarihi", "ne zaman yapıldı",
+        "kim yaptı", "bilgi", "anlat"
+    ],
+    "ru": [
+        "айя софия", "голубая мечеть", "галатская башня", "дворец топкапы",
+        "дворец долмабахче", "цистерна базилика", "гранд базар",
+        "девичья башня", "что такое", "расскажи о", "история"
+    ],
+    "de": [
+        "hagia sophia", "blaue moschee", "galata turm", "topkapi palast",
+        "dolmabahçe palast", "basilika zisterne", "großer basar",
+        "was ist", "erzähl mir über", "geschichte von"
+    ],
+    "ar": [
+        "آيا صوفيا", "المسجد الأزرق", "برج غلطة", "قصر توبكابي",
+        "قصر دولما بهشة", "صهريج البازيليك", "البازار الكبير",
+        "ما هو", "أخبرني عن", "تاريخ"
+    ]
+}
+
+# =============================================================================
 # ATTRACTIONS/PLACES KEYWORDS - Multilingual
 # =============================================================================
 ATTRACTIONS_KEYWORDS: Dict[str, List[str]] = {

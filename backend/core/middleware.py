@@ -29,25 +29,57 @@ def setup_cors(app: FastAPI):
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Log all incoming requests with timing"""
+    """Log all incoming requests with timing and chat analytics"""
     
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
         
-        # Log request
-        logger.info(f"→ {request.method} {request.url.path}")
+        # Enhanced logging for chat endpoints
+        is_chat_endpoint = request.url.path.startswith("/api/chat")
+        request_message = ""
+        
+        if is_chat_endpoint and request.method == "POST":
+            try:
+                import json
+                body = await request.body()
+                request_data = json.loads(body.decode())
+                request_message = request_data.get("message", "")[:50]
+                
+                # Re-populate request body for downstream handlers
+                async def receive():
+                    return {"type": "http.request", "body": body}
+                request._receive = receive
+            except Exception:
+                pass
+        
+        # Log request (quieter for non-chat endpoints)
+        if is_chat_endpoint:
+            logger.info(f"💬 CHAT: '{request_message}...'")
+        else:
+            logger.debug(f"→ {request.method} {request.url.path}")
         
         try:
             response = await call_next(request)
             
             # Calculate duration
             duration = time.time() - start_time
+            duration_ms = int(duration * 1000)
             
-            # Log response
-            logger.info(
-                f"← {request.method} {request.url.path} "
-                f"[{response.status_code}] {duration:.3f}s"
-            )
+            # Enhanced logging for chat endpoints
+            if is_chat_endpoint:
+                if duration_ms > 5000:
+                    logger.warning(
+                        f"⚠️ SLOW CHAT: {duration_ms}ms - '{request_message}...'"
+                    )
+                else:
+                    logger.info(
+                        f"✅ CHAT: {duration_ms}ms [{response.status_code}]"
+                    )
+            else:
+                logger.debug(
+                    f"← {request.method} {request.url.path} "
+                    f"[{response.status_code}] {duration:.3f}s"
+                )
             
             # Add timing header
             response.headers["X-Process-Time"] = str(duration)

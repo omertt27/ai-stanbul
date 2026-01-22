@@ -900,11 +900,43 @@ class AIChatRouteHandler:
         message_normalized = normalize_turkish(message.lower().strip())
         logger.info(f"🔍 Starting location extraction from: '{message_normalized}'")
         
+        # PRIORITY PATTERN: Check for "from X to Y" FIRST before checking "to Y from X"
+        # This handles: "how to go from kadikoy to taksim", "from A to B", etc.
+        # Must check this BEFORE "to...from" patterns to avoid false matches
+        from_to_priority_patterns = [
+            # "from X to Y" with optional prefix
+            r'from\s+([a-zA-Z\u00C0-\u017F\s]+?)\s+to\s+([a-zA-Z\u00C0-\u017F\s]+?)(?:\s*[?.!]|$)',
+        ]
+        
+        for pattern in from_to_priority_patterns:
+            match = re.search(pattern, message_normalized, re.IGNORECASE)
+            if match:
+                origin_str = match.group(1).strip()
+                dest_str = match.group(2).strip()
+                
+                logger.info(f"✅ Matched priority from-to pattern: {pattern}")
+                logger.info(f"   Raw extracted: origin='{origin_str}', dest='{dest_str}'")
+                
+                origin_str = self._clean_location_string(origin_str)
+                dest_str = self._clean_location_string(dest_str)
+                logger.info(f"   After cleaning: origin='{origin_str}', dest='{dest_str}'")
+                
+                origin_coords = await self._find_best_location_match(origin_str)
+                dest_coords = await self._find_best_location_match(dest_str)
+                
+                if origin_coords and dest_coords:
+                    logger.info(f"✅ Extracted route (from-to priority): {origin_str} → {dest_str}")
+                    return [origin_coords, dest_coords]
+                else:
+                    logger.warning(f"⚠️ Priority pattern matched but coords failed: origin={origin_coords}, dest={dest_coords}")
+        
         # PATTERN 1: "to Y from X" - destination before origin
         # Examples: "to taksim from kadikoy", "go to galata from sultanahmet", "how can I go to X from Y"
-        # FIX: Use proper word boundary matching instead of [^from] which excludes individual chars
+        # NOTE: This should NOT match "how to go from X to Y" - that's handled by priority pattern above
         to_from_patterns = [
-            r'(?:how\s+(?:can|do)\s+i\s+)?(?:go\s+)?to\s+(.+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
+            # Only match when there's a clear "to LOCATION from LOCATION" structure
+            # Avoid matching "how to go from..." which has "to go" not "to LOCATION"
+            r'(?<!how\s)(?<!want\s)to\s+([a-zA-Z\u00C0-\u017F]+(?:\s+[a-zA-Z\u00C0-\u017F]+)?)\s+from\s+([a-zA-Z\u00C0-\u017F]+(?:\s+[a-zA-Z\u00C0-\u017F]+)?)(?:\s*[?.!]|$)',
             r'(?:get|travel|walk|drive)\s+to\s+(.+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
             r'(?:route|directions)\s+to\s+(.+?)\s+from\s+(.+?)(?:\s*[?.!]|$)',
         ]
@@ -931,11 +963,9 @@ class AIChatRouteHandler:
                 else:
                     logger.warning(f"⚠️ Failed to find coords: origin={origin_coords}, dest={dest_coords}")
         
-        # PATTERN 2: "from X to Y" - traditional direction pattern
-        # Examples: "from sultanahmet to galata", "route from X to Y", "directions from A to B"
-        # FIX: Use proper word boundary matching
+        # PATTERN 2: Additional "from X to Y" patterns (fallback)
+        # Examples: "route from X to Y", "directions from A to B"
         from_to_patterns = [
-            r'(?:from|starting\s+from)\s+(.+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
             r'(?:route|directions|path|way)\s+from\s+(.+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
             r'(?:going|traveling|walking)\s+from\s+([^to]+?)\s+to\s+(.+?)(?:\s*[?.!]|$)',
         ]

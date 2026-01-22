@@ -45,12 +45,12 @@ except ImportError:
 
 # Import industry-level transportation RAG system
 try:
-    from backend.services.transportation_rag_system import get_transportation_rag
+    from services.transportation_rag_system import get_transportation_rag
     TRANSPORTATION_RAG_AVAILABLE = True
     logger.info("✅ Industry-level Transportation RAG system available")
 except ImportError:
     try:
-        from services.transportation_rag_system import get_transportation_rag
+        from backend.services.transportation_rag_system import get_transportation_rag
         TRANSPORTATION_RAG_AVAILABLE = True
         logger.info("✅ Industry-level Transportation RAG system available")
     except ImportError:
@@ -559,6 +559,11 @@ class ContextBuilder:
                         )
                         
                         if attractions:
+                            # Store raw attraction data for map generation
+                            if not hasattr(self, '_raw_attractions'):
+                                self._raw_attractions = []
+                            self._raw_attractions = attractions[:5]  # Top 5
+                            
                             # Format enhanced results
                             results = []
                             for attr in attractions[:5]:  # Top 5
@@ -580,11 +585,13 @@ class ContextBuilder:
                         logger.warning(f"Enhanced attractions service failed: {e}, falling back to database")
             
             # Fallback: Basic database query (use 'places' table instead of 'attractions')
+            # Query with coordinates for map generation
             async def _query_db():
                 cursor = await self.db.execute(
                     text("""
-                        SELECT name, category, district
+                        SELECT name, category, district, latitude, longitude, description
                         FROM places
+                        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
                         LIMIT 5
                     """)
                 )
@@ -603,12 +610,28 @@ class ContextBuilder:
             if not rows:
                 return ""
             
+            # Store raw attraction data for map generation
+            if not hasattr(self, '_raw_attractions'):
+                self._raw_attractions = []
+            self._raw_attractions = [
+                {
+                    'name': row[0],
+                    'category': row[1],
+                    'district': row[2],
+                    'latitude': float(row[3]) if row[3] else None,
+                    'longitude': float(row[4]) if row[4] else None,
+                    'description': row[5] if len(row) > 5 else None
+                }
+                for row in rows
+            ]
+            
             # Format results
             results = []
             for row in rows:
-                results.append(
-                    f"- {row[0]} ({row[1]}): Located in {row[2]}"
-                )
+                info = f"- {row[0]} ({row[1]}): Located in {row[2]}"
+                if len(row) > 5 and row[5]:  # Description
+                    info += f". {row[5][:100]}..."
+                results.append(info)
             
             return "\n".join(results)
             
@@ -1071,3 +1094,104 @@ Total time: ~30 minutes (more scenic!)"""
                     lines.append(f"   Summary: {alt['llm_summary']}")
         
         return "\n".join(lines)
+    
+    async def _get_daily_life_context(self, query: str, language: str) -> str:
+        """Get daily life context (visa, customs, etc.)"""
+        # Placeholder implementation - replace with actual data fetching logic
+        return "Daily life context information is not yet available."
+    
+    async def _get_weather_context_with_retry(self, query: str) -> str:
+        """
+        Get current weather data from weather service.
+        
+        Returns formatted weather information for LLM context in English (LLM will translate if needed).
+        """
+        if not self.weather_service:
+            logger.warning("Weather service not available")
+            return "Weather information temporarily unavailable."
+        
+        try:
+            # Fetch current weather for Istanbul
+            weather_data = self.weather_service.get_current_weather(city="Istanbul", country="TR")
+            
+            if not weather_data:
+                return "Weather information currently unavailable."
+            
+            # Format weather data for LLM context (in English - LLM will handle translation)
+            weather_lines = [
+                "CURRENT WEATHER IN ISTANBUL:",
+                f"• Temperature: {weather_data.get('temperature', 'N/A')}°C (Feels like: {weather_data.get('feels_like', 'N/A')}°C)",
+                f"• Condition: {weather_data.get('condition', 'N/A')}",
+                f"• Description: {weather_data.get('description', 'N/A')}",
+                f"• Humidity: {weather_data.get('humidity', 'N/A')}%",
+                f"• Wind Speed: {weather_data.get('wind_speed', 'N/A')} m/s",
+            ]
+            
+            # Add precipitation info if available
+            if weather_data.get('precipitation'):
+                weather_lines.append(f"• Precipitation: {weather_data['precipitation']}")
+            
+            # Add weather recommendations for activities
+            temp = weather_data.get('temperature')
+            if temp and isinstance(temp, (int, float)):
+                if temp < 10:
+                    weather_lines.append("• Recommendation: Cool weather - dress warmly, good for indoor attractions and cozy cafes")
+                elif temp < 20:
+                    weather_lines.append("• Recommendation: Mild weather - light jacket recommended, perfect for walking tours")
+                elif temp < 30:
+                    weather_lines.append("• Recommendation: Pleasant weather - ideal for outdoor activities and Bosphorus cruises")
+                else:
+                    weather_lines.append("• Recommendation: Hot weather - stay hydrated, seek shade, best for early morning or evening activities")
+            
+            # Add umbrella recommendation based on conditions
+            condition = weather_data.get('condition', '').lower()
+            description = weather_data.get('description', '').lower()
+            if 'rain' in condition or 'rain' in description or 'drizzle' in description:
+                weather_lines.append("• Alert: Bring an umbrella or rain jacket")
+            
+            weather_context = "\n".join(weather_lines)
+            logger.info(f"✅ Weather context retrieved: {weather_data.get('temperature')}°C, {weather_data.get('condition')}")
+            
+            return weather_context
+            
+        except Exception as e:
+            logger.error(f"Failed to get weather context: {e}")
+            return "Weather information currently unavailable. Please try again later."
+    
+    async def _get_rag_context_with_retry(self, query: str, language: str, top_k: int = 5) -> str:
+        """
+        Get RAG context with retry and circuit breaker.
+        
+        Args:
+            query: User query
+            language: Response language
+            top_k: Number of top documents to retrieve
+            
+        Returns:
+            Formatted RAG context string
+        """
+        if not self.rag_service:
+            logger.warning("RAG service not available")
+            return "RAG context temporarily unavailable."
+        
+        try:
+            # Fetch RAG context with retry logic
+            rag_context = await self.retry_strategy.execute(
+                self.rag_service.get_context,
+                query=query,
+                language=language,
+                top_k=top_k
+            )
+            
+            if not rag_context:
+                return "RAG context currently unavailable."
+            
+            # Format RAG context for LLM
+            formatted_context = "\n".join([f"- {doc['title']}: {doc['snippet']}" for doc in rag_context])
+            logger.info(f"✅ RAG context retrieved: {len(rag_context)} documents")
+            
+            return formatted_context
+            
+        except Exception as e:
+            logger.error(f"Failed to get RAG context: {e}")
+            return "RAG context currently unavailable. Please try again later."

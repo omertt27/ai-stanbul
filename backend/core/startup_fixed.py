@@ -83,15 +83,11 @@ class FastStartupManager:
             return
         
         try:
-            from database import get_db, engine, Base
+            from database import get_db, engine, Base, register_models
             
-            # Import all models to register them with Base metadata
-            # This must be done BEFORE create_all() is called
-            try:
-                import models  # This registers all model classes with Base
-                logger.info("✅ Models imported and registered")
-            except Exception as e:
-                logger.warning(f"⚠️ Could not import models: {e}")
+            # Register all models using lazy registration to avoid circular imports
+            logger.info("🔄 Registering database models...")
+            register_models()
             
             # Create all tables if they don't exist
             logger.info("🔄 Creating database tables if needed...")

@@ -187,13 +187,17 @@ const InteractiveMainPage = ({ onQuickStart }) => {
   const handleDistrictClick = (district) => {
     // Create a query asking for information about the district
     const query = `Give me information about ${district.name}`;
-    onQuickStart(query);
-    navigate('/chat');
+    console.log('🗺️ District clicked, navigating with query:', query);
+    
+    // Pass query in navigation state for auto-send
+    navigate('/chat', { state: { initialQuery: query } });
   };
 
   const handleQuickAction = (suggestion) => {
-    onQuickStart(suggestion.query);
-    navigate('/chat');
+    console.log('⚡ Quick action clicked, navigating with query:', suggestion.query);
+    
+    // Pass query in navigation state for auto-send
+    navigate('/chat', { state: { initialQuery: suggestion.query } });
   };
 
   return (

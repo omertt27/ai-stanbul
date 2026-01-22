@@ -383,8 +383,7 @@ class UnifiedLLMService:
         self.circuit_breaker_enabled = os.getenv('CIRCUIT_BREAKER_ENABLED', 'true').lower() == 'true'
         
         # Backend configuration (for health checks and logging)
-        self.vllm_endpoint = os.getenv('VLLM_ENDPOINT', os.getenv('VLLM_API_ENDPOINT', 'http://localhost:8000'))
-        self.groq_api_key = os.getenv('GROQ_API_KEY', '')
+        self.vllm_endpoint = os.getenv('VLLM_ENDPOINT', os.getenv('VLLM_API_ENDPOINT', os.getenv('LLM_API_URL', 'http://localhost:8000')))
         self.cache_max_size = 1000  # Max cache entries
         self.circuit_breaker_threshold = 5  # Failures before opening circuit
         self.circuit_breaker_open = False  # Track circuit breaker state

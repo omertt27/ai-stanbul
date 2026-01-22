@@ -747,13 +747,16 @@ async def pure_llm_chat(
         response_time = time.time() - start_time
         
         # === EXTRACT MAPDATA FROM TRANSPORTATION RAG ===
-        # If transportation RAG was used, extract mapData for route visualization
-        # 🔥 DIRECT FIX: Enrich route_data directly from last_route (bypasses metadata passing issue)
+        # 🔥 CRITICAL FIX: Extract route AFTER LLM processing (when last_route is set)
+        # The transportation RAG is called during pure_llm_core.process_query() above
+        # So last_route is NOW available (previously it was null)
         map_data_from_transport = None
         route_data_from_transport = None
         try:
             from services.transportation_rag_system import get_transportation_rag
             transport_rag = get_transportation_rag()
+            
+            logger.info(f"🔍 Checking transport_rag.last_route: {transport_rag.last_route is not None if transport_rag else 'transport_rag is None'}")
             
             if transport_rag:
                 # Get map data for visualization
@@ -813,6 +816,49 @@ async def pure_llm_chat(
                 logger.warning(f"RAG post-processing failed: {e}")
         else:
             logger.info(f"Pure LLM response generated in {response_time:.2f}s (RAG: ✗)")
+        
+        # 🔥 CRITICAL FIX: Re-extract route_data AFTER Pure LLM processing
+        # The Pure LLM call triggers transportation RAG which sets last_route
+        # We need to extract it here, AFTER the LLM has processed the query
+        logger.info(f"🔍 POST-LLM Check: route_data_from_transport is {'None' if not route_data_from_transport else 'SET'}")
+        
+        if not route_data_from_transport:
+            logger.info("🔥 POST-LLM: Attempting to extract route data...")
+            try:
+                from services.transportation_rag_system import get_transportation_rag
+                transport_rag_post = get_transportation_rag()
+                
+                logger.info(f"🔍 POST-LLM: transport_rag exists: {transport_rag_post is not None}")
+                if transport_rag_post:
+                    logger.info(f"🔍 POST-LLM: last_route exists: {transport_rag_post.last_route is not None}")
+                
+                if transport_rag_post and transport_rag_post.last_route:
+                    logger.info(f"🔥 POST-LLM: Extracting route from last_route: {transport_rag_post.last_route.origin} → {transport_rag_post.last_route.destination}")
+                    
+                    # Build route_data from last_route
+                    basic_route_data = {
+                        'origin': transport_rag_post.last_route.origin,
+                        'destination': transport_rag_post.last_route.destination,
+                        'steps': transport_rag_post.last_route.steps,
+                        'total_time': transport_rag_post.last_route.total_time,
+                        'total_distance': transport_rag_post.last_route.total_distance,
+                        'transfers': transport_rag_post.last_route.transfers,
+                        'lines_used': transport_rag_post.last_route.lines_used
+                    }
+                    
+                    # Enrich with canonical IDs
+                    route_data_from_transport = transport_rag_post.station_normalizer.enrich_route_data(basic_route_data)
+                    logger.info(f"✅ POST-LLM: Route data extracted successfully")
+                    logger.info(f"✅ POST-LLM: Route: {route_data_from_transport.get('origin')} → {route_data_from_transport.get('destination')}")
+                    
+                    # Also get map data
+                    if not map_data_from_transport:
+                        map_data_from_transport = transport_rag_post.get_map_data_for_last_route()
+                        logger.info(f"✅ POST-LLM: Map data extracted: {map_data_from_transport is not None}")
+                else:
+                    logger.warning("⚠️ POST-LLM: last_route is None - transportation RAG may not have been called")
+            except Exception as e:
+                logger.error(f"POST-LLM route extraction failed: {e}", exc_info=True)
         
         # Extract route_data from map_data if present
         route_data = None
