@@ -783,7 +783,9 @@ class AIChatRouteHandler:
         elif any(cmd in message_lower for cmd in ['stop navigation', 'end navigation', 'cancel navigation', 'exit navigation']):
             return self._handle_stop_navigation(session_id)
         
-        elif any(cmd in message_lower for cmd in ['where am i', 'current location', 'my location']):
+        # FIX: More specific location query detection to avoid catching "from my location" 
+        # which should trigger transportation routing instead
+        elif self._is_location_query(message_lower):
             return self._handle_location_query(session_id, user_location)
         
         elif any(cmd in message_lower for cmd in ["what's next", 'next instruction', 'next step', 'continue']):
@@ -1687,421 +1689,6 @@ class AIChatRouteHandler:
                     'segments': len(routes)
                 }
             }
-    
-    def _format_multi_stop_response(
-        self,
-        itinerary: Any,  # MultiStopItinerary
-        original_message: str
-    ) -> Dict[str, Any]:
-        """Format multi-stop itinerary response for chat"""
-        
-        # Build response message
-        message = "🗺️ Multi-Stop Itinerary Planned!\n\n"
-        
-        # Summary
-        message += f"📍 Stops: {len(itinerary.stops)}\n"
-        message += f"📏 Total Distance: {itinerary.total_distance_km:.2f} km\n"
-        message += f"🚶 Travel Time: {itinerary.total_travel_time_minutes} min\n"
-        message += f"⏱️ Visit Time: {itinerary.total_visit_time_minutes} min\n"
-        message += f"⏰ Total Time: {itinerary.total_time_minutes} min (~{itinerary.total_time_minutes/60:.1f} hours)\n"
-        message += f"💰 Estimated Cost: {itinerary.total_cost_tl:.2f} TL\n"
-        
-        if itinerary.optimization_strategy:
-            strategy_name = itinerary.optimization_strategy.value.replace('_', ' ').title()
-            message += f"🎯 Strategy: {strategy_name}\n"
-        
-        # Timeline
-        message += "\n📅 Itinerary Timeline:\n"
-        timeline = itinerary.get_timeline()
-        for item in timeline[:10]:  # Show first 10 items to avoid too long message
-            if item['type'] == 'arrival':
-                message += f"  🏛️ {item['time']} - Arrive at {item['location']}\n"
-            elif item['type'] == 'visit':
-                message += f"     ⏱️ Visit for {item['duration']} min\n"
-            elif item['type'] == 'travel':
-                modes = ', '.join(item['modes'][:2])
-                message += f"  🚶 {item['time']} - Travel to {item['to']} ({modes})\n"
-        
-        if len(timeline) > 10:
-            message += f"\n  ... and {len(timeline) - 10} more steps\n"
-        
-        # Highlights
-        if itinerary.highlights:
-            message += "\n✨ Highlights:\n"
-            for highlight in itinerary.highlights[:5]:
-                message += f"  • {highlight}\n"
-        
-        # Warnings
-        if itinerary.warnings:
-            message += "\n⚠️ Important Notes:\n"
-            for warning in itinerary.warnings[:3]:
-                message += f"  • {warning}\n"
-        
-        # Accessibility
-        if itinerary.accessibility_friendly:
-            message += "\n♿ Accessibility: This route includes accessible options\n"
-        
-        message += "\n📍 The complete itinerary is displayed on the map above."
-        
-        # Prepare route data for visualization
-        route_data = {
-            'type': 'multi_stop_itinerary',
-            'stops': [
-                {
-                    'name': stop.name,
-                    'coordinates': stop.coordinates,
-                    'category': stop.category,
-                    'duration': stop.suggested_duration_minutes,
-                    'accessibility': stop.accessibility_level
-                }
-                for stop in itinerary.stops
-            ],
-            'segments': [
-                {
-                    'from': seg.from_poi.name,
-                    'to': seg.to_poi.name,
-                    'distance_km': seg.distance_km,
-                    'duration_min': seg.duration_minutes,
-                    'modes': seg.modes_used,
-                    'cost_tl': seg.cost_tl
-                }
-                for seg in itinerary.route_segments
-            ],
-            'summary': {
-                'total_stops': len(itinerary.stops),
-                'total_distance_km': itinerary.total_distance_km,
-                'total_travel_time_min': itinerary.total_travel_time_minutes,
-                'total_visit_time_min': itinerary.total_visit_time_minutes,
-                'total_time_min': itinerary.total_time_minutes,
-                'total_cost_tl': itinerary.total_cost_tl,
-                'strategy': itinerary.optimization_strategy.value,
-                'accessibility_friendly': itinerary.accessibility_friendly
-            },
-            'timeline': timeline
-        }
-        
-        return {
-            'type': 'multi_stop_itinerary',
-            'message': message,
-            'route_data': route_data
-        }
-    
-    # ========== GPS Turn-by-Turn Navigation Methods ==========
-    
-    def start_gps_navigation(
-        self,
-        session_id: str,
-        route_data: Dict[str, Any],
-        current_location: Dict[str, float],
-        language: str = "en"
-    ) -> Dict[str, Any]:
-        """
-        Start GPS turn-by-turn navigation
-        
-        Args:
-            session_id: Unique session identifier
-            route_data: Route data from planning
-            current_location: Current GPS location {lat, lon, accuracy}
-            language: Language for instructions (en, tr)
-            
-        Returns:
-            Initial navigation state
-        """
-        if not GPS_NAVIGATION_AVAILABLE:
-            return {
-                'type': 'error',
-                'message': 'GPS navigation is not available'
-            }
-        
-        try:
-            # Extract route steps from route data
-            if 'osrm_route' in route_data:
-                # Convert OSRM route to steps
-                steps = convert_osrm_to_steps(route_data['osrm_route'])
-            elif 'steps' in route_data:
-                # Direct route steps
-                steps = route_data['steps']
-            else:
-                return {
-                    'type': 'error',
-                    'message': 'Invalid route data format'
-                }
-            
-            if not steps:
-                return {
-                    'type': 'error',
-                    'message': 'No route steps available'
-                }
-            
-            # Determine navigation mode
-            mode_map = {
-                'walking': NavigationMode.WALKING,
-                'cycling': NavigationMode.CYCLING,
-                'driving': NavigationMode.DRIVING,
-                'transit': NavigationMode.TRANSIT
-            }
-            nav_mode = mode_map.get(route_data.get('mode', 'walking'), NavigationMode.WALKING)
-            
-            # Create navigator
-            navigator = GPSTurnByTurnNavigator(
-                route_steps=steps,
-                mode=nav_mode,
-                language=language
-            )
-            
-            # Store navigator
-            self.active_navigators[session_id] = navigator
-            
-            # Create GPS location
-            gps_location = GPSLocation(
-                latitude=current_location['lat'],
-                longitude=current_location['lon'],
-                accuracy=current_location.get('accuracy', 10.0),
-                speed=current_location.get('speed'),
-                bearing=current_location.get('bearing')
-            )
-            
-            # Start navigation
-            state = navigator.start_navigation(gps_location)
-            
-            logger.info(f"🧭 GPS navigation started for session {session_id}")
-            
-            return {
-                'type': 'navigation_started',
-                'message': '🧭 Turn-by-turn navigation started!\n\nFollow the instructions below.',
-                'session_id': session_id,
-                'navigation_state': state.to_dict(),
-                'route_overview': navigator.get_route_overview()
-            }
-            
-        except Exception as e:
-            logger.error(f"Error starting GPS navigation: {e}", exc_info=True)
-            return {
-                'type': 'error',
-                'message': f'Failed to start navigation: {str(e)}'
-            }
-    
-    def update_gps_navigation(
-        self,
-        session_id: str,
-        current_location: Dict[str, float]
-    ) -> Dict[str, Any]:
-        """
-        Update GPS navigation with new location
-        
-        Args:
-            session_id: Session identifier
-            current_location: Current GPS location {lat, lon, accuracy, speed, bearing}
-            
-        Returns:
-            Updated navigation state
-        """
-        if not GPS_NAVIGATION_AVAILABLE:
-            return {
-                'type': 'error',
-                'message': 'GPS navigation is not available'
-            }
-        
-        # Check if navigator exists
-        if session_id not in self.active_navigators:
-            return {
-                'type': 'error',
-                'message': 'No active navigation session found. Please start navigation first.'
-            }
-        
-        try:
-            navigator = self.active_navigators[session_id]
-            
-            # Create GPS location
-            gps_location = GPSLocation(
-                latitude=current_location['lat'],
-                longitude=current_location['lon'],
-                accuracy=current_location.get('accuracy', 10.0),
-                speed=current_location.get('speed'),
-                bearing=current_location.get('bearing')
-            )
-            
-            # Update navigation
-            state = navigator.update_location(gps_location)
-            
-            # Check if arrived
-            if state.has_arrived:
-                # Clean up navigator
-                del self.active_navigators[session_id]
-                logger.info(f"🎯 Navigation completed for session {session_id}")
-                
-                return {
-                    'type': 'navigation_completed',
-                    'message': '🎯 You have arrived at your destination!\n\nNavigation completed successfully.',
-                    'navigation_state': state.to_dict()
-                }
-            
-            # Check if rerouting needed
-            if state.off_route and len(state.warnings) > 0:
-                return {
-                    'type': 'navigation_update',
-                    'message': '⚠️ Off Route\n\nYou are off the planned route. Would you like to recalculate?',
-                    'navigation_state': state.to_dict(),
-                    'rerouting_suggested': True
-                }
-            
-            return {
-                'type': 'navigation_update',
-                'navigation_state': state.to_dict()
-            }
-            
-        except Exception as e:
-            logger.error(f"Error updating GPS navigation: {e}", exc_info=True)
-            return {
-                'type': 'error',
-                'message': f'Failed to update navigation: {str(e)}'
-            }
-    
-    def request_reroute(
-        self,
-        session_id: str,
-        current_location: Dict[str, float]
-    ) -> Dict[str, Any]:
-        """
-        Request rerouting from current location
-        
-        Args:
-            session_id: Session identifier
-            current_location: Current GPS location
-            
-        Returns:
-            Rerouting result
-        """
-        if session_id not in self.active_navigators:
-            return {
-                'type': 'error',
-                'message': 'No active navigation session found'
-            }
-        
-        try:
-            navigator = self.active_navigators[session_id]
-            
-            # Get destination
-            destination = navigator.destination
-            if not destination:
-                return {
-                    'type': 'error',
-                    'message': 'No destination available for rerouting'
-                }
-            
-            # Plan new route using route integration
-            if not self.route_integration:
-                return {
-                    'type': 'error',
-                    'message': 'Route planning not available'
-                }
-            
-            new_route = self.route_integration.plan_intelligent_route(
-                start=(current_location['lat'], current_location['lon']),
-                end=destination,
-                transport_mode='walking',
-                user_context={}
-            )
-            
-            # Convert to route steps
-            if hasattr(new_route, 'osrm_route') and new_route.osrm_route:
-                new_steps = convert_osrm_to_steps(new_route.osrm_route)
-            else:
-                return {
-                    'type': 'error',
-                    'message': 'Failed to generate new route'
-                }
-            
-            # Update navigator with new route
-            navigator.route_steps = new_steps
-            navigator.current_step_index = 0
-            navigator.total_distance = sum(step.distance for step in new_steps)
-            navigator.off_route_count = 0
-            
-            # Get initial state with new route
-            gps_location = GPSLocation(
-                latitude=current_location['lat'],
-                longitude=current_location['lon'],
-                accuracy=current_location.get('accuracy', 10.0)
-            )
-            
-            state = navigator.update_location(gps_location)
-            
-            logger.info(f"🔄 Rerouting completed for session {session_id}")
-            
-            return {
-                'type': 'reroute_success',
-                'message': '🔄 Route Recalculated!\n\nNew route calculated from your current location.',
-                'navigation_state': state.to_dict(),
-                'route_overview': navigator.get_route_overview()
-            }
-            
-        except Exception as e:
-            logger.error(f"Error rerouting: {e}", exc_info=True)
-            return {
-                'type': 'error',
-                'message': f'Failed to recalculate route: {str(e)}'
-            }
-    
-    def stop_gps_navigation(self, session_id: str) -> Dict[str, Any]:
-        """
-        Stop GPS navigation
-        
-        Args:
-            session_id: Session identifier
-            
-        Returns:
-            Stop confirmation
-        """
-        if session_id in self.active_navigators:
-            navigator = self.active_navigators[session_id]
-            navigator.stop_navigation()
-            del self.active_navigators[session_id]
-            
-            logger.info(f"🛑 Navigation stopped for session {session_id}")
-            
-            return {
-                'type': 'navigation_stopped',
-                'message': '🛑 Navigation stopped'
-            }
-        
-        return {
-            'type': 'info',
-            'message': 'No active navigation session found'
-        }
-    
-    def get_navigation_status(self, session_id: str) -> Dict[str, Any]:
-        """
-        Get current navigation status
-        
-        Args:
-            session_id: Session identifier
-            
-        Returns:
-            Navigation status
-        """
-        if session_id not in self.active_navigators:
-            return {
-                'type': 'info',
-                'active': False,
-                'message': 'No active navigation session'
-            }
-        
-        navigator = self.active_navigators[session_id]
-        
-
-        
-        return {
-            'type': 'navigation_status',
-            'active': navigator.is_navigating,
-            'arrived': navigator.has_arrived,
-            'current_step': navigator.current_step_index,
-            'total_steps': len(navigator.route_steps),
-            'mode': navigator.mode.value,
-            'language': navigator.language,
-            'route_overview': navigator.get_route_overview()
-        }
-    
     def _is_start_navigation_command(self, message_lower: str) -> bool:
         """Check if message is a start navigation command"""
         start_keywords = [
@@ -2111,6 +1698,49 @@ class AIChatRouteHandler:
         ]
         return any(keyword in message_lower for keyword in start_keywords)
     
+    def _is_location_query(self, message_lower: str) -> bool:
+        """
+        Check if message is a "where am I?" location query.
+        
+        IMPORTANT: This should NOT match transportation queries like:
+        - "How do I get from my location to Taksim?"
+        - "Route from my location to Sultanahmet"
+        
+        Only matches queries asking about current location status:
+        - "where am I?"
+        - "what's my location?"
+        - "my current location"
+        - "show my location"
+        """
+        # Transportation indicators - if these are present, it's NOT a simple location query
+        transportation_indicators = [
+            ' to ', 'go to', 'get to', 'route', 'directions',
+            'how do i', 'how can i', 'travel', 'transport',
+            'from my location to', 'from here to'
+        ]
+        
+        # If any transportation indicator is present, this is NOT a simple location query
+        if any(ind in message_lower for ind in transportation_indicators):
+            return False
+        
+        # Specific location query patterns (only these should trigger)
+        location_query_patterns = [
+            'where am i',
+            "where'm i",
+            'where i am',
+            "what's my location",
+            'what is my location', 
+            'my current location',
+            'show my location',
+            'my position',
+            'current position',
+            'where is here',
+            'neredeyim',  # Turkish: where am I
+            'konumum ne',  # Turkish: what's my location
+        ]
+        
+        return any(pattern in message_lower for pattern in location_query_patterns)
+
     async def _handle_start_navigation(
         self,
         message: str,

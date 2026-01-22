@@ -200,6 +200,103 @@ async def enhance_chat_response(
 # ==========================================
 
 
+# ==========================================
+# Conversation Memory Service (NEW!)
+# ==========================================
+_conversation_memory = None
+
+def get_conversation_memory_service():
+    """Get or create conversation memory singleton"""
+    global _conversation_memory
+    if _conversation_memory is None:
+        try:
+            from services.conversation_memory import get_conversation_memory
+            _conversation_memory = get_conversation_memory()
+            logger.info("✅ Conversation Memory Service initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Conversation Memory Service not available: {e}")
+            _conversation_memory = None
+    return _conversation_memory
+
+
+# ==========================================
+# Language Detection Helper (Enhanced)
+# ==========================================
+def detect_input_language(text: str) -> str:
+    """
+    Detect the language of user input.
+    
+    Uses character-based heuristics for fast detection.
+    Returns 'tr' for Turkish, 'en' for English (default).
+    """
+    # Turkish-specific characters
+    turkish_chars = set('çÇğĞıİöÖşŞüÜ')
+    
+    # Check for Turkish characters
+    if any(char in turkish_chars for char in text):
+        return 'tr'
+    
+    # Common Turkish words (that don't have special chars)
+    turkish_words = {
+        'nasıl', 'nerede', 'nereden', 'nereye', 'ne', 'kim', 'hangi',
+        'gitmek', 'gidebilirim', 'istiyorum', 'var', 'yok', 'mi', 'mı',
+        'için', 'ile', 'den', 'dan', 'de', 'da', 've', 'veya',
+        'bu', 'şu', 'o', 'ben', 'sen', 'biz', 'siz', 'onlar',
+        'merhaba', 'selam', 'teşekkürler', 'teşekkür', 'lütfen',
+        'restoran', 'otel', 'müze', 'cami', 'köprü', 'meydan',
+        'nasil', 'gidebilirim', 'icin', 'tesekkurler', 'lutfen'
+    }
+    
+    text_lower = text.lower()
+    words = set(text_lower.split())
+    
+    if words & turkish_words:
+        return 'tr'
+    
+    return 'en'
+
+
+async def save_conversation_turn(
+    session_id: str,
+    user_message: str,
+    assistant_response: str,
+    language: str = 'en',
+    intent: str = None,
+    entities: Dict[str, Any] = None
+) -> None:
+    """
+    Save both user and assistant turns to conversation memory.
+    
+    This should be called after generating a response.
+    """
+    memory = get_conversation_memory_service()
+    if not memory:
+        return
+    
+    try:
+        # Save user turn
+        await memory.add_turn(
+            session_id=session_id,
+            role='user',
+            content=user_message,
+            language=language,
+            intent=intent,
+            entities=entities
+        )
+        
+        # Save assistant turn
+        await memory.add_turn(
+            session_id=session_id,
+            role='assistant',
+            content=assistant_response,
+            language=language
+        )
+        
+        logger.debug(f"💾 Saved conversation turn for session {session_id}")
+    except Exception as e:
+        logger.warning(f"Failed to save conversation turn: {e}")
+
+
 # ===========================================
 # Import Validated Schemas
 # ===========================================
@@ -328,6 +425,25 @@ async def pure_llm_chat(
     
     # Generate or use provided session_id
     session_id = request.session_id or f"session_{hash(request.message)}"
+    
+    # === CONVERSATION MEMORY: Load history for context ===
+    conversation_memory = get_conversation_memory_service()
+    conversation_history_for_llm = []
+    session_language = None
+    
+    if conversation_memory:
+        try:
+            # Get conversation history for LLM context
+            conversation_history_for_llm = await conversation_memory.get_history_for_llm(session_id, max_turns=5)
+            
+            # Get session language preference (from previous turns)
+            session_language = await conversation_memory.get_session_language(session_id)
+            
+            if conversation_history_for_llm:
+                logger.info(f"💭 Loaded {len(conversation_history_for_llm)} previous turns for session {session_id}")
+                logger.info(f"🌍 Session language preference: {session_language}")
+        except Exception as e:
+            logger.warning(f"Failed to load conversation history: {e}")
     
     # === STEP 0: FIX PLACE NAME MISSPELLINGS IN USER INPUT ===
     # Correct common misspellings before LLM processing
@@ -460,9 +576,22 @@ async def pure_llm_chat(
     except Exception as e:
         logger.warning(f"Language detection failed, using default: {e}")
     
+    # === ENHANCED LANGUAGE DETECTION ===
+    # Priority: 1) Current message detection, 2) Session history, 3) Request param, 4) Default 'en'
+    input_language = detect_input_language(request.message)
+    
+    if input_language != 'en':
+        detected_language = input_language
+        logger.info(f"🌍 Input language detected: {detected_language}")
+    elif session_language and session_language != 'en':
+        # Use session language if current message doesn't have clear indicators
+        detected_language = session_language
+        logger.info(f"🌍 Using session language: {detected_language}")
+    
     # Update request language for downstream use
     effective_language = detected_language
     user_context['language'] = effective_language
+    user_context['conversation_history'] = conversation_history_for_llm  # Add history to context
     
     # No LLM intent classification - Pure LLM will handle everything
     llm_intent = None
@@ -1168,6 +1297,17 @@ async def pure_llm_chat(
         except Exception as e:
             logger.warning(f"Failed to extract UnifiedLLMService metadata: {e}")
             # Continue without metadata - non-blocking
+        
+        # === SAVE CONVERSATION TO MEMORY ===
+        # Save both user query and assistant response for multi-turn context
+        await save_conversation_turn(
+            session_id=session_id,
+            user_message=original_query,
+            assistant_response=translated_response,
+            language=effective_language,
+            intent=final_intent,
+            entities=result.get('entities')
+        )
         
         return ChatResponse(
             response=translated_response,  # 🔥 Translated + safety-netted response

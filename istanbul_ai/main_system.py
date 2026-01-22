@@ -1205,10 +1205,11 @@ class IstanbulDailyTalkAI:
                 if hasattr(self, 'llm_service') and self.llm_service:
                     logger.info(f"🤖 Using UnifiedLLMService for daily talk response (lang: {language_code})")
                     
-                    # Build prompt
+                    # Build prompt - avoid backslash in f-string expression
+                    context_section = f"Previous conversation:\n{context_str}" if context_str else ""
                     prompt = f"""You are a friendly Istanbul tourism assistant. The user is having a casual conversation: "{message}"
 
-{f'Previous conversation:\n{context_str}' if context_str else ''}
+{context_section}
 
 Provide a warm, friendly response. Be conversational and helpful.
 

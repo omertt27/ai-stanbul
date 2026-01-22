@@ -250,6 +250,19 @@ RESTAURANT_PHOTOS_DIR.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 logger.info(f"✅ Static files mounted at /static -> {STATIC_DIR}")
 
+# =============================================================================
+# ROOT HEALTH ENDPOINT (for simple health checks at /health)
+# =============================================================================
+@app.get("/health")
+async def root_health():
+    """Simple root health check for load balancers and monitoring."""
+    from datetime import datetime
+    return {
+        "status": "ok",
+        "service": "istanbul-ai-backend",
+        "timestamp": datetime.now().isoformat()
+    }
+
 # Register API routers
 app.include_router(health_router)
 app.include_router(auth_router)
@@ -304,6 +317,20 @@ if LEGACY_ROUTES_AVAILABLE:
     app.include_router(places.router)
     app.include_router(blog.router)
     logger.info("✅ Legacy routes registered")
+
+# =============================================================================
+# ROOT HEALTH ENDPOINT (MUST BE AFTER ALL ROUTERS to ensure priority)
+# =============================================================================
+# Re-register the /health endpoint to ensure it's not overridden by other routers
+@app.get("/health", tags=["Health"])
+async def root_health_final():
+    """Simple root health check for load balancers and monitoring."""
+    from datetime import datetime
+    return {
+        "status": "ok",
+        "service": "istanbul-ai-backend",
+        "timestamp": datetime.now().isoformat()
+    }
 
 
 @app.get("/")

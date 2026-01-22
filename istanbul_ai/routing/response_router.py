@@ -1508,13 +1508,14 @@ Respond in {language} language."""
             
             logger.info(f"🤖 Generating UnifiedLLM response for intent='{intent}', language='{language}'")
             
-            # Build intent-specific prompt
+            # Build intent-specific prompt - avoid backslash in f-string expression
+            context_section = f"Previous conversation:\n{context_str}" if context_str else ""
             prompt = f"""You are a helpful Istanbul tourism assistant. A user is asking: "{message}"
 
 Intent: {intent}
 {entity_str}
 
-{f'Previous conversation:\n{context_str}' if context_str else ''}
+{context_section}
 
 Provide a helpful, accurate answer about Istanbul. Be friendly and conversational.
 
