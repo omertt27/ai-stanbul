@@ -10,6 +10,13 @@
   margin: 0;
 }
 
+/* Form wrapper - transparent, no styling, just enables mobile keyboard submit */
+.smart-chat-input-form {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .smart-chat-input-wrapper {
   display: flex;
   align-items: flex-end;

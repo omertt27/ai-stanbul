@@ -1257,10 +1257,40 @@ async def pure_llm_chat(
                         if not final_map_data:
                             final_map_data = {}
                         
+                        # Normalize alternative routes to frontend-expected format
+                        normalized_alts = []
+                        for alt in transport_alts.get('alternatives', []):
+                            # Handle route optimizer format (has nested 'route' object)
+                            if 'route' in alt:
+                                route = alt['route']
+                                normalized_alts.append({
+                                    'total_time': route.get('total_duration') or alt.get('duration_minutes'),
+                                    'lines_used': route.get('modes_used', []),
+                                    'transfers': alt.get('num_transfers', 0),
+                                    'total_distance': route.get('total_distance', 0),
+                                    'steps': route.get('steps', []),
+                                    'summary': route.get('summary', ''),
+                                    'preference': alt.get('preference', 'alternative'),
+                                    'comfort_score': alt.get('comfort_score', {}).get('overall_comfort'),
+                                    'highlights': alt.get('highlights', [])
+                                })
+                            # Handle transportation RAG format (flat structure)
+                            elif 'total_time' in alt:
+                                normalized_alts.append(alt)
+                            # Handle other formats
+                            else:
+                                normalized_alts.append({
+                                    'total_time': alt.get('duration_minutes') or alt.get('total_duration'),
+                                    'lines_used': alt.get('modes_used', []),
+                                    'transfers': alt.get('transfers', 0),
+                                    'steps': alt.get('steps', []),
+                                    'summary': str(alt)
+                                })
+                        
                         # Add multi-route data
                         final_map_data.update({
                             'type': 'multi_route',
-                            'multi_routes': transport_alts.get('alternatives', []),
+                            'multi_routes': normalized_alts,
                             'primary_route': transport_alts.get('primary_route'),
                             'route_comparison': transport_alts.get('route_comparison', {})
                         })
@@ -1269,7 +1299,7 @@ async def pure_llm_chat(
                         if transport_alts.get('map_data'):
                             final_map_data.update(transport_alts['map_data'])
                         
-                        logger.info(f"✅ Added {len(transport_alts.get('alternatives', []))} route alternatives to map_data")
+                        logger.info(f"✅ Added {len(normalized_alts)} route alternatives to map_data")
         except Exception as e:
             logger.warning(f"Failed to merge multi-route data: {e}")
         

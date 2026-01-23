@@ -34,31 +34,52 @@ class BlogPostCreate(BaseModel):
     title: str = Field(..., min_length=10, max_length=200, description="Blog post title")
     content: str = Field(..., min_length=100, description="Blog post content")
     author_name: str = Field(..., min_length=2, max_length=100, description="Author name")
+    author_photo: Optional[str] = Field(None, description="Author photo URL")
     district: Optional[str] = Field(None, max_length=100, description="Istanbul district")
     tags: Optional[List[str]] = Field(None, description="Post tags")
     featured_image: Optional[str] = Field(None, description="Featured image URL")
     category: Optional[str] = Field(None, description="Post category")
-    status: Optional[str] = Field("published", pattern="^(draft|published)$", description="Post status")
+    status: Optional[str] = Field("published", pattern="^(draft|published|scheduled)$", description="Post status")
+    meta_description: Optional[str] = Field(None, max_length=300, description="SEO meta description")
+    slug: Optional[str] = Field(None, max_length=250, description="URL slug")
+    scheduled_at: Optional[datetime] = Field(None, description="Scheduled publish date")
+    visibility: Optional[str] = Field("public", pattern="^(public|private)$", description="Post visibility")
+    images: Optional[List[dict]] = Field(None, description="Gallery images")
 
 class BlogPostUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=10, max_length=200, description="Blog post title")
     content: Optional[str] = Field(None, min_length=100, description="Blog post content")
     author_name: Optional[str] = Field(None, min_length=2, max_length=100, description="Author name")
+    author_photo: Optional[str] = Field(None, description="Author photo URL")
     district: Optional[str] = Field(None, max_length=100, description="Istanbul district")
     tags: Optional[List[str]] = Field(None, description="Post tags")
     featured_image: Optional[str] = Field(None, description="Featured image URL")
     category: Optional[str] = Field(None, description="Post category")
-    status: Optional[str] = Field(None, pattern="^(draft|published)$", description="Post status")
+    status: Optional[str] = Field(None, pattern="^(draft|published|scheduled)$", description="Post status")
+    meta_description: Optional[str] = Field(None, max_length=300, description="SEO meta description")
+    slug: Optional[str] = Field(None, max_length=250, description="URL slug")
+    scheduled_at: Optional[datetime] = Field(None, description="Scheduled publish date")
+    visibility: Optional[str] = Field(None, pattern="^(public|private)$", description="Post visibility")
+    images: Optional[List[dict]] = Field(None, description="Gallery images")
 
 class BlogPostResponse(BaseModel):
     id: int
     title: str
     content: str
     author_name: str
-    district: Optional[str]
-    featured_image: Optional[str]
-    category: Optional[str]
+    author_photo: Optional[str] = None
+    district: Optional[str] = None
+    featured_image: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+    status: Optional[str] = None
+    meta_description: Optional[str] = None
+    slug: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    visibility: Optional[str] = None
+    images: Optional[List[dict]] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     likes_count: int
     comments_count: int
 
@@ -227,10 +248,19 @@ async def get_blog_post(post_id: int, response: Response, db: Session = Depends(
             title=post.title,
             content=post.content,
             author_name=post.author or "Anonymous",
+            author_photo=post.author_photo,
             district=post.district,
             featured_image=post.featured_image,
             category=post.category,
+            tags=post.tags,
+            status=post.status,
+            meta_description=post.meta_description,
+            slug=post.slug,
+            scheduled_at=post.scheduled_at,
+            visibility=post.visibility,
+            images=post.images,
             created_at=post.created_at,
+            updated_at=post.updated_at,
             likes_count=post.likes_count or 0,
             comments_count=comments_count
         )
@@ -263,11 +293,17 @@ async def create_blog_post(post: BlogPostCreate, request: Request, db: Session =
             title=post.title,
             content=post.content,
             author=post.author_name,
+            author_photo=post.author_photo,
             district=post.district,
             featured_image=post.featured_image,
             category=post.category,
             status=post.status or 'published',
             tags=post.tags,
+            meta_description=post.meta_description,
+            slug=post.slug,
+            scheduled_at=post.scheduled_at,
+            visibility=post.visibility or 'public',
+            images=post.images or [],
             created_at=datetime.utcnow(),
             likes_count=0
         )
@@ -283,10 +319,19 @@ async def create_blog_post(post: BlogPostCreate, request: Request, db: Session =
             title=new_post.title,
             content=new_post.content,
             author_name=new_post.author or "Anonymous",
+            author_photo=new_post.author_photo,
             district=new_post.district,
             featured_image=new_post.featured_image,
             category=new_post.category,
+            tags=new_post.tags,
+            status=new_post.status,
+            meta_description=new_post.meta_description,
+            slug=new_post.slug,
+            scheduled_at=new_post.scheduled_at,
+            visibility=new_post.visibility,
+            images=new_post.images,
             created_at=new_post.created_at,
+            updated_at=new_post.updated_at,
             likes_count=0,
             comments_count=0
         )
@@ -321,8 +366,11 @@ async def update_blog_post(post_id: int, post_update: BlogPostUpdate, request: R
         # Update fields that were provided
         update_data = post_update.dict(exclude_unset=True)
         for field, value in update_data.items():
-            if field == 'tags':
-                # Handle tags separately as JSONB
+            if field == 'author_name':
+                # Map author_name to author column
+                setattr(existing_post, 'author', value)
+            elif field == 'tags' or field == 'images':
+                # Handle JSON fields
                 setattr(existing_post, field, value)
             else:
                 setattr(existing_post, field, value)
@@ -343,10 +391,19 @@ async def update_blog_post(post_id: int, post_update: BlogPostUpdate, request: R
             title=existing_post.title,
             content=existing_post.content,
             author_name=existing_post.author or "Anonymous",
+            author_photo=existing_post.author_photo,
             district=existing_post.district,
             featured_image=existing_post.featured_image,
             category=existing_post.category,
+            tags=existing_post.tags,
+            status=existing_post.status,
+            meta_description=existing_post.meta_description,
+            slug=existing_post.slug,
+            scheduled_at=existing_post.scheduled_at,
+            visibility=existing_post.visibility,
+            images=existing_post.images,
             created_at=existing_post.created_at,
+            updated_at=existing_post.updated_at,
             likes_count=existing_post.likes_count or 0,
             comments_count=comments_count
         )

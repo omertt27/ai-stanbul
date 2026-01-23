@@ -190,7 +190,9 @@ const MapVisualization = ({
     // Multi-route specific fields
     multi_routes = [],  // Array of complete route objects with comfort scores
     primary_route = null,
-    route_comparison = {}
+    route_comparison = {},
+    // Walking directions (first/last mile)
+    walking_segments = []
   } = mapData;
 
   // Check if this is a multi-route map
@@ -270,6 +272,15 @@ const MapVisualization = ({
                   <span style={{ fontWeight: '600' }}>{route_data.distance_km.toFixed(1)} km</span>
                 </div>
               )}
+              {/* Walking segment indicator */}
+              {walking_segments && walking_segments.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '16px' }}>🚶</span>
+                  <span style={{ fontWeight: '600' }}>
+                    {Math.round(walking_segments.reduce((sum, seg) => sum + (seg.duration_min || 0), 0))} min walk
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           
@@ -333,7 +344,7 @@ const MapVisualization = ({
       )}
 
       {/* Transport Lines Legend - Moovit-style minimal */}
-      {transport_lines && transport_lines.length > 0 && (
+      {(transport_lines && transport_lines.length > 0) || (walking_segments && walking_segments.length > 0) ? (
         <div className="transport-lines-panel" style={{
           background: 'white',
           padding: '12px 20px',
@@ -344,9 +355,28 @@ const MapVisualization = ({
           borderBottom: '1px solid #e5e5e5'
         }}>
           <span style={{ fontSize: '12px', color: '#666', fontWeight: '500', marginRight: '4px' }}>
-            Lines:
+            Modes:
           </span>
-          {transport_lines.map((line, idx) => (
+          {/* Walking segments badge */}
+          {walking_segments && walking_segments.length > 0 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: '12px',
+              background: '#757575',
+              color: 'white',
+              fontWeight: '600',
+              fontSize: '12px',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+            }}>
+              <span style={{ fontSize: '14px' }}>🚶</span>
+              <span>Walk</span>
+            </div>
+          )}
+          {/* Transit lines */}
+          {transport_lines && transport_lines.map((line, idx) => (
             <div key={idx} style={{
               display: 'flex',
               alignItems: 'center',
@@ -366,7 +396,7 @@ const MapVisualization = ({
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
       {/* Leaflet Map */}
       <div style={{ height, width: '100%', borderRadius: routes?.length > 0 || transport_lines?.length > 0 ? '0' : '8px 8px 0 0', overflow: 'hidden' }}>
@@ -438,6 +468,64 @@ const MapVisualization = ({
               smoothFactor={1}
             />
           )}
+
+          {/* Draw walking segments (first/last mile) - dashed line style */}
+          {walking_segments && walking_segments.length > 0 && walking_segments.map((segment, idx) => {
+            // Build polyline from segment coords
+            let walkingPositions = [];
+            
+            if (segment.polyline && segment.polyline.length > 0) {
+              // Use detailed polyline if available
+              walkingPositions = segment.polyline.map(coord => {
+                if (Array.isArray(coord)) return coord;
+                if (coord && coord.lat !== undefined) return [coord.lat, coord.lon || coord.lng];
+                return null;
+              }).filter(Boolean);
+            } else if (segment.from_coords && segment.to_coords) {
+              // Fallback to straight line
+              walkingPositions = [
+                [segment.from_coords.lat, segment.from_coords.lon],
+                [segment.to_coords.lat, segment.to_coords.lon]
+              ];
+            }
+            
+            if (walkingPositions.length < 2) return null;
+            
+            return (
+              <React.Fragment key={`walking-${idx}`}>
+                {/* Dashed walking line with pedestrian color */}
+                <Polyline
+                  positions={walkingPositions}
+                  color="#757575"
+                  weight={5}
+                  opacity={0.8}
+                  smoothFactor={1.5}
+                  dashArray="8, 12"
+                  lineCap="round"
+                  lineJoin="round"
+                />
+                {/* Walking start marker */}
+                <Marker 
+                  position={walkingPositions[0]} 
+                  icon={createMarkerIcon('default', '#757575', '🚶')}
+                >
+                  <Popup>
+                    <div style={{ padding: '8px' }}>
+                      <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                        {segment.type === 'first_mile' ? '🚶 Walk to Station' : '🚶 Walk to Destination'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>
+                        {segment.from} → {segment.to}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                        {segment.distance_m}m • {Math.round(segment.duration_min)} min
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              </React.Fragment>
+            );
+          })}
 
           {/* Draw markers - Moovit-style minimal design */}
           {markers && Array.isArray(markers) && markers.map((marker, idx) => {

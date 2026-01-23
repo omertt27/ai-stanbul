@@ -108,13 +108,50 @@ const SmartChatInput = ({
         
         // When we get a final result, append it to the input
         if (finalTranscript) {
+          // Use functional update to avoid stale closure issues
           const currentValue = valueRef.current;
+          const trimmedTranscript = finalTranscript.trim();
           const newValue = currentValue 
-            ? currentValue.trim() + ' ' + finalTranscript.trim()
-            : finalTranscript.trim();
+            ? currentValue.trim() + ' ' + trimmedTranscript
+            : trimmedTranscript;
+          
+          // CRITICAL: For mobile browsers, we need to:
+          // 1. Update the textarea value directly first
+          // 2. Then call onChange to sync React state
+          // 3. Dispatch an input event to trigger any listeners
+          if (textareaRef.current) {
+            // Set native value first (mobile browsers need this)
+            textareaRef.current.value = newValue;
+            
+            // Dispatch input event to sync with React and any other listeners
+            const inputEvent = new Event('input', { bubbles: true });
+            textareaRef.current.dispatchEvent(inputEvent);
+            
+            // Trigger resize
+            textareaRef.current.style.height = 'auto';
+            const maxHeight = 100;
+            const newHeight = Math.min(textareaRef.current.scrollHeight, maxHeight);
+            textareaRef.current.style.height = newHeight + 'px';
+          }
+          
+          // Update React state (belt and suspenders approach for mobile)
           onChange(newValue);
+          
+          // Also update the ref immediately
+          valueRef.current = newValue;
+          
           setInterimTranscript('');
           setIsListening(false);
+          
+          // Focus the textarea after voice input so user can edit or send
+          setTimeout(() => {
+            if (textareaRef.current) {
+              textareaRef.current.focus();
+              // Move cursor to end
+              textareaRef.current.selectionStart = textareaRef.current.value.length;
+              textareaRef.current.selectionEnd = textareaRef.current.value.length;
+            }
+          }, 100);
           
           // Track successful voice input (analytics)
           try {
@@ -217,9 +254,17 @@ const SmartChatInput = ({
   };
 
   const handleKeyDown = (e) => {
-    // Send on Enter (without Shift)
+    // Send on Enter (without Shift) - works for both desktop and mobile
     if (e.key === 'Enter' && !e.shiftKey && !loading) {
       e.preventDefault();
+      handleSend();
+    }
+  };
+
+  // Handle form submission (for mobile keyboard "Send" button)
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (!loading && value.trim()) {
       handleSend();
     }
   };
@@ -336,10 +381,12 @@ const SmartChatInput = ({
         </div>
       )}
       
-      <div 
-        className="smart-chat-input-wrapper"
-        style={{ minHeight: `${inputHeight + 16}px` }}
-      >
+      {/* Form wrapper enables mobile keyboard "Send" button to work like IG DM */}
+      <form onSubmit={handleFormSubmit} className="smart-chat-input-form">
+        <div 
+          className="smart-chat-input-wrapper"
+          style={{ minHeight: `${inputHeight + 16}px` }}
+        >
         {/* Voice button (left side) - hidden in minimal mode when typing */}
         {showVoice && (
           <button
@@ -375,6 +422,8 @@ const SmartChatInput = ({
           spellCheck="true"
           maxLength={maxLength}
           aria-label="Chat message input"
+          enterKeyHint="send"
+          inputMode="text"
         />
 
         {/* Character counter - only when near limit in minimal mode */}
@@ -384,13 +433,12 @@ const SmartChatInput = ({
           </span>
         )}
 
-        {/* Send button (right side) */}
+        {/* Send button (right side) - type="submit" for form integration */}
         <button
-          onClick={handleSend}
           disabled={loading || !value.trim()}
           className="smart-send-button"
           aria-label="Send message"
-          type="button"
+          type="submit"
         >
           {loading ? (
             <svg className="spinner" viewBox="0 0 24 24">
@@ -415,6 +463,7 @@ const SmartChatInput = ({
           )}
         </button>
       </div>
+      </form>
     </div>
   );
 };

@@ -77,13 +77,18 @@ class BlogPost(Base):
     content = Column(Text, nullable=False)
     excerpt = Column(Text, nullable=True)
     author = Column(String(100), nullable=True)  # Matches existing 'author' column
-    status = Column(String(20), default='draft')  # draft, published, archived
+    author_photo = Column(String(500), nullable=True)
+    status = Column(String(20), default='draft')  # draft, published, scheduled, archived
     featured_image = Column(String(500), nullable=True)
     category = Column(String(100), nullable=True)
     tags = Column(JSON, default=list)
     views = Column(Integer, default=0)
     likes = Column(Integer, default=0)
     district = Column(String(100), nullable=True)
+    meta_description = Column(String(300), nullable=True)
+    visibility = Column(String(20), default='public')  # public, private
+    images = Column(JSON, default=list)  # Gallery images
+    scheduled_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     published_at = Column(DateTime, nullable=True)
@@ -93,10 +98,6 @@ class BlogPost(Base):
     @property
     def author_name(self):
         return self.author
-    
-    @property
-    def author_photo(self):
-        return None
     
     @property
     def is_published(self):

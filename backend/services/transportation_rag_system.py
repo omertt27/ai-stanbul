@@ -282,6 +282,10 @@ class TransitRoute:
     alternatives: List['TransitRoute']  # Alternative routes
     time_confidence: str = "medium"  # 'high', 'medium', 'low' - data quality indicator
     ranking_scores: Dict[str, float] = None  # Ranking scores (fastest, scenic, etc.)
+    # Walking directions support
+    origin_gps: Optional[Dict[str, float]] = None  # User's GPS location
+    destination_gps: Optional[Dict[str, float]] = None  # Destination GPS
+    walking_segments: Optional[List[Dict[str, Any]]] = None  # First/last mile walking
     
     def __post_init__(self):
         """Initialize ranking_scores if not provided"""
@@ -411,7 +415,7 @@ class IstanbulTransportationRAG:
             # This allows the ranking system to compare rail vs ferry routes
             "kadikoy": ["M4-Kadıköy", "FERRY-Kadıköy"],
             "kadıköy": ["M4-Kadıköy", "FERRY-Kadıköy"],
-            "kadıkoy": ["M4-Kadıköy", "FERRY-Kadıköy"],
+            "kadikoy": ["M4-Kadıköy", "FERRY-Kadıköy"],
             # Ayrılık Çeşmesi is a separate transfer station, not Kadıköy
             "ayrilik cesmesi": ["M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
             "ayrılık çeşmesi": ["M4-Ayrılık Çeşmesi", "MARMARAY-Ayrılık Çeşmesi"],
@@ -902,9 +906,30 @@ class IstanbulTransportationRAG:
                     all_routes.append(route)
                     logger.debug(f"Found route: {orig_station} → {dest_station} in {route.total_time:.0f} min")
         
+        # 🔥 NEW: Try to find alternative routes with different parameters
+        # This helps provide options even when there's only one origin/destination station
+        if len(all_routes) == 1 and len(origin_stations) == 1 and len(dest_stations) == 1:
+            orig_station = origin_stations[0]
+            dest_station = dest_stations[0]
+            
+            # Try with more transfers to find different route options
+            for extra_transfers in [1, 2]:
+                alt_route = self._find_path_with_penalty(orig_station, dest_station, max_transfers + extra_transfers)
+                if alt_route and not self._is_duplicate_route(alt_route, all_routes):
+                    all_routes.append(alt_route)
+                    logger.debug(f"Found alternative route with {alt_route.transfers} transfers")
+            
+            # Try to find ferry-based alternative if available
+            ferry_route = self._find_ferry_alternative(orig_station, dest_station)
+            if ferry_route and not self._is_duplicate_route(ferry_route, all_routes):
+                all_routes.append(ferry_route)
+                logger.debug(f"Found ferry alternative route")
+        
         if not all_routes:
             logger.warning(f"No routes found between {origin} and {destination}")
             return None
+        
+        logger.info(f"🛤️ Found {len(all_routes)} total routes between {origin} and {destination}")
         
         # Rank routes by different criteria (fastest, scenic, etc.)
         ranked_routes = self._rank_routes(all_routes, origin_gps)
@@ -915,6 +940,9 @@ class IstanbulTransportationRAG:
         # Add alternatives (top 3 routes)
         if len(ranked_routes) > 1:
             best_route.alternatives = ranked_routes[1:min(4, len(ranked_routes))]
+            logger.info(f"🛤️ Added {len(best_route.alternatives)} alternative routes")
+        else:
+            logger.info(f"🛤️ Only 1 route found, no alternatives available")
         
         # Week 1 Improvement #3: Store in cache
         if use_cache and self.redis and best_route:
@@ -929,11 +957,117 @@ class IstanbulTransportationRAG:
             except Exception as e:
                 logger.warning(f"Cache write error: {e}")
         
+        # Store GPS coordinates for walking directions
+        if best_route:
+            best_route.origin_gps = origin_gps
+            best_route.destination_gps = destination_gps
+            
+            # Add walking directions (first/last mile)
+            best_route = self._add_walking_directions(best_route)
+        
         # 🔥 CRITICAL FIX: Store last_route for map visualization
         # This enables get_map_data_for_last_route() to work correctly
         self.last_route = best_route
         
         return best_route
+    
+    def _add_walking_directions(self, route: TransitRoute) -> TransitRoute:
+        """
+        Add first-mile/last-mile walking directions to a transit route.
+        
+        First-mile: User's GPS location → first transit station
+        Last-mile: Last transit station → final destination (if not a station)
+        """
+        try:
+            from services.walking_directions_service import get_walking_directions_service
+            walking_service = get_walking_directions_service()
+        except ImportError:
+            logger.debug("Walking directions service not available")
+            return route
+        
+        walking_segments = []
+        
+        # Get first station coordinates
+        first_station_name = None
+        first_station_coords = None
+        
+        for step in route.steps:
+            if step.get('type') in ['transit', 'ferry']:
+                first_station_name = step.get('from')
+                break
+        
+        if first_station_name:
+            station_ids = self._get_stations_for_location(first_station_name.lower())
+            if station_ids:
+                station = self.stations.get(station_ids[0])
+                if station:
+                    first_station_coords = (station.lat, station.lon)
+        
+        # First-mile: User GPS → First Station
+        if route.origin_gps and first_station_coords and first_station_name:
+            try:
+                first_mile = walking_service.get_walking_segment(
+                    from_coords=(route.origin_gps['lat'], route.origin_gps['lon']),
+                    to_coords=first_station_coords,
+                    from_name="Your Location",
+                    to_name=first_station_name,
+                    segment_type='first_mile'
+                )
+                if first_mile:
+                    walking_segments.append(first_mile.to_dict())
+                    logger.info(f"🚶 First-mile: {first_mile.distance_m:.0f}m to {first_station_name}")
+            except Exception as e:
+                logger.warning(f"First-mile walking directions failed: {e}")
+        
+        # Get last station coordinates
+        last_station_name = None
+        last_station_coords = None
+        
+        for step in reversed(route.steps):
+            if step.get('type') in ['transit', 'ferry']:
+                last_station_name = step.get('to')
+                break
+        
+        if last_station_name:
+            station_ids = self._get_stations_for_location(last_station_name.lower())
+            if station_ids:
+                station = self.stations.get(station_ids[0])
+                if station:
+                    last_station_coords = (station.lat, station.lon)
+        
+        # Last-mile: Last Station → Final Destination (if destination is not a station)
+        if route.destination_gps and last_station_coords and last_station_name:
+            # Check if destination is not the same as last station
+            dest_coords = (route.destination_gps['lat'], route.destination_gps['lon'])
+            
+            # Only add last-mile if destination is different from last station
+            # (i.e., user is going to a landmark, not a metro station)
+            distance_to_dest = self._haversine_distance(
+                last_station_coords[0], last_station_coords[1],
+                dest_coords[0], dest_coords[1]
+            )
+            
+            if distance_to_dest > 100:  # More than 100m from station
+                try:
+                    last_mile = walking_service.get_walking_segment(
+                        from_coords=last_station_coords,
+                        to_coords=dest_coords,
+                        from_name=last_station_name,
+                        to_name=route.destination,
+                        segment_type='last_mile'
+                    )
+                    if last_mile:
+                        walking_segments.append(last_mile.to_dict())
+                        logger.info(f"🚶 Last-mile: {last_mile.distance_m:.0f}m to {route.destination}")
+                except Exception as e:
+                    logger.warning(f"Last-mile walking directions failed: {e}")
+        
+        # Add walking segments to route
+        if walking_segments:
+            route.walking_segments = walking_segments
+            logger.info(f"✅ Added {len(walking_segments)} walking segment(s) to route")
+        
+        return route
     
     def _create_walking_route(self, origin: str, destination: str, walk_time: int) -> TransitRoute:
         """Create a walking-only route for nearby destinations."""
@@ -1963,6 +2097,109 @@ class IstanbulTransportationRAG:
             time_confidence='low'
         )
     
+    def _is_duplicate_route(self, new_route: TransitRoute, existing_routes: List[TransitRoute]) -> bool:
+        """
+        Check if a route is essentially a duplicate of existing routes.
+        
+        Two routes are duplicates if they use the same lines in the same order.
+        """
+        if not new_route or not existing_routes:
+            return False
+        
+        new_lines = tuple(new_route.lines_used)
+        
+        for route in existing_routes:
+            if tuple(route.lines_used) == new_lines:
+                return True
+        
+        return False
+    
+    def _find_path_with_penalty(
+        self, 
+        start_id: str, 
+        end_id: str, 
+        max_transfers: int,
+        transfer_penalty_multiplier: float = 0.5
+    ) -> Optional[TransitRoute]:
+        """
+        Find an alternative path with reduced transfer penalties.
+        
+        This encourages the algorithm to find routes with more transfers
+        that might use different lines, providing variety.
+        """
+        # Temporarily reduce transfer penalty to find different routes
+        original_penalty = getattr(self.travel_time_db, '_transfer_penalty_override', None)
+        
+        try:
+            # Set a reduced transfer penalty to encourage more-transfer routes
+            self.travel_time_db._transfer_penalty_override = transfer_penalty_multiplier
+            route = self._find_path(start_id, end_id, max_transfers)
+            return route
+        except Exception as e:
+            logger.debug(f"Alternative path search failed: {e}")
+            return None
+        finally:
+            # Restore original penalty
+            if original_penalty is not None:
+                self.travel_time_db._transfer_penalty_override = original_penalty
+            elif hasattr(self.travel_time_db, '_transfer_penalty_override'):
+                delattr(self.travel_time_db, '_transfer_penalty_override')
+    
+    def _find_ferry_alternative(self, start_id: str, end_id: str) -> Optional[TransitRoute]:
+        """
+        Try to find an alternative route that includes a ferry.
+        
+        Ferries provide a scenic alternative and can be faster for cross-Bosphorus trips.
+        """
+        try:
+            # Find nearest ferry terminals to start and end
+            ferry_stations = [sid for sid, st in self.stations.items() if st.line.upper() == "FERRY"]
+            
+            if not ferry_stations:
+                return None
+            
+            # Find closest ferry to start
+            start_station = self.stations.get(start_id)
+            end_station = self.stations.get(end_id)
+            
+            if not start_station or not end_station:
+                return None
+            
+            # Simple heuristic: find ferry terminal nearest to midpoint
+            # This encourages ferry usage for cross-city trips
+            best_ferry_route = None
+            best_time = float('inf')
+            
+            for ferry_id in ferry_stations[:3]:  # Check top 3 ferry terminals
+                # Try: start → ferry → end
+                route1 = self._find_path(start_id, ferry_id, 2)
+                route2 = self._find_path(ferry_id, end_id, 2)
+                
+                if route1 and route2:
+                    total_time = route1.total_time + route2.total_time
+                    if total_time < best_time:
+                        best_time = total_time
+                        # Combine routes
+                        combined_steps = route1.steps + route2.steps
+                        combined_lines = list(set(route1.lines_used + route2.lines_used))
+                        
+                        best_ferry_route = TransitRoute(
+                            origin=route1.origin,
+                            destination=route2.destination,
+                            total_time=total_time,
+                            total_distance=route1.total_distance + route2.total_distance,
+                            steps=combined_steps,
+                            transfers=route1.transfers + route2.transfers + 1,
+                            lines_used=combined_lines,
+                            alternatives=[],
+                            time_confidence='medium'
+                        )
+            
+            return best_ferry_route
+        except Exception as e:
+            logger.debug(f"Ferry alternative search failed: {e}")
+            return None
+
     def _rank_routes(self, routes: List[TransitRoute], origin_gps: Optional[Dict[str, float]] = None) -> List[TransitRoute]:
         """
         Rank routes by multiple criteria.
@@ -2135,31 +2372,26 @@ I couldn't identify specific locations from your query. To help you with directi
         # Add step markers and polyline
         for step in route.steps:
             if step.get('type') in ['transit', 'ferry']:
-                # Get from station
-                from_name = step.get('from', '')
-                to_name = step.get('to', '')
+                # Get station names from step
+                from_station_name = step.get('from', 'Start')
+                to_station_name = step.get('to', 'End')
                 line = step.get('line', '')
+                duration = step.get('duration', 0)
                 
-                # Find station coordinates
-                from_stations = self._get_stations_for_location(from_name.lower())
-                to_stations = self._get_stations_for_location(to_name.lower())
-                
-                if from_stations:
-                    from_station = self.stations.get(from_stations[0])
-                    if from_station:
-                        polyline_points.append([from_station.lat, from_station.lon])
-                
-                if to_stations:
-                    to_station = self.stations.get(to_stations[0])
-                    if to_station:
-                        polyline_points.append([to_station.lat, to_station.lon])
+                # Look up actual station objects to get coordinates
+                to_station_ids = self._get_stations_for_location(to_station_name.lower()) if isinstance(to_station_name, str) else []
+                if to_station_ids:
+                    to_station_obj = self.stations.get(to_station_ids[0])
+                    if to_station_obj:
                         markers.append({
-                            'type': 'transfer' if step.get('type') == 'transfer' else 'stop',
-                            'name': to_name,
-                            'lat': to_station.lat,
-                            'lon': to_station.lon,
+                            'type': 'stop',
+                            'name': to_station_name,
+                            'lat': to_station_obj.lat,
+                            'lon': to_station_obj.lon,
                             'line': line
                         })
+                        # Add polyline segment
+                        polyline_points.append([to_station_obj.lat, to_station_obj.lon])
         
         # Add destination marker
         dest_stations = self._get_stations_for_location(route.destination.lower())
@@ -2175,28 +2407,55 @@ I couldn't identify specific locations from your query. To help you with directi
                 if [dest_station.lat, dest_station.lon] not in polyline_points:
                     polyline_points.append([dest_station.lat, dest_station.lon])
         
-        # Build alternative routes data for frontend
+        # Build alternative routes data for frontend (matching frontend-expected format)
         alternatives_data = []
         if hasattr(route, 'alternatives') and route.alternatives:
             for i, alt in enumerate(route.alternatives):
+                # Build route segments with coordinates for map display
+                alt_routes = self._build_route_segments_for_map(alt)
+                
                 alt_data = {
                     'id': i + 1,
                     'origin': alt.origin,
                     'destination': alt.destination,
+                    # Frontend expected field names:
+                    'duration_minutes': alt.total_time,
+                    'num_transfers': alt.transfers,
+                    # Also include original names for compatibility:
                     'total_time': alt.total_time,
                     'total_distance': alt.total_distance,
                     'transfers': alt.transfers,
                     'lines_used': alt.lines_used,
                     'steps': alt.steps,
+                    # Route segments for map visualization:
+                    'routes': alt_routes,
+                    'preference': getattr(alt, 'preference', f'Option {i + 1}'),
+                    'comfort_score': {'overall_comfort': getattr(alt, 'comfort_score', 75)},
                     'ranking_scores': alt.ranking_scores if hasattr(alt, 'ranking_scores') else None
                 }
                 alternatives_data.append(alt_data)
             logger.info(f"🗺️ Including {len(alternatives_data)} alternative routes in map_data")
         
+        # Build walking segments for map if available
+        walking_segments_data = []
+        if hasattr(route, 'walking_segments') and route.walking_segments:
+            walking_segments_data = route.walking_segments
+            logger.info(f"🚶 Including {len(walking_segments_data)} walking segment(s) in map_data")
+        
         return {
             'polyline': polyline_points,
             'markers': markers,
             'bounds': self._calculate_bounds(polyline_points),
+            # route_data for frontend info panel (header display)
+            'route_data': {
+                'origin': route.origin,
+                'destination': route.destination,
+                'duration_min': route.total_time,
+                'distance_km': route.total_distance / 1000 if route.total_distance > 100 else route.total_distance,
+                'transfers': route.transfers,
+                'lines': route.lines_used,
+                'has_walking': len(walking_segments_data) > 0
+            },
             'route_summary': {
                 'origin': route.origin,
                 'destination': route.destination,
@@ -2205,16 +2464,26 @@ I couldn't identify specific locations from your query. To help you with directi
                 'transfers': route.transfers,
                 'lines_used': route.lines_used
             },
+            # Transport lines for legend display
+            'transport_lines': self._build_transport_lines_legend(route.lines_used),
+            # Walking segments (first/last mile)
+            'walking_segments': walking_segments_data,
             # 🔥 NEW: Include alternative routes for frontend
             'type': 'multi_route',
             'primary_route': {
                 'origin': route.origin,
                 'destination': route.destination,
                 'total_time': route.total_time,
+                'duration_minutes': route.total_time,  # Frontend expected field
                 'total_distance': route.total_distance,
                 'transfers': route.transfers,
+                'num_transfers': route.transfers,  # Frontend expected field
                 'lines_used': route.lines_used,
                 'steps': route.steps,
+                'routes': self._build_route_segments_for_map(route),  # Map segments
+                'walking_segments': walking_segments_data,
+                'preference': 'fastest',
+                'comfort_score': {'overall_comfort': 80},
                 'ranking_scores': route.ranking_scores if hasattr(route, 'ranking_scores') else None
             },
             'multi_routes': alternatives_data,
@@ -2223,6 +2492,93 @@ I couldn't identify specific locations from your query. To help you with directi
                 'fastest': route.origin + ' → ' + route.destination
             }
         }
+    
+    def _build_route_segments_for_map(self, route: 'TransitRoute') -> List[Dict[str, Any]]:
+        """
+        Build route segments with coordinates for map visualization.
+        
+        Returns an array of segments, each with coordinates and line color.
+        """
+        # Line colors for Istanbul transit
+        LINE_COLORS = {
+            'M1': '#E91E63', 'M2': '#4CAF50', 'M3': '#FF9800', 'M4': '#2196F3',
+            'M5': '#9C27B0', 'M6': '#795548', 'M7': '#607D8B', 'M8': '#00BCD4',
+            'M9': '#FFEB3B', 'M11': '#3F51B5',
+            'T1': '#E91E63', 'T2': '#009688', 'T3': '#673AB7', 'T4': '#FF5722', 'T5': '#03A9F4',
+            'MARMARAY': '#FF9800', 'FERRY': '#2196F3', 'METROBUS': '#4CAF50',
+            'BUS': '#607D8B', 'FUNICULAR': '#9C27B0'
+        }
+        
+        segments = []
+        
+        for step in route.steps:
+            if step.get('type') not in ['transit', 'ferry']:
+                continue
+            
+            from_station_name = step.get('from', '')
+            to_station_name = step.get('to', '')
+            line = step.get('line', '')
+            
+            # Get coordinates for stations
+            from_coords = None
+            to_coords = None
+            
+            # Look up from station
+            from_station_ids = self._get_stations_for_location(from_station_name.lower()) if from_station_name else []
+            if from_station_ids:
+                from_station = self.stations.get(from_station_ids[0])
+                if from_station:
+                    from_coords = [from_station.lat, from_station.lon]
+            
+            # Look up to station
+            to_station_ids = self._get_stations_for_location(to_station_name.lower()) if to_station_name else []
+            if to_station_ids:
+                to_station = self.stations.get(to_station_ids[0])
+                if to_station:
+                    to_coords = [to_station.lat, to_station.lon]
+            
+            # Only add segment if we have both coordinates
+            if from_coords and to_coords:
+                segments.append({
+                    'coordinates': [from_coords, to_coords],
+                    'color': LINE_COLORS.get(line.upper(), '#757575'),
+                    'line': line,
+                    'weight': 6,
+                    'opacity': 0.85
+                })
+        
+        return segments
+    
+    def _build_transport_lines_legend(self, lines_used: List[str]) -> List[Dict[str, str]]:
+        """
+        Build transport lines data for the frontend legend display.
+        """
+        LINE_COLORS = {
+            'M1': '#E91E63', 'M2': '#4CAF50', 'M3': '#FF9800', 'M4': '#2196F3',
+            'M5': '#9C27B0', 'M6': '#795548', 'M7': '#607D8B', 'M8': '#00BCD4',
+            'M9': '#FFEB3B', 'M11': '#3F51B5',
+            'T1': '#E91E63', 'T2': '#009688', 'T3': '#673AB7', 'T4': '#FF5722', 'T5': '#03A9F4',
+            'MARMARAY': '#FF9800', 'FERRY': '#2196F3', 'METROBUS': '#4CAF50',
+            'BUS': '#607D8B', 'FUNICULAR': '#9C27B0'
+        }
+        
+        LINE_TYPES = {
+            'M1': 'metro', 'M2': 'metro', 'M3': 'metro', 'M4': 'metro',
+            'M5': 'metro', 'M6': 'metro', 'M7': 'metro', 'M8': 'metro',
+            'M9': 'metro', 'M11': 'metro',
+            'T1': 'tram', 'T2': 'tram', 'T3': 'tram', 'T4': 'tram', 'T5': 'tram',
+            'MARMARAY': 'rail', 'FERRY': 'ferry', 'METROBUS': 'bus',
+            'BUS': 'bus', 'FUNICULAR': 'funicular'
+        }
+        
+        return [
+            {
+                'line': line,
+                'color': LINE_COLORS.get(line.upper(), '#757575'),
+                'type': LINE_TYPES.get(line.upper(), 'other')
+            }
+            for line in lines_used
+        ]
     
     def _calculate_bounds(self, points: List[List[float]]) -> Dict[str, float]:
         """Calculate map bounds from a list of lat/lon points."""

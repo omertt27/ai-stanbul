@@ -18,7 +18,7 @@ const OfflineSettings = lazy(() => import("./pages/OfflineSettings"));
 const BlogList = lazy(() => import("./pages/BlogList"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const BlogAdmin = lazy(() => import("./pages/BlogAdmin"));
-const NewBlogPost = lazy(() => import("./pages/NewBlogPost"));
+const NewBlogPostPro = lazy(() => import("./pages/NewBlogPostPro"));
 const IntelligentRoutePlanner = lazy(() => import("./pages/IntelligentRoutePlanner"));
 const LLMAnalyticsDashboard = lazy(() => import("./components/LLMAnalyticsDashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -101,7 +101,8 @@ function AppRouterContent() {
             <Route path="/donate" element={<Donate />} />
             <Route path="/blog" element={<BlogList />} />
             <Route path="/blog/admin" element={<BlogAdmin />} />
-            <Route path="/blog/new" element={<NewBlogPost />} />
+            <Route path="/blog/new" element={<NewBlogPostPro />} />
+            <Route path="/blog/edit/:id" element={<NewBlogPostPro />} />
             <Route path="/blog/:id" element={<BlogPost />} />
             <Route path="/offline-settings" element={<OfflineSettings />} />
             <Route path="/gdpr" element={<GDPR />} />
