@@ -138,7 +138,7 @@ class ConversationMemory:
         # Save back to storage
         await self._save_conversation(session_id, conversation)
         
-        logger.debug(f"💬 Added {role} turn to session {session_id} (total: {len(conversation['turns'])} turns)")
+        logger.info(f"💬 Added {role} turn to session {session_id} (total: {len(conversation['turns'])} turns)")
     
     async def get_conversation(self, session_id: str) -> Dict[str, Any]:
         """

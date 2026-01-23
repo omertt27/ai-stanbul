@@ -1268,7 +1268,8 @@ Fixed version (max 50 chars):"""
         user_location: Optional[Dict[str, float]] = None,
         language: str = "en",
         max_tokens: int = 250,
-        enable_conversation: bool = True
+        enable_conversation: bool = True,
+        conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> Dict[str, Any]:
         """
         Process a user query through the complete pipeline.
@@ -1292,6 +1293,7 @@ Fixed version (max 50 chars):"""
             language: Response language (en/tr/ar/etc.)
             max_tokens: Maximum tokens to generate
             enable_conversation: Enable conversational context
+            conversation_history: Pre-loaded conversation history from Redis (optional)
             
         Returns:
             Dict with response, map_data, signals, and metadata
@@ -1438,13 +1440,34 @@ Fixed version (max 50 chars):"""
         
         # STEP 4: Conversation Context (if enabled)
         conversation_context = None
+        
+        # First, use pre-loaded conversation history from Redis (if provided)
+        if conversation_history:
+            conversation_context = {
+                'history': conversation_history,
+                'needs_resolution': False,  # Will check below
+                'topics': [],
+                'entities': {}
+            }
+            logger.info(f"💭 Using pre-loaded conversation history: {len(conversation_history)} turns")
+        
+        # Also try local ConversationManager for reference resolution
         if enable_conversation and session_id:
             try:
-                conversation_context = await self.conversation_manager.get_context(
+                local_context = await self.conversation_manager.get_context(
                     session_id=session_id,
                     current_query=query,
                     max_turns=3
                 )
+                
+                # Merge local context with pre-loaded history
+                if conversation_context:
+                    # Keep the pre-loaded history, but use local context for resolution
+                    conversation_context['needs_resolution'] = local_context.get('needs_resolution', False)
+                    conversation_context['topics'] = local_context.get('topics', [])
+                    conversation_context['entities'] = local_context.get('entities', {})
+                else:
+                    conversation_context = local_context
                 
                 # Resolve references (e.g., "there", "it", etc.)
                 if conversation_context.get('needs_resolution'):

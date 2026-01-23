@@ -212,10 +212,12 @@ def get_conversation_memory_service():
         try:
             from services.conversation_memory import get_conversation_memory
             _conversation_memory = get_conversation_memory()
-            logger.info("✅ Conversation Memory Service initialized")
+            logger.info(f"✅ Conversation Memory Service initialized (id={id(_conversation_memory)})")
         except Exception as e:
             logger.warning(f"⚠️ Conversation Memory Service not available: {e}")
             _conversation_memory = None
+    else:
+        logger.debug(f"♻️ Reusing Conversation Memory Service (id={id(_conversation_memory)})")
     return _conversation_memory
 
 
@@ -271,9 +273,14 @@ async def save_conversation_turn(
     """
     memory = get_conversation_memory_service()
     if not memory:
+        logger.warning(f"⚠️ Cannot save turn - memory service unavailable")
         return
     
     try:
+        logger.info(f"💾 Saving conversation turn for session {session_id}...")
+        logger.info(f"   User message: {user_message[:50]}...")
+        logger.info(f"   Assistant response: {assistant_response[:50]}...")
+        
         # Save user turn
         await memory.add_turn(
             session_id=session_id,
@@ -292,9 +299,12 @@ async def save_conversation_turn(
             language=language
         )
         
-        logger.debug(f"💾 Saved conversation turn for session {session_id}")
+        # Verify save by reading back
+        conversation = await memory.get_conversation(session_id)
+        turn_count = len(conversation.get('turns', []))
+        logger.info(f"✅ Saved conversation turn for session {session_id} (total turns: {turn_count})")
     except Exception as e:
-        logger.warning(f"Failed to save conversation turn: {e}")
+        logger.warning(f"Failed to save conversation turn: {e}", exc_info=True)
 
 
 # ===========================================
@@ -431,6 +441,8 @@ async def pure_llm_chat(
     conversation_history_for_llm = []
     session_language = None
     
+    logger.info(f"🔍 Loading conversation history for session: {session_id}")
+    
     if conversation_memory:
         try:
             # Get conversation history for LLM context
@@ -442,6 +454,11 @@ async def pure_llm_chat(
             if conversation_history_for_llm:
                 logger.info(f"💭 Loaded {len(conversation_history_for_llm)} previous turns for session {session_id}")
                 logger.info(f"🌍 Session language preference: {session_language}")
+                # Log the actual history content for debugging
+                for i, turn in enumerate(conversation_history_for_llm):
+                    logger.info(f"   Turn {i+1}: [{turn['role']}] {turn['content'][:60]}...")
+            else:
+                logger.info(f"📭 No previous conversation history for session {session_id}")
         except Exception as e:
             logger.warning(f"Failed to load conversation history: {e}")
     
@@ -828,7 +845,8 @@ async def pure_llm_chat(
             query=request.message,
             user_location=request.user_location,
             session_id=request.session_id,
-            language=effective_language  # Use auto-detected language!
+            language=effective_language,  # Use auto-detected language!
+            conversation_history=conversation_history_for_llm  # Pass conversation context from Redis
         )
         
         # 🔥 CRITICAL FIX: Handle early return of map_data from routing visualization

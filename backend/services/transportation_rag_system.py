@@ -2033,6 +2033,8 @@ class IstanbulTransportationRAG:
         """
         Find the nearest transit station to given GPS coordinates.
         
+        Uses GPS proximity cache to avoid redundant distance calculations.
+        
         Args:
             lat: Latitude
             lon: Longitude
@@ -2041,6 +2043,18 @@ class IstanbulTransportationRAG:
         Returns:
             Station ID of nearest station, or None if none within max_distance
         """
+        # Try to get from GPS proximity cache first
+        try:
+            from services.gps_proximity_cache import get_cached_nearest_station, cache_nearest_station
+            
+            cached = get_cached_nearest_station(lat, lon)
+            if cached and cached.get('distance_km', float('inf')) <= max_distance_km:
+                logger.info(f"📍 Nearest station CACHE HIT: {cached['station_name']} ({cached['distance_km']:.2f} km)")
+                return cached['station_id']
+        except ImportError:
+            pass  # Cache not available, continue without
+        
+        # Calculate nearest station
         nearest_station = None
         nearest_distance = float('inf')
         
@@ -2051,7 +2065,15 @@ class IstanbulTransportationRAG:
                 nearest_station = station_id
         
         if nearest_station:
-            logger.info(f"📍 Nearest station to ({lat}, {lon}): {self.stations[nearest_station].name} ({nearest_distance:.2f} km)")
+            station_name = self.stations[nearest_station].name
+            logger.info(f"📍 Nearest station to ({lat}, {lon}): {station_name} ({nearest_distance:.2f} km)")
+            
+            # Cache the result
+            try:
+                cache_nearest_station(lat, lon, nearest_station, station_name, nearest_distance)
+                logger.debug(f"📍 Cached nearest station result")
+            except Exception as e:
+                logger.debug(f"Could not cache nearest station: {e}")
         else:
             logger.warning(f"📍 No station found within {max_distance_km} km of ({lat}, {lon})")
         
@@ -2153,6 +2175,24 @@ I couldn't identify specific locations from your query. To help you with directi
                 if [dest_station.lat, dest_station.lon] not in polyline_points:
                     polyline_points.append([dest_station.lat, dest_station.lon])
         
+        # Build alternative routes data for frontend
+        alternatives_data = []
+        if hasattr(route, 'alternatives') and route.alternatives:
+            for i, alt in enumerate(route.alternatives):
+                alt_data = {
+                    'id': i + 1,
+                    'origin': alt.origin,
+                    'destination': alt.destination,
+                    'total_time': alt.total_time,
+                    'total_distance': alt.total_distance,
+                    'transfers': alt.transfers,
+                    'lines_used': alt.lines_used,
+                    'steps': alt.steps,
+                    'ranking_scores': alt.ranking_scores if hasattr(alt, 'ranking_scores') else None
+                }
+                alternatives_data.append(alt_data)
+            logger.info(f"🗺️ Including {len(alternatives_data)} alternative routes in map_data")
+        
         return {
             'polyline': polyline_points,
             'markers': markers,
@@ -2164,6 +2204,23 @@ I couldn't identify specific locations from your query. To help you with directi
                 'total_distance': route.total_distance,
                 'transfers': route.transfers,
                 'lines_used': route.lines_used
+            },
+            # 🔥 NEW: Include alternative routes for frontend
+            'type': 'multi_route',
+            'primary_route': {
+                'origin': route.origin,
+                'destination': route.destination,
+                'total_time': route.total_time,
+                'total_distance': route.total_distance,
+                'transfers': route.transfers,
+                'lines_used': route.lines_used,
+                'steps': route.steps,
+                'ranking_scores': route.ranking_scores if hasattr(route, 'ranking_scores') else None
+            },
+            'multi_routes': alternatives_data,
+            'route_comparison': {
+                'total_routes': 1 + len(alternatives_data),
+                'fastest': route.origin + ' → ' + route.destination
             }
         }
     

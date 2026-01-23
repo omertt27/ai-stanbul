@@ -79,13 +79,16 @@ TRANSPORTATION_KEYWORDS: Dict[str, List[str]] = {
         "metro", "bus", "tram", "ferry", "taxi", "uber", "transport",
         "how to get", "how do i get", "how can i get", "directions", "route", "travel", "commute",
         "istanbulkart", "public transport", "subway", "train", "get to", "go to",
-        " to ", "from", "between"  # Simple route patterns: "X to Y", "from X to Y", "between X and Y"
+        " to ", "from", "between",  # Simple route patterns: "X to Y", "from X to Y", "between X and Y"
+        "from my location", "from here", "from current location", "from where i am",  # GPS origin patterns
+        "to my location", "to here", "back here"  # GPS destination patterns
     ],
     "tr": [
         "metro", "otobüs", "tramvay", "vapur", "taksi", "ulaşım",
         "nasıl giderim", "yol tarifi", "rota", "toplu taşıma",
         "istanbulkart", "marmaray", "metrobüs",
-        " -e ", " -a ", "den", "dan", "arası"  # Turkish route patterns
+        " -e ", " -a ", "den", "dan", "arası",  # Turkish route patterns
+        "buradan", "konumumdan", "bulunduğum yerden"  # Turkish GPS patterns
     ],
     "ru": [
         "метро", "автобус", "трамвай", "паром", "такси", "транспорт",
