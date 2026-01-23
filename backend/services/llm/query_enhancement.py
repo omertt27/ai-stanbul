@@ -324,8 +324,41 @@ class QueryEnhancer:
         """
         issues = []
         quality_score = 1.0
+        query_lower = query.lower().strip()
         
-        # Check 1: Minimum length
+        # BYPASS: Greetings and conversational queries should NEVER need clarification
+        # These should go directly to LLM for natural response
+        greeting_patterns = [
+            # Turkish greetings
+            'merhaba', 'selam', 'günaydın', 'iyi akşamlar', 'iyi geceler',
+            'nasılsın', 'nasilsin', 'nasılsınız', 'naber', 'ne haber',
+            'hoşgeldin', 'hosgeldin', 'hoş geldiniz', 'eyvallah', 'sağol',
+            'teşekkür', 'tesekkur', 'sağ ol', 'sag ol', 'görüşürüz', 'hoşça kal',
+            'kolay gelsin', 'iyi günler', 'hayırlı işler', 'memnun oldum',
+            # English greetings
+            'hello', 'hi', 'hey', 'good morning', 'good evening', 'good night',
+            'how are you', "how's it going", 'what\'s up', 'sup',
+            'thanks', 'thank you', 'bye', 'goodbye', 'see you', 'cheers',
+            'nice to meet you', 'pleased to meet you', 'welcome',
+            # Common short conversational phrases
+            'yes', 'no', 'ok', 'okay', 'evet', 'hayır', 'tamam', 'peki',
+            'yardım', 'help', 'bilgi', 'info',
+        ]
+        
+        is_greeting = any(pattern in query_lower for pattern in greeting_patterns)
+        
+        if is_greeting:
+            # Greetings are valid and never need clarification
+            return {
+                'valid': True,
+                'quality_score': 1.0,
+                'needs_clarification': False,
+                'clarification': None,
+                'complexity': 'simple',
+                'issues': []
+            }
+        
+        # Check 1: Minimum length (only for non-greeting queries)
         if len(query.strip()) < 3:
             issues.append("Query too short")
             quality_score -= 0.5
@@ -335,8 +368,8 @@ class QueryEnhancer:
             issues.append("Query very long")
             quality_score -= 0.2
         
-        # Check 3: Has actual words
-        if not re.search(r'[a-zA-Z]', query):
+        # Check 3: Has actual words (support Turkish characters)
+        if not re.search(r'[a-zA-ZğüşıöçĞÜŞİÖÇ]', query):
             issues.append("No readable text found")
             quality_score -= 0.5
         
@@ -355,11 +388,12 @@ class QueryEnhancer:
         else:
             complexity = "complex"
         
-        # Check if needs clarification
+        # CHANGED: Short queries should NOT automatically need clarification
+        # The LLM can understand context and provide helpful responses
+        # Only require clarification if quality is very low
         needs_clarification = (
-            quality_score < 0.7 or
-            len(issues) > 0 or
-            word_count <= 2
+            quality_score < 0.5 and  # Only if quality is very poor
+            len(issues) > 1  # And there are multiple issues
         )
         
         clarification = None

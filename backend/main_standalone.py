@@ -589,7 +589,7 @@ async def chat_endpoint_legacy(request: ChatRequest, db: Session = Depends(get_d
                     messages=[
                         {
                             "role": "system", 
-                            "content": "You are a helpful Istanbul travel assistant. Provide accurate, friendly advice about Istanbul's restaurants, museums, attractions, transportation, and culture. Keep responses informative but concise."
+                            "content": "You are KAM, a helpful AI travel assistant for Istanbul. Provide accurate, friendly advice about Istanbul's restaurants, museums, attractions, transportation, and culture. Keep responses informative but concise."
                         },
                         {"role": "user", "content": user_message}
                     ],

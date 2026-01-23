@@ -2416,9 +2416,9 @@ function Chatbot({ userLocation: propUserLocation }) {
                             📋 Copy
                           </button>
                           
-                          {/* Restaurant Cards */}
+                          {/* Restaurant Cards - Hidden on mobile for cleaner UI */}
                           {msg.restaurants && msg.restaurants.length > 0 && (
-                            <div className="mt-4 space-y-4">
+                            <div className="mt-4 space-y-4 hidden md:block">
                               <div className={`text-sm font-medium mb-3 ${
                                 darkMode ? 'text-gray-300' : 'text-gray-700'
                               }`}>
@@ -3070,27 +3070,29 @@ function Chatbot({ userLocation: propUserLocation }) {
         bottomOffset={isMobile ? 120 : 140} // Raised higher to avoid overlapping with input
       />
 
-      {/* Quick Reply Suggestions - Mobile optimized with dynamic suggestions */}
-      <QuickReplies
-        suggestions={quickReplySuggestions}
-        onSelect={(suggestion, index) => {
-          // Track quick reply click (analytics)
-          try {
-            trackEvent('quickReply', { suggestion, index: index || 0, type: useSmartQuickReplies ? 'smart' : 'static' });
-            // Track A/B test conversion
-            trackConversion(AB_TESTS.SMART_QUICK_REPLIES, 'quick_reply_click', { suggestion });
-            if (useMobileComponents) {
-              trackConversion(AB_TESTS.MOBILE_COMPONENTS, 'feature_usage', { feature: 'quick_replies' });
+      {/* Quick Reply Suggestions - Hidden on mobile for cleaner UI */}
+      {!isMobile && (
+        <QuickReplies
+          suggestions={quickReplySuggestions}
+          onSelect={(suggestion, index) => {
+            // Track quick reply click (analytics)
+            try {
+              trackEvent('quickReply', { suggestion, index: index || 0, type: useSmartQuickReplies ? 'smart' : 'static' });
+              // Track A/B test conversion
+              trackConversion(AB_TESTS.SMART_QUICK_REPLIES, 'quick_reply_click', { suggestion });
+              if (useMobileComponents) {
+                trackConversion(AB_TESTS.MOBILE_COMPONENTS, 'feature_usage', { feature: 'quick_replies' });
+              }
+            } catch (e) {
+              console.warn('Analytics tracking failed:', e);
             }
-          } catch (e) {
-            console.warn('Analytics tracking failed:', e);
-          }
-          handleSend(suggestion);
-          setShowQuickReplies(false);
-        }}
-        darkMode={darkMode}
-        visible={showQuickReplies && !loading}
-      />
+            handleSend(suggestion);
+            setShowQuickReplies(false);
+          }}
+          darkMode={darkMode}
+          visible={showQuickReplies && !loading}
+        />
+      )}
 
       {/* Enhanced Input Area - ChatGPT Style - Fixed at bottom on mobile with spacing */}
       <div className={`border-t p-4 md:relative md:bottom-auto md:left-auto md:right-auto fixed bottom-4 left-0 right-0 z-50 transition-colors duration-200 ${

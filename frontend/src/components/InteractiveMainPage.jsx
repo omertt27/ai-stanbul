@@ -5,7 +5,7 @@ import './InteractiveMainPage.css';
 
 const InteractiveMainPage = ({ onQuickStart }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hoveredDistrict, setHoveredDistrict] = useState(null);
 
@@ -144,7 +144,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: t('homepage.districts.ortakoy.specialty'),
       population: '45,000',
       sideNote: t('homepage.districts.ortakoy.sideNote'),
-      backgroundImage: 'https://images.unsplash.com/photo-1570939274717-7eda259b50ed?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' // Bosphorus view
+      backgroundImage: '/districts/ortakoy_neighborhood_222.jpg'
     },
     {
       id: 'balat',
@@ -156,38 +156,15 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: t('homepage.districts.balat.specialty'),
       population: '25,000',
       sideNote: t('homepage.districts.balat.sideNote'),
-      backgroundImage: 'https://images.unsplash.com/photo-1570939274717-7eda259b50ed?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      id: 'arnavutkoy',
-      name: t('homepage.districts.arnavutkoy.name'),
-      color: '#2980b9',
-      description: t('homepage.districts.arnavutkoy.description'),
-      highlights: ['Ottoman Mansions', 'Seafood Restaurants', 'Bosphorus Promenade'],
-      vibe: `🏘️ ${t('homepage.districts.arnavutkoy.vibe')}`,
-      specialty: t('homepage.districts.arnavutkoy.specialty'),
-      population: '280,000',
-      sideNote: t('homepage.districts.arnavutkoy.sideNote'),
-      backgroundImage: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      id: 'moda',
-      name: t('homepage.districts.moda.name'),
-      color: '#27ae60',
-      description: t('homepage.districts.moda.description'),
-      highlights: ['Moda Pier', 'Vintage Shops', 'Cozy Cafes'],
-      vibe: `☕ ${t('homepage.districts.moda.vibe')}`,
-      specialty: t('homepage.districts.moda.specialty'),
-      population: '35,000',
-      sideNote: t('homepage.districts.moda.sideNote'),
-      backgroundImage: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      backgroundImage: '/districts/Balat_houses.jpg'
     }
   ];
 
   const handleDistrictClick = (district) => {
-    // Create a query asking for information about the district
-    const query = `Give me information about ${district.name}`;
-    console.log('🗺️ District clicked, navigating with query:', query);
+    // Create a query in the user's selected language using translation
+    const query = t('homepage.districtQuery', { districtName: district.name });
+    
+    console.log('🗺️ District clicked, navigating with query:', query, '(lang:', i18n.language, ')');
     
     // Pass query in navigation state for auto-send
     navigate('/chat', { state: { initialQuery: query } });

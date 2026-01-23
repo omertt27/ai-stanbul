@@ -24,7 +24,7 @@
     "faq": "SSS"
   },
   "chat": {
-    "welcome": "İstanbul AI'ya hoş geldiniz! Şehri keşfetmenizde nasıl yardımcı olabilirim?",
+    "welcome": "Hoş geldiniz! Ben KAM, İstanbul için AI seyahat asistanınız. Şehri keşfetmenizde nasıl yardımcı olabilirim?",
     "placeholder": "İstanbul hakkında ne öğrenmek istiyorsunuz?",
     "searchPlaceholder": "İstanbul'un büyüsünü keşfedin...",
     "typing": "KAM düşünüyor...",
@@ -332,7 +332,8 @@
       "lunchRestaurants": "iyi öğle yemeği restoranları",
       "sunsetSpots": "İstanbul en iyi gün batımı noktaları",
       "romanticDinner": "romantik akşam yemeği restoranları",
-      "nightlife": "İstanbul gece hayatı önerileri"
+      "nightlife": "İstanbul gece hayatı önerileri",
+      "culturalShows": "İstanbul'da kültürel etkinlikler ve gösteriler"
     },
     "quickStart": "Hızlı Sohbet Başlat",
     "exploreMore": "Daha Fazla Keşfet",

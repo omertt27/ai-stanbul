@@ -936,6 +936,37 @@ Fixed version (max 50 chars):"""
             'confidence': 1.0
         }
         
+        # ========== GREETINGS & SMALL TALK BYPASS ==========
+        # These should NEVER be marked as ambiguous - always let LLM handle them
+        greeting_patterns = [
+            # Turkish greetings
+            'merhaba', 'selam', 'günaydın', 'iyi günler', 'iyi akşamlar', 
+            'nasılsın', 'nasılsınız', 'naber', 'ne haber', 'hoşgeldin',
+            'teşekkür', 'sağol', 'eyvallah', 'hoşçakal', 'görüşürüz',
+            'iyiyim', 'iyi misin', 'sen nasılsın',
+            # English greetings
+            'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
+            'how are you', "how's it going", 'what\'s up', 'howdy',
+            'thanks', 'thank you', 'bye', 'goodbye', 'see you',
+            'i\'m fine', 'i am fine', 'doing well', 'doing good',
+            # Russian greetings
+            'привет', 'здравствуй', 'доброе утро', 'добрый день', 'добрый вечер',
+            'как дела', 'спасибо', 'пока', 'до свидания',
+            # German greetings
+            'hallo', 'guten tag', 'guten morgen', 'guten abend',
+            'wie geht es', 'danke', 'tschüss', 'auf wiedersehen',
+            # Arabic greetings
+            'مرحبا', 'السلام عليكم', 'صباح الخير', 'مساء الخير',
+            'كيف حالك', 'شكرا', 'مع السلامة'
+        ]
+        
+        # Check if query is a greeting/small talk - if so, DO NOT mark as ambiguous
+        if any(pattern in query_lower for pattern in greeting_patterns):
+            logger.info(f"👋 Greeting/small talk detected: '{query}' - bypassing ambiguity check")
+            result['confidence'] = 0.9  # High confidence - let LLM handle it
+            result['is_ambiguous'] = False
+            return result
+        
         # Multilingual clarification questions
         clarification_questions = {
             'multi_intent_restaurant_transport': {
@@ -1124,12 +1155,9 @@ Fixed version (max 50 chars):"""
             elif signals.get('needs_attraction') and signals.get('needs_restaurant'):
                 result['clarification_questions'] = get_questions('multi_intent_attraction_restaurant')
         
-        # Type 2: Very short query without clear intent
-        if word_count <= 2 and signal_count == 0:
-            result['is_ambiguous'] = True
-            result['ambiguity_type'] = 'too_short'
-            result['confidence'] = 0.4
-            result['clarification_questions'] = get_questions('too_short')
+        # Type 2: REMOVED - "too short" queries should go to LLM
+        # The LLM can understand short queries like greetings, thanks, etc.
+        # We already have a greeting bypass above, and LLM handles everything else
         
         # Type 3: Generic location query
         generic_patterns = [
@@ -1162,15 +1190,11 @@ Fixed version (max 50 chars):"""
                 result['clarification_questions'] = get_questions('generic_default')
         
         # Type 4: No signals detected at all
-        # CRITICAL FIX: Only mark as ambiguous if query is VERY vague (< 3 words)
-        # Otherwise, let it proceed to LLM fallback which can handle it
-        if signal_count == 0 and word_count <= 3:
-            result['is_ambiguous'] = True
-            result['ambiguity_type'] = 'unclear_intent'
-            result['confidence'] = 0.3
-            result['clarification_questions'] = get_questions('unclear_intent')
-        elif signal_count == 0 and word_count > 3:
-            # Don't mark as ambiguous - let LLM handle it as fallback
+        # REMOVED: "too short" check - LLM can understand any query length
+        # The greeting bypass above handles common phrases, and LLM handles everything else
+        # Short queries like "nasılsın", "hi", "thanks" should go to LLM, not return errors
+        if signal_count == 0:
+            # Don't mark as ambiguous - let LLM handle it
             # LLM can understand queries even if regex patterns don't match
             result['is_ambiguous'] = False
             result['confidence'] = 0.7  # Medium confidence - proceed to LLM

@@ -24,7 +24,7 @@
     "faq": "FAQ"
   },
   "chat": {
-    "welcome": "Bienvenue sur Istanbul AI ! Comment puis-je vous aider à explorer la ville ?",
+    "welcome": "Bienvenue ! Je suis KAM, votre assistant de voyage AI pour Istanbul. Comment puis-je vous aider à explorer la ville ?",
     "placeholder": "Que souhaitez-vous savoir sur Istanbul ?",
     "searchPlaceholder": "Découvrez la magie d'Istanbul...",
     "typing": "KAM réfléchit...",
