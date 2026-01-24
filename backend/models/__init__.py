@@ -1,8 +1,10 @@
 """
 Backend Models Package - Re-export models from models.py
+
+NOTE: To avoid circular imports, this module uses lazy imports.
+Models are only loaded when actually accessed.
 """
 
-# Import from central Base location
 import sys
 import os
 
@@ -11,56 +13,72 @@ parent_dir = os.path.dirname(os.path.dirname(__file__))
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from db.base import Base  # Use central Base - single source of truth
+# Import Base directly (this is safe - no circular dependency)
+from db.base import Base
 
-# Import models directly from models.py (NOT using importlib to avoid duplicate registration)
-try:
-    # Change the import path to use the parent directory
-    import sys
-    original_path = sys.path.copy()
-    
-    # Import from sibling models.py file
-    import models as models_module
-    
-    # Re-export all models
-    User = models_module.User
-    Place = models_module.Place
-    Museum = models_module.Museum
-    Restaurant = models_module.Restaurant
-    Event = models_module.Event
-    ChatHistory = models_module.ChatHistory
-    BlogPost = models_module.BlogPost
-    BlogComment = models_module.BlogComment
-    BlogLike = models_module.BlogLike
-    ChatSession = models_module.ChatSession
-    ConversationHistory = models_module.ConversationHistory
-    UserPreferences = models_module.UserPreferences
-    
-    # Real-time learning models
-    FeedbackEvent = models_module.FeedbackEvent
-    UserInteractionAggregate = models_module.UserInteractionAggregate
-    ItemFeatureVector = models_module.ItemFeatureVector
-    OnlineLearningModel = models_module.OnlineLearningModel
-    
-    # GPS Navigation models
-    LocationHistory = models_module.LocationHistory
-    NavigationSession = models_module.NavigationSession
-    RouteHistory = models_module.RouteHistory
-    NavigationEvent = models_module.NavigationEvent
-    
-    print("✅ Real-time learning models imported successfully")
-    print("✅ GPS Navigation models imported successfully")
-    
-except Exception as e:
-    print(f"⚠️ Warning: Could not import from models.py: {e}")
-    # Set to None if import fails
-    User = Place = Museum = Restaurant = Event = ChatHistory = None
-    BlogPost = BlogComment = BlogLike = ChatSession = ConversationHistory = None
-    FeedbackEvent = UserInteractionAggregate = ItemFeatureVector = OnlineLearningModel = None
-    LocationHistory = NavigationSession = RouteHistory = NavigationEvent = UserPreferences = None
+# Lazy loading - models are imported only when needed
+_models_loaded = False
+_models_cache = {}
 
-# Temporarily comment out to fix SQLAlchemy MetaData conflict
-# from .intent_feedback import IntentFeedback, FeedbackStatistics, create_tables
+def _load_models():
+    """Lazy load models from models.py to avoid circular imports"""
+    global _models_loaded, _models_cache
+    
+    if _models_loaded:
+        return _models_cache
+    
+    try:
+        # Import the parent models.py file directly by its path
+        import importlib.util
+        models_path = os.path.join(parent_dir, 'models.py')
+        spec = importlib.util.spec_from_file_location("models_file", models_path)
+        models_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(models_module)
+        
+        # Cache all model classes
+        _models_cache = {
+            'User': getattr(models_module, 'User', None),
+            'Place': getattr(models_module, 'Place', None),
+            'Museum': getattr(models_module, 'Museum', None),
+            'Restaurant': getattr(models_module, 'Restaurant', None),
+            'Event': getattr(models_module, 'Event', None),
+            'ChatHistory': getattr(models_module, 'ChatHistory', None),
+            'BlogPost': getattr(models_module, 'BlogPost', None),
+            'BlogComment': getattr(models_module, 'BlogComment', None),
+            'BlogLike': getattr(models_module, 'BlogLike', None),
+            'ChatSession': getattr(models_module, 'ChatSession', None),
+            'ConversationHistory': getattr(models_module, 'ConversationHistory', None),
+            'UserPreferences': getattr(models_module, 'UserPreferences', None),
+            'FeedbackEvent': getattr(models_module, 'FeedbackEvent', None),
+            'UserInteractionAggregate': getattr(models_module, 'UserInteractionAggregate', None),
+            'ItemFeatureVector': getattr(models_module, 'ItemFeatureVector', None),
+            'OnlineLearningModel': getattr(models_module, 'OnlineLearningModel', None),
+            'LocationHistory': getattr(models_module, 'LocationHistory', None),
+            'NavigationSession': getattr(models_module, 'NavigationSession', None),
+            'RouteHistory': getattr(models_module, 'RouteHistory', None),
+            'NavigationEvent': getattr(models_module, 'NavigationEvent', None),
+        }
+        _models_loaded = True
+        
+    except Exception as e:
+        print(f"⚠️ Warning: Could not load models: {e}")
+        _models_cache = {}
+        _models_loaded = True
+    
+    return _models_cache
+
+def __getattr__(name):
+    """Lazy attribute access for models"""
+    if name == 'Base':
+        return Base
+    
+    models = _load_models()
+    if name in models:
+        return models[name]
+    
+    raise AttributeError(f"module 'models' has no attribute '{name}'")
+
+# Temporarily disabled
 IntentFeedback = None
 FeedbackStatistics = None
 create_tables = None

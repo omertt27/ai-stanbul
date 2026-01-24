@@ -1,7 +1,8 @@
 """
-Database package - SQLAlchemy Base and models registry
+Database package - SQLAlchemy Base
+Note: models_registry is NOT imported here to avoid circular imports.
+Import models directly from 'models' module instead.
 """
 from .base import Base
-from .models_registry import *
 
 __all__ = ["Base"]
