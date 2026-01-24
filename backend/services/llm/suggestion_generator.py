@@ -250,24 +250,453 @@ class SuggestionGenerator:
             return self._generate_template_suggestions(context, max_count)
 
     def _generate_template_suggestions(self, context: SuggestionContext, max_count: int) -> List[Dict[str, Any]]:
-        """Simple template-based suggestion generator (fallback)
-        Returns list of dicts with keys: text, type, intent, entities, relevance
         """
-        templates = [
-            {"text": "What are the top attractions nearby?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
-            {"text": "Show me popular restaurants in this neighborhood", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
-            {"text": "How do I get to Sultanahmet from here?", "type": "practical", "intent": "needs_transportation", "relevance": 0.8},
-            {"text": "Recommend a hidden gem off the beaten path", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
-            {"text": "What events are happening this weekend?", "type": "cultural", "intent": "needs_events", "relevance": 0.7}
-        ]
-        # Simple context-aware filtering (if location present)
-        if context.user_location:
-            # Promote location-specific templates
-            templates[0]['relevance'] += 0.05
-            templates[1]['relevance'] += 0.03
-        # Return top-k by relevance
-        templates.sort(key=lambda x: x['relevance'], reverse=True)
-        return templates[:max_count]
+        Context-aware suggestion generator (fallback)
+        Returns list of dicts with keys: text, type, intent, entities, relevance
+        
+        Suggestions are highly relevant to:
+        1. The current query topic (restaurants → more restaurant suggestions)
+        2. Detected intents (transportation → route-related follow-ups)
+        3. Extracted entities (mentioned places → suggestions about those places)
+        4. Language (all 6 languages: EN, TR, RU, DE, AR, FR)
+        """
+        language = getattr(context, 'language', 'en') or 'en'
+        query_lower = context.current_query.lower() if context.current_query else ""
+        response_type = context.response_type or "general"
+        detected_intents = context.detected_intents or []
+        entities = context.extracted_entities or {}
+        
+        # Extract location/place names from entities or query
+        mentioned_place = entities.get('destination') or entities.get('location') or entities.get('neighborhood')
+        
+        # CONTEXT-AWARE SUGGESTION TEMPLATES BY CATEGORY
+        suggestions_by_category = self._get_contextual_suggestions_by_language(language, mentioned_place)
+        
+        # Determine which categories to prioritize based on context
+        selected_suggestions = []
+        
+        # 1. RESTAURANT CONTEXT - user asked about food/restaurants
+        if any(word in query_lower for word in ['restaurant', 'food', 'eat', 'yemek', 'restoran', 'ресторан', 'еда', 'essen', 'مطعم', 'طعام', 'manger']):
+            selected_suggestions.extend(suggestions_by_category.get('after_restaurant', []))
+        
+        # 2. ATTRACTION CONTEXT - user asked about places to visit
+        elif any(word in query_lower for word in ['visit', 'see', 'attraction', 'museum', 'mosque', 'gezilecek', 'müze', 'cami', 'достопримечательност', 'музей', 'sehenswürdigkeit', 'معلم', 'متحف', 'visite', 'musée']):
+            selected_suggestions.extend(suggestions_by_category.get('after_attraction', []))
+        
+        # 3. TRANSPORTATION CONTEXT - user asked about routes/directions
+        elif any(word in query_lower for word in ['how to get', 'route', 'metro', 'bus', 'nasıl gid', 'ulaşım', 'как добраться', 'метро', 'wie komme', 'كيف أصل', 'مترو', 'comment aller', 'transport']):
+            selected_suggestions.extend(suggestions_by_category.get('after_transportation', []))
+        
+        # 4. NEIGHBORHOOD CONTEXT - user asked about a specific area
+        elif any(word in query_lower for word in ['neighborhood', 'area', 'district', 'semt', 'mahalle', 'район', 'viertel', 'حي', 'quartier']) or mentioned_place:
+            selected_suggestions.extend(suggestions_by_category.get('after_neighborhood', []))
+        
+        # 5. HIDDEN GEMS CONTEXT - user asked about local/hidden places
+        elif any(word in query_lower for word in ['hidden', 'local', 'secret', 'off the beaten', 'gizli', 'yerel', 'скрыт', 'местн', 'geheim', 'lokal', 'مخفي', 'محلي', 'caché', 'local']):
+            selected_suggestions.extend(suggestions_by_category.get('after_hidden_gems', []))
+        
+        # 6. WEATHER CONTEXT - user asked about weather
+        elif any(word in query_lower for word in ['weather', 'hava', 'погода', 'wetter', 'طقس', 'météo', 'rain', 'yağmur', 'дождь', 'regen', 'مطر', 'pluie']):
+            selected_suggestions.extend(suggestions_by_category.get('after_weather', []))
+        
+        # 7. GREETING/GENERAL - user just said hello or general question
+        elif any(word in query_lower for word in ['hello', 'hi', 'merhaba', 'selam', 'привет', 'hallo', 'مرحبا', 'bonjour', 'salut']):
+            selected_suggestions.extend(suggestions_by_category.get('after_greeting', []))
+        
+        # 8. DEFAULT - general helpful suggestions
+        else:
+            selected_suggestions.extend(suggestions_by_category.get('general', []))
+        
+        # Add variety - mix in one or two from other categories if we have room
+        if len(selected_suggestions) < max_count:
+            other_categories = ['general', 'after_attraction', 'after_restaurant']
+            for cat in other_categories:
+                if cat not in [response_type]:
+                    extras = suggestions_by_category.get(cat, [])
+                    for s in extras:
+                        if s not in selected_suggestions and len(selected_suggestions) < max_count + 2:
+                            s_copy = s.copy()
+                            s_copy['relevance'] = s_copy.get('relevance', 0.7) - 0.1  # Lower priority
+                            selected_suggestions.append(s_copy)
+        
+        # Sort by relevance and return top-k
+        selected_suggestions.sort(key=lambda x: x.get('relevance', 0.5), reverse=True)
+        return selected_suggestions[:max_count]
+    
+    def _get_contextual_suggestions_by_language(self, language: str, mentioned_place: str = None) -> Dict[str, List[Dict]]:
+        """Get context-aware suggestions for each language"""
+        
+        place = mentioned_place or "Sultanahmet"
+        
+        # ENGLISH suggestions
+        if language == 'en':
+            return {
+                'after_restaurant': [
+                    {"text": "Show me more restaurants nearby", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": "Find restaurants with a view", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "What's the best street food around here?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Are there any rooftop restaurants?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "Show me cafes for Turkish breakfast", "type": "dining", "intent": "needs_restaurant", "relevance": 0.75},
+                ],
+                'after_attraction': [
+                    {"text": "What else is near this place?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "How do I get there?", "type": "practical", "intent": "needs_transportation", "relevance": 0.9},
+                    {"text": "Are there good restaurants nearby?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "What's the best time to visit?", "type": "practical", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Show me hidden gems in this area", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                ],
+                'after_transportation': [
+                    {"text": "Is there a faster route?", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
+                    {"text": "What can I see along the way?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Where can I buy an Istanbulkart?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": "Are there restaurants near my destination?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "What's worth visiting nearby?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_neighborhood': [
+                    {"text": f"Best restaurants in {place}", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": f"Hidden gems in {place}", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.9},
+                    {"text": f"How do I get to {place}?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": f"What's {place} known for?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Show me nearby neighborhoods", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_hidden_gems': [
+                    {"text": "Show me more hidden gems", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.95},
+                    {"text": "Any local-only restaurants?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Secret viewpoints in Istanbul?", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "Off-the-beaten-path neighborhoods", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.8},
+                    {"text": "How do I get to this place?", "type": "practical", "intent": "needs_transportation", "relevance": 0.75},
+                ],
+                'after_weather': [
+                    {"text": "What can I do indoors today?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Best museums to visit", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Cozy cafes for rainy days", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "What's the forecast for tomorrow?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Indoor shopping options", "type": "exploration", "intent": "needs_shopping", "relevance": 0.75},
+                ],
+                'after_greeting': [
+                    {"text": "What should I see in Istanbul?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Best restaurants in Istanbul", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Show me hidden gems", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "How's the weather today?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Plan my day in Istanbul", "type": "exploration", "intent": "needs_trip_planning", "relevance": 0.75},
+                ],
+                'general': [
+                    {"text": "Top attractions in Istanbul", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Best local restaurants", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "How do I get around?", "type": "practical", "intent": "needs_transportation", "relevance": 0.8},
+                    {"text": "Hidden gems to explore", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                    {"text": "What's happening this weekend?", "type": "cultural", "intent": "needs_events", "relevance": 0.7},
+                ],
+            }
+        
+        # TURKISH suggestions
+        elif language == 'tr':
+            return {
+                'after_restaurant': [
+                    {"text": "Yakında başka restoranlar göster", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": "Manzaralı restoranlar var mı?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "En iyi sokak yemekleri nerede?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Teras restoranları göster", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "Kahvaltı mekanları öner", "type": "dining", "intent": "needs_restaurant", "relevance": 0.75},
+                ],
+                'after_attraction': [
+                    {"text": "Bu yerin yakınında ne var?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Oraya nasıl giderim?", "type": "practical", "intent": "needs_transportation", "relevance": 0.9},
+                    {"text": "Yakında güzel restoranlar var mı?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "En iyi ziyaret zamanı ne?", "type": "practical", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Bu bölgedeki gizli mekanlar", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                ],
+                'after_transportation': [
+                    {"text": "Daha hızlı bir yol var mı?", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
+                    {"text": "Yol üzerinde ne görebilirim?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "İstanbulkart nereden alırım?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": "Varış noktasında restoranlar var mı?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "Yakında görülecek yerler", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_neighborhood': [
+                    {"text": f"{place} en iyi restoranlar", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": f"{place} gizli mekanlar", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.9},
+                    {"text": f"{place}'e nasıl gidilir?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": f"{place} neyle ünlü?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Yakın semtleri göster", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_hidden_gems': [
+                    {"text": "Daha fazla gizli mekan göster", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.95},
+                    {"text": "Turistlerin bilmediği restoranlar", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Gizli manzara noktaları", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "Keşfedilmemiş semtler", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.8},
+                    {"text": "Bu yere nasıl gidilir?", "type": "practical", "intent": "needs_transportation", "relevance": 0.75},
+                ],
+                'after_weather': [
+                    {"text": "Bugün kapalı mekanlarda ne yapabilirim?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "En iyi müzeler hangileri?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Yağmurlu günler için kafeler", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Yarın hava nasıl olacak?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Kapalı alışveriş merkezleri", "type": "exploration", "intent": "needs_shopping", "relevance": 0.75},
+                ],
+                'after_greeting': [
+                    {"text": "İstanbul'da ne görmeliyim?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "En iyi restoranlar nereler?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Gizli mekanları göster", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "Bugün hava nasıl?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Günümü planla", "type": "exploration", "intent": "needs_trip_planning", "relevance": 0.75},
+                ],
+                'general': [
+                    {"text": "İstanbul'un en güzel yerleri", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "En iyi yerel restoranlar", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Şehirde nasıl dolaşırım?", "type": "practical", "intent": "needs_transportation", "relevance": 0.8},
+                    {"text": "Keşfedilecek gizli yerler", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                    {"text": "Bu hafta sonu ne var?", "type": "cultural", "intent": "needs_events", "relevance": 0.7},
+                ],
+            }
+        
+        # RUSSIAN suggestions
+        elif language == 'ru':
+            return {
+                'after_restaurant': [
+                    {"text": "Покажи ещё рестораны рядом", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": "Рестораны с видом на город", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Где лучшая уличная еда?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Есть рестораны на крыше?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "Кафе с турецким завтраком", "type": "dining", "intent": "needs_restaurant", "relevance": 0.75},
+                ],
+                'after_attraction': [
+                    {"text": "Что ещё рядом с этим местом?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Как туда добраться?", "type": "practical", "intent": "needs_transportation", "relevance": 0.9},
+                    {"text": "Есть рестораны поблизости?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Лучшее время для посещения?", "type": "practical", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Скрытые места в этом районе", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                ],
+                'after_transportation': [
+                    {"text": "Есть более быстрый маршрут?", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
+                    {"text": "Что посмотреть по пути?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Где купить Истанбулкарт?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": "Рестораны у места назначения", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "Что стоит посетить рядом?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_neighborhood': [
+                    {"text": f"Лучшие рестораны в {place}", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": f"Скрытые места в {place}", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.9},
+                    {"text": f"Как добраться до {place}?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": f"Чем известен {place}?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Покажи соседние районы", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_hidden_gems': [
+                    {"text": "Покажи ещё скрытые места", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.95},
+                    {"text": "Рестораны только для местных", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Секретные смотровые площадки", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "Нетуристические районы", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.8},
+                    {"text": "Как добраться до этого места?", "type": "practical", "intent": "needs_transportation", "relevance": 0.75},
+                ],
+                'after_weather': [
+                    {"text": "Что делать в помещении сегодня?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Лучшие музеи для посещения", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Уютные кафе в дождливый день", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Какой прогноз на завтра?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Крытые торговые центры", "type": "exploration", "intent": "needs_shopping", "relevance": 0.75},
+                ],
+                'after_greeting': [
+                    {"text": "Что посмотреть в Стамбуле?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Лучшие рестораны Стамбула", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Покажи скрытые места", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "Какая сегодня погода?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Спланируй мой день", "type": "exploration", "intent": "needs_trip_planning", "relevance": 0.75},
+                ],
+                'general': [
+                    {"text": "Главные достопримечательности", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Лучшие местные рестораны", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Как передвигаться по городу?", "type": "practical", "intent": "needs_transportation", "relevance": 0.8},
+                    {"text": "Скрытые жемчужины города", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                    {"text": "Что интересного на выходных?", "type": "cultural", "intent": "needs_events", "relevance": 0.7},
+                ],
+            }
+        
+        # GERMAN suggestions  
+        elif language == 'de':
+            return {
+                'after_restaurant': [
+                    {"text": "Zeige mehr Restaurants in der Nähe", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": "Restaurants mit Aussicht", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Wo gibt es das beste Street Food?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Gibt es Dachterrassen-Restaurants?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "Cafés für türkisches Frühstück", "type": "dining", "intent": "needs_restaurant", "relevance": 0.75},
+                ],
+                'after_attraction': [
+                    {"text": "Was gibt es noch in der Nähe?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Wie komme ich dorthin?", "type": "practical", "intent": "needs_transportation", "relevance": 0.9},
+                    {"text": "Gibt es gute Restaurants in der Nähe?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Beste Besuchszeit?", "type": "practical", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Geheimtipps in dieser Gegend", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                ],
+                'after_transportation': [
+                    {"text": "Gibt es eine schnellere Route?", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
+                    {"text": "Was kann ich unterwegs sehen?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Wo kaufe ich eine Istanbulkart?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": "Restaurants am Zielort?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "Sehenswürdigkeiten in der Nähe", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_neighborhood': [
+                    {"text": f"Beste Restaurants in {place}", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": f"Geheimtipps in {place}", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.9},
+                    {"text": f"Wie komme ich nach {place}?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": f"Wofür ist {place} bekannt?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Zeige Nachbarviertel", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_hidden_gems': [
+                    {"text": "Zeige mehr Geheimtipps", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.95},
+                    {"text": "Restaurants nur für Einheimische", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Geheime Aussichtspunkte", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "Unentdeckte Viertel", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.8},
+                    {"text": "Wie komme ich zu diesem Ort?", "type": "practical", "intent": "needs_transportation", "relevance": 0.75},
+                ],
+                'after_weather': [
+                    {"text": "Was kann ich heute drinnen machen?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Beste Museen zum Besuchen", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Gemütliche Cafés für Regentage", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Wie wird das Wetter morgen?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Überdachte Einkaufsmöglichkeiten", "type": "exploration", "intent": "needs_shopping", "relevance": 0.75},
+                ],
+                'after_greeting': [
+                    {"text": "Was sollte ich in Istanbul sehen?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Beste Restaurants in Istanbul", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Zeige mir Geheimtipps", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "Wie ist das Wetter heute?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Plane meinen Tag", "type": "exploration", "intent": "needs_trip_planning", "relevance": 0.75},
+                ],
+                'general': [
+                    {"text": "Top-Sehenswürdigkeiten in Istanbul", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Beste lokale Restaurants", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Wie komme ich herum?", "type": "practical", "intent": "needs_transportation", "relevance": 0.8},
+                    {"text": "Geheimtipps zum Entdecken", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                    {"text": "Was passiert am Wochenende?", "type": "cultural", "intent": "needs_events", "relevance": 0.7},
+                ],
+            }
+        
+        # ARABIC suggestions
+        elif language == 'ar':
+            return {
+                'after_restaurant': [
+                    {"text": "أرني المزيد من المطاعم القريبة", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": "مطاعم بإطلالة جميلة", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "أين أفضل طعام الشارع؟", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "هل هناك مطاعم على السطح؟", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "مقاهي للفطور التركي", "type": "dining", "intent": "needs_restaurant", "relevance": 0.75},
+                ],
+                'after_attraction': [
+                    {"text": "ماذا يوجد بالقرب من هذا المكان؟", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "كيف أصل إلى هناك؟", "type": "practical", "intent": "needs_transportation", "relevance": 0.9},
+                    {"text": "هل توجد مطاعم قريبة؟", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "ما أفضل وقت للزيارة؟", "type": "practical", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "أماكن مخفية في هذه المنطقة", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                ],
+                'after_transportation': [
+                    {"text": "هل يوجد طريق أسرع؟", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
+                    {"text": "ماذا يمكنني رؤيته في الطريق؟", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "أين أشتري بطاقة إسطنبول؟", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": "مطاعم عند الوجهة", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "ما يستحق الزيارة قريباً", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_neighborhood': [
+                    {"text": f"أفضل مطاعم في {place}", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": f"أماكن مخفية في {place}", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.9},
+                    {"text": f"كيف أصل إلى {place}؟", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": f"بماذا يشتهر {place}؟", "type": "exploration", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "أرني الأحياء المجاورة", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_hidden_gems': [
+                    {"text": "أرني المزيد من الأماكن المخفية", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.95},
+                    {"text": "مطاعم للسكان المحليين فقط", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "نقاط مشاهدة سرية", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "أحياء غير سياحية", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.8},
+                    {"text": "كيف أصل لهذا المكان؟", "type": "practical", "intent": "needs_transportation", "relevance": 0.75},
+                ],
+                'after_weather': [
+                    {"text": "ماذا أفعل في الداخل اليوم؟", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "أفضل المتاحف للزيارة", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "مقاهي مريحة للأيام الممطرة", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "ما توقعات الطقس غداً؟", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "خيارات التسوق المغطاة", "type": "exploration", "intent": "needs_shopping", "relevance": 0.75},
+                ],
+                'after_greeting': [
+                    {"text": "ماذا يجب أن أزور في اسطنبول؟", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "أفضل مطاعم اسطنبول", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "أرني الأماكن المخفية", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "كيف الطقس اليوم؟", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "خطط يومي في اسطنبول", "type": "exploration", "intent": "needs_trip_planning", "relevance": 0.75},
+                ],
+                'general': [
+                    {"text": "أهم المعالم في اسطنبول", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "أفضل المطاعم المحلية", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "كيف أتنقل في المدينة؟", "type": "practical", "intent": "needs_transportation", "relevance": 0.8},
+                    {"text": "جواهر مخفية للاستكشاف", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                    {"text": "ماذا يحدث هذا الأسبوع؟", "type": "cultural", "intent": "needs_events", "relevance": 0.7},
+                ],
+            }
+        
+        # FRENCH suggestions
+        elif language == 'fr':
+            return {
+                'after_restaurant': [
+                    {"text": "Montre-moi plus de restaurants à proximité", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": "Restaurants avec vue", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Où trouver la meilleure street food?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Y a-t-il des restaurants sur les toits?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "Cafés pour petit-déjeuner turc", "type": "dining", "intent": "needs_restaurant", "relevance": 0.75},
+                ],
+                'after_attraction': [
+                    {"text": "Qu'y a-t-il d'autre près d'ici?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Comment y aller?", "type": "practical", "intent": "needs_transportation", "relevance": 0.9},
+                    {"text": "Y a-t-il de bons restaurants à proximité?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Meilleur moment pour visiter?", "type": "practical", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Trésors cachés dans ce quartier", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                ],
+                'after_transportation': [
+                    {"text": "Y a-t-il un itinéraire plus rapide?", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
+                    {"text": "Que voir en chemin?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Où acheter une Istanbulkart?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": "Restaurants près de ma destination", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
+                    {"text": "Que vaut-il la peine de visiter?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_neighborhood': [
+                    {"text": f"Meilleurs restaurants à {place}", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
+                    {"text": f"Trésors cachés à {place}", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.9},
+                    {"text": f"Comment aller à {place}?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
+                    {"text": f"Pour quoi {place} est-il connu?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.8},
+                    {"text": "Montre les quartiers voisins", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                ],
+                'after_hidden_gems': [
+                    {"text": "Montre plus de trésors cachés", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.95},
+                    {"text": "Restaurants réservés aux locaux", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Points de vue secrets", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "Quartiers hors des sentiers battus", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.8},
+                    {"text": "Comment aller à cet endroit?", "type": "practical", "intent": "needs_transportation", "relevance": 0.75},
+                ],
+                'after_weather': [
+                    {"text": "Que faire à l'intérieur aujourd'hui?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Meilleurs musées à visiter", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Cafés cosy pour les jours de pluie", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Prévisions météo pour demain?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Options shopping couvertes", "type": "exploration", "intent": "needs_shopping", "relevance": 0.75},
+                ],
+                'after_greeting': [
+                    {"text": "Que voir à Istanbul?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.95},
+                    {"text": "Meilleurs restaurants d'Istanbul", "type": "dining", "intent": "needs_restaurant", "relevance": 0.9},
+                    {"text": "Montre-moi les trésors cachés", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.85},
+                    {"text": "Quel temps fait-il aujourd'hui?", "type": "practical", "intent": "needs_weather", "relevance": 0.8},
+                    {"text": "Planifie ma journée", "type": "exploration", "intent": "needs_trip_planning", "relevance": 0.75},
+                ],
+                'general': [
+                    {"text": "Meilleures attractions d'Istanbul", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Meilleurs restaurants locaux", "type": "dining", "intent": "needs_restaurant", "relevance": 0.85},
+                    {"text": "Comment se déplacer?", "type": "practical", "intent": "needs_transportation", "relevance": 0.8},
+                    {"text": "Trésors cachés à découvrir", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
+                    {"text": "Que se passe-t-il ce week-end?", "type": "cultural", "intent": "needs_events", "relevance": 0.7},
+                ],
+            }
+        
+        # Default to English
+        else:
+            return self._get_contextual_suggestions_by_language('en', mentioned_place)
     
     async def _rank_suggestions_llm(
         self,

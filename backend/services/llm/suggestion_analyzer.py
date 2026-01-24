@@ -77,7 +77,8 @@ class SuggestionAnalyzer:
         detected_intents: Optional[List[str]] = None,
         entities: Optional[Dict[str, Any]] = None,
         response_type: Optional[str] = None,
-        user_location: Optional[str] = None
+        user_location: Optional[str] = None,
+        language: Optional[str] = None
     ) -> SuggestionContext:
         """
         Analyze conversation context for suggestion generation.
@@ -90,11 +91,15 @@ class SuggestionAnalyzer:
             entities: Extracted entities
             response_type: Type of response (restaurant, route, etc.)
             user_location: User's location if known
+            language: User's preferred language (en, tr, ru, de, ar, fr)
             
         Returns:
             SuggestionContext with analyzed information
         """
         start_time = time.time()
+        
+        # Auto-detect language from query if not provided
+        effective_language = language or self._detect_language_from_query(query) or "en"
         
         try:
             # Build context
@@ -107,6 +112,7 @@ class SuggestionAnalyzer:
                 user_location=user_location,
                 response_type=response_type or "unknown",
                 response_success=not any(err in response.lower() for err in ["error", "sorry", "couldn't", "unable"]),
+                language=effective_language,
                 trigger_confidence=0.0
             )
             
@@ -387,6 +393,50 @@ Categories:
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             raise
+    
+    def _detect_language_from_query(self, query: str) -> Optional[str]:
+        """
+        Detect language from query text using simple heuristics.
+        
+        Args:
+            query: User query text
+            
+        Returns:
+            Language code (en, tr, ru, de, ar, fr) or None
+        """
+        if not query:
+            return None
+            
+        query_lower = query.lower()
+        
+        # Turkish indicators
+        turkish_chars = ['ı', 'ş', 'ğ', 'ü', 'ö', 'ç']
+        turkish_words = ['merhaba', 'nerede', 'nasıl', 'istiyorum', 'göster', 'bana', 'için', 'bir', 'olan', 'ne', 'var']
+        if any(c in query for c in turkish_chars) or any(w in query_lower for w in turkish_words):
+            return 'tr'
+        
+        # Russian indicators (Cyrillic)
+        if any('\u0400' <= c <= '\u04FF' for c in query):
+            return 'ru'
+        
+        # Arabic indicators
+        if any('\u0600' <= c <= '\u06FF' for c in query):
+            return 'ar'
+        
+        # German indicators
+        german_chars = ['ä', 'ö', 'ü', 'ß']
+        german_words = ['ich', 'möchte', 'zeige', 'mir', 'wie', 'komme', 'nach', 'bitte', 'ist', 'das', 'ein', 'der', 'die']
+        if any(c in query for c in german_chars) or any(w in query_lower for w in german_words):
+            return 'de'
+        
+        # French indicators
+        french_chars = ['é', 'è', 'ê', 'à', 'ù', 'ç', 'œ', 'î', 'ô', 'â', 'û']
+        french_words = ['je', 'veux', 'montre', 'moi', 'comment', 'aller', 's\'il', 'vous', 'plaît', 'est', 'le', 'la', 'les', 'un', 'une', 'où']
+        if any(c in query for c in french_chars) or any(w in query_lower for w in french_words):
+            return 'fr'
+        
+        # Default to None (will use English fallback)
+        return None
     
     def _heuristic_trigger(self, context: SuggestionContext) -> Tuple[bool, float, str]:
         """

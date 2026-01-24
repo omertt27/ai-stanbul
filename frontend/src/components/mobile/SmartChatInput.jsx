@@ -376,7 +376,11 @@ const SmartChatInput = ({
       {/* Interim transcript indicator */}
       {isListening && interimTranscript && (
         <div className={`interim-transcript ${darkMode ? 'dark' : 'light'}`}>
-          <span className="interim-icon">🎤</span>
+          <svg className="interim-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{width: '16px', height: '16px'}}>
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" x2="12" y1="19" y2="22"/>
+          </svg>
           <span className="interim-text">{interimTranscript}...</span>
         </div>
       )}
@@ -402,7 +406,17 @@ const SmartChatInput = ({
             title={voiceSupported ? 'Voice input' : 'Voice input not supported'}
             type="button"
           >
-            {isListening ? '🔴' : '🎤'}
+            {isListening ? (
+              <svg className="voice-icon recording" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+            ) : (
+              <svg className="voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" x2="12" y1="19" y2="22"/>
+              </svg>
+            )}
           </button>
         )}
 

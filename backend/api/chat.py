@@ -1122,7 +1122,8 @@ async def pure_llm_chat(
                         entities=entities,
                         conversation_history=conversation_history,
                         user_location=llm_intent.origin if llm_intent else None,
-                        session_id=session_id
+                        session_id=session_id,
+                        language=effective_language
                     ),
                     timeout=5.0  # 5 second timeout for suggestion generation
                 )
@@ -1139,15 +1140,57 @@ async def pure_llm_chat(
         # Use proactive suggestions if available, fallback to original or defaults
         final_suggestions = proactive_suggestions if proactive_suggestions else result.get('suggestions', [])
         
-        # If no suggestions at all, provide helpful defaults
-        if not final_suggestions:
-            final_suggestions = [
+        # Define language-aware default suggestions
+        default_suggestions_by_lang = {
+            'en': [
                 "What are the top attractions in Istanbul?",
                 "Show me popular restaurants nearby",
                 "How do I get around the city?",
                 "Tell me about hidden gems",
                 "What's the weather like today?"
+            ],
+            'tr': [
+                "İstanbul'un en güzel yerleri nereler?",
+                "Yakındaki popüler restoranları göster",
+                "Şehirde nasıl dolaşabilirim?",
+                "Gizli hazineleri anlat",
+                "Bugün hava nasıl?"
+            ],
+            'ru': [
+                "Какие главные достопримечательности в Стамбуле?",
+                "Покажи популярные рестораны поблизости",
+                "Как передвигаться по городу?",
+                "Расскажи о скрытых жемчужинах",
+                "Какая сегодня погода?"
+            ],
+            'de': [
+                "Was sind die Top-Sehenswürdigkeiten in Istanbul?",
+                "Zeige mir beliebte Restaurants in der Nähe",
+                "Wie komme ich in der Stadt herum?",
+                "Erzähl mir von Geheimtipps",
+                "Wie ist das Wetter heute?"
+            ],
+            'ar': [
+                "ما هي أفضل الأماكن في اسطنبول؟",
+                "أرني المطاعم الشهيرة القريبة",
+                "كيف أتنقل في المدينة؟",
+                "أخبرني عن الأماكن المخفية",
+                "كيف حال الطقس اليوم؟"
+            ],
+            'fr': [
+                "Quelles sont les meilleures attractions à Istanbul?",
+                "Montre-moi les restaurants populaires à proximité",
+                "Comment se déplacer dans la ville?",
+                "Parle-moi des trésors cachés",
+                "Quel temps fait-il aujourd'hui?"
             ]
+        }
+        
+        # If no suggestions or suggestions are English but user language is different, use language-aware defaults
+        if not final_suggestions or (effective_language != 'en' and final_suggestions and 
+            any(s.get('text', s) if isinstance(s, dict) else s in default_suggestions_by_lang.get('en', []) 
+                for s in final_suggestions[:2])):
+            final_suggestions = default_suggestions_by_lang.get(effective_language, default_suggestions_by_lang['en'])
         
         # If proactive suggestions are dict format, extract text
         if final_suggestions and isinstance(final_suggestions[0], dict):
@@ -1810,7 +1853,8 @@ async def generate_proactive_suggestions(
     entities: Optional[Dict[str, Any]] = None,
     conversation_history: Optional[List[Dict]] = None,
     user_location: Optional[str] = None,
-    session_id: Optional[str] = None
+    session_id: Optional[str] = None,
+    language: Optional[str] = None
 ) -> Optional[List[Dict[str, Any]]]:
     """
     Generate proactive suggestions for the user.
@@ -1826,6 +1870,7 @@ async def generate_proactive_suggestions(
         conversation_history: Recent conversation turns
         user_location: User's location
         session_id: Session identifier
+        language: User's preferred language (en, tr, ru, de, ar, fr)
         
     Returns:
         List of suggestion dictionaries or None if unavailable
@@ -1845,7 +1890,8 @@ async def generate_proactive_suggestions(
             detected_intents=[intent] if intent else [],
             entities=entities or {},
             response_type=intent or "general",
-            user_location=user_location
+            user_location=user_location,
+            language=language
         )
         
         # Check if we should show suggestions

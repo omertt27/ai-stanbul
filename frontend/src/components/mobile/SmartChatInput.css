@@ -58,7 +58,6 @@
   min-height: 36px;
   border: none;
   border-radius: 50%;
-  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -72,6 +71,17 @@
   padding: 8px;      /* Extra padding for larger touch area */
 }
 
+.voice-icon {
+  width: 20px;
+  height: 20px;
+  transition: all 0.2s ease;
+}
+
+.voice-icon.recording {
+  color: #ef4444;
+  animation: pulse 1s ease-in-out infinite;
+}
+
 .smart-chat-input-container.light .voice-button {
   color: #6b7280;
 }
@@ -81,11 +91,17 @@
 }
 
 .voice-button:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
 }
 
 .smart-chat-input-container.dark .voice-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.voice-button:hover:not(:disabled) .voice-icon {
+  transform: scale(1.1);
 }
 
 .voice-button:active:not(:disabled) {
@@ -93,17 +109,13 @@
 }
 
 .voice-button.listening {
-  animation: pulse 1.5s infinite;
-}
-
-.smart-chat-input-container.light .voice-button.listening {
-  color: #8b5cf6;
-  background: rgba(139, 92, 246, 0.1);
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .smart-chat-input-container.dark .voice-button.listening {
-  color: #a78bfa;
-  background: rgba(139, 92, 246, 0.1);
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.15);
 }
 
 .voice-button:disabled {

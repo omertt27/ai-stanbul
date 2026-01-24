@@ -9,7 +9,6 @@ import SearchBar from './components/SearchBar';
 import ResultCard from './components/ResultCard';
 import InteractiveMainPage from './components/InteractiveMainPage';
 import WeatherThemeProvider from './components/WeatherThemeProvider';
-import CookieConsent from './components/CookieConsent';
 import NavBar from './components/NavBar';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import MainPageMobileNavbar from './components/MainPageMobileNavbar';
@@ -368,9 +367,6 @@ const App = () => {
           userLocation={currentLocation}
         />
 
-        {/* Cookie Consent Banner */}
-        <CookieConsent />
-        
         {/* PWA Install Button */}
         <InstallPWAButton />
 

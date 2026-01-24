@@ -2,6 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+import CookieConsent from './components/CookieConsent';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -113,6 +114,7 @@ function AppRouterContent() {
         </Suspense>
         </main>
         <Footer />
+        <CookieConsent />
       </div>
   );
 }

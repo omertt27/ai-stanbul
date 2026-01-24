@@ -1019,6 +1019,11 @@ class SuggestionContext(BaseModel):
         description="Whether the response was successful"
     )
     
+    language: str = Field(
+        default="en",
+        description="User's preferred language (en, tr, ru, de, ar, fr)"
+    )
+    
     # Trigger information
     trigger_confidence: float = Field(
         default=0.0,

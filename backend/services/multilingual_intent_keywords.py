@@ -40,6 +40,12 @@ HIDDEN_GEMS_KEYWORDS: Dict[str, List[str]] = {
         "مخفية", "سرية", "محلية", "أسرار", "غير معروفة",
         "أماكن سرية", "جواهر مخفية", "أماكن محلية",
         "خارج المسار السياحي", "أصيلة"
+    ],
+    "fr": [
+        "caché", "cachée", "secret", "secrète", "local", "locaux",
+        "hors des sentiers battus", "secrets locaux", "endroits secrets",
+        "méconnu", "peu connu", "pas touristique", "authentique",
+        "initiés", "souterrain", "obscur"
     ]
 }
 
@@ -68,6 +74,11 @@ RESTAURANT_KEYWORDS: Dict[str, List[str]] = {
     "ar": [
         "مطعم", "طعام", "أكل", "إفطار", "غداء", "عشاء",
         "مقهى", "قهوة", "مطبخ", "جائع"
+    ],
+    "fr": [
+        "restaurant", "nourriture", "manger", "dîner", "repas", "déjeuner",
+        "petit-déjeuner", "café", "faim", "cuisine",
+        "brunch", "collation", "à emporter", "livraison"
     ]
 }
 
@@ -104,6 +115,13 @@ TRANSPORTATION_KEYWORDS: Dict[str, List[str]] = {
         "مترو", "حافلة", "ترام", "عبارة", "تاكسي", "مواصلات",
         "كيف أصل", "الاتجاهات", "طريق",
         " إلى ", " من ", "بين"  # Arabic route patterns
+    ],
+    "fr": [
+        "métro", "metro", "bus", "tramway", "ferry", "taxi", "transport",
+        "comment aller", "comment y aller", "itinéraire", "trajet",
+        "transport en commun", "transports publics",
+        " à ", " de ", " vers ", "entre",  # French route patterns
+        "depuis ma position", "d'ici", "de mon emplacement"  # French GPS patterns
     ]
 }
 
@@ -142,6 +160,12 @@ LANDMARK_KEYWORDS: Dict[str, List[str]] = {
         "آيا صوفيا", "المسجد الأزرق", "برج غلطة", "قصر توبكابي",
         "قصر دولما بهشة", "صهريج البازيليك", "البازار الكبير",
         "ما هو", "أخبرني عن", "تاريخ"
+    ],
+    "fr": [
+        "sainte-sophie", "mosquée bleue", "tour de galata", "palais de topkapi",
+        "palais de dolmabahçe", "citerne basilique", "grand bazar",
+        "bazar aux épices", "tour de léandre", "forteresse de rumeli",
+        "qu'est-ce que", "parle-moi de", "histoire de", "informations sur"
     ]
 }
 
@@ -170,6 +194,11 @@ ATTRACTIONS_KEYWORDS: Dict[str, List[str]] = {
     "ar": [
         "متحف", "مسجد", "قصر", "معلم سياحي", "زيارة",
         "سياحي", "أثري", "تاريخي", "جولة"
+    ],
+    "fr": [
+        "musée", "mosquée", "palais", "attraction", "visite touristique",
+        "visiter", "touristique", "monument", "historique", "tour",
+        "sainte-sophie", "mosquée bleue", "topkapi", "citerne basilique"
     ]
 }
 
@@ -179,7 +208,8 @@ ATTRACTIONS_KEYWORDS: Dict[str, List[str]] = {
 WEATHER_KEYWORDS: Dict[str, List[str]] = {
     "en": [
         "weather", "temperature", "rain", "sunny", "cloudy", "forecast",
-        "cold", "hot", "warm", "humid", "wind"
+        "cold", "hot", "warm", "humid", "wind", "climate",
+        "what is the weather", "weather like", "is it raining", "will it rain"
     ],
     "tr": [
         "hava", "hava durumu", "sıcaklık", "yağmur", "güneşli", "bulutlu",
@@ -196,6 +226,10 @@ WEATHER_KEYWORDS: Dict[str, List[str]] = {
     "ar": [
         "طقس", "الطقس", "درجة الحرارة", "مطر", "مشمس", "غائم", "توقعات",
         "بارد", "حار", "دافئ", "جو", "الجو"
+    ],
+    "fr": [
+        "météo", "temps", "température", "pluie", "ensoleillé", "nuageux", "prévisions",
+        "froid", "chaud", "humide", "vent"
     ]
 }
 
@@ -227,6 +261,11 @@ EVENTS_KEYWORDS: Dict[str, List[str]] = {
         "حدث", "أحداث", "حفلة", "مهرجان", "عرض", "معرض",
         "ما يحدث", "الليلة", "نهاية الأسبوع", "مسرح",
         "موسيقى حية", "حفلة", "الحياة الليلية"
+    ],
+    "fr": [
+        "événement", "événements", "concert", "festival", "spectacle", "exposition",
+        "que se passe-t-il", "ce soir", "ce week-end", "théâtre",
+        "musique live", "fête", "vie nocturne", "club"
     ]
 }
 
@@ -258,6 +297,11 @@ NEIGHBORHOOD_GUIDE_KEYWORDS: Dict[str, List[str]] = {
         "حي", "منطقة", "دليل", "استكشف", "عن", "ماذا يوجد في",
         "أشياء للقيام بها", "يستحق الزيارة", "أجواء",
         "أخبرني عن", "صف"
+    ],
+    "fr": [
+        "quartier", "zone", "arrondissement", "guide", "explorer", "à propos de",
+        "qu'y a-t-il", "choses à faire", "vaut la visite", "ambiance", "atmosphère",
+        "parle-moi de", "décris"
     ]
 }
 
@@ -289,6 +333,11 @@ ROUTE_PLANNING_KEYWORDS: Dict[str, List[str]] = {
         "خطة", "جدول", "رحلة يومية", "جدول زمني",
         "أفضل طريق", "جولة مشي", "يوم واحد", "يومين",
         "خطط يومي", "أي ترتيب", "طريق فعال"
+    ],
+    "fr": [
+        "plan", "itinéraire", "excursion d'une journée", "programme",
+        "meilleur itinéraire", "visite à pied", "un jour", "deux jours", "demi-journée",
+        "planifier ma journée", "dans quel ordre", "itinéraire efficace"
     ]
 }
 
@@ -325,6 +374,12 @@ DAILY_TALKS_KEYWORDS: Dict[str, List[str]] = {
         "شكرا", "وداعا", "إلى اللقاء", "كيف حالك",
         "ما الجديد", "مساعدة", "ملل", "تعب", "محتار",
         "جميل", "رائع", "واو"
+    ],
+    "fr": [
+        "bonjour", "salut", "coucou", "bonsoir", "bonne nuit",
+        "merci", "au revoir", "à bientôt", "comment ça va",
+        "quoi de neuf", "aide", "ennuyé", "fatigué", "confus",
+        "super", "génial", "cool", "wow"
     ]
 }
 

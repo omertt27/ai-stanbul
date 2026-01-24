@@ -15,6 +15,7 @@ Features:
 - Accessibility information
 - Week 2: Canonical station/line ID normalization and multilingual support
 - Week 3: Destination type system (island, ferry-only, walking distance)
+- Week 4: Enhanced NLP intelligence with fuzzy matching, Turkish morphology, and context awareness
 
 Author: AI Istanbul Team
 Date: December 2024
@@ -43,6 +44,292 @@ except ImportError:
 # Station normalization is imported later in __init__ from transportation_station_normalization
 
 logger = logging.getLogger(__name__)
+
+# =============================================================================
+# ENHANCED NLP UTILITIES (Week 4 Intelligence Improvements)
+# =============================================================================
+
+def levenshtein_distance(s1: str, s2: str) -> int:
+    """
+    Calculate the Levenshtein (edit) distance between two strings.
+    
+    This is the minimum number of single-character edits (insertions,
+    deletions, or substitutions) required to change one string into another.
+    
+    Used for fuzzy matching location names with typos.
+    """
+    if len(s1) < len(s2):
+        return levenshtein_distance(s2, s1)
+    
+    if len(s2) == 0:
+        return len(s1)
+    
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            # j+1 instead of j since previous_row and current_row are one character longer
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+    
+    return previous_row[-1]
+
+
+def normalized_levenshtein_similarity(s1: str, s2: str) -> float:
+    """
+    Calculate normalized similarity based on Levenshtein distance.
+    
+    Returns a value between 0 (completely different) and 1 (identical).
+    """
+    if not s1 or not s2:
+        return 0.0
+    
+    distance = levenshtein_distance(s1.lower(), s2.lower())
+    max_len = max(len(s1), len(s2))
+    return 1 - (distance / max_len)
+
+
+def normalize_unicode_text(text: str) -> str:
+    """
+    Normalize Unicode text for consistent matching.
+    
+    Handles:
+    - NFC/NFD normalization
+    - Removing diacritics for comparison
+    - Consistent spacing
+    """
+    if not text:
+        return ""
+    
+    # NFD decomposition then NFC composition for consistent representation
+    text = unicodedata.normalize('NFC', text)
+    return text.strip().lower()
+
+
+def transliterate_cyrillic_to_latin(text: str) -> str:
+    """
+    Transliterate Cyrillic text to Latin characters.
+    
+    This allows matching Russian queries against Latin location names.
+    """
+    cyrillic_to_latin = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+        'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch',
+        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+        # Uppercase
+        'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo',
+        'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
+        'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
+        'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Shch',
+        'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+    }
+    return ''.join(cyrillic_to_latin.get(c, c) for c in text)
+
+
+def remove_turkish_diacritics(text: str) -> str:
+    """
+    Remove Turkish-specific diacritics for ASCII-compatible matching.
+    
+    ç→c, ğ→g, ı→i, İ→I, ö→o, ş→s, ü→u
+    """
+    turkish_map = {
+        'ç': 'c', 'Ç': 'C',
+        'ğ': 'g', 'Ğ': 'G',
+        'ı': 'i', 'İ': 'I',
+        'ö': 'o', 'Ö': 'O',
+        'ş': 's', 'Ş': 'S',
+        'ü': 'u', 'Ü': 'U',
+    }
+    return ''.join(turkish_map.get(c, c) for c in text)
+
+
+# =============================================================================
+# SMART DEFAULT LOCATIONS (for single-location queries)
+# =============================================================================
+
+# Popular tourist hubs - when user asks "how to get to X" without origin
+TOURIST_DEFAULT_ORIGINS = [
+    "sultanahmet",  # Most tourists stay here
+    "taksim",       # Major hotel district
+    "galata",       # Popular area
+    "kadıköy",      # Asian side hub
+]
+
+# Airport to city center defaults
+AIRPORT_DESTINATIONS = {
+    "istanbul havalimanı": ["taksim", "sultanahmet", "şişli"],
+    "istanbul havalimani": ["taksim", "sultanahmet", "şişli"],
+    "istanbul airport": ["taksim", "sultanahmet", "şişli"],
+    "sabiha gökçen": ["kadıköy", "üsküdar", "taksim"],
+    "sabiha gokcen": ["kadıköy", "üsküdar", "taksim"],
+    "sabiha gokçen havalimanı": ["kadıköy", "üsküdar", "taksim"],
+}
+
+# Time-based smart defaults (rush hour considerations)
+def get_time_based_suggestion(hour: int) -> str:
+    """Get contextual suggestion based on time of day."""
+    if 6 <= hour < 10:
+        return "Morning rush - consider metro over bus"
+    elif 16 <= hour < 20:
+        return "Evening rush - ferries may be less crowded"
+    elif 22 <= hour or hour < 6:
+        return "Late night - limited transit, consider taxi/Uber"
+    return ""
+
+
+# =============================================================================
+# TURKISH MORPHOLOGY HANDLER (Enhanced)
+# =============================================================================
+
+class TurkishMorphologyHandler:
+    """
+    Handles Turkish agglutinative morphology for location name extraction.
+    
+    Turkish adds suffixes for grammatical cases:
+    - Ablative: -dan/-den (from)
+    - Dative: -a/-e (to)  
+    - Locative: -da/-de (at/in)
+    - Genitive: -ın/-in (of)
+    
+    With vowel harmony and consonant mutations.
+    """
+    
+    # Complete suffix patterns (order matters - check longer first)
+    ABLATIVE_SUFFIXES = [
+        # With buffer consonant
+        'ından', 'inden', 'undan', 'ünden',
+        'ndan', 'nden',
+        # Standard
+        'dan', 'den', 'tan', 'ten',
+    ]
+    
+    DATIVE_SUFFIXES = [
+        # With buffer consonant
+        'ına', 'ine', 'una', 'üne',
+        'sına', 'sine', 'suna', 'süne',
+        'na', 'ne',
+        # Standard
+        'ya', 'ye', 'a', 'e',
+    ]
+    
+    LOCATIVE_SUFFIXES = [
+        # With buffer consonant
+        'ında', 'inde', 'unda', 'ünde',
+        'nda', 'nde',
+        # Standard
+        'da', 'de', 'ta', 'te',
+    ]
+    
+    GENITIVE_SUFFIXES = [
+        'nın', 'nin', 'nun', 'nün',
+        'ın', 'in', 'un', 'ün',
+    ]
+    
+    POSSESSIVE_SUFFIXES = [
+        'ım', 'im', 'um', 'üm',
+        'sı', 'si', 'su', 'sü',
+    ]
+    
+    # Words that shouldn't be stripped (they naturally end in suffix-like patterns)
+    PROTECTED_WORDS = {
+        'kadıköy', 'kadikoy', 'kartalden', 'levent',
+        'eminönü', 'eminonu', 'üsküdar', 'uskudar',
+    }
+    
+    @classmethod
+    def strip_suffixes(cls, word: str) -> str:
+        """
+        Strip Turkish grammatical suffixes to get the root location name.
+        
+        Args:
+            word: Turkish word potentially with suffixes
+            
+        Returns:
+            Root word with suffixes removed
+        """
+        if not word or len(word) < 3:
+            return word
+        
+        original = word
+        
+        # Handle apostrophe usage (Taksim'e, Kadıköy'den)
+        # When apostrophe is present, the suffix is after it, so just return the root
+        for apostrophe in ["'", "'"]:
+            if apostrophe in word:
+                root = word.split(apostrophe)[0]
+                if len(root) >= 3:
+                    return root
+        
+        word_lower = word.lower()
+        
+        # Check protected words
+        if word_lower in cls.PROTECTED_WORDS:
+            return word
+        
+        # Try stripping suffixes (longest first for each category)
+        all_suffixes = (
+            cls.ABLATIVE_SUFFIXES + 
+            cls.DATIVE_SUFFIXES + 
+            cls.LOCATIVE_SUFFIXES +
+            cls.GENITIVE_SUFFIXES +
+            cls.POSSESSIVE_SUFFIXES
+        )
+        
+        # Sort by length descending to match longest suffix first
+        all_suffixes = sorted(set(all_suffixes), key=len, reverse=True)
+        
+        for suffix in all_suffixes:
+            if word.lower().endswith(suffix) and len(word) > len(suffix) + 2:
+                stripped = word[:-len(suffix)]
+                # Validate the result isn't too short
+                if len(stripped) >= 3:
+                    logger.debug(f"🇹🇷 Turkish suffix stripped: '{original}' → '{stripped}'")
+                    return stripped
+        
+        return word
+    
+    @classmethod
+    def generate_suffix_variants(cls, location: str) -> List[str]:
+        """
+        Generate common Turkish suffix variants for a location name.
+        
+        Useful for expanding the search space when looking for location mentions.
+        """
+        variants = [location]
+        location_lower = location.lower()
+        
+        # Determine vowel harmony
+        back_vowels = set('aıou')
+        front_vowels = set('eiöü')
+        
+        last_vowel = None
+        for c in reversed(location_lower):
+            if c in back_vowels | front_vowels:
+                last_vowel = c
+                break
+        
+        is_back = last_vowel in back_vowels if last_vowel else True
+        
+        if is_back:
+            # Back vowel harmony: a, ı
+            variants.extend([
+                f"{location}'dan", f"{location}'a", f"{location}'da",
+                f"{location}dan", f"{location}a", f"{location}da",
+            ])
+        else:
+            # Front vowel harmony: e, i
+            variants.extend([
+                f"{location}'den", f"{location}'e", f"{location}'de",
+                f"{location}den", f"{location}e", f"{location}de",
+            ])
+        
+        return variants
+
 
 # =============================================================================
 # DESTINATION TYPE SYSTEM (Week 3 Fix)
@@ -460,6 +747,12 @@ class IstanbulTransportationRAG:
             "ist airport": ["M11-İstanbul Havalimanı"],
             "yeni havalimani": ["M11-İstanbul Havalimanı"],
             "havalimani": ["M11-İstanbul Havalimanı"],
+            "havalimanı": ["M11-İstanbul Havalimanı"],
+            # Turkish suffix variations (ablative case: -dan/-den/-ndan/-nden)
+            "havalimanından": ["M11-İstanbul Havalimanı"],
+            "havalimanindan": ["M11-İstanbul Havalimanı"],
+            "havalimanına": ["M11-İstanbul Havalimanı"],
+            "havalimanina": ["M11-İstanbul Havalimanı"],
             "ataturk airport": ["M1A-Atatürk Havalimanı"],  # Old Atatürk Airport (closed, legacy)
             "atatürk airport": ["M1A-Atatürk Havalimanı"],
             "atatürk havalimani": ["M1A-Atatürk Havalimanı"],
@@ -601,6 +894,82 @@ class IstanbulTransportationRAG:
             "saw": ["M4-Sabiha Gökçen Havalimanı"],
             "sabiha gokcen airport": ["M4-Sabiha Gökçen Havalimanı"],
             "sabiha gökçen airport": ["M4-Sabiha Gökçen Havalimanı"],
+            
+            # ====== MULTILINGUAL ALIASES (Russian, German, French, Arabic) ======
+            # Russian (Cyrillic)
+            "таксим": ["M2-Taksim"],
+            "кадыкёй": ["M4-Kadıköy", "FERRY-Kadıköy"],
+            "кадикой": ["M4-Kadıköy", "FERRY-Kadıköy"],
+            "ускюдар": ["M5-Üsküdar", "MARMARAY-Üsküdar", "FERRY-Üsküdar"],
+            "султанахмет": ["T1-Sultanahmet"],
+            "эминёню": ["T1-Eminönü", "T4-Eminönü", "FERRY-Eminönü"],
+            "бешикташ": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
+            "галата": ["T1-Karaköy"],
+            "каракёй": ["T1-Karaköy", "T4-Karaköy", "FERRY-Karaköy"],
+            "аэропорт": ["M11-İstanbul Havalimanı"],
+            "стамбульский аэропорт": ["M11-İstanbul Havalimanı"],
+            "истикляль": ["M2-Taksim"],
+            "гранд базар": ["T1-Beyazıt-Kapalıçarşı"],
+            "айя софия": ["T1-Sultanahmet"],
+            "голубая мечеть": ["T1-Sultanahmet"],
+            "топкапы": ["T1-Gülhane", "T1-Sultanahmet"],
+            "дворец долмабахче": ["T1-Kabataş"],
+            "долмабахче": ["T1-Kabataş"],
+            
+            # German
+            "flughafen": ["M11-İstanbul Havalimanı"],
+            "istanbul flughafen": ["M11-İstanbul Havalimanı"],
+            "blaue moschee": ["T1-Sultanahmet"],
+            "großer basar": ["T1-Beyazıt-Kapalıçarşı"],
+            "gewürzbasar": ["T1-Eminönü"],
+            "hagia sophia": ["T1-Sultanahmet"],
+            "topkapi palast": ["T1-Gülhane", "T1-Sultanahmet"],
+            "dolmabahce palast": ["T1-Kabataş"],
+            "galata turm": ["T1-Karaköy"],
+            "asiatische seite": ["MARMARAY-Üsküdar", "M5-Üsküdar", "FERRY-Üsküdar"],
+            "europäische seite": ["M2-Taksim"],
+            "altstadt": ["T1-Sultanahmet"],
+            "stadtzentrum": ["M2-Taksim", "T1-Sultanahmet"],
+            
+            # French
+            "aéroport": ["M11-İstanbul Havalimanı"],
+            "aéroport d'istanbul": ["M11-İstanbul Havalimanı"],
+            "mosquée bleue": ["T1-Sultanahmet"],
+            "grand bazar": ["T1-Beyazıt-Kapalıçarşı"],
+            "bazar aux épices": ["T1-Eminönü"],
+            "sainte sophie": ["T1-Sultanahmet"],
+            "palais de topkapi": ["T1-Gülhane", "T1-Sultanahmet"],
+            "palais de dolmabahce": ["T1-Kabataş"],
+            "tour de galata": ["T1-Karaköy"],
+            "côté asiatique": ["MARMARAY-Üsküdar", "M5-Üsküdar", "FERRY-Üsküdar"],
+            "côté européen": ["M2-Taksim"],
+            "vieille ville": ["T1-Sultanahmet"],
+            "centre-ville": ["M2-Taksim", "T1-Sultanahmet"],
+            
+            # Arabic
+            "تقسيم": ["M2-Taksim"],
+            "تكسيم": ["M2-Taksim"],
+            "كاديكوي": ["M4-Kadıköy", "FERRY-Kadıköy"],
+            "كادي كوي": ["M4-Kadıköy", "FERRY-Kadıköy"],
+            "اسكودار": ["M5-Üsküdar", "MARMARAY-Üsküdar", "FERRY-Üsküdar"],
+            "السلطان أحمد": ["T1-Sultanahmet"],
+            "سلطان احمد": ["T1-Sultanahmet"],
+            "امينونو": ["T1-Eminönü", "T4-Eminönü", "FERRY-Eminönü"],
+            "بشيكتاش": ["T4-Beşiktaş", "FERRY-Beşiktaş"],
+            "غلطة": ["T1-Karaköy"],
+            "كاراكوي": ["T1-Karaköy", "T4-Karaköy", "FERRY-Karaköy"],
+            "المطار": ["M11-İstanbul Havalimanı"],
+            "مطار اسطنبول": ["M11-İstanbul Havalimanı"],
+            "شارع الاستقلال": ["M2-Taksim"],
+            "البازار الكبير": ["T1-Beyazıt-Kapalıçarşı"],
+            "آيا صوفيا": ["T1-Sultanahmet"],
+            "المسجد الازرق": ["T1-Sultanahmet"],
+            "قصر توبكابي": ["T1-Gülhane", "T1-Sultanahmet"],
+            "قصر دولما بهجة": ["T1-Kabataş"],
+            "الجانب الآسيوي": ["MARMARAY-Üsküdar", "M5-Üsküdar", "FERRY-Üsküdar"],
+            "الجانب الأوروبي": ["M2-Taksim"],
+            "المدينة القديمة": ["T1-Sultanahmet"],
+            "وسط المدينة": ["M2-Taksim", "T1-Sultanahmet"],
         }
     
     def _build_station_graph(self) -> Dict[str, TransitStation]:
@@ -886,7 +1255,7 @@ class IstanbulTransportationRAG:
             nearest_dest = self.find_nearest_station(destination_gps['lat'], destination_gps['lon'])
             if nearest_dest:
                 dest_stations = [nearest_dest]
-                logger.info(f"✅ Using nearest station for GPS destination: {self.stations[nearest_dest].name}")
+                logger.info(f"✅ Using nearest station for GPS destination: {self.stations[nearestDest].name}")
             else:
                 dest_stations = self._get_stations_for_location(destination_normalized)
         else:
@@ -1118,288 +1487,6 @@ class IstanbulTransportationRAG:
             preferred_terminals = terminal_priorities['asian']
         else:
             preferred_terminals = terminal_priorities['european']
-        
-        # Try to find route to ferry terminal
-        for terminal in preferred_terminals:
-            terminal_name = terminal.split('-')[1] if '-' in terminal else terminal
-            
-            # Find route to terminal (recursive, but without island check)
-            terminal_route = self._find_route_to_terminal(origin, terminal_name, origin_gps)
-            
-            if terminal_route:
-                # Add ferry step to island
-                ferry_time = 45 if 'bostancı' in terminal.lower() else 60  # Bostancı is closer to islands
-                
-                # Combine routes
-                combined_steps = terminal_route.steps.copy()
-                combined_steps.append({
-                    'type': 'ferry',
-                    'line': 'İDO/Şehir Hatları',
-                    'instruction': f"Take the ferry from {terminal_name} to {dest_info.name}",
-                    'from_station': terminal_name,
-                    'to_station': dest_info.name,
-                    'duration': ferry_time,
-                    'details': f"Ferry service to {dest_info.name}. Ferries run approximately every 30-60 minutes."
-                })
-                
-                island_route = TransitRoute(
-                    origin=origin,
-                    destination=dest_info.name,
-                    total_time=terminal_route.total_time + ferry_time,
-                    total_distance=terminal_route.total_distance + 15,  # ~15km to islands
-                    steps=combined_steps,
-                    transfers=terminal_route.transfers + 1,
-                    lines_used=terminal_route.lines_used + ['FERRY'],
-                    alternatives=[],
-                    time_confidence='medium'  # Ferry schedules can vary
-                )
-                
-                logger.info(f"✅ Created island route: {origin} → {terminal_name} → {dest_info.name}")
-                return island_route
-        
-        logger.warning(f"Could not create island route to {destination}")
-        return None
-    
-    def _find_route_to_terminal(
-        self, 
-        origin: str, 
-        terminal: str,
-        origin_gps: Optional[Dict[str, float]] = None
-    ) -> Optional[TransitRoute]:
-        """Find route to a ferry terminal (internal, avoids island routing loop)."""
-        origin_normalized = origin.lower().strip()
-        terminal_normalized = terminal.lower().strip()
-        
-        # Get stations
-        if origin_gps and isinstance(origin_gps, dict) and 'lat' in origin_gps and 'lon' in origin_gps:
-            nearest_origin = self.find_nearest_station(origin_gps['lat'], origin_gps['lon'])
-            if nearest_origin:
-                origin_stations = [nearest_origin]
-            else:
-                origin_stations = self._get_stations_for_location(origin_normalized)
-        else:
-            origin_stations = self._get_stations_for_location(origin_normalized)
-        
-        terminal_stations = self._get_stations_for_location(terminal_normalized)
-        
-        if not origin_stations or not terminal_stations:
-            return None
-        
-        # Find best route
-        best_route = None
-        best_time = float('inf')
-        
-        for orig_station in origin_stations:
-            for term_station in terminal_stations:
-                route = self._find_path(orig_station, term_station, max_transfers=3)
-                if route and route.total_time < best_time:
-                    best_route = route
-                    best_time = route.total_time
-        
-        return best_route
-    
-    def _get_stations_for_location(self, location: str) -> List[str]:
-        """
-        Get station IDs for a given location name with fuzzy matching.
-        
-        Strategy:
-        1. Check alias mappings (handles common names like "taksim square")
-        2. Check neighborhood mappings
-        3. Try normalized name matching
-        4. Fallback to partial string matching
-        """
-        original_location = location
-        location = location.lower().strip()
-        normalized_location = self._normalize_station_name(location)
-        
-        logger.debug(f"🔍 Looking up location: '{original_location}' → normalized: '{normalized_location}'")
-        
-        # Strategy 1: Check alias mappings first (most reliable)
-        if normalized_location in self.station_aliases:
-            stations = self.station_aliases[normalized_location]
-            logger.debug(f"✅ Found via alias: {normalized_location} → {stations}")
-            return stations
-        
-        # Strategy 2: Check original location in alias (before normalization)
-        if location in self.station_aliases:
-            stations = self.station_aliases[location]
-            logger.debug(f"✅ Found via alias (original): {location} → {stations}")
-            return stations
-        
-        # Strategy 2b: Search all aliases with normalized comparison
-        for alias, stations in self.station_aliases.items():
-            alias_normalized = self._normalize_station_name(alias)
-            if normalized_location == alias_normalized:
-                logger.debug(f"✅ Found via normalized alias: {alias_normalized} → {stations}")
-                return stations
-        
-        # Strategy 3: Check neighborhood mapping
-        if location in self.neighborhoods:
-            stations = self.neighborhoods[location]
-            logger.debug(f"✅ Found via neighborhood: {location} → {stations}")
-            return stations
-        
-        if normalized_location in self.neighborhoods:
-            stations = self.neighborhoods[normalized_location]
-            logger.debug(f"✅ Found via neighborhood (normalized): {normalized_location} → {stations}")
-            return stations
-        
-        # Strategy 3b: Search all neighborhoods with normalized comparison
-        for neighborhood, stations in self.neighborhoods.items():
-            neighborhood_normalized = self._normalize_station_name(neighborhood)
-            if normalized_location == neighborhood_normalized:
-                logger.debug(f"✅ Found via normalized neighborhood: {neighborhood_normalized} → {stations}")
-                return stations
-        
-        # Strategy 4: Try normalized name matching against all stations
-        matches = []
-        for station_id, station in self.stations.items():
-            station_normalized = self._normalize_station_name(station.name)
-            
-            # Exact match on normalized name
-            if normalized_location == station_normalized:
-                matches.append(station_id)
-                logger.debug(f"✅ Exact match: '{normalized_location}' == '{station_normalized}' ({station_id})")
-            # Partial match (one contains the other)
-            elif normalized_location in station_normalized or station_normalized in normalized_location:
-                matches.append(station_id)
-                logger.debug(f"✅ Partial match: '{normalized_location}' ↔ '{station_normalized}' ({station_id})")
-        
-        if matches:
-            return matches
-        
-        # Strategy 5: Fallback to original case-insensitive partial matching
-        for station_id, station in self.stations.items():
-            if location in station.name.lower():
-                matches.append(station_id)
-        
-        if not matches:
-            logger.warning(f"❌ No stations found for: '{original_location}' (normalized: '{normalized_location}')")
-        
-        return matches
-    
-    def _find_path(
-        self,
-        start_id: str,
-        end_id: str,
-        max_transfers: int
-    ) -> Optional[TransitRoute]:
-        """
-        Find path between two stations using Dijkstra's Algorithm with weighted edges.
-        
-        This is a GOOGLE MAPS-LEVEL algorithm that finds optimal routes based on:
-        - ACTUAL travel times between stations (from travel time database)
-        - Transfer penalties (5 min for platform changes)
-        - Multi-modal pathfinding
-        
-        UPGRADE from BFS: Now considers real travel times, not just hop count!
-        """
-        if start_id not in self.stations or end_id not in self.stations:
-            return None
-        
-        start_station = self.stations[start_id]
-        end_station = self.stations[end_id]
-        
-        # Simple case: same station
-        if start_id == end_id:
-            return self._create_arrival_route(start_station)
-        
-        # Simple case: same line
-        if start_station.line == end_station.line:
-            return self._create_direct_route(start_station, end_station)
-        
-        # Use Dijkstra to find optimal multi-transfer route by travel time
-        return self._find_path_dijkstra(start_id, end_id, max_transfers)
-    
-    def _find_path_dijkstra(
-        self,
-        start_id: str,
-        end_id: str,
-        max_transfers: int
-    ) -> Optional[TransitRoute]:
-        """
-        Dijkstra's Algorithm for optimal route with weighted edges.
-        
-        This is INDUSTRY-STANDARD pathfinding used by Google Maps, Citymapper, etc.
-        Finds FASTEST route considering:
-        - Real travel times between stations (from official data)
-        - Transfer penalties (~5 minutes per transfer)
-        - Transfer count limits
-        
-        Uses priority queue to explore shortest-time paths first.
-        """
-        
-        # Priority queue: (cumulative_time, current_station_id, path, lines_used, transfers, confidence_scores)
-        # heap is sorted by cumulative_time (lowest first)
-        heap = [(0.0, start_id, [start_id], [self.stations[start_id].line], 0, [])]
-        
-        # Track best time to reach each station
-        best_time_to_station = {start_id: 0.0}
-        
-        # Track best route found to destination
-        best_route = None
-        best_time_to_dest = float('inf')
-        
-        while heap:
-            current_time, current_id, path, lines_used, transfers, confidences = heapq.heappop(heap)
-            
-            # Skip if too many transfers
-            if transfers > max_transfers:
-                continue
-            
-            # Skip if we've found a better route to this station
-            if current_id in best_time_to_station and best_time_to_station[current_id] < current_time:
-                continue
-            
-            current_station = self.stations[current_id]
-            current_line = current_station.line
-            
-            # Found destination?
-            if current_id == end_id:
-                # Build route from path
-                route = self._build_route_from_path_weighted(
-                    path, 
-                    lines_used, 
-                    transfers,
-                    current_time,
-                    confidences
-                )
-                
-                # Keep track of best route
-                if current_time < best_time_to_dest:
-                    best_route = route
-                    best_time_to_dest = current_time
-                
-                # Continue searching for potentially better routes
-                # (but we can break early since Dijkstra guarantees optimal)
-                break
-            
-            # Explore neighbors
-            # 1. Continue on same line (no transfer penalty)
-            same_line_neighbors = self._get_same_line_neighbors(current_id)
-            for neighbor_id in same_line_neighbors:
-                if neighbor_id not in path:  # Avoid cycles
-                    # Get actual travel time from database
-                    travel_time, confidence = self.travel_time_db.get_travel_time(
-                        current_id, 
-                        neighbor_id
-                    )
-                    
-                    new_time = current_time + travel_time
-                    new_path = path + [neighbor_id]
-                    new_confidences = confidences + [confidence]
-                    
-                    # Only explore if this is a better route to neighbor
-                    if neighbor_id not in best_time_to_station or new_time < best_time_to_station[neighbor_id]:
-                        best_time_to_station[neighbor_id] = new_time
-                        heapq.heappush(heap, (
-                            new_time,
-                            neighbor_id,
-                            new_path,
-                            lines_used,
-                            transfers,
-                            new_confidences
-                        ))
             
             # 2. Transfer to another line (add transfer penalty)
             if transfers < max_transfers:
@@ -2759,6 +2846,144 @@ I couldn't identify specific locations from your query. To help you with directi
         
         return "\n".join(context_lines)
     
+    def _normalize_turkish_word(self, word: str) -> str:
+        """
+        Strip Turkish grammatical suffixes to get the root word.
+        
+        Turkish is agglutinative - suffixes are added for cases:
+        - Ablative: -dan, -den, -tan, -ten, -ndan, -nden (from)
+        - Dative: -a, -e, -ya, -ye, -na, -ne (to)
+        - Locative: -da, -de, -ta, -te, -nda, -nde (at/in)
+        - Genitive: -ın, -in, -un, -ün, -nın, -nin (of)
+        - Possessive suffixes
+        
+        Also handles apostrophe usage (Taksim'e, Kadıköy'den)
+        """
+        if not word:
+            return word
+            
+        # Remove apostrophe and everything after (Taksim'e → Taksim)
+        if "'" in word:
+            word = word.split("'")[0]
+        if "'" in word:  # Turkish apostrophe variant
+            word = word.split("'")[0]
+        
+        # Common Turkish location suffixes (order matters - longer first)
+        turkish_suffixes = [
+            # Ablative case (from)
+            'ından', 'inden', 'undan', 'ünden',
+            'ndan', 'nden', 'dan', 'den', 'tan', 'ten',
+            # Dative case (to)
+            'ına', 'ine', 'una', 'üne',
+            'na', 'ne', 'ya', 'ye', 'a', 'e',
+            # Locative case (at/in)
+            'ında', 'inde', 'unda', 'ünde',
+            'nda', 'nde', 'da', 'de', 'ta', 'te',
+            # Genitive case (of)
+            'nın', 'nin', 'nun', 'nün',
+            'ın', 'in', 'un', 'ün',
+        ]
+        
+        original = word
+        for suffix in turkish_suffixes:
+            if word.endswith(suffix) and len(word) > len(suffix) + 2:
+                word = word[:-len(suffix)]
+                break
+        
+        if word != original:
+            logger.debug(f"🇹🇷 Turkish suffix stripped: '{original}' → '{word}'")
+        
+        return word
+    
+    def _fuzzy_match_location(self, query_word: str, known_locations: Dict[str, str]) -> Optional[str]:
+        """
+        Fuzzy match a word against known locations.
+        
+        Enhanced with:
+        - Turkish morphology (suffix stripping)
+        - Levenshtein distance for typos
+        - Cyrillic transliteration
+        - Turkish diacritics removal
+        - Partial matches
+        
+        This is the core intelligence for understanding user location input.
+        """
+        if not query_word or len(query_word) < 3:
+            return None
+        
+        query_lower = query_word.lower()
+        
+        # 1. Try exact match first
+        if query_lower in known_locations:
+            return known_locations[query_lower]
+        
+        # 2. Try with Turkish suffix stripped (using new handler)
+        stripped = TurkishMorphologyHandler.strip_suffixes(query_lower)
+        if stripped != query_lower and stripped in known_locations:
+            logger.debug(f"🇹🇷 Turkish suffix match: '{query_word}' → '{stripped}'")
+            return known_locations[stripped]
+        
+        # 3. Try with Turkish diacritics removed (e.g., "kadikoy" → "kadıköy")
+        ascii_version = remove_turkish_diacritics(query_lower)
+        for loc_name, canonical in known_locations.items():
+            loc_ascii = remove_turkish_diacritics(loc_name)
+            if ascii_version == loc_ascii:
+                logger.debug(f"🔤 ASCII match: '{query_word}' → '{loc_name}'")
+                return canonical
+        
+        # 4. Try Cyrillic transliteration (for Russian queries)
+        if any('\u0400' <= c <= '\u04FF' for c in query_word):
+            transliterated = transliterate_cyrillic_to_latin(query_lower)
+            if transliterated in known_locations:
+                logger.debug(f"🔤 Cyrillic transliteration: '{query_word}' → '{transliterated}'")
+                return known_locations[transliterated]
+            # Also try fuzzy match on transliterated
+            for loc_name, canonical in known_locations.items():
+                if normalized_levenshtein_similarity(transliterated, loc_name) > 0.85:
+                    logger.debug(f"🔤 Cyrillic fuzzy: '{query_word}' → '{loc_name}'")
+                    return canonical
+        
+        # 5. Try partial match (word starts with location name or vice versa)
+        for loc_name, canonical in known_locations.items():
+            if len(loc_name) >= 4 and query_lower.startswith(loc_name):
+                return canonical
+            if len(query_lower) >= 4 and loc_name.startswith(query_lower):
+                return canonical
+        
+        # 6. Levenshtein similarity for typos (only for longer words)
+        if len(query_lower) >= 4:
+            best_match = None
+            best_score = 0.0
+            
+            for loc_name, canonical in known_locations.items():
+                if len(loc_name) >= 4:
+                    # Calculate similarity
+                    score = normalized_levenshtein_similarity(query_lower, loc_name)
+                    
+                    # Also try stripped version
+                    stripped_score = normalized_levenshtein_similarity(stripped, loc_name)
+                    score = max(score, stripped_score)
+                    
+                    # Higher threshold (0.75) to avoid false positives
+                    if score > 0.75 and score > best_score:
+                        best_score = score
+                        best_match = canonical
+            
+            if best_match:
+                logger.debug(f"🔤 Levenshtein match: '{query_word}' → '{best_match}' (score: {best_score:.2f})")
+                return best_match
+        
+        return None
+    
+    def _simple_similarity(self, s1: str, s2: str) -> float:
+        """Simple character-based similarity (0-1)."""
+        if not s1 or not s2:
+            return 0.0
+        
+        # Count matching characters at same positions
+        matches = sum(1 for a, b in zip(s1, s2) if a == b)
+        return matches / max(len(s1), len(s2))
+
     def _extract_locations_from_query(
         self, 
         query: str,
@@ -2817,6 +3042,25 @@ I couldn't identify specific locations from your query. To help you with directi
                     'position': pos,
                     'length': len(location_name)
                 })
+        
+        # If no exact matches found, try fuzzy matching on individual words
+        if len(found_locations) < 2:
+            logger.info(f"🔍 Trying fuzzy matching (found {len(found_locations)} exact matches)")
+            words = re.findall(r'[\w\u0400-\u04FF\u0600-\u06FF]+', query_lower)  # Include Cyrillic and Arabic
+            for i, word in enumerate(words):
+                if len(word) >= 3:
+                    # Try fuzzy match
+                    matched = self._fuzzy_match_location(word, known_locations)
+                    if matched and not any(loc['name'] == matched for loc in found_locations):
+                        # Estimate position based on word index
+                        pos = query_lower.find(word)
+                        found_locations.append({
+                            'name': matched,
+                            'position': pos if pos >= 0 else i * 10,
+                            'length': len(word),
+                            'fuzzy': True
+                        })
+                        logger.info(f"   🔤 Fuzzy match: '{word}' → '{matched}'")
         
         logger.info(f"🔎 Found {len(found_locations)} potential locations in query")
         
@@ -2881,33 +3125,64 @@ I couldn't identify specific locations from your query. To help you with directi
         origin = None
         destination = None
         
-        # PRIORITY 1: Look for explicit "from X to Y" pattern first
-        # This handles: "how to go from kadikoy to taksim", "from A to B", "starting from X to Y"
-        from_to_pattern = r'\bfrom\s+(\w+(?:\s+\w+)?)\s+to\s+(\w+(?:\s+\w+)?)\b'
-        from_to_match = re.search(from_to_pattern, query_lower, re.IGNORECASE)
-        if from_to_match:
-            origin_candidate = from_to_match.group(1).strip()
-            dest_candidate = from_to_match.group(2).strip()
-            logger.info(f"📍 PATTERN MATCH: 'from X to Y' found: '{origin_candidate}' → '{dest_candidate}'")
-            
-            # Verify these are valid locations
-            origin_match = None
-            dest_match = None
-            for loc in filtered_locations:
-                if origin_candidate in loc['name'] or loc['name'] in origin_candidate:
-                    origin_match = loc['name']
-                if dest_candidate in loc['name'] or loc['name'] in dest_candidate:
-                    dest_match = loc['name']
-            
-            if origin_match and dest_match:
-                origin = origin_match
-                destination = dest_match
-                logger.info(f"✅ PATTERN SUCCESS: origin='{origin}', destination='{destination}'")
+        # PRIORITY 1: Look for explicit "from X to Y" patterns in ALL 6 LANGUAGES
+        # English: "from A to B", Turkish: "A'dan B'ye", Russian: "из A в B", etc.
+        from_to_patterns = [
+            # English
+            r'\bfrom\s+(\w+(?:\s+\w+)?)\s+to\s+(\w+(?:\s+\w+)?)\b',
+            # Turkish: "X'den Y'e", "X'dan Y'a", "X'den Y'ye"
+            r"(\w+)['']?(?:den|dan)\s+(\w+)['']?(?:e|a|ye|ya)\b",
+            # Russian: "из X в Y", "от X до Y"
+            r'(?:из|от)\s+(\w+)\s+(?:в|до|на)\s+(\w+)',
+            # German: "von X nach Y", "von X zu Y"
+            r'(?:von)\s+(\w+)\s+(?:nach|zu|zum|zur)\s+(\w+)',
+            # French: "de X à Y"
+            r'(?:de|du)\s+(\w+)\s+(?:à|au|aux|vers)\s+(\w+)',
+            # Arabic: "من X إلى Y"  
+            r'من\s+(\w+)\s+(?:إلى|الى|ل)\s+(\w+)',
+        ]
+        
+        for pattern in from_to_patterns:
+            from_to_match = re.search(pattern, query_lower, re.IGNORECASE | re.UNICODE)
+            if from_to_match:
+                origin_candidate = from_to_match.group(1).strip()
+                dest_candidate = from_to_match.group(2).strip()
+                logger.info(f"📍 PATTERN MATCH: Found origin='{origin_candidate}' → destination='{dest_candidate}'")
+                
+                # Verify these are valid locations
+                origin_match = None
+                dest_match = None
+                for loc in filtered_locations:
+                    if origin_candidate in loc['name'] or loc['name'] in origin_candidate:
+                        origin_match = loc['name']
+                    if dest_candidate in loc['name'] or loc['name'] in dest_candidate:
+                        dest_match = loc['name']
+                
+                if origin_match and dest_match:
+                    origin = origin_match
+                    destination = dest_match
+                    logger.info(f"✅ PATTERN SUCCESS: origin='{origin}', destination='{destination}'")
+                    break
         
         # If pattern didn't match, fall back to keyword analysis
         if not origin or not destination:
             # Look for "from X" pattern (but NOT when followed immediately by "to" - that's handled above)
-            from_keywords = ['starting from', 'leaving from', 'departing from', 'beginning from', 'from']
+            # Multilingual support: Turkish, Russian, German, Arabic, French
+            from_keywords = [
+                # English
+                'starting from', 'leaving from', 'departing from', 'beginning from', 'from',
+                # Turkish
+                'den', 'dan', 'ndan', 'nden', "'den", "'dan", 'den hareket', 'dan hareket', 
+                'çıkış', 'başlangıç', 'kalkış',
+                # Russian  
+                'из', 'от', 'с ', 'начиная с', 'выходя из', 'отправляясь из',
+                # German
+                'von', 'ab', 'ausgehend von', 'startend von', 'beginnend bei',
+                # Arabic
+                'من', 'انطلاقاً من', 'بداية من', 'خروجاً من',
+                # French
+                'de', 'depuis', 'partant de', 'en partant de', 'à partir de'
+            ]
             for keyword in from_keywords:
                 # Use word boundary matching
                 pattern = r'\b' + re.escape(keyword) + r'\s+'
@@ -2925,7 +3200,22 @@ I couldn't identify specific locations from your query. To help you with directi
             
             # Look for "to Y" pattern - but EXCLUDE "how to", "want to", "need to", etc.
             # These are infinitive constructs, not directional
-            to_keywords = ['going to', 'heading to', 'arriving at', 'toward', 'towards', 'get to', 'travel to']
+            # Multilingual support: Turkish, Russian, German, Arabic, French
+            to_keywords = [
+                # English
+                'going to', 'heading to', 'arriving at', 'toward', 'towards', 'get to', 'travel to',
+                # Turkish
+                'e gitmek', 'a gitmek', 'ye gitmek', 'ya gitmek', "'e", "'a", 'için', 'yönünde',
+                'nasıl gidilir', 'nasıl giderim', 'yolunu', 'gitmek istiyorum',
+                # Russian
+                'в ', 'до', 'к ', 'на ', 'добраться до', 'доехать до', 'попасть в', 'ехать в',
+                # German
+                'nach', 'zu', 'zum', 'zur', 'hin zu', 'in richtung', 'fahren nach', 'kommen nach',
+                # Arabic
+                'إلى', 'الى', 'نحو', 'باتجاه', 'للوصول إلى', 'الذهاب إلى',
+                # French
+                'à', 'vers', 'pour aller à', 'en direction de', 'jusqu\'à', 'aller à'
+            ]
             for keyword in to_keywords:
                 pattern = r'\b' + re.escape(keyword) + r'\s+'
                 match = re.search(pattern, query_lower)
@@ -3070,8 +3360,10 @@ async def extract_locations_with_llm(query: str) -> Tuple[Optional[str], Optiona
     This is a fallback method that calls the RunPod LLM to intelligently
     extract location information from complex or ambiguous queries.
     
+    Supports 6 languages: English, Turkish, Russian, German, Arabic, French
+    
     Args:
-        query: The user's transportation query
+        query: The user's transportation query (in any supported language)
         
     Returns:
         Tuple of (origin, destination) or (None, None) if extraction fails
@@ -3082,16 +3374,18 @@ async def extract_locations_with_llm(query: str) -> Tuple[Optional[str], Optiona
         return None, None
     
     try:
-        # Create a focused prompt for location extraction
+        # Create a multilingual prompt for location extraction
         extraction_prompt = f"""Extract the origin and destination locations from this Istanbul transportation query.
+The query may be in English, Turkish, Russian, German, Arabic, or French.
 
 Query: "{query}"
 
 IMPORTANT INSTRUCTIONS:
-1. Identify the ORIGIN (starting point) and DESTINATION (ending point)
-2. Return ONLY location names, no explanations
-3. If a location is unclear, use the most likely Istanbul location
-4. Common Istanbul locations: Taksim, Kadıköy, Sultanahmet, Üsküdar, Beşiktaş, Eminönü, Galata, Karaköy, Şişli, Mecidiyeköy, etc.
+1. Identify the ORIGIN (starting point / başlangıç / начало / Startpunkt / نقطة البداية / point de départ)
+2. Identify the DESTINATION (ending point / varış noktası / назначение / Ziel / الوجهة / destination)
+3. Return ONLY location names in their original form, no explanations
+4. Common Istanbul locations: Taksim, Kadıköy, Sultanahmet, Üsküdar, Beşiktaş, Eminönü, Galata, Karaköy, Şişli, Mecidiyeköy, Bakırköy, Fatih, Beyoğlu, etc.
+5. Station names: Marmaray stations, Metro lines M1-M11, Tram lines T1/T4/T5, Funiculars F1/F2
 
 Respond in this EXACT format:
 ORIGIN: [origin location]
