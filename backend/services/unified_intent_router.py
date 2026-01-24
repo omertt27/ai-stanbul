@@ -526,17 +526,31 @@ class UnifiedIntentRouter:
     ) -> Optional[HandlerResult]:
         """Handle neighborhood guide queries"""
         neighborhood = intent.neighborhood
+        language = intent.language or 'en'
         
         if not neighborhood:
+            # Language-aware prompt for missing neighborhood (6 main languages)
+            prompts = {
+                'en': "Which neighborhood would you like to explore? Popular areas include Sultanahmet, Beyoğlu, Kadıköy, Balat, and Beşiktaş.",
+                'tr': "Hangi semti keşfetmek istersiniz? Popüler bölgeler arasında Sultanahmet, Beyoğlu, Kadıköy, Balat ve Beşiktaş bulunmaktadır.",
+                'ru': "Какой район вы хотели бы исследовать? Популярные районы: Султанахмет, Бейоглу, Кадыкёй, Балат и Бешикташ.",
+                'de': "Welches Viertel möchten Sie erkunden? Beliebte Gegenden sind Sultanahmet, Beyoğlu, Kadıköy, Balat und Beşiktaş.",
+                'ar': "أي حي تود استكشافه؟ المناطق الشعبية تشمل السلطان أحمد، بيوغلو، كاديكوي، بالات وبشكتاش.",
+                'fr': "Quel quartier souhaitez-vous explorer? Les zones populaires incluent Sultanahmet, Beyoğlu, Kadıköy, Balat et Beşiktaş."
+            }
+            suggestions_map = {
+                'en': ["Tell me about Balat", "What's Kadıköy like?", "Guide to Sultanahmet"],
+                'tr': ["Balat hakkında bilgi ver", "Kadıköy nasıl bir yer?", "Sultanahmet rehberi"],
+                'ru': ["Расскажи о Балате", "Какой район Кадыкёй?", "Путеводитель по Султанахмету"],
+                'de': ["Erzähl mir von Balat", "Wie ist Kadıköy?", "Führer für Sultanahmet"],
+                'ar': ["أخبرني عن بالات", "كيف هو كاديكوي؟", "دليل السلطان أحمد"],
+                'fr': ["Parle-moi de Balat", "Comment est Kadıköy?", "Guide de Sultanahmet"]
+            }
             return HandlerResult(
                 success=True,
-                response="Which neighborhood would you like to explore? Popular areas include Sultanahmet, Beyoğlu, Kadıköy, Balat, and Beşiktaş.",
+                response=prompts.get(language, prompts['en']),
                 intent='neighborhood_guide',
-                suggestions=[
-                    "Tell me about Balat",
-                    "What's Kadıköy like?",
-                    "Guide to Sultanahmet"
-                ]
+                suggestions=suggestions_map.get(language, suggestions_map['en'])
             )
         
         try:
@@ -726,7 +740,8 @@ Just ask me anything about Istanbul!""",
             'tr': f"🌦️ İstanbul'da şu anki hava: {temp}°C, {condition}",
             'ru': f"🌦️ Текущая погода в Стамбуле: {temp}°C, {condition}",
             'de': f"🌦️ Aktuelles Wetter in Istanbul: {temp}°C, {condition}",
-            'ar': f"🌦️ الطقس الحالي في اسطنبول: {temp}°C, {condition}"
+            'ar': f"🌦️ الطقس الحالي في اسطنبول: {temp}°C, {condition}",
+            'fr': f"🌦️ Météo actuelle à Istanbul: {temp}°C, {condition}"
         }
         
         return templates.get(language, templates['en'])
@@ -734,9 +749,25 @@ Just ask me anything about Istanbul!""",
     def _format_events_response(self, events: List[Dict], language: str) -> str:
         """Format events list into response text"""
         if not events:
-            return "No upcoming events found."
+            no_events = {
+                'en': "No upcoming events found.",
+                'tr': "Yaklaşan etkinlik bulunamadı.",
+                'ru': "Предстоящих мероприятий не найдено.",
+                'de': "Keine kommenden Veranstaltungen gefunden.",
+                'ar': "لم يتم العثور على أحداث قادمة.",
+                'fr': "Aucun événement à venir trouvé."
+            }
+            return no_events.get(language, no_events['en'])
         
-        lines = [f"🎭 Found {len(events)} upcoming events:\n"]
+        headers = {
+            'en': f"🎭 Found {len(events)} upcoming events:\n",
+            'tr': f"🎭 {len(events)} yaklaşan etkinlik bulundu:\n",
+            'ru': f"🎭 Найдено {len(events)} предстоящих мероприятий:\n",
+            'de': f"🎭 {len(events)} kommende Veranstaltungen gefunden:\n",
+            'ar': f"🎭 تم العثور على {len(events)} أحداث قادمة:\n",
+            'fr': f"🎭 {len(events)} événements à venir trouvés:\n"
+        }
+        lines = [headers.get(language, headers['en'])]
         for event in events[:5]:
             lines.append(f"• {event.get('name', 'Unknown')} - {event.get('date', 'TBA')}")
         
@@ -764,17 +795,56 @@ Just ask me anything about Istanbul!""",
             content = info[neighborhood_lower]
             response = content.get(language, content.get('en', ''))
         else:
-            response = f"I'd love to tell you about {neighborhood}! It's one of Istanbul's unique neighborhoods."
+            # Language-aware fallback for unknown neighborhoods (6 main languages)
+            fallback_templates = {
+                'en': f"I'd love to tell you about {neighborhood}! It's one of Istanbul's unique neighborhoods.",
+                'tr': f"{neighborhood} hakkında bilgi vermekten mutluluk duyarım! İstanbul'un benzersiz semtlerinden biri.",
+                'ru': f"С удовольствием расскажу вам о {neighborhood}! Это один из уникальных районов Стамбула.",
+                'de': f"Ich erzähle Ihnen gerne von {neighborhood}! Es ist eines der einzigartigen Viertel Istanbuls.",
+                'ar': f"يسعدني أن أخبرك عن {neighborhood}! إنها واحدة من أحياء اسطنبول الفريدة.",
+                'fr': f"Je serais ravi de vous parler de {neighborhood}! C'est l'un des quartiers uniques d'Istanbul."
+            }
+            response = fallback_templates.get(language, fallback_templates['en'])
+        
+        # Language-aware suggestions (6 main languages)
+        suggestions_map = {
+            'en': [
+                f"Hidden gems in {neighborhood}",
+                f"Best restaurants in {neighborhood}",
+                f"How to get to {neighborhood}"
+            ],
+            'tr': [
+                f"{neighborhood}'deki gizli hazineler",
+                f"{neighborhood}'deki en iyi restoranlar",
+                f"{neighborhood}'ye nasıl gidilir"
+            ],
+            'ru': [
+                f"Скрытые жемчужины в {neighborhood}",
+                f"Лучшие рестораны в {neighborhood}",
+                f"Как добраться до {neighborhood}"
+            ],
+            'de': [
+                f"Geheimtipps in {neighborhood}",
+                f"Beste Restaurants in {neighborhood}",
+                f"Wie komme ich nach {neighborhood}"
+            ],
+            'ar': [
+                f"الجواهر الخفية في {neighborhood}",
+                f"أفضل المطاعم في {neighborhood}",
+                f"كيفية الوصول إلى {neighborhood}"
+            ],
+            'fr': [
+                f"Trésors cachés à {neighborhood}",
+                f"Meilleurs restaurants à {neighborhood}",
+                f"Comment se rendre à {neighborhood}"
+            ]
+        }
         
         return HandlerResult(
             success=True,
             response=response,
             intent='neighborhood_guide',
-            suggestions=[
-                f"Hidden gems in {neighborhood}",
-                f"Best restaurants in {neighborhood}",
-                f"How to get to {neighborhood}"
-            ]
+            suggestions=suggestions_map.get(language, suggestions_map['en'])
         )
 
 

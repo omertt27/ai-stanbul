@@ -331,9 +331,9 @@ class SignalDetector:
         Enhanced automatic language detection from query text
         
         Uses multiple detection methods for accuracy:
-        1. Character set analysis (fast, reliable)
-        2. langdetect library (backup)
-        3. Keyword patterns (fallback)
+        1. Character set analysis (fast, reliable for Arabic/Russian/Turkish special chars)
+        2. Keyword patterns (reliable for common phrases)
+        3. langdetect library (good for longer texts)
         
         Supported languages: en, tr, ar, de, ru, fr
         
@@ -343,37 +343,49 @@ class SignalDetector:
         Returns:
             ISO 639-1 language code (e.g., 'en', 'tr')
         """
-        # Method 1: Character set analysis (most reliable)
+        # Method 1: Character set analysis (most reliable for scripts with unique chars)
         char_lang = self._detect_by_charset(query)
         if char_lang:
             logger.info(f"   🌍 Language detected (charset): {char_lang}")
             return char_lang
         
-        # Method 2: langdetect library
-        if LANGDETECT_AVAILABLE:
-            try:
-                detected_lang = detect(query)
-                
-                # Map to supported languages
-                supported_langs = {"en", "tr", "ar", "de", "ru", "fr"}
-                
-                if detected_lang in supported_langs:
-                    logger.info(f"   🌍 Language detected (langdetect): {detected_lang}")
-                    return detected_lang
-                else:
-                    logger.debug(f"   🌍 Language detected as {detected_lang}, not in supported set, trying fallback")
-                    
-            except Exception as e:
-                logger.debug(f"   ⚠️  langdetect failed: {e}, trying fallback")
-        
-        # Method 3: Keyword pattern matching (fallback)
+        # Method 2: Keyword pattern matching (reliable for common phrases)
         keyword_lang = self._detect_by_keywords(query)
         if keyword_lang:
             logger.info(f"   🌍 Language detected (keywords): {keyword_lang}")
             return keyword_lang
         
-        # Final fallback
-        logger.debug(f"   ⚠️  Could not detect language, defaulting to 'en'")
+        # Method 3: langdetect library (good for longer texts)
+        if LANGDETECT_AVAILABLE:
+            try:
+                # Use detect_langs for confidence scores
+                from langdetect import detect_langs
+                detected_langs = detect_langs(query)
+                
+                if detected_langs:
+                    top_lang = detected_langs[0]
+                    lang_code = top_lang.lang
+                    confidence = top_lang.prob
+                    
+                    # Map to supported languages
+                    supported_langs = {"en", "tr", "ar", "de", "ru", "fr", "es", "it", "pt", "nl"}
+                    
+                    if lang_code in supported_langs:
+                        # Accept if confidence is reasonable (>0.5) or if it's not English
+                        # (langdetect often defaults to English with low confidence)
+                        if confidence > 0.5 or (lang_code != 'en' and confidence > 0.3):
+                            logger.info(f"   🌍 Language detected (langdetect): {lang_code} (confidence: {confidence:.2f})")
+                            return lang_code
+                        else:
+                            logger.debug(f"   ⚠️ langdetect returned {lang_code} with low confidence {confidence:.2f}")
+                    else:
+                        logger.debug(f"   🌍 Language detected as {lang_code}, not in supported set")
+                    
+            except Exception as e:
+                logger.debug(f"   ⚠️ langdetect failed: {e}")
+        
+        # Final fallback - default to English
+        logger.debug(f"   ⚠️ Could not confidently detect language, defaulting to 'en'")
         return "en"
     
     def _detect_by_charset(self, text: str) -> Optional[str]:
@@ -398,22 +410,62 @@ class SignalDetector:
         return None
     
     def _detect_by_keywords(self, text: str) -> Optional[str]:
-        """Detect language by common keywords"""
+        """Detect language by common keywords and patterns"""
         text_lower = text.lower()
+        words = text_lower.split()
+        
+        # Turkish keywords - expanded list with common words and suffixes
+        turkish_words = {
+            # Question words
+            'nerede', 'nasıl', 'hangi', 'ne', 'nereye', 'nereden', 'neler', 'kaç', 'kim',
+            # Common words
+            'var', 'yok', 'için', 'ile', 'bir', 'bu', 've', 'da', 'de', 'den', 'dan',
+            # Question suffixes
+            'mi', 'mı', 'mu', 'mü', 'misin', 'mısın', 'musun', 'müsün',
+            # Verbs and common patterns
+            'istiyorum', 'gitmek', 'gidecek', 'gidilecek', 'yemek', 'bulmak', 
+            'önerir', 'tavsiye', 'edersiniz', 'misiniz', 'lazım', 'gerek',
+            # Nouns
+            'restoran', 'restaurantlar', 'yer', 'yerler', 'mekan', 'mekanlar',
+            'otel', 'cafe', 'kahve', 'yemek', 'içecek',
+            # Location suffixes (Turkish locative -da/-de/-ta/-te)
+            'istanbulda', 'taksimde', 'kadıköyde', 'beşiktaşta', 'üsküdarda',
+            # Time words
+            'bugün', 'yarın', 'şimdi', 'akşam', 'sabah', 'gece',
+            # Adjectives
+            'güzel', 'iyi', 'en', 'çok', 'ucuz', 'pahalı'
+        }
+        
+        # Check for Turkish words
+        if any(word in words for word in turkish_words):
+            return 'tr'
+        
+        # Check for Turkish suffixes in any word (locative -da/-de, ablative -dan/-den, etc.)
+        turkish_suffixes = ['da', 'de', 'ta', 'te', 'dan', 'den', 'tan', 'ten', 'lar', 'ler', 'lık', 'lik']
+        for word in words:
+            if len(word) > 4:  # Only check longer words
+                for suffix in turkish_suffixes:
+                    if word.endswith(suffix) and not word in {'ында', 'ында'}:  # Exclude Russian
+                        # Additional check: word should have Turkish-compatible characters
+                        if all(c in 'abcçdefgğhıijklmnoöprsştuüvyzw0123456789' for c in word):
+                            logger.debug(f"   🇹🇷 Turkish detected via suffix '{suffix}' in word '{word}'")
+                            return 'tr'
         
         # German keywords
-        german_words = {'wo', 'wie', 'welche', 'der', 'die', 'das', 'ist', 'sind', 'können', 'gibt'}
-        if any(word in text_lower.split() for word in german_words):
+        german_words = {'wo', 'wie', 'welche', 'der', 'die', 'das', 'ist', 'sind', 'können', 'gibt', 
+                       'bitte', 'danke', 'guten', 'morgen', 'abend', 'nach', 'zum', 'zur'}
+        if any(word in words for word in german_words):
             return 'de'
         
         # French keywords
-        french_words = {'où', 'comment', 'quel', 'quelle', 'le', 'la', 'les', 'est', 'sont', 'puis'}
-        if any(word in text_lower.split() for word in french_words):
+        french_words = {'où', 'comment', 'quel', 'quelle', 'le', 'la', 'les', 'est', 'sont', 'puis',
+                       'je', 'tu', 'nous', 'vous', 'merci', 'bonjour', 'bonsoir', 'au', 'aux'}
+        if any(word in words for word in french_words):
             return 'fr'
         
-        # Turkish keywords
-        turkish_words = {'nerede', 'nasıl', 'hangi', 'ne', 'var', 'yok', 'mi', 'mı', 'mu', 'mü'}
-        if any(word in text_lower.split() for word in turkish_words):
-            return 'tr'
+        # Russian keywords (Latin transliteration)
+        russian_words = {'gde', 'kak', 'chto', 'kogda', 'pochemu', 'skolko'}
+        if any(word in words for word in russian_words):
+            return 'ru'
         
         return None

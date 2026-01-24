@@ -24,7 +24,8 @@ MAX_MESSAGE_LENGTH = 2000
 MIN_MESSAGE_LENGTH = 1
 MAX_SESSION_ID_LENGTH = 128
 MAX_CONVERSATION_HISTORY = 50
-SUPPORTED_LANGUAGES = {"en", "tr", "de", "fr", "es", "ar", "ru", "zh", "ja", "ko"}
+# 6 Main Supported Languages: English, Turkish, Russian, German, Arabic, French
+SUPPORTED_LANGUAGES = {"en", "tr", "ru", "de", "ar", "fr"}
 
 
 # ===========================================

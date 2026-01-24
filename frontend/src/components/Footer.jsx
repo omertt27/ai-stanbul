@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ManageConsentButton } from './CookieConsent';
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -162,6 +163,11 @@ const Footer = () => {
       >
         {t('footer.contact')}
       </Link>
+      <ManageConsentButton 
+        className="text-white hover:text-indigo-400 transition-colors duration-200 text-sm font-medium cursor-pointer"
+      >
+        🍪 {t('gdpr.manageConsent', 'Cookies')}
+      </ManageConsentButton>
     </footer>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
+import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -22,12 +23,12 @@ L.Icon.Default.mergeOptions({
 /**
  * MapLoadingSkeleton - Loading state for map
  */
-const MapLoadingSkeleton = () => {
+const MapLoadingSkeleton = ({ t }) => {
   return (
     <div className="absolute inset-0 z-[999] bg-gray-100 animate-pulse flex items-center justify-center">
       <div className="text-center">
         <div className="inline-block w-12 h-12 border-4 border-gray-300 border-t-indigo-600 rounded-full animate-spin"></div>
-        <div className="mt-3 text-gray-500 font-medium">Loading map...</div>
+        <div className="mt-3 text-gray-500 font-medium">{t('routeCard.loadingMap')}</div>
       </div>
     </div>
   );
@@ -304,7 +305,7 @@ const StepByStepNavigation = ({ steps, onClose }) => {
         {/* Header */}
         <div className="bg-indigo-600 text-white p-4 rounded-t-3xl sm:rounded-t-2xl">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold">Navigation Mode</h3>
+            <h3 className="text-lg font-bold">{t('routeCard.navigationMode')}</h3>
             <button 
               onClick={onClose}
               className="w-8 h-8 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition-colors"
@@ -317,8 +318,8 @@ const StepByStepNavigation = ({ steps, onClose }) => {
           {/* Progress Bar */}
           <div className="mb-2">
             <div className="flex items-center justify-between text-sm mb-1">
-              <span>Step {currentStepIndex + 1} of {totalSteps}</span>
-              <span>{Math.round(progress)}% complete</span>
+              <span>{t('routeCard.stepOf', { current: currentStepIndex + 1, total: totalSteps })}</span>
+              <span>{Math.round(progress)}%</span>
             </div>
             <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
               <div 
@@ -415,7 +416,7 @@ const StepByStepNavigation = ({ steps, onClose }) => {
         
         {/* All Steps Preview */}
         <div className="p-4 border-t max-h-48 overflow-y-auto">
-          <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">All Steps</h4>
+          <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">{t('routeCard.allSteps')}</h4>
           <div className="space-y-1">
             {steps.map((step, idx) => (
               <button
@@ -457,6 +458,9 @@ const StepByStepNavigation = ({ steps, onClose }) => {
  * Similar to mobile app route cards with functional CTAs
  */
 const RouteCard = ({ routeData }) => {
+  // i18n translation hook
+  const { t } = useTranslation();
+  
   // State for share button feedback
   const [shareStatus, setShareStatus] = useState({ state: 'idle', message: '' }); // idle, success, error
   
@@ -949,7 +953,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
                     >
                       <Popup>
                         <div>
-                          <strong>Your Location</strong>
+                          <strong>{t('routeCard.yourLocation')}</strong>
                         </div>
                       </Popup>
                     </Marker>
@@ -1022,7 +1026,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition-colors shadow-lg flex items-center justify-center space-x-2 mb-4"
                 >
                   <span className="text-2xl">🧭</span>
-                  <span className="text-lg">Start Navigation</span>
+                  <span className="text-lg">{t('routeCard.startNavigation')}</span>
                 </button>
               )}
 
@@ -1031,7 +1035,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
                 <div className="space-y-2">
                   <h3 className="font-semibold text-gray-700 mb-3 flex items-center">
                     <span className="mr-2">📋</span>
-                    All Steps
+                    {t('routeCard.allSteps')}
                   </h3>
                   {steps.map((step, idx) => (
                     <div 
@@ -1171,7 +1175,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
                   : 'bg-indigo-600 hover:bg-indigo-700 text-white'
               }`}
             >
-              <span>Compare Routes</span>
+              <span>{t('routeCard.compareRoutes')}</span>
               <span>→</span>
             </button>
           </div>
@@ -1328,7 +1332,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
               >
                 <Popup>
                   <div>
-                    <strong>Your Location</strong>
+                    <strong>{t('routeCard.yourLocation')}</strong>
                   </div>
                 </Popup>
               </Marker>
@@ -1357,7 +1361,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
               title="Start step-by-step navigation"
             >
               <span>🎯</span>
-              <span>Start Navigation</span>
+              <span>{t('routeCard.startNavigation')}</span>
             </button>
           </div>
           <div className="space-y-3">
@@ -1403,7 +1407,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
             title="Open in Google Maps"
           >
             <span>🧭</span>
-            <span>Start Navigation</span>
+            <span>{t('routeCard.startNavigation')}</span>
           </button>
           
           {/* Secondary Action - Save Route */}
@@ -1427,7 +1431,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
             title="Copy route details"
           >
             <span>📋</span>
-            <span className="hidden sm:inline">Copy</span>
+            <span className="hidden sm:inline">{t('routeCard.copy')}</span>
           </button>
           
           {/* Secondary Actions - Share with React state */}

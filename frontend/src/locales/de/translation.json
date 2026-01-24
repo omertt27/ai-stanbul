@@ -586,5 +586,60 @@
     "privacy": "Datenschutz",
     "gdpr": "DSGVO",
     "contact": "Kontakt"
+  },
+  "gdpr": {
+    "title": "Wir schätzen Ihre Privatsphäre",
+    "description": "AISTANBUL verwendet Cookies und ähnliche Technologien, um Ihr Erlebnis zu verbessern, personalisierte Empfehlungen bereitzustellen und unseren Traffic zu analysieren. Wir halten die DSGVO ein und respektieren Ihre Datenschutzentscheidungen.",
+    "acceptAll": "Alle akzeptieren",
+    "rejectAll": "Alle ablehnen",
+    "customize": "Anpassen",
+    "savePreferences": "Einstellungen speichern",
+    "back": "Zurück",
+    "required": "Erforderlich",
+    "necessary": {
+      "title": "Notwendige Cookies",
+      "description": "Für die ordnungsgemäße Funktion der Website unerlässlich. Kann nicht deaktiviert werden."
+    },
+    "analytics": {
+      "title": "Analyse-Cookies",
+      "description": "Helfen uns zu verstehen, wie Besucher mit unserer Website interagieren (Google Analytics)."
+    },
+    "personalization": {
+      "title": "Personalisierungs-Cookies",
+      "description": "Merken sich Ihre Einstellungen (Theme, Sprache) für ein besseres Erlebnis."
+    },
+    "moreInfo": "Weitere Informationen finden Sie in unserer",
+    "privacyPolicy": "Datenschutzerklärung",
+    "and": "und",
+    "gdprRights": "DSGVO-Rechte",
+    "manageConsent": "Cookie-Einstellungen verwalten"
+  },
+  "routeCard": {
+    "loadingMap": "Karte wird geladen...",
+    "navigationMode": "Navigationsmodus",
+    "stepOf": "Schritt {{current}} von {{total}}",
+    "allSteps": "Alle Schritte",
+    "copied": "Kopiert!",
+    "yourLocation": "Ihr Standort",
+    "startNavigation": "Navigation starten",
+    "navigation": "Navigation",
+    "lines": "Linien",
+    "compareRoutes": "Routen vergleichen",
+    "copy": "Kopieren",
+    "totalDuration": "Gesamtdauer",
+    "transfers": "Umstiege",
+    "walkingDistance": "Fußweg",
+    "estimatedCost": "Geschätzte Kosten",
+    "departure": "Abfahrt",
+    "arrival": "Ankunft",
+    "walk": "Gehen",
+    "metro": "U-Bahn",
+    "tram": "Straßenbahn",
+    "bus": "Bus",
+    "ferry": "Fähre",
+    "funicular": "Seilbahn",
+    "minutes": "Min",
+    "km": "km",
+    "m": "m"
   }
 }

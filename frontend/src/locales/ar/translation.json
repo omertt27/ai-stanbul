@@ -616,5 +616,33 @@
     "privacy": "الخصوصية",
     "gdpr": "حماية البيانات",
     "contact": "اتصل بنا"
+  },
+  "routeCard": {
+    "loadingMap": "جاري تحميل الخريطة...",
+    "navigationMode": "وضع الملاحة",
+    "stepOf": "الخطوة {{current}} من {{total}}",
+    "allSteps": "جميع الخطوات",
+    "copied": "تم النسخ!",
+    "yourLocation": "موقعك",
+    "startNavigation": "بدء الملاحة",
+    "navigation": "الملاحة",
+    "lines": "الخطوط",
+    "compareRoutes": "مقارنة الطرق",
+    "copy": "نسخ",
+    "totalDuration": "المدة الإجمالية",
+    "transfers": "التحويلات",
+    "walkingDistance": "مسافة المشي",
+    "estimatedCost": "التكلفة التقديرية",
+    "departure": "المغادرة",
+    "arrival": "الوصول",
+    "walk": "مشي",
+    "metro": "مترو",
+    "tram": "ترام",
+    "bus": "حافلة",
+    "ferry": "عبّارة",
+    "funicular": "قطار معلق",
+    "minutes": "د",
+    "km": "كم",
+    "m": "م"
   }
 }

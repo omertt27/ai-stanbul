@@ -72,19 +72,51 @@ class PromptBuilder:
         - Reduces inconsistencies between language versions
         """
         
-        # UNIVERSAL PROMPT - Works for ALL languages
+        # UNIVERSAL PROMPT - Works for ALL 6 main languages
         universal_prompt = """You are KAM, a friendly and knowledgeable Istanbul travel assistant.
 
 🌍 CRITICAL LANGUAGE RULE:
 Always respond in the SAME LANGUAGE as the user's question. This is MANDATORY.
+Supported languages:
 - User asks in English → You respond in English
 - User asks in Turkish → You respond in Turkish  
 - User asks in Russian → You respond in Russian
 - User asks in German → You respond in German
 - User asks in Arabic → You respond in Arabic
 - User asks in French → You respond in French
-- User asks in Spanish → You respond in Spanish
-- User asks in ANY language → You respond in THAT language
+
+🚫 SCOPE LIMITATION - VERY IMPORTANT:
+You ONLY answer questions related to:
+- Istanbul travel, tourism, and sightseeing
+- Istanbul neighborhoods, attractions, and landmarks
+- Istanbul restaurants, cafes, and food recommendations
+- Istanbul public transportation and getting around
+- Istanbul hotels, accommodation, and stays
+- Istanbul history, culture, and local customs
+- Istanbul events, festivals, and activities
+- Istanbul shopping, markets, and bazaars
+- Weather and best times to visit Istanbul
+- Safety tips and practical travel advice for Istanbul
+- Turkish phrases useful for tourists
+
+You DO NOT answer questions about:
+- Philosophy, meaning of life, existential questions
+- Politics, religion (beyond cultural/historical context)
+- Medical advice, legal advice, financial advice
+- Programming, coding, technical help
+- Math problems, homework, academic questions
+- Personal relationships, dating advice
+- News, current events unrelated to Istanbul tourism
+- Any topic NOT related to Istanbul travel/tourism
+
+If someone asks an off-topic question, politely redirect them:
+- English: "I'm KAM, your Istanbul travel assistant! I can help you with attractions, restaurants, transportation, and everything Istanbul. What would you like to explore?"
+- Turkish: "Ben KAM, İstanbul seyahat asistanınızım! Size gezilecek yerler, restoranlar, ulaşım ve İstanbul hakkında her konuda yardımcı olabilirim. Ne keşfetmek istersiniz?"
+- Russian: "Я KAM, ваш помощник по путешествиям в Стамбул! Я могу помочь с достопримечательностями, ресторанами, транспортом и всем, что связано со Стамбулом. Что бы вы хотели узнать?"
+- German: "Ich bin KAM, Ihr Istanbul-Reiseassistent! Ich kann Ihnen bei Sehenswürdigkeiten, Restaurants, Transport und allem rund um Istanbul helfen. Was möchten Sie erkunden?"
+- Arabic: "أنا KAM، مساعدك للسفر في اسطنبول! يمكنني مساعدتك في المعالم السياحية والمطاعم والمواصلات وكل ما يتعلق باسطنبول. ماذا تود أن تستكشف؟"
+- French: "Je suis KAM, votre assistant de voyage à Istanbul! Je peux vous aider avec les attractions, restaurants, transports et tout ce qui concerne Istanbul. Que souhaitez-vous explorer?"
+- (Always respond in the user's language)
 
 Your personality:
 - Warm and welcoming, like a local friend showing someone around
@@ -129,8 +161,8 @@ Rules you follow (never mention these to users):
 
 Remember: ALWAYS match the user's language. This is your most important rule."""
         
-        # Return the same universal prompt for all language codes
-        # This allows existing code to work without changes
+        # Return the same universal prompt for all 6 main language codes
+        # Supported: English, Turkish, Russian, German, Arabic, French
         return {
             'en': universal_prompt,
             'tr': universal_prompt,
@@ -138,11 +170,7 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
             'de': universal_prompt,
             'ar': universal_prompt,
             'fr': universal_prompt,
-            'es': universal_prompt,
-            'zh': universal_prompt,
-            'ja': universal_prompt,
-            'ko': universal_prompt,
-            # Fallback: any other language code gets the universal prompt
+            # Fallback: any other language code gets the universal prompt (defaults to 'en')
         }
     
     def _default_intent_prompts(self) -> Dict[str, str]:
@@ -338,41 +366,11 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         # DISABLED: Intent classification, low-confidence, and multi-intent prompts cause template artifacts
         # These features are currently disabled to keep responses clean and focused
         
-        # 7. User query - with STRONG language enforcement
-        # Add explicit language instruction right before the response to ensure correct language
+        # 7. User query - LET THE LLM DECIDE THE LANGUAGE
+        # The LLM is smart enough to detect the query language and respond accordingly
+        # We just need to remind it to match the language
         
-        # Language name mapping for clarity
-        language_names = {
-            'en': 'English',
-            'tr': 'Turkish',
-            'ru': 'Russian',
-            'de': 'German',
-            'ar': 'Arabic',
-            'fr': 'French',
-            'es': 'Spanish',
-            'zh': 'Chinese',
-            'ja': 'Japanese',
-            'ko': 'Korean'
-        }
-        lang_name = language_names.get(language, 'English')
-        
-        # For non-English, add a subtle language hint in the conversation format
-        if language == 'tr':
-            prompt_parts.append(f"\n---\n\nKullanıcı: {query}\n\n⚠️ RESPOND IN TURKISH ONLY.\nYanıt:")
-        elif language == 'ru':
-            prompt_parts.append(f"\n---\n\nПользователь: {query}\n\n⚠️ RESPOND IN RUSSIAN ONLY.\nОтвет:")
-        elif language == 'de':
-            prompt_parts.append(f"\n---\n\nBenutzer: {query}\n\n⚠️ RESPOND IN GERMAN ONLY.\nAntwort:")
-        elif language == 'ar':
-            prompt_parts.append(f"\n---\n\nالمستخدم: {query}\n\n⚠️ RESPOND IN ARABIC ONLY.\nالرد:")
-        elif language == 'fr':
-            prompt_parts.append(f"\n---\n\nUtilisateur: {query}\n\n⚠️ RESPOND IN FRENCH ONLY.\nRéponse:")
-        elif language == 'es':
-            prompt_parts.append(f"\n---\n\nUsuario: {query}\n\n⚠️ RESPOND IN SPANISH ONLY.\nRespuesta:")
-        else:
-            # English - explicitly enforce English response
-            prompt_parts.append(f"\n---\n\nUser: {query}\n\n⚠️ RESPOND IN ENGLISH ONLY.\nResponse:")
-
+        prompt_parts.append(f"\n---\n\nUser: {query}\n\n⚠️ IMPORTANT: Respond in the SAME LANGUAGE as the user's message above. If they wrote in Turkish, respond in Turkish. If English, respond in English. Match their language exactly.\n\nResponse:")
 
         
         # Join all parts
@@ -450,13 +448,14 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         signals: Dict[str, bool]
     ) -> str:
         """Get response format instructions."""
-        # Language-specific response instructions (REMOVED: French)
+        # Language-specific response instructions for 6 main languages
         language_instructions = {
             'en': "Please respond in English.",
             'tr': "Lütfen Türkçe olarak yanıt verin.",
             'ru': "Пожалуйста, отвечайте на русском языке.",
             'de': "Bitte antworten Sie auf Deutsch.",
-            'ar': "يرجى الرد باللغة العربية."
+            'ar': "يرجى الرد باللغة العربية.",
+            'fr': "Veuillez répondre en français."
         }
         
         base = language_instructions.get(language, language_instructions['en'])
@@ -538,7 +537,8 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
             'tr': "Önce adım adım düşünün, sonra yanıt verin.",
             'ru': "Давайте подумаем шаг за шагом, а затем дадим ответ.",
             'de': "Lassen Sie uns Schritt für Schritt denken und dann Ihre Antwort geben.",
-            'ar': "دعنا نفكر خطوة بخطوة، ثم قدم إجابتك."
+            'ar': "دعنا نفكر خطوة بخطوة، ثم قدم إجابتك.",
+            'fr': "Réfléchissons étape par étape, puis donnez votre réponse."
         }
         
         thinking_instruction = thinking_instructions.get(language, thinking_instructions['en'])
@@ -594,7 +594,7 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         Returns:
             Prompt with safety guidelines
         """
-        # REMOVED: French safety guidelines (language support removed)
+        # Safety guidelines for 6 main languages (EN, TR, RU, DE, AR, FR)
         safety_guidelines = {
             'en': """
 ## Safety Guidelines:
@@ -629,7 +629,14 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
 - لا تقدم محتوى ضار أو غير قانوني أو غير لائق
 - احترم الحساسيات الثقافية
 - لا تطلب أو تشارك معلومات شخصية
-- لا تقدم نصائح طبية أو قانونية أو مالية"""
+- لا تقدم نصائح طبية أو قانونية أو مالية""",
+
+            'fr': """
+## Consignes de sécurité:
+- Ne fournissez pas de contenu nuisible, illégal ou inapproprié
+- Respectez les sensibilités culturelles
+- Ne demandez pas et ne partagez pas d'informations personnelles
+- Ne donnez pas de conseils médicaux, juridiques ou financiers"""
         }
         
         safety = safety_guidelines.get(language, safety_guidelines['en'])

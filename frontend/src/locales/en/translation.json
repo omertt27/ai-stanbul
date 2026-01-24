@@ -682,5 +682,60 @@
     "privacy": "Privacy",
     "gdpr": "GDPR",
     "contact": "Contact"
+  },
+  "gdpr": {
+    "title": "We Value Your Privacy",
+    "description": "AISTANBUL uses cookies and similar technologies to enhance your experience, provide personalized recommendations, and analyze our traffic. We comply with GDPR and respect your privacy choices.",
+    "acceptAll": "Accept All",
+    "rejectAll": "Reject All",
+    "customize": "Customize",
+    "savePreferences": "Save Preferences",
+    "back": "Back",
+    "required": "Required",
+    "necessary": {
+      "title": "Necessary Cookies",
+      "description": "Essential for the website to function properly. Cannot be disabled."
+    },
+    "analytics": {
+      "title": "Analytics Cookies",
+      "description": "Help us understand how visitors interact with our website (Google Analytics)."
+    },
+    "personalization": {
+      "title": "Personalization Cookies",
+      "description": "Remember your preferences (theme, language) for a better experience."
+    },
+    "moreInfo": "For more information, read our",
+    "privacyPolicy": "Privacy Policy",
+    "and": "and",
+    "gdprRights": "GDPR Rights",
+    "manageConsent": "Manage Cookie Preferences"
+  },
+  "routeCard": {
+    "loadingMap": "Loading map...",
+    "navigationMode": "Navigation Mode",
+    "stepOf": "Step {{current}} of {{total}}",
+    "allSteps": "All Steps",
+    "copied": "Copied!",
+    "yourLocation": "Your Location",
+    "startNavigation": "Start Navigation",
+    "navigation": "Navigation",
+    "lines": "Lines",
+    "compareRoutes": "Compare Routes",
+    "copy": "Copy",
+    "totalDuration": "Total Duration",
+    "transfers": "Transfers",
+    "walkingDistance": "Walking Distance",
+    "estimatedCost": "Estimated Cost",
+    "departure": "Departure",
+    "arrival": "Arrival",
+    "walk": "Walk",
+    "metro": "Metro",
+    "tram": "Tram",
+    "bus": "Bus",
+    "ferry": "Ferry",
+    "funicular": "Funicular",
+    "minutes": "min",
+    "km": "km",
+    "m": "m"
   }
 }

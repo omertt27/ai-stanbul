@@ -586,5 +586,60 @@
     "privacy": "Confidentialité",
     "gdpr": "RGPD",
     "contact": "Contact"
+  },
+  "gdpr": {
+    "title": "Nous respectons votre vie privée",
+    "description": "AISTANBUL utilise des cookies et des technologies similaires pour améliorer votre expérience, fournir des recommandations personnalisées et analyser notre trafic. Nous nous conformons au RGPD et respectons vos choix de confidentialité.",
+    "acceptAll": "Tout accepter",
+    "rejectAll": "Tout refuser",
+    "customize": "Personnaliser",
+    "savePreferences": "Enregistrer les préférences",
+    "back": "Retour",
+    "required": "Requis",
+    "necessary": {
+      "title": "Cookies nécessaires",
+      "description": "Essentiels au bon fonctionnement du site web. Ne peuvent pas être désactivés."
+    },
+    "analytics": {
+      "title": "Cookies analytiques",
+      "description": "Nous aident à comprendre comment les visiteurs interagissent avec notre site web (Google Analytics)."
+    },
+    "personalization": {
+      "title": "Cookies de personnalisation",
+      "description": "Mémorisent vos préférences (thème, langue) pour une meilleure expérience."
+    },
+    "moreInfo": "Pour plus d'informations, consultez notre",
+    "privacyPolicy": "Politique de confidentialité",
+    "and": "et",
+    "gdprRights": "Droits RGPD",
+    "manageConsent": "Gérer les préférences de cookies"
+  },
+  "routeCard": {
+    "loadingMap": "Chargement de la carte...",
+    "navigationMode": "Mode navigation",
+    "stepOf": "Étape {{current}} sur {{total}}",
+    "allSteps": "Toutes les étapes",
+    "copied": "Copié!",
+    "yourLocation": "Votre position",
+    "startNavigation": "Démarrer la navigation",
+    "navigation": "Navigation",
+    "lines": "Lignes",
+    "compareRoutes": "Comparer les itinéraires",
+    "copy": "Copier",
+    "totalDuration": "Durée totale",
+    "transfers": "Correspondances",
+    "walkingDistance": "Distance à pied",
+    "estimatedCost": "Coût estimé",
+    "departure": "Départ",
+    "arrival": "Arrivée",
+    "walk": "Marcher",
+    "metro": "Métro",
+    "tram": "Tramway",
+    "bus": "Bus",
+    "ferry": "Ferry",
+    "funicular": "Funiculaire",
+    "minutes": "min",
+    "km": "km",
+    "m": "m"
   }
 }

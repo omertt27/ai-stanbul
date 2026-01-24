@@ -617,5 +617,60 @@
     "privacy": "Gizlilik",
     "gdpr": "KVKK",
     "contact": "İletişim"
+  },
+  "gdpr": {
+    "title": "Gizliliğinize Değer Veriyoruz",
+    "description": "AISTANBUL, deneyiminizi geliştirmek, kişiselleştirilmiş öneriler sunmak ve trafiğimizi analiz etmek için çerezler ve benzer teknolojiler kullanır. KVKK/GDPR ile uyumlu olarak gizlilik tercihlerinize saygı duyuyoruz.",
+    "acceptAll": "Tümünü Kabul Et",
+    "rejectAll": "Tümünü Reddet",
+    "customize": "Özelleştir",
+    "savePreferences": "Tercihleri Kaydet",
+    "back": "Geri",
+    "required": "Zorunlu",
+    "necessary": {
+      "title": "Zorunlu Çerezler",
+      "description": "Web sitesinin düzgün çalışması için gereklidir. Devre dışı bırakılamaz."
+    },
+    "analytics": {
+      "title": "Analiz Çerezleri",
+      "description": "Ziyaretçilerin web sitemizle nasıl etkileşimde bulunduğunu anlamamıza yardımcı olur (Google Analytics)."
+    },
+    "personalization": {
+      "title": "Kişiselleştirme Çerezleri",
+      "description": "Daha iyi bir deneyim için tercihlerinizi (tema, dil) hatırlar."
+    },
+    "moreInfo": "Daha fazla bilgi için",
+    "privacyPolicy": "Gizlilik Politikası",
+    "and": "ve",
+    "gdprRights": "KVKK Hakları",
+    "manageConsent": "Çerez Tercihlerini Yönet"
+  },
+  "routeCard": {
+    "loadingMap": "Harita yükleniyor...",
+    "navigationMode": "Navigasyon Modu",
+    "stepOf": "Adım {{current}} / {{total}}",
+    "allSteps": "Tüm Adımlar",
+    "copied": "Kopyalandı!",
+    "yourLocation": "Konumunuz",
+    "startNavigation": "Navigasyonu Başlat",
+    "navigation": "Navigasyon",
+    "lines": "Hatlar",
+    "compareRoutes": "Rotaları Karşılaştır",
+    "copy": "Kopyala",
+    "totalDuration": "Toplam Süre",
+    "transfers": "Aktarma",
+    "walkingDistance": "Yürüme Mesafesi",
+    "estimatedCost": "Tahmini Ücret",
+    "departure": "Kalkış",
+    "arrival": "Varış",
+    "walk": "Yürü",
+    "metro": "Metro",
+    "tram": "Tramvay",
+    "bus": "Otobüs",
+    "ferry": "Vapur",
+    "funicular": "Füniküler",
+    "minutes": "dk",
+    "km": "km",
+    "m": "m"
   }
 }

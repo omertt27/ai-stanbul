@@ -575,5 +575,33 @@
     "privacy": "Конфиденциальность",
     "gdpr": "GDPR",
     "contact": "Контакты"
+  },
+  "routeCard": {
+    "loadingMap": "Загрузка карты...",
+    "navigationMode": "Режим навигации",
+    "stepOf": "Шаг {{current}} из {{total}}",
+    "allSteps": "Все шаги",
+    "copied": "Скопировано!",
+    "yourLocation": "Ваше местоположение",
+    "startNavigation": "Начать навигацию",
+    "navigation": "Навигация",
+    "lines": "Линии",
+    "compareRoutes": "Сравнить маршруты",
+    "copy": "Копировать",
+    "totalDuration": "Общее время",
+    "transfers": "Пересадки",
+    "walkingDistance": "Пешком",
+    "estimatedCost": "Примерная стоимость",
+    "departure": "Отправление",
+    "arrival": "Прибытие",
+    "walk": "Пешком",
+    "metro": "Метро",
+    "tram": "Трамвай",
+    "bus": "Автобус",
+    "ferry": "Паром",
+    "funicular": "Фуникулёр",
+    "minutes": "мин",
+    "km": "км",
+    "m": "м"
   }
 }

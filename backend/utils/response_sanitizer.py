@@ -254,11 +254,21 @@ class ResponseSanitizer:
         }
         
         # Build reverse lookup: for each phrase in any language, map to the expected language version
+        # IMPORTANT: Use word-boundary matching to avoid corrupting Turkish/other words
+        # e.g., don't replace "at" inside "Hayatın" or "katmak"
         for key, lang_map in translations.items():
             for source_lang, source_phrase in lang_map.items():
                 if source_lang != expected_lang and source_phrase in text:
                     target_phrase = lang_map.get(expected_lang, lang_map['en'])
-                    text = text.replace(source_phrase, target_phrase)
+                    # For short words (2-4 chars), use word boundary matching to avoid
+                    # corrupting words that contain these substrings
+                    if len(source_phrase) <= 4 and source_phrase.isalpha():
+                        # Use word boundaries (\b) to only match standalone words
+                        pattern = r'\b' + re.escape(source_phrase) + r'\b'
+                        text = re.sub(pattern, target_phrase, text, flags=re.IGNORECASE)
+                    else:
+                        # For longer phrases (like "Duration:"), simple replace is safe
+                        text = text.replace(source_phrase, target_phrase)
         
         # Regex-based time unit conversions
         if expected_lang == "en":
