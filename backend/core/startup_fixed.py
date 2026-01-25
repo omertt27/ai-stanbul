@@ -194,31 +194,23 @@ class FastStartupManager:
         try:
             logger.info("🔄 Starting background LLM initialization...")
             
-            # 1. Preload ML models FIRST (before LLM, to share memory efficiently)
-            # DISABLED FOR CLOUD RUN: We use RunPod LLM, no need to download models
-            # This was causing 40-second startup delays trying to download from HuggingFace
-            # try:
-            #     from services.model_cache import preload_models
-            #     preload_models(['default', 'multilingual'])
-            #     logger.info("✅ ML models preloaded")
-            # except Exception as e:
-            #     logger.warning(f"⚠️ Model preload skipped: {e}")
+            # 1. Model preloading disabled - using RunPod LLM
             logger.info("⏭️ Model preloading disabled (using RunPod LLM)")
             
-            # 2. Wait for database and service manager to be ready (up to 30 seconds)
-            max_wait = 30
+            # 2. Wait briefly for service manager (max 5 seconds) - database NOT required
+            # LLM can work without database - just loses some context features
+            max_wait = 5
             waited = 0
             while waited < max_wait:
-                if self.db is not None and self._services_initialized:
-                    logger.info(f"✅ Dependencies ready after {waited}s")
+                if self._services_initialized:
+                    logger.info(f"✅ Service Manager ready after {waited}s")
                     break
-                await asyncio.sleep(2)
-                waited += 2
-                logger.info(f"⏳ Waiting for dependencies... ({waited}s)")
+                await asyncio.sleep(1)
+                waited += 1
             
+            # Database is optional - don't wait for it
             if self.db is None:
-                logger.warning("⚠️ Database not initialized - LLM will work with limited functionality")
-                # Proceed without database - LLM can still work
+                logger.info("ℹ️ Database not available - LLM will work without DB context")
             
             if not self._services_initialized:
                 logger.warning("⚠️ Service Manager not ready - LLM may have limited functionality")
