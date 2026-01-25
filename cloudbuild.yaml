@@ -37,7 +37,7 @@ steps:
       - 'all-traffic'
       # Environment Variables - COMPLETE LIST
       - '--set-env-vars'
-      - 'DATABASE_URL=postgresql://postgres:Yeniden.1881@34.38.193.1:5432/postgres,REDIS_URL=redis://ai-istanbul-cache:AiIstanbul2025%21Redis%23Secure%24@3.126.153.140:6379,ENABLE_REDIS_CACHE=true,REDIS_SOCKET_TIMEOUT=2,REDIS_SOCKET_CONNECT_TIMEOUT=2,ENVIRONMENT=production,LLM_API_URL=https://oge3mpj2wjlj2z-19123.proxy.runpod.net/nfi778289w9c67tsdothsgyw84udcpx6,LLM_MODEL_NAME=meta-llama/Meta-Llama-3.1-8B-Instruct,LLM_TIMEOUT=120,LLM_MAX_TOKENS=768,PYTHONUNBUFFERED=1,TOKENIZERS_PARALLELISM=false'
+      - 'DATABASE_URL=postgresql://postgres:Yeniden.1881@34.38.193.1:5432/postgres,REDIS_URL=redis://ai-istanbul-cache:AiIstanbul2025%21Redis%23Secure%24@3.126.153.140:6379,ENABLE_REDIS_CACHE=true,REDIS_SOCKET_TIMEOUT=2,REDIS_SOCKET_CONNECT_TIMEOUT=2,ENVIRONMENT=production,LLM_API_URL=https://p9lf44wbmqzs5l-8000.proxy.runpod.net/v1,LLM_MODEL_NAME=meta-llama/Meta-Llama-3.1-8B-Instruct,LLM_TIMEOUT=120,LLM_MAX_TOKENS=768,PYTHONUNBUFFERED=1,TOKENIZERS_PARALLELISM=false'
       # Resource Configuration
       - '--timeout'
       - '300'
