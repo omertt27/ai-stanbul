@@ -1530,8 +1530,23 @@ async def chat(
     except Exception as e:
         logger.warning(f"GPS navigation check failed: {e}")
     
-    # Check if Pure LLM is enabled
+    # Check if Pure LLM is enabled (with brief wait for cold starts)
     pure_llm_core = startup_manager.get_pure_llm_core()
+    
+    # If LLM not ready, wait briefly and retry (handles Cloud Run cold starts)
+    if pure_llm_core is None and not startup_manager.is_llm_ready():
+        import asyncio
+        max_wait = 15  # Wait up to 15 seconds for LLM to initialize
+        waited = 0
+        while waited < max_wait:
+            await asyncio.sleep(1)
+            waited += 1
+            pure_llm_core = startup_manager.get_pure_llm_core()
+            if pure_llm_core is not None:
+                logger.info(f"✅ LLM became ready after {waited}s wait")
+                break
+            if waited % 5 == 0:
+                logger.info(f"⏳ Waiting for LLM initialization... ({waited}s)")
     
     logger.info(f"🔍 Chat endpoint called - pure_llm_core exists: {pure_llm_core is not None}")
     if pure_llm_core:
