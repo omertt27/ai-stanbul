@@ -529,29 +529,11 @@ class UnifiedIntentRouter:
         language = intent.language or 'en'
         
         if not neighborhood:
-            # Language-aware prompt for missing neighborhood (6 main languages)
-            prompts = {
-                'en': "Which neighborhood would you like to explore? Popular areas include Sultanahmet, Beyoğlu, Kadıköy, Balat, and Beşiktaş.",
-                'tr': "Hangi semti keşfetmek istersiniz? Popüler bölgeler arasında Sultanahmet, Beyoğlu, Kadıköy, Balat ve Beşiktaş bulunmaktadır.",
-                'ru': "Какой район вы хотели бы исследовать? Популярные районы: Султанахмет, Бейоглу, Кадыкёй, Балат и Бешикташ.",
-                'de': "Welches Viertel möchten Sie erkunden? Beliebte Gegenden sind Sultanahmet, Beyoğlu, Kadıköy, Balat und Beşiktaş.",
-                'ar': "أي حي تود استكشافه؟ المناطق الشعبية تشمل السلطان أحمد، بيوغلو، كاديكوي، بالات وبشكتاش.",
-                'fr': "Quel quartier souhaitez-vous explorer? Les zones populaires incluent Sultanahmet, Beyoğlu, Kadıköy, Balat et Beşiktaş."
-            }
-            suggestions_map = {
-                'en': ["Tell me about Balat", "What's Kadıköy like?", "Guide to Sultanahmet"],
-                'tr': ["Balat hakkında bilgi ver", "Kadıköy nasıl bir yer?", "Sultanahmet rehberi"],
-                'ru': ["Расскажи о Балате", "Какой район Кадыкёй?", "Путеводитель по Султанахмету"],
-                'de': ["Erzähl mir von Balat", "Wie ist Kadıköy?", "Führer für Sultanahmet"],
-                'ar': ["أخبرني عن بالات", "كيف هو كاديكوي؟", "دليل السلطان أحمد"],
-                'fr': ["Parle-moi de Balat", "Comment est Kadıköy?", "Guide de Sultanahmet"]
-            }
-            return HandlerResult(
-                success=True,
-                response=prompts.get(language, prompts['en']),
-                intent='neighborhood_guide',
-                suggestions=suggestions_map.get(language, suggestions_map['en'])
-            )
+            # No specific neighborhood detected - let LLM handle it
+            # The LLM is better at understanding context like "Tell me about Hagia Sophia"
+            # which isn't a neighborhood but might be misclassified
+            logger.info(f"ℹ️ No neighborhood extracted from query, falling back to LLM")
+            return None
         
         try:
             from istanbul_ai.services.neighborhood_guide_service import get_neighborhood_guide
