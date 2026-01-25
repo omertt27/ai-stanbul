@@ -20,8 +20,11 @@ COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application
+# Copy the backend application
 COPY backend/ ./
+
+# Copy unified_system for UnifiedLLMService (required for LLM operations)
+COPY unified_system/ ./unified_system/
 
 # Set environment variables
 ENV PORT=8080

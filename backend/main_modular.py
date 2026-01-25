@@ -27,6 +27,10 @@ PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# Also add the current directory (for Docker deployments where unified_system is at same level)
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 # Prevent tokenizer fork warnings (if not already set by main.py)
 if 'TOKENIZERS_PARALLELISM' not in os.environ:
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'

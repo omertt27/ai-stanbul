@@ -29,8 +29,15 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 # Add backend to path for imports
+# Handle both local dev (unified_system at project root) and Docker (unified_system at /app)
 backend_path = Path(__file__).parent.parent.parent / "backend"
-sys.path.insert(0, str(backend_path))
+app_path = Path(__file__).parent.parent.parent  # For Docker where backend files are at /app
+
+# Add paths if they exist
+if backend_path.exists():
+    sys.path.insert(0, str(backend_path))
+if app_path.exists():
+    sys.path.insert(0, str(app_path))
 
 # Import existing components
 try:

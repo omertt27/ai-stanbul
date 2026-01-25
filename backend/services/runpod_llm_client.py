@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class LLMClientConfig:
     """Configuration for LLM client"""
     connect_timeout: float = 10.0  # Connection timeout
-    read_timeout: float = 60.0     # Read timeout for generation
+    read_timeout: float = 120.0    # Read timeout for generation (matches LLM_TIMEOUT env default)
     max_retries: int = 2
     max_connections: int = 10      # Connection pool size
     max_keepalive: int = 5         # Keep-alive connections
@@ -108,9 +108,11 @@ class RunPodLLMClient:
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create shared async HTTP client with connection pooling."""
         if RunPodLLMClient._shared_client is None or RunPodLLMClient._shared_client.is_closed:
+            # Use the larger of config.read_timeout or self.timeout (from LLM_TIMEOUT env)
+            read_timeout = max(self.config.read_timeout, self.timeout)
             timeout = httpx.Timeout(
                 connect=self.config.connect_timeout,
-                read=self.config.read_timeout,
+                read=read_timeout,
                 write=10.0,
                 pool=5.0
             )
