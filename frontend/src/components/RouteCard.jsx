@@ -22,13 +22,18 @@ L.Icon.Default.mergeOptions({
 
 /**
  * MapLoadingSkeleton - Loading state for map
+ * @param {Object} props
+ * @param {Function} props.t - Translation function (required)
  */
 const MapLoadingSkeleton = ({ t }) => {
+  // t is required - if not passed, this will fail fast to catch bugs early
+  const loadingText = t('routeCard.loadingMap');
+  
   return (
     <div className="absolute inset-0 z-[999] bg-gray-100 animate-pulse flex items-center justify-center">
       <div className="text-center">
         <div className="inline-block w-12 h-12 border-4 border-gray-300 border-t-indigo-600 rounded-full animate-spin"></div>
-        <div className="mt-3 text-gray-500 font-medium">{t('routeCard.loadingMap')}</div>
+        <div className="mt-3 text-gray-500 font-medium">{loadingText}</div>
       </div>
     </div>
   );
@@ -847,7 +852,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
           <div className="absolute inset-0">
             {hasMapData && (
               <div className="map-container relative h-full w-full">
-                {isMapLoading && <MapLoadingSkeleton />}
+                {isMapLoading && <MapLoadingSkeleton t={t} />}
                 <MapContainer 
                   center={center} 
                   zoom={13} 
@@ -1218,7 +1223,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
       {/* Map Visualization */}
       {hasMapData && (
         <div className="map-container relative" style={{ height: '300px' }}>
-          {isMapLoading && <MapLoadingSkeleton />}
+          {isMapLoading && <MapLoadingSkeleton t={t} />}
           <MapContainer 
             center={center} 
             zoom={13} 

@@ -193,7 +193,11 @@ const normalizeText = (text) => {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, ' ')
-    .replace(/[^\w\s-]/g, ' ')
+    // Keep Turkish characters: ı, ş, ğ, ü, ö, ç, İ, Ş, Ğ, Ü, Ö, Ç
+    // Keep Arabic characters for voice input
+    // Keep Cyrillic for Russian voice input
+    // Keep letters, numbers, spaces, hyphens, and international chars
+    .replace(/[^\p{L}\p{N}\s\-'.,?!]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   
@@ -3114,7 +3118,8 @@ function Chatbot({ userLocation: propUserLocation }) {
                 enableVoice={true}
                 showCharCounter={false}
                 minimal={true}
-                voiceLanguage="en-US"
+                voiceLanguage="auto"
+                showLanguagePicker={true}
               />
               <p className={`text-xs text-center mt-2 transition-colors duration-200 ${
                 darkMode ? 'text-gray-500' : 'text-gray-400'
