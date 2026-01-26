@@ -1,0 +1,232 @@
+/**
+ * VoiceLanguagePicker Styles
+ * ===========================
+ * Compact language selector for voice input
+ */
+
+.voice-language-picker {
+  position: relative;
+  display: inline-flex;
+  z-index: 100;
+}
+
+/* Language button */
+.language-picker-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.voice-language-picker.compact .language-picker-button {
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+/* Light mode */
+.voice-language-picker.light .language-picker-button {
+  color: #6b7280;
+}
+
+.voice-language-picker.light .language-picker-button:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+  color: #374151;
+}
+
+.voice-language-picker.light .language-picker-button.open {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Dark mode */
+.voice-language-picker.dark .language-picker-button {
+  color: #9ca3af;
+}
+
+.voice-language-picker.dark .language-picker-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #d1d5db;
+}
+
+.voice-language-picker.dark .language-picker-button.open {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.language-picker-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.language-flag {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.voice-language-picker.compact .language-flag {
+  font-size: 14px;
+}
+
+.language-name {
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.dropdown-arrow {
+  transition: transform 0.2s ease;
+  opacity: 0.6;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* Dropdown menu */
+.language-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  animation: dropdownSlide 0.15s ease-out;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.voice-language-picker.light .language-dropdown {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.voice-language-picker.dark .language-dropdown {
+  background: #2f2f2f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Dropdown header */
+.dropdown-header {
+  padding: 10px 14px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.voice-language-picker.light .dropdown-header {
+  color: #9ca3af;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.voice-language-picker.dark .dropdown-header {
+  color: #6b7280;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Language options */
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+.voice-language-picker.light .language-option {
+  color: #374151;
+}
+
+.voice-language-picker.light .language-option:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.voice-language-picker.light .language-option.selected {
+  background: rgba(16, 163, 127, 0.1);
+  color: #10a37f;
+}
+
+.voice-language-picker.dark .language-option {
+  color: #e5e7eb;
+}
+
+.voice-language-picker.dark .language-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.voice-language-picker.dark .language-option.selected {
+  background: rgba(25, 195, 125, 0.15);
+  color: #19c37d;
+}
+
+.option-flag {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.option-name {
+  flex: 1;
+}
+
+.check-icon {
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .language-dropdown {
+    min-width: 150px;
+  }
+
+  .language-option {
+    padding: 12px 14px;
+  }
+
+  .dropdown-header {
+    font-size: 10px;
+  }
+}
+
+/* RTL support for Arabic */
+.voice-language-picker[dir="rtl"] .language-option {
+  text-align: right;
+  flex-direction: row-reverse;
+}
+
+/* Focus styles */
+.language-picker-button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.voice-language-picker.dark .language-picker-button:focus-visible {
+  outline-color: #60a5fa;
+}
+
+.language-option:focus-visible {
+  outline: none;
+  background: rgba(59, 130, 246, 0.2);
+}

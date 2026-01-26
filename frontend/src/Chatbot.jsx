@@ -3114,6 +3114,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                 enableVoice={true}
                 showCharCounter={false}
                 minimal={true}
+                voiceLanguage="en-US"
               />
               <p className={`text-xs text-center mt-2 transition-colors duration-200 ${
                 darkMode ? 'text-gray-500' : 'text-gray-400'

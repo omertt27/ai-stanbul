@@ -425,6 +425,81 @@
   white-space: nowrap;
 }
 
+/* Language badge in interim transcript */
+.interim-lang-badge {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.interim-transcript.listening-hint .interim-text {
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* Listening indicator */
+.listening-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  font-size: 13px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.listening-indicator.light {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.listening-indicator.dark {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.listening-dots {
+  display: flex;
+  gap: 3px;
+}
+
+.listening-dots .dot {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: bounce 1.4s ease-in-out infinite both;
+}
+
+.listening-dots .dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.listening-dots .dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.listening-dots .dot:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.listening-text {
+  font-weight: 500;
+}
+
 /* Unsupported voice button style */
 .voice-button.unsupported {
   opacity: 0.4;
