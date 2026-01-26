@@ -154,7 +154,7 @@ class DatabaseConfig:
         else:
             logger.info(f"Database File: {info['database']}")
         
-        logger.info("=" * 60)"
+        logger.info("=" * 60)
 
 
 # Global configuration instance

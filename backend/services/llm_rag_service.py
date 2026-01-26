@@ -189,7 +189,7 @@ class LLMRAGService:
                         or_(
                             func.lower(self.Restaurant.name).contains(kw),
                             func.lower(self.Restaurant.cuisine).contains(kw),
-                            func.lower(self.Restaurant.district).contains(kw),
+                            func.lower(self.Restaurant.location).contains(kw),  # Use 'location' not 'district'
                             func.lower(self.Restaurant.description).contains(kw) if hasattr(self.Restaurant, 'description') else False
                         )
                     )
@@ -201,14 +201,14 @@ class LLMRAGService:
                 if 'cuisine' in filters:
                     query = query.filter(func.lower(self.Restaurant.cuisine).contains(filters['cuisine'].lower()))
                 if 'district' in filters:
-                    query = query.filter(func.lower(self.Restaurant.district).contains(filters['district'].lower()))
+                    query = query.filter(func.lower(self.Restaurant.location).contains(filters['district'].lower()))  # Use 'location'
             
             # Get results
             restaurants = query.limit(limit * 2).all()  # Get more for scoring
             
             for r in restaurants:
-                # Build searchable text
-                text = f"{r.name} {r.cuisine or ''} {r.district or ''}"
+                # Build searchable text - use 'location' instead of 'district'
+                text = f"{r.name} {r.cuisine or ''} {r.location or ''}"
                 if hasattr(r, 'description') and r.description:
                     text += f" {r.description}"
                 
@@ -220,7 +220,7 @@ class LLMRAGService:
                         'type': 'restaurant',
                         'name': r.name,
                         'cuisine': getattr(r, 'cuisine', None),
-                        'district': getattr(r, 'district', None),
+                        'location': getattr(r, 'location', None),  # Use 'location' not 'district'
                         'rating': getattr(r, 'rating', None),
                         'price_level': getattr(r, 'price_level', None),
                         'description': getattr(r, 'description', None),
