@@ -84,7 +84,16 @@ class ModelCache:
             
         Returns:
             SentenceTransformer model or None if loading failed
+            
+        NOTE: In production (Cloud Run), returns None to avoid HuggingFace downloads.
+        The LLM on RunPod handles semantic understanding directly.
         """
+        # In production, skip SentenceTransformer (requires HuggingFace downloads)
+        is_production = os.environ.get('ENVIRONMENT', 'development').lower() == 'production'
+        if is_production:
+            logger.info(f"⏭️ Skipping SentenceTransformer in production (HuggingFace unavailable)")
+            return None
+        
         # Resolve alias
         actual_name = self.MODEL_ALIASES.get(model_name, model_name)
         

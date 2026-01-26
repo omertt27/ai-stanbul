@@ -427,21 +427,24 @@ async def stream_chat_sse(request: StreamChatRequest):
                                 route_data = transport_rag.station_normalizer.enrich_route_data(basic_route_data)
                                 logger.info(f"✅ Got enriched route_data: {route_data.get('origin')} → {route_data.get('destination')}")
                 else:
-                    # Use Database RAG for general queries
-                    logger.info("🔍 Using Database RAG for general query")
-                    from services.database_rag_service import get_rag_service
-                    from database import get_db
-                    
-                    # Get database session
-                    db = next(get_db())
+                    # Use LLM RAG for general queries (no HuggingFace required!)
+                    logger.info("🔍 Using LLM RAG for general query")
                     try:
-                        rag_service = get_rag_service(db=db)
-                        if rag_service:
-                            rag_context = rag_service.get_context_for_llm(request.message, top_k=3)
-                            if rag_context:
-                                logger.info(f"✅ Got database RAG context")
-                    finally:
-                        db.close()
+                        from services.llm_rag_service import get_llm_rag_service
+                        from database import get_db
+                        
+                        # Get database session
+                        db = next(get_db())
+                        try:
+                            rag_service = get_llm_rag_service(db=db)
+                            if rag_service:
+                                rag_context = rag_service.get_context_for_llm(request.message, top_k=3)
+                                if rag_context:
+                                    logger.info(f"✅ Got LLM RAG context")
+                        finally:
+                            db.close()
+                    except Exception as e:
+                        logger.warning(f"LLM RAG not available: {e}")
                         
             except Exception as rag_err:
                 logger.warning(f"RAG retrieval failed: {rag_err}")

@@ -71,6 +71,10 @@ class DatabaseConfig:
         """Check if using Render PostgreSQL"""
         return 'render.com' in self.database_url or 'dpg-' in self.database_url
     
+    def _is_cloud_sql_unix_socket(self) -> bool:
+        """Check if using Cloud SQL Unix socket connection"""
+        return '/cloudsql/' in self.database_url
+    
     def _get_connection_params(self) -> Dict:
         """Get SQLAlchemy connection parameters"""
         if not self.is_postgres:
@@ -94,6 +98,9 @@ class DatabaseConfig:
         # Add SSL for Render (not for Cloud SQL Unix sockets)
         if self.is_render:
             params['connect_args']['sslmode'] = 'require'
+        elif not self._is_cloud_sql_unix_socket():
+            # For TCP connections (not Unix sockets), add connection timeout
+            params['connect_args']['connect_timeout'] = 5
         
         # For Cloud SQL with Unix sockets, we don't need connect_args
         # PostgreSQL driver will handle Unix sockets via the host parameter
@@ -108,13 +115,19 @@ class DatabaseConfig:
         """Get database connection information"""
         parsed = urlparse(self.database_url)
         
+        # Extract Cloud SQL socket path if present
+        query_params = parse_qs(parsed.query)
+        socket_path = query_params.get('host', [None])[0]
+        
         return {
             'type': 'postgresql' if self.is_postgres else 'sqlite',
-            'host': parsed.hostname,
+            'host': parsed.hostname or 'localhost',
             'port': parsed.port,
-            'database': parsed.path.lstrip('/'),
+            'database': parsed.path.lstrip('/').split('?')[0],  # Remove query string
             'username': parsed.username,
             'is_render': self.is_render,
+            'is_cloud_sql_socket': self._is_cloud_sql_unix_socket(),
+            'socket_path': socket_path,
             'has_ssl': self.is_render
         }
     
@@ -128,8 +141,12 @@ class DatabaseConfig:
         logger.info(f"Database Type: {info['type'].upper()}")
         
         if self.is_postgres:
-            logger.info(f"Host: {info['host']}")
-            logger.info(f"Port: {info['port']}")
+            if info['is_cloud_sql_socket']:
+                logger.info(f"Connection: Cloud SQL Unix Socket")
+                logger.info(f"Socket Path: {info['socket_path']}")
+            else:
+                logger.info(f"Host: {info['host']}")
+                logger.info(f"Port: {info['port']}")
             logger.info(f"Database: {info['database']}")
             logger.info(f"Username: {info['username']}")
             logger.info(f"Render PostgreSQL: {'Yes' if info['is_render'] else 'No'}")
@@ -137,7 +154,7 @@ class DatabaseConfig:
         else:
             logger.info(f"Database File: {info['database']}")
         
-        logger.info("=" * 60)
+        logger.info("=" * 60)"
 
 
 # Global configuration instance

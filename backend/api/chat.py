@@ -13,6 +13,7 @@ import time
 import logging
 import json
 import asyncio
+import os
 
 from database import get_db
 from core.startup_fixed import fast_startup_manager as startup_manager
@@ -23,6 +24,22 @@ from utils.place_name_corrector import correct_place_names
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
+
+
+# ==========================================
+# Optional Database Dependency
+# ==========================================
+def get_optional_db():
+    """
+    Get database session if available, otherwise return None.
+    This prevents chat endpoints from blocking if database is unreachable.
+    """
+    try:
+        db = next(get_db())
+        return db
+    except Exception as e:
+        logger.warning(f"⚠️ Database unavailable: {e}")
+        return None
 
 # ==========================================
 # UnifiedLLMService Dependency Injection
@@ -123,21 +140,47 @@ def fix_place_name_spellings(response_text: str) -> str:
 
 
 # ==========================================
-# RAG Service Integration
+# RAG Service Integration (LLM-based, no HuggingFace needed!)
 # ==========================================
 _rag_service = None
+_rag_init_attempted = False  # Prevent repeated initialization attempts
 
 def get_rag_service(db: Session = None):
-    """Get or create RAG service singleton"""
-    global _rag_service
+    """
+    Get or create RAG service singleton.
+    
+    Uses LLM-based RAG that works in production without HuggingFace downloads!
+    This service uses keyword/SQL search + LLM understanding instead of embeddings.
+    """
+    global _rag_service, _rag_init_attempted
+    
+    # Skip if already attempted and failed
+    if _rag_init_attempted and _rag_service is None:
+        return None
+    
     if _rag_service is None:
+        _rag_init_attempted = True
+        
+        # Check if RAG is explicitly disabled
+        import os
+        rag_disabled = os.environ.get('DISABLE_RAG', 'false').lower() in ('true', '1', 'yes')
+        
+        if rag_disabled:
+            logger.info("⏭️ RAG Service disabled via DISABLE_RAG environment variable")
+            return None
+        
         try:
-            from services.database_rag_service import get_rag_service as create_rag_service
-            _rag_service = create_rag_service(db=db)
-            logger.info("✅ RAG Service initialized")
+            # Use the new LLM RAG service that works without HuggingFace!
+            from services.llm_rag_service import get_llm_rag_service
+            _rag_service = get_llm_rag_service(db=db)
+            logger.info("✅ LLM RAG Service initialized (no HuggingFace required)")
         except Exception as e:
             logger.warning(f"⚠️  RAG Service not available: {e}")
             _rag_service = None
+    elif db is not None and _rag_service is not None:
+        # Update database session if provided
+        _rag_service.db = db
+    
     return _rag_service
 
 
@@ -415,7 +458,7 @@ class MLChatResponse(BaseModel):
 @router.post("/pure-llm", response_model=ChatResponse)
 async def pure_llm_chat(
     request: ChatRequest,
-    db: Session = Depends(get_db),
+    db: Optional[Session] = Depends(get_optional_db),
     unified_llm = Depends(get_unified_llm)
 ):
     """
@@ -1433,7 +1476,7 @@ async def pure_llm_chat(
 @router.post("/ml", response_model=MLChatResponse)
 async def ml_chat(
     request: MLChatRequest,
-    db: Session = Depends(get_db)
+    db: Optional[Session] = Depends(get_optional_db)
 ):
     """
     ML-powered chat endpoint
@@ -1495,7 +1538,7 @@ async def ml_chat(
 @router.post("", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    db: Session = Depends(get_db)
+    db: Optional[Session] = Depends(get_optional_db)
 ):
     """
     Main chat endpoint - routes to appropriate handler
