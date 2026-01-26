@@ -268,6 +268,7 @@ class SuggestionGenerator:
         
         # Extract location/place names from entities or query
         mentioned_place = entities.get('destination') or entities.get('location') or entities.get('neighborhood')
+        origin_place = entities.get('origin')
         
         # CONTEXT-AWARE SUGGESTION TEMPLATES BY CATEGORY
         suggestions_by_category = self._get_contextual_suggestions_by_language(language, mentioned_place)
@@ -275,35 +276,67 @@ class SuggestionGenerator:
         # Determine which categories to prioritize based on context
         selected_suggestions = []
         
-        # 1. RESTAURANT CONTEXT - user asked about food/restaurants
-        if any(word in query_lower for word in ['restaurant', 'food', 'eat', 'yemek', 'restoran', 'ресторан', 'еда', 'essen', 'مطعم', 'طعام', 'manger']):
+        # 🔥 PRIORITY 1: Use detected intent (most reliable)
+        # If intent is transportation, always show transportation-related suggestions
+        if response_type == 'transportation' or 'transportation' in detected_intents:
+            selected_suggestions.extend(suggestions_by_category.get('after_transportation', []))
+            # Add destination-specific suggestion if we know the destination
+            if mentioned_place and language == 'en':
+                selected_suggestions.insert(0, {
+                    "text": f"What can I do in {mentioned_place}?",
+                    "type": "exploration",
+                    "intent": "needs_attraction",
+                    "relevance": 0.98
+                })
+                selected_suggestions.insert(1, {
+                    "text": f"Good restaurants near {mentioned_place}",
+                    "type": "practical",
+                    "intent": "needs_restaurant",
+                    "relevance": 0.95
+                })
+            elif mentioned_place and language == 'tr':
+                selected_suggestions.insert(0, {
+                    "text": f"{mentioned_place}'da ne yapabilirim?",
+                    "type": "exploration",
+                    "intent": "needs_attraction",
+                    "relevance": 0.98
+                })
+                selected_suggestions.insert(1, {
+                    "text": f"{mentioned_place} yakınında iyi restoranlar",
+                    "type": "practical",
+                    "intent": "needs_restaurant",
+                    "relevance": 0.95
+                })
+        
+        # 2. RESTAURANT CONTEXT - user asked about food/restaurants
+        elif any(word in query_lower for word in ['restaurant', 'food', 'eat', 'yemek', 'restoran', 'ресторан', 'еда', 'essen', 'مطعم', 'طعام', 'manger']):
             selected_suggestions.extend(suggestions_by_category.get('after_restaurant', []))
         
-        # 2. ATTRACTION CONTEXT - user asked about places to visit
+        # 3. ATTRACTION CONTEXT - user asked about places to visit
         elif any(word in query_lower for word in ['visit', 'see', 'attraction', 'museum', 'mosque', 'gezilecek', 'müze', 'cami', 'достопримечательност', 'музей', 'sehenswürdigkeit', 'معلم', 'متحف', 'visite', 'musée']):
             selected_suggestions.extend(suggestions_by_category.get('after_attraction', []))
         
-        # 3. TRANSPORTATION CONTEXT - user asked about routes/directions
-        elif any(word in query_lower for word in ['how to get', 'route', 'metro', 'bus', 'nasıl gid', 'ulaşım', 'как добраться', 'метро', 'wie komme', 'كيف أصل', 'مترو', 'comment aller', 'transport']):
+        # 4. TRANSPORTATION CONTEXT (keyword fallback) - user asked about routes/directions
+        elif any(word in query_lower for word in ['how to get', 'route', 'metro', 'bus', 'tram', 'ferry', 'from', 'to', 'directions', 'nasıl gid', 'ulaşım', 'как добраться', 'метро', 'wie komme', 'كيف أصل', 'مترو', 'comment aller', 'transport']):
             selected_suggestions.extend(suggestions_by_category.get('after_transportation', []))
         
-        # 4. NEIGHBORHOOD CONTEXT - user asked about a specific area
+        # 5. NEIGHBORHOOD CONTEXT - user asked about a specific area
         elif any(word in query_lower for word in ['neighborhood', 'area', 'district', 'semt', 'mahalle', 'район', 'viertel', 'حي', 'quartier']) or mentioned_place:
             selected_suggestions.extend(suggestions_by_category.get('after_neighborhood', []))
         
-        # 5. HIDDEN GEMS CONTEXT - user asked about local/hidden places
+        # 6. HIDDEN GEMS CONTEXT - user asked about local/hidden places
         elif any(word in query_lower for word in ['hidden', 'local', 'secret', 'off the beaten', 'gizli', 'yerel', 'скрыт', 'местн', 'geheim', 'lokal', 'مخفي', 'محلي', 'caché', 'local']):
             selected_suggestions.extend(suggestions_by_category.get('after_hidden_gems', []))
         
-        # 6. WEATHER CONTEXT - user asked about weather
+        # 7. WEATHER CONTEXT - user asked about weather
         elif any(word in query_lower for word in ['weather', 'hava', 'погода', 'wetter', 'طقس', 'météo', 'rain', 'yağmur', 'дождь', 'regen', 'مطر', 'pluie']):
             selected_suggestions.extend(suggestions_by_category.get('after_weather', []))
         
-        # 7. GREETING/GENERAL - user just said hello or general question
+        # 8. GREETING/GENERAL - user just said hello or general question
         elif any(word in query_lower for word in ['hello', 'hi', 'merhaba', 'selam', 'привет', 'hallo', 'مرحبا', 'bonjour', 'salut']):
             selected_suggestions.extend(suggestions_by_category.get('after_greeting', []))
         
-        # 8. DEFAULT - general helpful suggestions
+        # 9. DEFAULT - general helpful suggestions
         else:
             selected_suggestions.extend(suggestions_by_category.get('general', []))
         
@@ -346,11 +379,11 @@ class SuggestionGenerator:
                     {"text": "Show me hidden gems in this area", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
                 ],
                 'after_transportation': [
-                    {"text": "Is there a faster route?", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
-                    {"text": "What can I see along the way?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Show me an alternative route", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
+                    {"text": "What can I see along the way?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.92},
+                    {"text": "How much will the trip cost?", "type": "practical", "intent": "needs_transportation", "relevance": 0.88},
                     {"text": "Where can I buy an Istanbulkart?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
-                    {"text": "Are there restaurants near my destination?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
-                    {"text": "What's worth visiting nearby?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                    {"text": "Is there a scenic route option?", "type": "exploration", "intent": "needs_transportation", "relevance": 0.82},
                 ],
                 'after_neighborhood': [
                     {"text": f"Best restaurants in {place}", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},
@@ -407,11 +440,11 @@ class SuggestionGenerator:
                     {"text": "Bu bölgedeki gizli mekanlar", "type": "exploration", "intent": "needs_hidden_gems", "relevance": 0.75},
                 ],
                 'after_transportation': [
-                    {"text": "Daha hızlı bir yol var mı?", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
-                    {"text": "Yol üzerinde ne görebilirim?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.9},
+                    {"text": "Alternatif bir rota göster", "type": "practical", "intent": "needs_transportation", "relevance": 0.95},
+                    {"text": "Yol üzerinde ne görebilirim?", "type": "exploration", "intent": "needs_attraction", "relevance": 0.92},
+                    {"text": "Bu yolculuk kaça mal olur?", "type": "practical", "intent": "needs_transportation", "relevance": 0.88},
                     {"text": "İstanbulkart nereden alırım?", "type": "practical", "intent": "needs_transportation", "relevance": 0.85},
-                    {"text": "Varış noktasında restoranlar var mı?", "type": "dining", "intent": "needs_restaurant", "relevance": 0.8},
-                    {"text": "Yakında görülecek yerler", "type": "exploration", "intent": "needs_attraction", "relevance": 0.75},
+                    {"text": "Manzaralı bir rota var mı?", "type": "exploration", "intent": "needs_transportation", "relevance": 0.82},
                 ],
                 'after_neighborhood': [
                     {"text": f"{place} en iyi restoranlar", "type": "dining", "intent": "needs_restaurant", "relevance": 0.95},

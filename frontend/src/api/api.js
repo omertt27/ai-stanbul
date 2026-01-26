@@ -13,10 +13,17 @@ import { processApiResponse, sanitizeResponse } from '../utils/responseSanitizer
 
 // API utility that works for both local and deployed environments
 // Updated: Backend migrated from Render to GCP Cloud Run
-const BASE_URL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://ai-stanbul-509659445005.europe-west1.run.app');
+const BASE_URL = (import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://ai-stanbul-509659445005.europe-west1.run.app')).trim();
 
 // Clean up BASE_URL and construct proper endpoints
 const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
+
+// Log API configuration for debugging
+console.log('API Configuration:', {
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  BASE_URL: BASE_URL,
+  cleanBaseUrl: cleanBaseUrl
+});
 
 // Pure LLM API endpoints
 const API_URL = `${cleanBaseUrl}/api/chat`;  // Pure LLM chat endpoint (fixed to match backend)
@@ -631,7 +638,8 @@ export const subscribeToNetworkStatus = (callback) => {
 // Pure LLM Backend Integration (Llama 3.1 8B)
 // ============================================
 
-const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8000';
+// Use the same base URL as other API calls (cleanBaseUrl is already defined and trimmed)
+const PURE_LLM_BASE_URL = cleanBaseUrl;
 const PURE_LLM_CHAT_URL = `${PURE_LLM_BASE_URL}/api/chat`;
 const PURE_LLM_HEALTH_URL = `${PURE_LLM_BASE_URL}/api/health`;
 

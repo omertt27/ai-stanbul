@@ -11,7 +11,8 @@ const log = new Logger('ChatService');
 
 // API Configuration
 // Use the standard VITE_API_URL from .env files
-const PURE_LLM_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// Trim to remove any accidental newlines from environment variables
+const PURE_LLM_BASE_URL = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').trim().replace(/\/$/, '');
 const CHAT_ENDPOINT = `${PURE_LLM_BASE_URL}/api/chat`;
 const HEALTH_ENDPOINT = `${PURE_LLM_BASE_URL}/api/health`;
 
