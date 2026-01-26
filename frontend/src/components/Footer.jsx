@@ -9,16 +9,19 @@ const Footer = () => {
   const [showFooter, setShowFooter] = useState(false);
   
   // Always call hooks first, before any conditional returns
-  // Show footer on all pages
+  // Show footer on all pages except chat
   useEffect(() => {
     // Always show footer on all pages
     setShowFooter(true);
   }, []);
   
-  // Show footer on all pages
-  // Footer is static on all pages and appears at the bottom of content
-  
+  // Hide footer on chat page for cleaner mobile experience
   const isChatPage = location.pathname === '/chat';
+  
+  // Don't render footer on chat page
+  if (isChatPage) {
+    return null;
+  }
   
   const footerStyle = {
     position: 'static',

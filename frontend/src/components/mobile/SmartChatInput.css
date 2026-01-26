@@ -21,10 +21,10 @@
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  padding: 8px 12px;
-  border-radius: 24px;
+  padding: 6px 10px;
+  border-radius: 26px;
   transition: all 0.2s ease;
-  box-shadow: none;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
   position: relative;
 }
 
@@ -291,21 +291,31 @@
 @media (max-width: 768px) {
   .smart-chat-input-wrapper {
     padding: 5px 8px;
-    gap: 5px;
+    gap: 4px;
+    border-radius: 24px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
   }
 
   .voice-button,
   .smart-send-button {
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-    min-height: 34px;
-    border-radius: 17px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: 16px;
+    padding: 6px;
+  }
+
+  .voice-icon,
+  .send-icon {
+    width: 16px;
+    height: 16px;
   }
 
   .smart-chat-textarea {
-    font-size: 15px; /* Prevent iOS zoom while keeping compact */
-    padding: 5px 0;
+    font-size: 16px; /* Prevent iOS zoom */
+    padding: 6px 4px;
+    min-height: 22px;
   }
 }
 
@@ -339,15 +349,32 @@
   }
 }
 
-/* Minimal mode - ChatGPT-style ultra-clean interface */
+/* Minimal mode - ChatGPT/Gemini-style ultra-clean interface */
 .smart-chat-input-container.minimal .smart-chat-input-wrapper {
-  padding: 6px 10px;
-  gap: 4px;
-  border-radius: 20px;
+  padding: 6px 8px;
+  gap: 5px;
+  border-radius: 22px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
+}
+
+.smart-chat-input-container.minimal.dark .smart-chat-input-wrapper {
+  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .smart-chat-input-container.minimal .smart-chat-textarea {
-  padding: 6px 8px;
+  padding: 6px 6px;
+  font-size: 16px;
+  min-height: 22px;
+  max-height: 100px;
+}
+
+.smart-chat-input-container.minimal .voice-button,
+.smart-chat-input-container.minimal .smart-send-button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
 }
 
 /* Hide voice button in minimal mode when user is typing */

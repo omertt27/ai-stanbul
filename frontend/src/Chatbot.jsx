@@ -89,6 +89,7 @@ import safeStorage from './utils/safeStorage';
 import { trackEvent } from './utils/analytics';
 import { AB_TESTS, isTreatment, trackConversion } from './utils/abTesting';
 import './styles/mobile-ergonomics-phase1.css';
+import './styles/mobile-chat-premium.css';
 
 // ChatGPT-style mobile components
 import MobileTypingIndicator from './components/mobile/TypingIndicator';
@@ -2136,143 +2137,143 @@ function Chatbot({ userLocation: propUserLocation }) {
         </div>
       )}
       
-      {/* Chat Messages Container - With top padding for better UX */}
+      {/* Chat Messages Container - Optimized for mobile */}
       <div 
-        className="flex-1 overflow-y-auto chat-messages pt-4 md:pt-6" 
+        className="flex-1 overflow-y-auto chat-messages pt-2 md:pt-6" 
         id="chat-messages"
-        style={{ paddingBottom: isMobile ? '140px' : '80px' }}
+        style={{ paddingBottom: isMobile ? '90px' : '80px' }}
       >
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center px-4">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
+          <div className={`h-full flex flex-col items-center ${isMobile ? 'justify-start pt-6' : 'justify-center'} px-3 md:px-4`}>
+            {/* Logo - smaller on mobile like Gemini */}
+            <div className={`${isMobile ? 'w-11 h-11 mb-3' : 'w-16 h-16 mb-6'} rounded-full flex items-center justify-center transition-colors duration-200 ${
               darkMode ? 'bg-white' : 'bg-gradient-to-br from-blue-600 to-purple-600'
             }`}>
-              <svg className={`w-8 h-8 transition-colors duration-200 ${
+              <svg className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} transition-colors duration-200 ${
                 darkMode ? 'text-black' : 'text-white'
               }`} fill="currentColor" viewBox="0 0 24 24">
                 <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
               </svg>
             </div>
-            <h2 className={`text-2xl md:text-3xl font-bold mb-2 transition-colors duration-200 ${
+            {/* Title - ChatGPT/Gemini style compact */}
+            <h2 className={`${isMobile ? 'text-lg font-semibold' : 'text-2xl md:text-3xl font-bold'} mb-1 text-center transition-colors duration-200 ${
               darkMode ? 'text-white' : 'text-gray-900'
-            }`}>Your Istanbul City Intelligence Assistant</h2>
-            <p className={`text-center max-w-2xl text-sm md:text-base leading-relaxed mb-6 transition-colors duration-200 ${
+            }`}>{isMobile ? 'Istanbul Assistant' : 'Your Istanbul City Intelligence Assistant'}</h2>
+            {/* Subtitle - shorter on mobile */}
+            <p className={`text-center max-w-md ${isMobile ? 'text-xs mb-5' : 'text-sm md:text-base mb-6'} leading-relaxed transition-colors duration-200 ${
               darkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
-              Real-time transit, local insights, and personalized recommendations
-            </p>
-            <p className={`text-center max-w-2xl text-base md:text-lg leading-relaxed mb-8 transition-colors duration-200 ${
-              darkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              Ask me about routes, restaurants, attractions, neighborhoods, culture, or anything about Istanbul
+              {isMobile ? 'Routes, food, attractions & more' : 'Real-time transit, local insights, and personalized recommendations'}
             </p>
             
-            {/* Enhanced Sample Cards with Better Mobile Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl w-full px-4">
+            {/* Sample Cards - 2x2 grid on mobile like ChatGPT */}
+            <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-1 md:grid-cols-2 gap-3'} max-w-4xl w-full px-1`}>
               <div 
                 onClick={() => handleSampleClick('How do I get from Taksim to Sultanahmet by metro?')}
-                className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`${isMobile ? 'p-2.5' : 'p-4 md:p-5'} rounded-xl border transition-all duration-150 cursor-pointer active:scale-[0.97] ${
                   darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
-                    : 'bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-400 shadow-md hover:shadow-lg'
+                    ? 'bg-gray-800/60 border-gray-700/50 active:bg-gray-700' 
+                    : 'bg-white border-gray-200 active:bg-gray-50 shadow-sm'
                 }`}
               >
-                <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
+                <div className={`font-medium ${isMobile ? 'text-[13px] mb-0.5' : 'text-base md:text-lg mb-2'} transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🚇 Transit Routes</div>
-                <div className={`text-xs md:text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>How do I get from Taksim to Sultanahmet by metro?</div>
+                }`}>🚇 {isMobile ? 'Transit' : 'Transit Routes'}</div>
+                <div className={`${isMobile ? 'text-[11px] leading-snug text-gray-400' : 'text-xs md:text-sm'} transition-colors duration-200 ${
+                  darkMode ? 'text-gray-500' : 'text-gray-500'
+                }`}>{isMobile ? 'Taksim → Sultanahmet' : 'How do I get from Taksim to Sultanahmet by metro?'}</div>
               </div>
               
               <div 
                 onClick={() => handleSampleClick('Give me restaurant advice - recommend 4 good restaurants')}
-                className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`${isMobile ? 'p-2.5' : 'p-4 md:p-5'} rounded-xl border transition-all duration-150 cursor-pointer active:scale-[0.97] ${
                   darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
-                    : 'bg-white border-red-200 hover:bg-red-50 hover:border-red-400 shadow-md hover:shadow-lg'
+                    ? 'bg-gray-800/60 border-gray-700/50 active:bg-gray-700' 
+                    : 'bg-white border-gray-200 active:bg-gray-50 shadow-sm'
                 }`}
               >
-                <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
+                <div className={`font-medium ${isMobile ? 'text-[13px] mb-0.5' : 'text-base md:text-lg mb-2'} transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🍽️ Local Food</div>
-                <div className={`text-xs md:text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>Give me restaurant advice - recommend 4 good restaurants</div>
+                }`}>🍽️ {isMobile ? 'Food' : 'Local Food'}</div>
+                <div className={`${isMobile ? 'text-[11px] leading-snug text-gray-400' : 'text-xs md:text-sm'} transition-colors duration-200 ${
+                  darkMode ? 'text-gray-500' : 'text-gray-500'
+                }`}>{isMobile ? 'Best restaurants' : 'Give me restaurant advice - recommend 4 good restaurants'}</div>
               </div>
               
               <div 
                 onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
-                className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`${isMobile ? 'p-2.5' : 'p-4 md:p-5'} rounded-xl border transition-all duration-150 cursor-pointer active:scale-[0.97] ${
                   darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
-                    : 'bg-white border-green-200 hover:bg-green-50 hover:border-green-400 shadow-md hover:shadow-lg'
+                    ? 'bg-gray-800/60 border-gray-700/50 active:bg-gray-700' 
+                    : 'bg-white border-gray-200 active:bg-gray-50 shadow-sm'
                 }`}
               >
-                <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
+                <div className={`font-medium ${isMobile ? 'text-[13px] mb-0.5' : 'text-base md:text-lg mb-2'} transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>�️ Attractions</div>
-                <div className={`text-xs md:text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>Show me the best attractions and landmarks in Istanbul</div>
+                }`}>🏛️ {isMobile ? 'Explore' : 'Attractions'}</div>
+                <div className={`${isMobile ? 'text-[11px] leading-snug text-gray-400' : 'text-xs md:text-sm'} transition-colors duration-200 ${
+                  darkMode ? 'text-gray-500' : 'text-gray-500'
+                }`}>{isMobile ? 'Top landmarks' : 'Show me the best attractions and landmarks in Istanbul'}</div>
               </div>
               
               <div 
                 onClick={() => handleSampleClick('What\'s the weather like today and should I bring an umbrella?')}
-                className={`p-4 md:p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                className={`${isMobile ? 'p-2.5' : 'p-4 md:p-5'} rounded-xl border transition-all duration-150 cursor-pointer active:scale-[0.97] ${
                   darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
-                    : 'bg-white border-purple-200 hover:bg-purple-50 hover:border-purple-400 shadow-md hover:shadow-lg'
+                    ? 'bg-gray-800/60 border-gray-700/50 active:bg-gray-700' 
+                    : 'bg-white border-gray-200 active:bg-gray-50 shadow-sm'
                 }`}
               >
-                <div className={`font-bold text-base md:text-lg mb-2 transition-colors duration-200 ${
+                <div className={`font-medium ${isMobile ? 'text-[13px] mb-0.5' : 'text-base md:text-lg mb-2'} transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>�️ Weather & Alerts</div>
-                <div className={`text-xs md:text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>What's the weather like today and should I bring an umbrella?</div>
+                }`}>☀️ {isMobile ? 'Weather' : 'Weather & Alerts'}</div>
+                <div className={`${isMobile ? 'text-[11px] leading-snug text-gray-400' : 'text-xs md:text-sm'} transition-colors duration-200 ${
+                  darkMode ? 'text-gray-500' : 'text-gray-500'
+                }`}>{isMobile ? 'Today\'s forecast' : 'What\'s the weather like today and should I bring an umbrella?'}</div>
               </div>
             </div>
           </div>
         )}
             
         {/* Message Display Area */}
-        <div className="max-w-5xl mx-auto px-4 w-full">
+        <div className={`max-w-5xl mx-auto ${isMobile ? 'px-2' : 'px-4'} w-full`}>
           {messages.map((msg, index) => (
-            <div key={msg.id || index} className="group py-6">
+            <div key={msg.id || index} className={`group ${isMobile ? 'py-3' : 'py-6'}`}>
               {msg.sender === 'user' ? (
                 // USER MESSAGE - RIGHT ALIGNED (ChatGPT Style)
-                <div className="flex justify-end px-4 mt-2">
-                  <div className="flex flex-row-reverse items-start gap-3 max-w-[85%]">
-                    {/* Avatar on right side */}
-                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                <div className={`flex justify-end ${isMobile ? 'px-1' : 'px-4'} mt-1`}>
+                  <div className={`flex flex-row-reverse items-start ${isMobile ? 'gap-2' : 'gap-3'} max-w-[90%]`}>
+                    {/* Avatar on right side - smaller on mobile */}
+                    <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8 md:w-10 md:h-10'} rounded-full flex items-center justify-center flex-shrink-0 ${
                       darkMode 
                         ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500' 
                         : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
                     }`}>
-                      <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4 md:w-5 md:h-5'} text-white`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     </div>
                     
                     {/* Message content - right aligned */}
                     <div className="flex-1 text-right">
-                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
-                        darkMode ? 'text-gray-300' : 'text-gray-600'
-                      }`}>You</div>
+                      {!isMobile && (
+                        <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>You</div>
+                      )}
                       
-                      {/* Blue bubble for user messages */}
-                      <div className={`inline-block px-4 py-3 rounded-2xl text-left ${
+                      {/* Blue bubble for user messages - smaller on mobile */}
+                      <div className={`inline-block ${isMobile ? 'px-3 py-2 rounded-2xl' : 'px-4 py-3 rounded-2xl'} text-left ${
                         darkMode
                           ? 'bg-blue-600 text-white'
                           : 'bg-blue-500 text-white'
                       }`}>
-                        <div className="text-sm md:text-lg font-medium leading-[1.6] whitespace-pre-wrap">
+                        <div className={`${isMobile ? 'text-[14px]' : 'text-sm md:text-lg'} font-medium leading-[1.5] whitespace-pre-wrap`}>
                           {msg.text}
                         </div>
                       </div>
                       
-                      {msg.timestamp && (
+                      {msg.timestamp && !isMobile && (
                         <div className={`text-xs mt-1 transition-colors duration-200 ${
                           darkMode ? 'text-gray-500' : 'text-gray-500'
                         }`}>
@@ -2281,19 +2282,21 @@ function Chatbot({ userLocation: propUserLocation }) {
                       )}
                     </div>
                     
-                    <MessageActions 
-                      message={msg}
-                      onCopy={copyMessageToClipboard}
-                      onShare={shareMessage}
-                      darkMode={darkMode}
-                    />
+                    {!isMobile && (
+                      <MessageActions 
+                        message={msg}
+                        onCopy={copyMessageToClipboard}
+                        onShare={shareMessage}
+                        darkMode={darkMode}
+                      />
+                    )}
                   </div>
                 </div>
               ) : (
                 // AI MESSAGE - FULL WIDTH (ChatGPT Style)
-                <div className="flex justify-start px-4 md:px-8">
-                  {window.innerWidth <= 768 ? (
-                    // Mobile: Swipeable message
+                <div className={`flex justify-start ${isMobile ? 'px-1' : 'px-4 md:px-8'}`}>
+                  {isMobile ? (
+                    // Mobile: Swipeable message with compact layout
                     <SwipeableMessage
                       onSwipeLeft={() => {
                         // Delete message
@@ -2307,86 +2310,28 @@ function Chatbot({ userLocation: propUserLocation }) {
                       rightAction="copy"
                       darkMode={darkMode}
                     >
-                      <div className="flex items-start gap-3 w-full max-w-full">
-                        {/* Avatar */}
-                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                      <div className="flex items-start gap-2 w-full max-w-full">
+                        {/* Avatar - smaller on mobile like ChatGPT */}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                           darkMode 
                             ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
                             : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
                         }`}>
-                          <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
                         </svg>
                         </div>
                         
                         {/* Message content - NO BUBBLE, full width */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className={`text-xs font-semibold transition-colors duration-200 ${
-                              darkMode ? 'text-gray-300' : 'text-gray-600'
-                            }`}>KAM Assistant</div>
-                            
-                            {/* 🔥 WEEK 2: LLM Mode Indicator */}
-                            {msg.llmMode && msg.llmMode !== 'general' && (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                msg.llmMode === 'explain' 
-                                  ? darkMode ? 'bg-blue-900/50 text-blue-200' : 'bg-blue-100 text-blue-700'
-                                  : msg.llmMode === 'clarify'
-                                  ? darkMode ? 'bg-yellow-900/50 text-yellow-200' : 'bg-yellow-100 text-yellow-700'
-                                  : darkMode ? 'bg-red-900/50 text-red-200' : 'bg-red-100 text-red-700'
-                              }`}>
-                                {msg.llmMode === 'explain' ? '🚇 Route' : msg.llmMode === 'clarify' ? '❓ Clarifying' : '⚠️ Error'}
-                              </span>
-                            )}
-                            
-                            {/* Cache indicator */}
-                            {msg.cached && (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                darkMode ? 'bg-green-900/50 text-green-200' : 'bg-green-100 text-green-700'
-                              }`}>
-                                ⚡ Cached
-                              </span>
-                            )}
-                            
-                            {/* 🚀 UnifiedLLM Backend Indicator */}
-                            {msg.llm_backend && (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                msg.llm_backend === 'vllm'
-                                  ? darkMode ? 'bg-purple-900/50 text-purple-200' : 'bg-purple-100 text-purple-700'
-                                  : darkMode ? 'bg-orange-900/50 text-orange-200' : 'bg-orange-100 text-orange-700'
-                              }`} title={`Backend: ${msg.llm_backend.toUpperCase()}`}>
-                                {msg.llm_backend === 'vllm' ? '🚀 vLLM' : '🔄 Groq'}
-                              </span>
-                            )}
-                            
-                            {/* 🎯 Circuit Breaker State */}
-                            {msg.circuit_breaker_state && msg.circuit_breaker_state !== 'closed' && (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                darkMode ? 'bg-yellow-900/50 text-yellow-200' : 'bg-yellow-100 text-yellow-700'
-                              }`} title={`Circuit Breaker: ${msg.circuit_breaker_state}`}>
-                                ⚠️ {msg.circuit_breaker_state === 'open' ? 'Fallback' : 'Half-Open'}
-                              </span>
-                            )}
-                            
-                            {/* ⏱️ Response Time (if available) */}
-                            {msg.llm_latency_ms && (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
-                              }`} title={`LLM Latency: ${msg.llm_latency_ms}ms`}>
-                                ⏱️ {msg.llm_latency_ms}ms
-                              </span>
-                            )}
-                          </div>
+                          {/* Hide verbose indicators on mobile for cleaner look */}
                           
-                          {/* NO background, just text - ChatGPT style */}
+                          {/* Message text - optimized size for mobile */}
                           <div 
-                            className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 select-text ${
+                            className={`text-[14px] whitespace-pre-wrap leading-[1.55] select-text ${
                               darkMode ? 'text-gray-100' : 'text-gray-800'
                             }`}
                             style={{ 
-                              display: 'block',
-                              visibility: 'visible',
-                              opacity: 1,
                               maxWidth: '100%',
                               wordWrap: 'break-word',
                               overflowWrap: 'break-word'
@@ -2395,235 +2340,10 @@ function Chatbot({ userLocation: propUserLocation }) {
                             {renderMessageContent(msg.text || msg.content, darkMode)}
                           </div>
                           
-                          {/* Copy Button - Easy copy functionality */}
-                          <button
-                            onClick={() => {
-                              const textToCopy = msg.text || msg.content || '';
-                              navigator.clipboard.writeText(textToCopy).then(() => {
-                                const btn = document.getElementById(`copy-btn-${msg.id || index}`);
-                                if (btn) {
-                                  btn.textContent = '✓ Copied!';
-                                  setTimeout(() => {
-                                    btn.textContent = '📋 Copy';
-                                  }, 2000);
-                                }
-                              }).catch(err => console.error('Copy failed:', err));
-                            }}
-                            id={`copy-btn-${msg.id || index}`}
-                            className={`mt-2 px-2 py-1 text-xs rounded transition-all duration-200 ${
-                              darkMode 
-                                ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                            }`}
-                            title="Copy message"
-                          >
-                            📋 Copy
-                          </button>
-                          
-                          {/* Restaurant Cards - Hidden on mobile for cleaner UI */}
-                          {msg.restaurants && msg.restaurants.length > 0 && (
-                            <div className="mt-4 space-y-4 hidden md:block">
-                              <div className={`text-sm font-medium mb-3 ${
-                                darkMode ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
-                                📍 Restaurant Recommendations:
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {msg.restaurants.slice(0, 4).map((restaurant, idx) => (
-                                  <RestaurantCard 
-                                    key={restaurant.place_id || idx}
-                                    restaurant={restaurant}
-                                    index={idx}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* PRIORITY 1: Enhanced Route Card with Map - Mobile-style visualization */}
-                          {/* Shows when backend provides route_info + map_data (new route system) */}
-                          {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (() => {
-                            console.log('🗺️ RouteCard Debug:', {
-                              hasMapData: !!msg.mapData,
-                              hasRouteData: !!msg.routeData,
-                              hasMap_data: !!msg.map_data,
-                              hasRoute_info: !!msg.route_info,
-                              msgKeys: Object.keys(msg),
-                              mapData: msg.mapData,
-                              routeData: msg.routeData
-                            });
-                            return (
-                              <div className="mt-4">
-                                <RouteCard routeData={msg} />
-                              </div>
-                            );
-                          })()}
-                          
-                          {/* PRIORITY 2: FALLBACK - Transportation Route Card (Legacy) */}
-                          {/* Only show if RouteCard data is NOT present */}
-                          {!(msg.route_info || msg.map_data || (msg.data && (msg.data.route_info || msg.data.map_data))) && 
-                           (msg.routeData || (msg.mapData && msg.mapData.route_data && msg.mapData.type !== 'trip_plan')) && (
-                            <TransportationRouteCard 
-                              routeData={msg.routeData || msg.mapData?.route_data}
-                              darkMode={darkMode}
-                            />
-                          )}
-                          
-                          {/* Multi-Route Comparison - Show when multiple route alternatives available */}
-                          {/* Only if NOT showing single route cards above */}
-                          {!(msg.route_info || msg.map_data) &&
-                           msg.mapData && (msg.mapData.multi_routes || msg.mapData.alternatives) && (
-                            msg.mapData.multi_routes?.length > 0 || msg.mapData.alternatives?.length > 0
-                          ) && (
-                            <MultiRouteComparison
-                              routes={msg.mapData.multi_routes || msg.mapData.alternatives || []}
-                              primaryRoute={msg.mapData.primary_route}
-                              routeComparison={msg.mapData.route_comparison || {}}
-                              onRouteSelect={(route, index) => {
-                                console.log('Selected route:', index, route);
-                                setSelectedRouteIndex(index);
-                              }}
-                              darkMode={darkMode}
-                              className="mt-4"
-                            />
-                          )}
-                          
-                          {/* Trip Plan Card - Show for multi-day trip planning queries */}
-                          {(msg.tripPlan || (msg.mapData && msg.mapData.type === 'trip_plan')) && (
-                            <TripPlanCard 
-                              tripPlan={msg.tripPlan || msg.mapData}
-                            />
-                          )}
-                          
-                          {/* Map Visualization - ONLY show if NO route cards are displayed */}
-                          {/* Prevents double-map display (RouteCard already has a map) */}
-                          {!(msg.route_info || msg.map_data || msg.routeData) &&
-                           msg.mapData && msg.mapData.type !== 'trip_plan' && 
-                           (msg.mapData.markers || msg.mapData.coordinates) && 
-                           !(msg.mapData.multi_routes || msg.mapData.alternatives) && (
-                            <div className="mt-4">
-                              <div className={`text-sm font-medium mb-3 ${
-                                darkMode ? 'text-gray-300' : 'text-gray-700'
-                              }`}>
-                                🗺️ Map View:
-                              </div>
-                              <MapVisualization 
-                                mapData={msg.mapData} 
-                                height="400px" 
-                                className="rounded-lg shadow-md"
-                                selectedRouteIndex={selectedRouteIndex}
-                                onRouteHover={setHoveredRouteIndex}
-                              />
-                              <div className={`text-xs mt-2 text-center transition-colors duration-200 ${
-                                darkMode ? 'text-gray-500' : 'text-gray-600'
-                              }`}>
-                                📍 {msg.mapData.markers?.length || 0} locations
-                              </div>
-                            </div>
-                          )}
-                          
-                          {msg.timestamp && (
-                            <div className={`text-xs mt-2 flex items-center space-x-2 transition-colors duration-200 ${
-                              darkMode ? 'text-gray-500' : 'text-gray-500'
-                            }`}>
-                              <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                              {msg.type && (
-                                <span className={`px-2 py-1 rounded text-xs ${
-                                  darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-                                }`}>
-                                  {msg.type}
-                                </span>
-                              )}
-                              {msg.resultCount && (
-                                <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  {msg.resultCount} results
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          
-                          {/* Feedback Buttons - For Model Fine-tuning Data Collection */}
-                          {msg.interaction_id && (
-                            <div className="mt-3 flex items-center gap-2">
-                              <button
-                                onClick={() => handleFeedback(msg.interaction_id, 'thumbs_up')}
-                                disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                  msg.feedback === 'thumbs_up'
-                                    ? darkMode
-                                      ? 'bg-green-600 text-white'
-                                      : 'bg-green-500 text-white'
-                                    : darkMode
-                                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                aria-label="Helpful response"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                              </svg>
-                              {msg.feedback === 'thumbs_up' ? 'Helpful!' : 'Helpful'}
-                              </button>
-                              
-                              <button
-                                onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down')}
-                                disabled={msg.feedback === 'thumbs_up' || msg.feedback === 'thumbs_down'}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                  msg.feedback === 'thumbs_down'
-                                    ? darkMode
-                                      ? 'bg-red-600 text-white'
-                                      : 'bg-red-500 text-white'
-                                    : darkMode
-                                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                aria-label="Not helpful"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
-                                </svg>
-                                {msg.feedback === 'thumbs_down' ? 'Not helpful' : 'Not helpful'}
-                              </button>
-                              
-                              {msg.feedback && (
-                                <span className={`text-xs ml-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                  Thanks for your feedback!
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          
-                          {/* Dislike Reason Selector - One-click reasons */}
-                          {showDislikeReasons === msg.interaction_id && (
-                            <div className={`mt-2 p-3 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
-                              <p className={`text-xs mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                                What was wrong with this response?
-                              </p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {dislikeReasons.map((reason) => (
-                                  <button
-                                    key={reason.id}
-                                    onClick={() => handleFeedback(msg.interaction_id, 'thumbs_down', reason.id)}
-                                    className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all duration-200 ${
-                                      darkMode
-                                        ? 'bg-gray-600 text-gray-200 hover:bg-red-600 hover:text-white'
-                                        : 'bg-white text-gray-700 hover:bg-red-500 hover:text-white border border-gray-200'
-                                    }`}
-                                  >
-                                    {reason.label}
-                                  </button>
-                                ))}
-                                <button
-                                  onClick={() => setShowDislikeReasons(null)}
-                                  className={`px-2.5 py-1.5 text-xs rounded-md font-medium transition-all ${
-                                    darkMode
-                                      ? 'text-gray-400 hover:text-gray-200'
-                                      : 'text-gray-500 hover:text-gray-700'
-                                  }`}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
+                          {/* Route Card for mobile - show if route data present */}
+                          {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
+                            <div className="mt-3">
+                              <RouteCard routeData={msg} />
                             </div>
                           )}
                         </div>
@@ -3098,53 +2818,47 @@ function Chatbot({ userLocation: propUserLocation }) {
         />
       )}
 
-      {/* Enhanced Input Area - ChatGPT Style - Fixed at bottom on mobile with spacing */}
-      <div className={`border-t p-4 md:relative md:bottom-auto md:left-auto md:right-auto fixed bottom-4 left-0 right-0 z-50 transition-colors duration-200 ${
+      {/* Enhanced Input Area - ChatGPT/Gemini Style - Floating on mobile */}
+      <div className={`${isMobile 
+        ? 'fixed left-0 right-0 z-50 px-2' 
+        : 'border-t p-4'
+      } transition-colors duration-200 ${
         darkMode 
-          ? 'bg-gray-900 border-gray-700' 
-          : 'bg-white border-gray-200'
-      }`} style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-        <div className="max-w-5xl mx-auto">
+          ? isMobile ? 'bg-gray-900' : 'bg-gray-900 border-gray-700'
+          : isMobile ? 'bg-white' : 'bg-white border-gray-200'
+      }`} style={isMobile ? { 
+        bottom: 0,
+        paddingBottom: 'max(4px, env(safe-area-inset-bottom))',
+        paddingTop: '6px'
+      } : { 
+        paddingBottom: '1rem' 
+      }}>
+        <div className={`${isMobile ? 'max-w-full' : 'max-w-5xl'} mx-auto`}>
           {/* Use SmartChatInput on mobile, SimpleChatInput on desktop */}
           {isMobile ? (
-            <>
-              <SmartChatInput
-                value={input}
-                onChange={setInput}
-                onSend={() => handleSend(input)}
-                loading={loading}
-                placeholder="Ask about routes, places, or local tips..."
-                darkMode={darkMode}
-                enableVoice={true}
-                showCharCounter={false}
-                minimal={true}
-                voiceLanguage="auto"
-                showLanguagePicker={true}
-              />
-              <p className={`text-xs text-center mt-2 transition-colors duration-200 ${
-                darkMode ? 'text-gray-500' : 'text-gray-400'
-              }`}>
-                💡 Try: "Metro from Taksim to Sultanahmet" or "Best kebab restaurants"
-              </p>
-            </>
+            <SmartChatInput
+              value={input}
+              onChange={setInput}
+              onSend={() => handleSend(input)}
+              loading={loading}
+              placeholder="Ask anything about Istanbul..."
+              darkMode={darkMode}
+              enableVoice={true}
+              showCharCounter={false}
+              minimal={true}
+              voiceLanguage="auto"
+              showLanguagePicker={true}
+            />
           ) : (
-            <>
-              <SimpleChatInput
-                value={input}
-                onChange={setInput}
-                onSend={handleSend}
-                loading={loading}
-                placeholder="Ask about routes, places, or local tips..."
-                darkMode={darkMode}
-              />
-              <p className={`text-xs text-center mt-2 transition-colors duration-200 ${
-                darkMode ? 'text-gray-500' : 'text-gray-400'
-              }`}>
-                💡 Try: "Metro from Taksim to Sultanahmet" or "Best kebab restaurants"
-              </p>
-            </>
+            <SimpleChatInput
+              value={input}
+              onChange={setInput}
+              onSend={handleSend}
+              loading={loading}
+              placeholder="Ask about routes, places, or local tips..."
+              darkMode={darkMode}
+            />
           )}
-          {/* Removed "AI-powered Istanbul travel assistant" text for cleaner mobile UI */}
         </div>
       </div>
 
@@ -3174,15 +2888,6 @@ function Chatbot({ userLocation: propUserLocation }) {
       
       {/* Network Status Indicator */}
       <NetworkStatusIndicator darkMode={darkMode} />
-      
-      {/* Mobile-optimized GPS Banner - only show on mobile */}
-      {isMobile && (
-        <MinimizedGPSBanner 
-          autoHide={true}
-          autoHideDelay={5000}
-          allowDismiss={true}
-        />
-      )}
     </div>
   );
 }
