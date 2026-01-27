@@ -196,23 +196,43 @@ async def stream_chat_sse(request: StreamChatRequest):
             route_data = None
             transport_alternatives = None  # NEW: Multi-route data
             
-            # Check if this is a transportation query
+            # Prepare query for analysis
             query_lower = request.message.lower()
-            transportation_keywords = ['how do i get', 'how can i get', 'how to get', 'route to', 
-                                       'from', 'directions to', 'navigate to', 'take me to', 'go to',
-                                       'way to', 'best way to', 'how can i reach', 'how do i reach',
-                                       'taksim', 'kadikoy', 'kadıköy', 'sultanahmet', 'metro', 'tram']
-            is_transportation = (
-                intent_value in ['transportation', 'directions', 'route', 'navigate'] or
-                any(keyword in query_lower for keyword in transportation_keywords)
-            )
             
-            # Check if query asks for route alternatives/options
-            use_multi_route = is_transportation and any(keyword in query_lower for keyword in [
-                'how to get', 'how do i get', 'route to', 'way to',
-                'directions to', 'how can i reach', 'best way to',
-                'options', 'alternatives', 'routes', 'ways'
-            ])
+            # Check if this is a transportation query using LLM intent detection
+            from services.llm_intent_detector import detect_query_intent
+            
+            try:
+                intent_result = await detect_query_intent(request.message, request.user_location)
+                logger.info(f"🎯 Streaming LLM Intent: {intent_result.intent.value} (confidence: {intent_result.confidence:.2f})")
+                
+                is_transportation = intent_result.is_transportation and intent_result.confidence >= 0.6
+                
+                if is_transportation:
+                    logger.info("🚦 Transportation intent detected by LLM")
+                else:
+                    logger.info(f"🚦 Non-transportation intent: {intent_result.intent.value}")
+                    
+            except Exception as e:
+                logger.error(f"❌ LLM Intent Detection failed in streaming: {str(e)}, falling back to keyword detection")
+                # Fallback to keyword detection
+                transportation_keywords = ['how do i get', 'how can i get', 'how to get', 'route to', 
+                                           'from', 'directions to', 'navigate to', 'take me to', 'go to',
+                                           'way to', 'best way to', 'how can i reach', 'how do i reach',
+                                           'nasıl giderim', 'nasıl gidebilirim', 'metro', 'otobüs']
+                is_transportation = (
+                    intent_value in ['transportation', 'directions', 'route', 'navigate'] or
+                    any(keyword in query_lower for keyword in transportation_keywords)
+                )
+            
+            # Check if query asks for route alternatives/options (only if transportation)
+            use_multi_route = False
+            if is_transportation:
+                use_multi_route = any(keyword in query_lower for keyword in [
+                    'how to get', 'how do i get', 'route to', 'way to',
+                    'directions to', 'how can i reach', 'best way to',
+                    'options', 'alternatives', 'routes', 'ways'
+                ])
             
             # Check if this is a trip planning query
             trip_planning_keywords = [

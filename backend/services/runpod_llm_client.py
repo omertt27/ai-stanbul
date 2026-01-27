@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LLMClientConfig:
     """Configuration for LLM client"""
-    connect_timeout: float = 10.0  # Connection timeout
-    read_timeout: float = 120.0    # Read timeout for generation (matches LLM_TIMEOUT env default)
+    connect_timeout: float = 5.0   # Reduced connection timeout for faster responses
+    read_timeout: float = 15.0     # Reduced read timeout - optimized for quick chat responses
     max_retries: int = 2
     max_connections: int = 10      # Connection pool size
     max_keepalive: int = 5         # Keep-alive connections
@@ -52,7 +52,7 @@ class RunPodLLMClient:
         self,
         api_url: Optional[str] = None,
         api_key: Optional[str] = None,
-        timeout: float = 60.0,
+        timeout: float = 15.0,  # Reduced default timeout for faster responses
         max_tokens: int = 1024,
         config: Optional[LLMClientConfig] = None
     ):

@@ -182,17 +182,16 @@ async def get_blog_posts(
         # FIX: N+1 Query Problem - Get all comment counts in one query
         post_ids = [post.id for post in posts]
         comment_counts = {}
-        # TEMPORARY FIX: Comment model not yet implemented
-        # if post_ids:
-        #     comment_count_query = db.query(
-        #         BlogComment.blog_post_id,
-        #         func.count(BlogComment.id).label('count')
-        #     ).filter(
-        #         BlogComment.blog_post_id.in_(post_ids),
-        #         BlogComment.is_approved == True
-        #     ).group_by(BlogComment.blog_post_id).all()
-        #     
-        #     comment_counts = {post_id: count for post_id, count in comment_count_query}
+        if post_ids:
+            comment_count_query = db.query(
+                BlogCommentModel.blog_post_id,
+                func.count(BlogCommentModel.id).label('count')
+            ).filter(
+                BlogCommentModel.blog_post_id.in_(post_ids),
+                BlogCommentModel.status == 'approved'
+            ).group_by(BlogCommentModel.blog_post_id).all()
+            
+            comment_counts = {post_id: count for post_id, count in comment_count_query}
         
         # Format response
         formatted_posts = []
@@ -240,7 +239,7 @@ async def get_blog_post(post_id: int, response: Response, db: Session = Depends(
         
         comments_count = db.query(BlogCommentModel).filter(
             BlogCommentModel.blog_post_id == post.id,
-            BlogCommentModel.is_approved == True
+            BlogCommentModel.status == 'approved'
         ).count()
         
         return BlogPostResponse(
@@ -477,7 +476,7 @@ async def get_post_comments(post_id: int, db: Session = Depends(get_db)):
         # Get approved comments
         comments = db.query(BlogCommentModel).filter(
             BlogCommentModel.blog_post_id == post_id,
-            BlogCommentModel.is_approved == True
+            BlogCommentModel.status == 'approved'
         ).order_by(BlogCommentModel.created_at.desc()).all()
         
         formatted_comments = [
@@ -535,11 +534,7 @@ async def create_comment(
             author_name=comment.author_name,
             author_email=comment.author_email,
             content=comment.content,
-            is_approved=True,  # Auto-approve for now
-            is_flagged=False,
-            is_spam=False,
-            user_ip=user_ip,
-            user_agent=user_agent,
+            status='approved',  # Auto-approve for now
             created_at=datetime.utcnow()
         )
         

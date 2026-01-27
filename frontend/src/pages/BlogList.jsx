@@ -51,6 +51,7 @@ const BlogList = () => {
     try {
       // Try to fetch from API first
       let filteredPosts = [];
+      let apiResponse = null; // Declare apiResponse in the correct scope
       
       try {
         console.log('🔗 BlogList: Attempting to fetch from backend API...');
@@ -63,7 +64,7 @@ const BlogList = () => {
         };
         console.log('📤 BlogList: API params being sent:', apiParams);
         
-        const apiResponse = await fetchBlogPosts(apiParams);
+        apiResponse = await fetchBlogPosts(apiParams);
         
         if (apiResponse && apiResponse.posts && Array.isArray(apiResponse.posts)) {
           // Transform API posts to match frontend expectations
@@ -117,15 +118,15 @@ const BlogList = () => {
       
       // Calculate pagination - backend handles filtering and pagination
       setPosts(filteredPosts);
-      setTotalPosts(apiResponse.total || filteredPosts.length);
-      setTotalPages(Math.ceil((apiResponse.total || filteredPosts.length) / postsPerPage));
+      setTotalPosts(apiResponse?.total || filteredPosts.length);
+      setTotalPages(Math.ceil((apiResponse?.total || filteredPosts.length) / postsPerPage));
       updatePosts(filteredPosts); // Update global context
       
       console.log('✅ BlogList: Posts loaded successfully', {
-        total: apiResponse.total || filteredPosts.length,
+        total: apiResponse?.total || filteredPosts.length,
         page: currentPage,
         showing: filteredPosts.length,
-        totalPages: Math.ceil((apiResponse.total || filteredPosts.length) / postsPerPage),
+        totalPages: Math.ceil((apiResponse?.total || filteredPosts.length) / postsPerPage),
         sortedBy: sortBy,
         districtFilter: selectedDistrict
       });

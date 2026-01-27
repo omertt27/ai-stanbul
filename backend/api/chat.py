@@ -918,21 +918,41 @@ async def pure_llm_chat(
             logger.warning(f"RAG retrieval failed: {e}")
             rag_context = None
         
-        # 🔥 FIX #1: GATE - Quick check if this is a transportation query
+        # 🔥 FIX #1: GATE - LLM-based intent detection for transportation queries
         # Do NOT skip Pure LLM (it generates the response), but flag for structured mode
         force_structured_mode = False
         force_intent = None
         force_confidence = None
         
-        # Quick pattern check for transportation keywords
-        query_lower = request.message.lower()
-        transportation_keywords = ['how do i get', 'how can i get', 'how to get', 'route to', 'way to', 
-                                   'from', 'directions to', 'navigate to', 'take me to', 'go to']
-        if any(keyword in query_lower for keyword in transportation_keywords):
-            logger.info("🚦 GATE: Transportation query detected - forcing structured mode")
-            force_structured_mode = True
-            force_intent = "transportation"
-            force_confidence = 0.80  # High confidence from pattern match
+        # Use LLM-based intent detection instead of keyword matching
+        from services.llm_intent_detector import detect_query_intent
+        
+        try:
+            intent_result = await detect_query_intent(request.message, request.user_location)
+            logger.info(f"🎯 LLM Intent Detection: {intent_result.intent.value} (confidence: {intent_result.confidence:.2f}) - {intent_result.reasoning}")
+            
+            if intent_result.is_transportation and intent_result.confidence >= 0.6:
+                logger.info("🚦 GATE: Transportation intent detected by LLM - forcing structured mode")
+                force_structured_mode = True
+                force_intent = intent_result.intent.value
+                force_confidence = intent_result.confidence
+            else:
+                logger.info(f"🚦 GATE: Non-transportation intent ({intent_result.intent.value}) - proceeding with normal mode")
+                
+        except Exception as e:
+            logger.error(f"❌ LLM Intent Detection failed: {str(e)}, falling back to keyword detection")
+            # Fallback to keyword detection
+            query_lower = request.message.lower()
+            transportation_keywords = [
+                'how do i get', 'how can i get', 'how to get', 'route to', 'way to', 
+                'from', 'directions to', 'navigate to', 'take me to', 'go to',
+                'nasıl giderim', 'nasıl gidebilirim', 'nasıl ulaşırım', 'metro', 'otobüs'
+            ]
+            if any(keyword in query_lower for keyword in transportation_keywords):
+                logger.info("🚦 GATE: Transportation query detected by fallback keywords - forcing structured mode")
+                force_structured_mode = True
+                force_intent = "transportation"
+                force_confidence = 0.70
         
         # Process query through Pure LLM
         # Use auto-detected language (effective_language) instead of request.language
