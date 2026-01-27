@@ -527,40 +527,17 @@ const RouteCard = ({ routeData }) => {
   }, []);
   
   // Check if route is already saved
-  useEffect(() => {
-    const savedRoutes = JSON.parse(localStorage.getItem('savedRoutes') || '[]');
-    const routeKey = `${origin}-${destination}`;
-    const isAlreadySaved = savedRoutes.some(r => `${r.origin}-${r.destination}` === routeKey);
-    setIsSaved(isAlreadySaved);
-  }, []);
-  
-  // 🔍 DEBUG: Log what we're receiving
-  console.log('🗺️ RouteCard received routeData:', routeData);
-  console.log('🗺️ RouteCard keys:', routeData ? Object.keys(routeData) : 'NO DATA');
-  if (routeData) {
-    console.log('🗺️ Has map_data:', !!routeData.map_data);
-    console.log('🗺️ Has mapData:', !!routeData.mapData);
-    console.log('🗺️ Has route_info:', !!routeData.route_info);
-    console.log('🗺️ Has routeData:', !!routeData.routeData);
-    console.log('🗺️ Has route_data:', !!routeData.route_data);
-    console.log('🗺️ Has data:', !!routeData.data);
-  }
-  
+  // Early return if no data
   if (!routeData) return null;
 
   // Handle both camelCase (frontend) and snake_case (backend) field names
+  // Use useMemo to prevent unnecessary recalculations
   const map_data = routeData.map_data || routeData.mapData;
   const route_info = routeData.route_info || routeData.routeData || routeData.route_data;
   const message = routeData.message || routeData.text;
-  
-  // 🔍 DEBUG: Log what we extracted
-  console.log('🗺️ Extracted map_data:', map_data ? Object.keys(map_data) : 'NO MAP_DATA');
-  console.log('🗺️ Extracted route_info:', route_info ? Object.keys(route_info) : 'NO ROUTE_INFO');
 
   // If map_data contains route_data, use that for route_info
   const actualRouteInfo = route_info || map_data?.route_data || map_data?.metadata?.route_data;
-  
-  console.log('🗺️ Final route info:', actualRouteInfo ? Object.keys(actualRouteInfo) : 'NO ROUTE INFO');
 
   // Extract route information - handle different field name variations
   const origin = actualRouteInfo?.start_location || actualRouteInfo?.origin || 'Starting point';
@@ -575,6 +552,14 @@ const RouteCard = ({ routeData }) => {
   const confidence = actualRouteInfo?.confidence || 'Medium';
   const lines = actualRouteInfo?.transit_lines || actualRouteInfo?.lines_used || [];
   const steps = actualRouteInfo?.steps || [];
+
+  // Check if route is already saved (moved after early return)
+  useEffect(() => {
+    const savedRoutes = JSON.parse(localStorage.getItem('savedRoutes') || '[]');
+    const routeKey = `${origin}-${destination}`;
+    const isAlreadySaved = savedRoutes.some(r => `${r.origin}-${r.destination}` === routeKey);
+    setIsSaved(isAlreadySaved);
+  }, [origin, destination]);
 
   // Transform route data for MultiRouteComparison component
   const transformRouteForComparison = (route, routeInfo, index = 0) => {
@@ -648,8 +633,17 @@ const RouteCard = ({ routeData }) => {
   };
 
   // Extract alternative routes if available
+  // Use JSON.stringify for stable dependency on array contents
+  const linesKey = JSON.stringify(lines);
+  const stepsKey = JSON.stringify(steps.map(s => s.instruction || s.description || ''));
+  const routeDataId = routeData?.id || routeData?.timestamp || JSON.stringify({origin, destination, duration, distance});
+  
   useEffect(() => {
     const alternatives = routeData?.alternatives || routeData?.alternative_routes || [];
+    
+    // Parse lines and steps from stringified keys
+    const currentLines = JSON.parse(linesKey);
+    const currentSteps = steps;
     
     // Transform current route
     const currentRoute = transformRouteForComparison({
@@ -657,8 +651,8 @@ const RouteCard = ({ routeData }) => {
       distance: parseFloat(distance) * 1000,
       num_transfers: transfers,
       walking_meters: parseFloat(distance) * 1000 * 0.3, // Estimate 30% walking
-      transit_lines: lines,
-      steps: steps
+      transit_lines: currentLines,
+      steps: currentSteps
     }, actualRouteInfo, 0);
     
     if (alternatives.length > 0) {
@@ -670,7 +664,7 @@ const RouteCard = ({ routeData }) => {
     } else {
       setAlternativeRoutes([currentRoute]);
     }
-  }, [routeData, duration, distance, transfers, lines, steps]);
+  }, [routeDataId, duration, distance, transfers, linesKey, stepsKey]);
 
   // Map visualization data
   const hasMapData = map_data && (map_data.routes || map_data.markers);
@@ -685,11 +679,6 @@ const RouteCard = ({ routeData }) => {
         firstMarker.lon || firstMarker.lng || firstMarker.longitude
       ]
     : [41.0082, 28.9784]; // Default to Istanbul center
-  
-  console.log('🗺️ Map center:', center);
-  console.log('🗺️ Has map data:', hasMapData);
-  console.log('🗺️ Routes count:', routes.length);
-  console.log('🗺️ Markers count:', markers.length);
 
   // CTA Handlers
   const handleStartNavigation = () => {
@@ -735,17 +724,12 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
     try {
       // Check if Web Share API is available (mobile devices)
       if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-        console.log('📤 Sharing route via Web Share API');
         await navigator.share(shareData);
-        console.log('✅ Route shared successfully');
         setShareStatus({ state: 'success', message: 'Shared!' });
       } else {
         // Fallback: copy to clipboard with enhanced formatting
-        console.log('📋 Sharing route via clipboard fallback');
         const textToCopy = `${shareData.title}\n\n${shareText}`;
         await navigator.clipboard.writeText(textToCopy);
-        
-        console.log('✅ Route details copied to clipboard');
         setShareStatus({ state: 'success', message: 'Copied!' });
       }
       
@@ -761,10 +745,9 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
       // Try simple clipboard as last resort
       try {
         await navigator.clipboard.writeText(window.location.href);
-        console.log('✅ Fallback: URL copied to clipboard');
         setShareStatus({ state: 'success', message: 'URL Copied!' });
       } catch (clipboardErr) {
-        console.error('❌ Even clipboard fallback failed:', clipboardErr);
+        // Even clipboard fallback failed - user will see error state
       }
       
       // Reset status after 2 seconds
@@ -799,13 +782,11 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
         );
         localStorage.setItem('savedRoutes', JSON.stringify(filteredRoutes));
         setIsSaved(false);
-        console.log('✅ Route removed from saved routes');
       } else {
         // Add to saved routes
         savedRoutes.push(routeToSave);
         localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
         setIsSaved(true);
-        console.log('✅ Route saved successfully');
         
         // Optional: Send to backend for cloud sync
         // await fetch('/api/routes/save', {
@@ -859,7 +840,6 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
                   style={{ height: '100%', width: '100%' }}
                   scrollWheelZoom={true}
                   whenReady={() => {
-                    console.log('🗺️ Mobile map ready');
                     setTimeout(() => setIsMapLoading(false), 300);
                   }}
                 >
@@ -1088,9 +1068,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
               {/* Swipeable Navigation */}
               <SwipeableStepNavigation
                 steps={steps}
-                onStepChange={(stepIndex) => {
-                  console.log('Mobile: Current step:', stepIndex);
-                }}
+                onStepChange={() => {}}
               />
             </div>
           )}
@@ -1211,9 +1189,6 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
             routeComparison={generateRouteComparison(alternativeRoutes)}
             onRouteSelect={(route, index) => {
               setSelectedAlternativeIndex(index);
-              console.log('Selected route:', index, route);
-              // Could update the main view to show the selected route
-              // In future: update map to show selected route
             }}
             darkMode={isDarkMode}
           />
@@ -1230,7 +1205,6 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
             style={{ height: '100%', width: '100%' }}
             scrollWheelZoom={false}
             whenReady={() => {
-              console.log('🗺️ Map ready');
               setTimeout(() => setIsMapLoading(false), 300);
             }}
           >
@@ -1253,8 +1227,6 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
                 coord.lat, 
                 coord.lon || coord.lng
               ]).filter(pos => pos[0] !== undefined && pos[1] !== undefined) || [];
-              
-              console.log(`🗺️ Route ${idx} positions:`, positions.length, positions.slice(0, 2));
               
               if (positions.length === 0) return null;
               
@@ -1344,10 +1316,7 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
             )}
             
             {/* Map Controls - Zoom, Recenter, Fullscreen, Geolocation */}
-            <MapControls center={center} onGeolocationFound={(pos) => {
-              // Optional: Handle geolocation found (e.g., add marker, pan map)
-              console.log('📍 User geolocation:', pos);
-            }} />
+            <MapControls center={center} onGeolocationFound={() => {}} />
           </MapContainer>
         </div>
       )}

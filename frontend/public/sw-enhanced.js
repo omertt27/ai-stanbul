@@ -2,15 +2,15 @@
  * Enhanced Service Worker
  * Integrates map tile caching, periodic sync, and improved offline handling
  * 
- * @version 2.7.0
- * @features Map tiles, Periodic sync, Background sync, Push notifications, Cache busting for JS/CSS
- * @updated 2025-01-20 - NUCLEAR FIX - Safe storage wrapper to prevent ALL TDZ errors
+ * @version 2.8.0
+ * @features Map tiles (OSM + CARTO), Periodic sync, Background sync, Push notifications, Cache busting for JS/CSS
+ * @updated 2025-01-27 - Added CARTO map tile support, CDN allowlist for Leaflet icons
  */
 
-const CACHE_VERSION = 'ai-istanbul-v2.7.0';
+const CACHE_VERSION = 'ai-istanbul-v2.8.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
-const MAP_TILES_CACHE = 'map-tiles-v2';
+const MAP_TILES_CACHE = 'map-tiles-v2.1';
 
 // Assets to cache on install (only HTML pages and icons, NOT JS/CSS)
 const STATIC_ASSETS = [
@@ -20,8 +20,9 @@ const STATIC_ASSETS = [
   '/apple-touch-icon.svg'
 ];
 
-// Map tile URL pattern
+// Map tile URL patterns - includes OpenStreetMap and CARTO
 const MAP_TILE_PATTERN = /tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png/;
+const CARTO_TILE_PATTERN = /basemaps\.cartocdn\.com\/.*\/\d+\/\d+\/\d+/;
 
 // Build assets pattern (hashed Vite files like index-CfNLh5xt.js)
 const BUILD_ASSET_PATTERN = /\.(js|css|json)$/;
@@ -128,8 +129,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle map tiles separately
-  if (MAP_TILE_PATTERN.test(request.url)) {
+  // Handle map tiles separately (OpenStreetMap and CARTO)
+  if (MAP_TILE_PATTERN.test(request.url) || CARTO_TILE_PATTERN.test(request.url)) {
     event.respondWith(handleMapTileRequest(request));
     return;
   }
@@ -171,8 +172,11 @@ async function handleMapTileRequest(request) {
       return cachedResponse;
     }
 
-    // Fetch from network
-    const networkResponse = await fetch(request);
+    // Fetch from network with CORS mode for cross-origin tiles
+    const networkResponse = await fetch(request, {
+      mode: 'cors',
+      credentials: 'omit'
+    });
     
     // Cache successful responses
     if (networkResponse.ok) {
@@ -345,14 +349,20 @@ async function handleStaticRequest(request) {
       return fetch(request);
     }
 
-    // Allow external resources (Google Analytics, Google Fonts, etc.) to bypass service worker
+    // Allow external resources (Google Analytics, Google Fonts, Map tiles, etc.) to bypass service worker
     const url = new URL(request.url);
     const externalDomains = [
       'google-analytics.com',
       'googletagmanager.com',
       'analytics.google.com',
       'fonts.googleapis.com',
-      'fonts.gstatic.com'
+      'fonts.gstatic.com',
+      // Map tile providers
+      'basemaps.cartocdn.com',
+      'tile.openstreetmap.org',
+      // CDN for Leaflet icons and other libraries
+      'cdnjs.cloudflare.com',
+      'unpkg.com'
     ];
     
     if (externalDomains.some(domain => url.hostname.includes(domain))) {

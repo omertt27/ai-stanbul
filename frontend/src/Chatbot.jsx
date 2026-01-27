@@ -2141,7 +2141,7 @@ function Chatbot({ userLocation: propUserLocation }) {
       <div 
         className="flex-1 overflow-y-auto chat-messages pt-2 md:pt-6" 
         id="chat-messages"
-        style={{ paddingBottom: isMobile ? '90px' : '80px' }}
+        style={{ paddingBottom: isMobile ? '120px' : '80px' }}
       >
         {messages.length === 0 && (
           <div className={`h-full flex flex-col items-center ${isMobile ? 'justify-start pt-6' : 'justify-center'} px-3 md:px-4`}>

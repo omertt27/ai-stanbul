@@ -59,18 +59,35 @@
   border: 1px solid rgba(139, 92, 246, 0.25);
   border-radius: 12px;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(139, 92, 246, 0.15);
-  z-index: 10000;
+  z-index: 99999;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin-top: 0.5rem;
+  pointer-events: none;
 }
 
-.language-dropdown:hover .language-options {
+/* Click-based visibility (works on mobile) */
+.language-options.visible {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Hover-based visibility for desktop */
+@media (hover: hover) and (pointer: fine) {
+  .language-dropdown:hover .language-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+}
+
+.dropdown-arrow.rotated {
+  transform: rotate(180deg);
 }
 
 .language-option {
@@ -172,11 +189,25 @@
     min-width: 180px !important;
     right: 0 !important;
     left: auto !important;
-    z-index: 9999 !important;
-    background: rgba(15, 16, 17, 0.95) !important;
+    z-index: 999999 !important;
+    background: rgba(15, 16, 17, 0.98) !important;
     backdrop-filter: blur(20px) !important;
     border: 1px solid rgba(139, 92, 246, 0.3) !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(139, 92, 246, 0.2) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(139, 92, 246, 0.2) !important;
+  }
+  
+  /* Force click-based on mobile - disable hover */
+  .language-dropdown:hover .language-options {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  
+  .language-options.visible {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
+    pointer-events: auto !important;
   }
   
   .language-option {
