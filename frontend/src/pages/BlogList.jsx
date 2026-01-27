@@ -54,13 +54,16 @@ const BlogList = () => {
       
       try {
         console.log('🔗 BlogList: Attempting to fetch from backend API...');
-        const apiResponse = await fetchBlogPosts({
+        const apiParams = {
           page: currentPage,
-          limit: 100, // Get all posts for client-side filtering
+          limit: postsPerPage,
           search: searchTerm,
-          district: selectedDistrict,
+          district: selectedDistrict === 'Istanbul (general)' ? '' : selectedDistrict, // Don't send 'Istanbul (general)' to backend
           sort_by: sortBy
-        });
+        };
+        console.log('📤 BlogList: API params being sent:', apiParams);
+        
+        const apiResponse = await fetchBlogPosts(apiParams);
         
         if (apiResponse && apiResponse.posts && Array.isArray(apiResponse.posts)) {
           // Transform API posts to match frontend expectations
@@ -70,6 +73,13 @@ const BlogList = () => {
             district: post.district || 'Istanbul (general)',
             images: post.images || []
           }));
+          
+          // DEBUG: Log all unique districts in the data
+          const uniqueDistricts = [...new Set(filteredPosts.map(p => p.district).filter(Boolean))];
+          console.log('🏛️ Available districts in posts:', uniqueDistricts);
+          console.log('🏛️ Selected district for filter:', selectedDistrict);
+          console.log('🏛️ Dropdown options:', chatbotDistricts);
+          
           console.log('✅ BlogList: Successfully fetched', filteredPosts.length, 'posts from API');
         } else {
           throw new Error('Invalid API response structure');
@@ -80,7 +90,7 @@ const BlogList = () => {
         filteredPosts = []; // Empty array instead of mock data
       }
       
-      // Apply search filter
+      // Apply search filter (only if not already filtered by backend)
       if (searchTerm) {
         filteredPosts = filteredPosts.filter(post => 
           post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,14 +99,8 @@ const BlogList = () => {
         );
       }
       
-      // Apply district filter
-      if (selectedDistrict && selectedDistrict !== 'Istanbul (general)') {
-        filteredPosts = filteredPosts.filter(post => 
-          post.district && post.district.toLowerCase() === selectedDistrict.toLowerCase()
-        );
-      }
-      
-      // Apply sorting
+      // Note: District filtering is now handled by the backend
+      // Apply sorting (only if not already sorted by backend)
       if (sortBy === 'newest') {
         filteredPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       } else if (sortBy === 'oldest') {
@@ -111,22 +115,19 @@ const BlogList = () => {
         filteredPosts.sort((a, b) => (b.content?.length || 0) - (a.content?.length || 0));
       }
       
-      // Calculate pagination
-      const startIndex = (currentPage - 1) * postsPerPage;
-      const endIndex = startIndex + postsPerPage;
-      const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
-      
-      setPosts(paginatedPosts);
-      setTotalPosts(filteredPosts.length);
-      setTotalPages(Math.ceil(filteredPosts.length / postsPerPage));
-      updatePosts(filteredPosts); // Update global context with all posts
+      // Calculate pagination - backend handles filtering and pagination
+      setPosts(filteredPosts);
+      setTotalPosts(apiResponse.total || filteredPosts.length);
+      setTotalPages(Math.ceil((apiResponse.total || filteredPosts.length) / postsPerPage));
+      updatePosts(filteredPosts); // Update global context
       
       console.log('✅ BlogList: Posts loaded successfully', {
-        total: filteredPosts.length,
+        total: apiResponse.total || filteredPosts.length,
         page: currentPage,
-        showing: paginatedPosts.length,
-        totalPages: Math.ceil(filteredPosts.length / postsPerPage),
-        sortedBy: sortBy
+        showing: filteredPosts.length,
+        totalPages: Math.ceil((apiResponse.total || filteredPosts.length) / postsPerPage),
+        sortedBy: sortBy,
+        districtFilter: selectedDistrict
       });
       
     } catch (err) {
@@ -169,7 +170,6 @@ const BlogList = () => {
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedDistrict('');
-    setWeatherSort(false);
     setCurrentPage(1); // Reset to first page when clearing filters
   };
 

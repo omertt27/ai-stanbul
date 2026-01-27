@@ -230,6 +230,22 @@ except ImportError as e:
     logger.warning("⚠️ Falling back to legacy OpenAI-only chat endpoint")
     UNIFIED_CHAT_AVAILABLE = False
 
+# Import streaming chat router for real-time responses
+try:
+    from api.streaming import router as streaming_router
+    app.include_router(streaming_router)
+    logger.info("✅ Streaming chat endpoint loaded (/api/stream/chat)")
+    STREAMING_CHAT_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Streaming chat router not available: {e}")
+    STREAMING_CHAT_AVAILABLE = False
+
+# =============================== 
+# IMPORTANT: This fixes the authentication error that was occurring because
+# the frontend was trying to access /api/stream/chat but the endpoint was missing.
+# Now the streaming endpoint is properly available for real-time chat responses.
+# ===============================
+
 # ===============================
 # OPENAI INTEGRATION
 # ===============================
