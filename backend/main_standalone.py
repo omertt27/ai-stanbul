@@ -635,10 +635,47 @@ if not UNIFIED_CHAT_AVAILABLE:
         return await chat_endpoint_legacy(request, db)
 
 @app.get("/api/blog/posts")
-async def get_blog_posts(db: Session = Depends(get_db)):
-    """Get blog posts"""
+async def get_blog_posts(
+    limit: int = 100,
+    offset: int = 0,
+    search: str = "",
+    district: str = "",
+    sort_by: str = "newest",
+    db: Session = Depends(get_db)
+):
+    """Get blog posts with filtering and sorting support"""
     try:
-        posts = db.query(BlogPost).order_by(BlogPost.created_at.desc()).limit(10).all()
+        query = db.query(BlogPost)
+        
+        # Filter by district if provided
+        if district and district.strip():
+            # Handle URL-encoded characters and case-insensitive matching
+            district_clean = district.strip()
+            query = query.filter(BlogPost.district.ilike(f"%{district_clean}%"))
+        
+        # Filter by search term if provided
+        if search and search.strip():
+            search_term = f"%{search.strip()}%"
+            query = query.filter(
+                (BlogPost.title.ilike(search_term)) |
+                (BlogPost.content.ilike(search_term)) |
+                (BlogPost.author.ilike(search_term))
+            )
+        
+        # Apply sorting
+        if sort_by == "most_liked":
+            query = query.order_by(BlogPost.likes_count.desc().nullslast(), BlogPost.created_at.desc())
+        elif sort_by == "oldest":
+            query = query.order_by(BlogPost.created_at.asc())
+        else:  # newest (default)
+            query = query.order_by(BlogPost.created_at.desc())
+        
+        # Get total count before pagination
+        total = query.count()
+        
+        # Apply pagination
+        posts = query.offset(offset).limit(limit).all()
+        
         return {
             "posts": [
                 {
@@ -647,16 +684,26 @@ async def get_blog_posts(db: Session = Depends(get_db)):
                     "content": (post.content[:200] + "...") if isinstance(post.content, str) and len(post.content) > 200 else post.content,
                     "author": post.author,
                     "district": post.district,
-                    "created_at": post.created_at.isoformat(),
-                    "likes_count": post.likes_count
+                    "created_at": post.created_at.isoformat() if post.created_at else None,
+                    "likes_count": post.likes_count or 0
                 }
                 for post in posts
             ],
-            "total": len(posts)
+            "total": total,
+            "limit": limit,
+            "offset": offset
         }
     except Exception as e:
-        logger.error(f"Blog posts error: {e}")
-        return {"posts": [], "total": 0, "error": "Unable to fetch blog posts"}
+        logger.error(f"Blog posts error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "Failed to fetch blog posts",
+                "code": "SRV_6001",
+                "details": {},
+                "timestamp": datetime.now().isoformat()
+            }
+        )
 
 @app.get("/api/blog/posts/{post_id}")
 async def get_blog_post(post_id: int, db: Session = Depends(get_db)):

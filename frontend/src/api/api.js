@@ -29,7 +29,7 @@ console.log('API Configuration:', {
 const API_URL = `${cleanBaseUrl}/api/chat`;  // Pure LLM chat endpoint (fixed to match backend)
 // STREAMING NOT IMPLEMENTED IN BACKEND YET
 // const STREAM_API_URL = `${cleanBaseUrl}/api/stream`;  // Streaming endpoint
-const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/v2/restaurants`; // ✅ Fixed: correct endpoint
+const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/restaurants`; // ✅ Fixed: correct endpoint to match backend
 const PLACES_API_URL = `${cleanBaseUrl}/api/places`;
 // Chat history endpoints  
 const CHAT_HISTORY_API_URL = `${cleanBaseUrl}/api/chat/history`;
