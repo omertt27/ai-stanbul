@@ -43,13 +43,22 @@ const SimpleChatInput = ({
   }, [value]);
 
   // Detect browser language for speech recognition
+  // Supports: English, Turkish, Russian, German, Arabic, French
   const detectLanguage = useCallback(() => {
     const browserLang = navigator.language || navigator.userLanguage || 'en-US';
-    // Support Turkish and English
-    if (browserLang.startsWith('tr')) {
-      return 'tr-TR';
-    }
-    return 'en-US';
+    const langCode = browserLang.toLowerCase().split('-')[0];
+    
+    // Map language codes to BCP 47 locale tags for Web Speech API
+    const languageMap = {
+      'tr': 'tr-TR',  // Turkish
+      'ru': 'ru-RU',  // Russian
+      'de': 'de-DE',  // German
+      'ar': 'ar-SA',  // Arabic
+      'fr': 'fr-FR',  // French
+      'en': 'en-US',  // English (default)
+    };
+    
+    return languageMap[langCode] || 'en-US';
   }, []);
 
   // Initialize speech recognition

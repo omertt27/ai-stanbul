@@ -60,6 +60,19 @@
     margin-bottom: 4px !important;
     font-size: 15px !important;
   }
+
+  /* IMPORTANT: Enable text selection/copy on mobile chat messages */
+  .chat-messages,
+  .chat-messages p,
+  .chat-messages span,
+  .chat-messages li,
+  .mobile-message-text,
+  .mobile-ai-text,
+  .message-text {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -webkit-touch-callout: default !important;
+  }
 }
 
 /* ============================================

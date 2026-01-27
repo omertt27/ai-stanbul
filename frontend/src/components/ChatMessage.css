@@ -68,6 +68,11 @@
   border-radius: 12px;
   line-height: 1.6;
   color: #333;
+  /* IMPORTANT: Enable text selection for copy/paste on mobile */
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+  cursor: text;
 }
 
 .user-message .message-text {

@@ -818,9 +818,27 @@ body.chatbot-page {
 /* Mobile-specific optimizations for chatbot page */
 @media (max-width: 768px) {
   body.chatbot-page {
-    user-select: none !important; /* Prevent text selection on mobile UI elements */
+    -webkit-touch-callout: none !important; /* Disable callout on iOS for UI elements */
+  }
+  
+  /* Disable selection on UI elements but allow in chat messages */
+  body.chatbot-page button,
+  body.chatbot-page nav,
+  body.chatbot-page .navbar,
+  body.chatbot-page .suggestion-chip,
+  body.chatbot-page .quick-reply {
+    user-select: none !important;
     -webkit-user-select: none !important;
-    -webkit-touch-callout: none !important; /* Disable callout on iOS */
+  }
+  
+  /* IMPORTANT: Allow text selection in chat messages for copy/paste */
+  body.chatbot-page .message-text,
+  body.chatbot-page .chat-message p,
+  body.chatbot-page .assistant-message,
+  body.chatbot-page .bot-message {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -webkit-touch-callout: default !important;
   }
   
   /* Ensure proper keyboard handling */
