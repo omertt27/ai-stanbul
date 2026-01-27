@@ -1738,7 +1738,8 @@ function Chatbot({ userLocation: propUserLocation }) {
       console.log('🌊 Streaming enabled:', enableStreaming);
       
       // 🌊 STREAMING: If streaming is enabled, use streaming API
-      if (enableStreaming && !usePureLLM) {
+      // Note: Streaming works with both Pure LLM and standard modes
+      if (enableStreaming) {
         console.log('🌊 Starting streaming response...');
         setIsStreamingResponse(true);
         setStreamingText('');

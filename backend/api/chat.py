@@ -272,16 +272,55 @@ def detect_input_language(text: str) -> str:
     Detect the language of user input.
     
     Uses character-based heuristics for fast detection.
-    Returns 'tr' for Turkish, 'en' for English (default).
+    Supports: Turkish (tr), Russian (ru), Arabic (ar), German (de), French (fr), English (en)
+    
+    Note: The LLM (Llama 3.1) is multilingual and will respond in the user's language
+    regardless of this detection. This is mainly for logging and analytics.
     """
+    import re
+    
+    # Russian: Cyrillic characters
+    if re.search(r'[\u0400-\u04FF]', text):
+        logger.debug(f"🌍 Detected Russian (Cyrillic characters)")
+        return 'ru'
+    
+    # Arabic: Arabic script
+    if re.search(r'[\u0600-\u06FF]', text):
+        logger.debug(f"🌍 Detected Arabic (Arabic script)")
+        return 'ar'
+    
     # Turkish-specific characters
     turkish_chars = set('çÇğĞıİöÖşŞüÜ')
-    
-    # Check for Turkish characters
     if any(char in turkish_chars for char in text):
+        logger.debug(f"🌍 Detected Turkish (special characters)")
         return 'tr'
     
-    # Common Turkish words (that don't have special chars)
+    # German-specific characters (ß, umlauts in German context)
+    german_chars = set('ßäÄöÖüÜ')
+    if any(char in german_chars for char in text):
+        # Check for German words to distinguish from Turkish ö/ü
+        german_words = {'und', 'der', 'die', 'das', 'ist', 'wie', 'ich', 'sie', 'wir', 
+                        'nicht', 'haben', 'werden', 'können', 'müssen', 'guten', 'danke',
+                        'bitte', 'hallo', 'morgen', 'abend', 'tag', 'nacht', 'wo', 'was'}
+        text_lower = text.lower()
+        words = set(text_lower.split())
+        if words & german_words:
+            logger.debug(f"🌍 Detected German (special characters + words)")
+            return 'de'
+    
+    # French-specific patterns (accents + French words)
+    french_chars = set('àâæçéèêëîïôœùûü')
+    if any(char in french_chars for char in text.lower()):
+        french_words = {'le', 'la', 'les', 'un', 'une', 'des', 'est', 'sont', 'je', 'tu',
+                        'nous', 'vous', 'ils', 'bonjour', 'merci', 'comment', 'où', 'quoi',
+                        'pourquoi', 'oui', 'non', 'très', 'bien', 'avec', 'pour', 'dans'}
+        text_lower = text.lower()
+        words = set(text_lower.split())
+        if words & french_words:
+            logger.debug(f"🌍 Detected French (special characters + words)")
+            return 'fr'
+    
+    # Common Turkish words (without special chars - fallback)
     turkish_words = {
         'nasıl', 'nerede', 'nereden', 'nereye', 'ne', 'kim', 'hangi',
         'gitmek', 'gidebilirim', 'istiyorum', 'var', 'yok', 'mi', 'mı',
@@ -296,8 +335,12 @@ def detect_input_language(text: str) -> str:
     words = set(text_lower.split())
     
     if words & turkish_words:
+        logger.debug(f"🌍 Detected Turkish (common words)")
         return 'tr'
     
+    # Default to English - the LLM will still respond in the user's actual language
+    # because the system prompt instructs it to match the user's language
+    logger.debug(f"🌍 Defaulting to English (LLM will still match user's actual language)")
     return 'en'
 
 
@@ -359,11 +402,23 @@ try:
         PureLLMChatResponse,
         MLChatRequest as MLChatRequestSchema,
         MLChatResponse as MLChatResponseSchema,
+        StreamChatRequest,
+        StreamChatResponse,
     )
     SCHEMAS_AVAILABLE = True
 except ImportError:
     SCHEMAS_AVAILABLE = False
     logger.warning("⚠️ Validated schemas not available, using legacy models")
+    
+    # Fallback StreamChatRequest if schema not available
+    class StreamChatRequest(BaseModel):
+        """Fallback streaming request model"""
+        message: str = Field(..., min_length=1, max_length=2000)
+        session_id: Optional[str] = None
+        language: Optional[str] = "en"
+        user_location: Optional[Dict[str, float]] = None
+        include_context: bool = True
+        stream_metadata: bool = True
 
 
 # ===========================================
@@ -376,7 +431,7 @@ class ChatRequest(BaseModel):
     user_location: Optional[Dict[str, float]] = Field(None, description="User GPS location")
     preferences: Optional[Dict[str, Any]] = Field(None, description="User preferences")
     user_id: Optional[str] = Field(None, max_length=128, description="User ID for personalization")
-    language: Optional[str] = Field("en", description="Response language (en/tr)")
+    language: Optional[str] = Field(None, description="Response language (en/tr/ru/de/ar) - None = auto-detect from query")
     
     @field_validator('message')
     @classmethod
@@ -622,32 +677,31 @@ async def pure_llm_chat(
     # Only auto-detect if no explicit language is provided
     
     # === ENHANCED LANGUAGE DETECTION ===
-    # FIXED PRIORITY: 1) Explicit request.language, 2) Session history, 3) Auto-detect, 4) Default 'en'
-    # The user's explicit language choice MUST take priority over auto-detection
-    # Auto-detection was incorrectly overriding English requests when query contained Turkish place names
+    # FIXED PRIORITY: 1) Explicit request.language (if provided), 2) Auto-detect from query, 3) Session history, 4) Default 'en'
+    # When language is None (default), we auto-detect from the query text
+    # Llama 3.1 8B is multilingual and will respond in the user's language
     
-    # Start with the explicitly requested language (this is what the user/frontend wants)
-    if request.language and request.language != 'en':
-        # User explicitly requested a non-English language - honor it
+    if request.language is not None:
+        # User explicitly provided a language - honor it
         effective_language = request.language
         logger.info(f"🌍 Using explicit request language: {effective_language}")
-    elif request.language == 'en':
-        # User explicitly requested English - DO NOT override with auto-detection!
-        effective_language = 'en'
-        logger.info(f"🌍 User explicitly requested English - ignoring auto-detection")
-    elif session_language and session_language != 'en':
-        # Use session language if current message doesn't have clear indicators
-        effective_language = session_language
-        logger.info(f"🌍 Using session language: {effective_language}")
     else:
-        # Only use auto-detection if no explicit language was provided
+        # No explicit language - auto-detect from query text
         input_language = detect_input_language(request.message)
+        logger.info(f"🌍 Auto-detected language: {input_language}")
+        
         if input_language != 'en':
+            # Detected a non-English language
             effective_language = input_language
-            logger.info(f"🌍 Input language detected: {effective_language}")
+        elif session_language and session_language != 'en':
+            # Use session language if query looks English but session was in another language
+            effective_language = session_language
+            logger.info(f"🌍 Using session language (query ambiguous): {effective_language}")
         else:
+            # Default to English
             effective_language = 'en'
-            logger.info(f"🌍 Using default language: en")
+            
+    logger.info(f"🌍 Final effective language: {effective_language}")
     user_context['language'] = effective_language
     user_context['conversation_history'] = conversation_history_for_llm  # Add history to context
     
@@ -2049,3 +2103,229 @@ Do NOT modify any station names, lines, or times.
     except Exception as e:
         logger.error(f"❌ RETRY ERROR: {e}")
         return None
+
+# ===========================================
+# STREAMING CHAT ENDPOINT (ChatGPT-style)
+# ===========================================
+
+@router.post("/stream", summary="Stream chat response (SSE)")
+async def stream_chat(
+    request: StreamChatRequest,
+    db: Session = Depends(get_optional_db)
+):
+    """
+    Stream chat response using Server-Sent Events (SSE).
+    
+    Returns responses token-by-token like ChatGPT/Gemini for better UX.
+    The frontend should use EventSource or fetch with streaming to consume this.
+    
+    Event types:
+    - start: Stream started, contains metadata
+    - token: A chunk of the response text
+    - progress: Pipeline stage progress (optional)
+    - map_data: Map visualization data (if applicable)
+    - complete: Stream complete, contains final metadata
+    - error: An error occurred
+    
+    Example frontend usage:
+    ```javascript
+    const eventSource = new EventSource('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Hello', session_id: '123' })
+    });
+    
+    eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.event === 'token') {
+            appendToChat(data.data.text);
+        }
+    };
+    ```
+    """
+    import json
+    
+    async def generate_stream():
+        """Generator function for SSE stream"""
+        start_time = time.time()
+        full_response = ""
+        map_data = None
+        route_data = None
+        
+        try:
+            # Send start event
+            yield f"data: {json.dumps({'event': 'start', 'data': {'message': 'Starting...', 'session_id': request.session_id}})}\n\n"
+            
+            # Get Pure LLM Core
+            pure_llm_core = startup_manager.get_pure_llm_core()
+            if not pure_llm_core:
+                yield f"data: {json.dumps({'event': 'error', 'data': {'message': 'AI service unavailable'}})}\n\n"
+                return
+            
+            # Detect language
+            effective_language = request.language or 'en'
+            try:
+                from services.advanced_language_detection import get_language_detector
+                detector = get_language_detector()
+                detected = detector.detect_with_confidence(request.message)
+                if detected['confidence'] > 0.7:
+                    effective_language = detected['language']
+                    logger.info(f"🌍 Stream: Detected language: {effective_language}")
+            except Exception as e:
+                logger.warning(f"Language detection failed: {e}")
+            
+            # Load conversation history
+            conversation_history = []
+            if request.session_id and request.include_context:
+                try:
+                    from services.redis_conversation_service import get_redis_conversation_service
+                    redis_service = get_redis_conversation_service()
+                    conversation_history = redis_service.get_conversation_history(
+                        request.session_id, 
+                        max_turns=5
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to load conversation history: {e}")
+            
+            # Send progress event
+            yield f"data: {json.dumps({'event': 'progress', 'data': {'stage': 'processing', 'message': 'Analyzing your query...'}})}\n\n"
+            
+            # Use streaming mode
+            async for chunk in pure_llm_core.process_query_stream(
+                query=request.message,
+                user_location=request.user_location,
+                session_id=request.session_id,
+                language=effective_language,
+                enable_conversation=request.include_context
+            ):
+                chunk_type = chunk.get('type')
+                
+                if chunk_type == 'progress':
+                    # Send progress updates
+                    yield f"data: {json.dumps({'event': 'progress', 'data': {'stage': chunk.get('stage'), 'message': chunk.get('message')}})}\n\n"
+                
+                elif chunk_type == 'token':
+                    # Send token chunk - this is the main streaming content
+                    token_text = chunk.get('data', '')
+                    full_response += token_text
+                    yield f"data: {json.dumps({'event': 'token', 'data': {'text': token_text, 'cached': chunk.get('cached', False)}})}\n\n"
+                
+                elif chunk_type == 'signals':
+                    # Send detected signals
+                    if request.stream_metadata:
+                        yield f"data: {json.dumps({'event': 'signals', 'data': {'signals': chunk.get('active', []), 'confidence': chunk.get('confidence', {})}})}\n\n"
+                
+                elif chunk_type == 'context':
+                    # Send context info
+                    if request.stream_metadata:
+                        yield f"data: {json.dumps({'event': 'context', 'data': {'database_size': chunk.get('database_size', 0), 'rag_size': chunk.get('rag_size', 0)}})}\n\n"
+                
+                elif chunk_type == 'complete':
+                    # Extract final data
+                    result_data = chunk.get('data', {})
+                    map_data = result_data.get('map_data')
+                    
+                    # Check for route data
+                    if map_data and isinstance(map_data, dict):
+                        if 'route_data' in map_data:
+                            route_data = map_data['route_data']
+                
+                elif chunk_type == 'error':
+                    yield f"data: {json.dumps({'event': 'error', 'data': {'message': chunk.get('message', 'Unknown error')}})}\n\n"
+            
+            # Send map data if available (separate event for frontend to handle)
+            if map_data:
+                yield f"data: {json.dumps({'event': 'map_data', 'data': map_data})}\n\n"
+            
+            if route_data:
+                yield f"data: {json.dumps({'event': 'route_data', 'data': route_data})}\n\n"
+            
+            # Send completion event
+            processing_time = time.time() - start_time
+            yield f"data: {json.dumps({'event': 'complete', 'data': {'processing_time_ms': int(processing_time * 1000), 'total_length': len(full_response), 'session_id': request.session_id}})}\n\n"
+            
+            # Store interaction for analytics
+            try:
+                if db and full_response:
+                    log_chat_interaction(
+                        db=db,
+                        session_id=request.session_id or 'stream',
+                        user_message=request.message,
+                        bot_response=full_response,
+                        response_time=processing_time,
+                        intent='streaming',
+                        confidence=0.9
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to log streaming interaction: {e}")
+            
+        except Exception as e:
+            logger.error(f"Streaming error: {e}", exc_info=True)
+            yield f"data: {json.dumps({'event': 'error', 'data': {'message': str(e)}})}\n\n"
+    
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
+
+
+@router.post("/stream/simple", summary="Simple streaming chat (text only)")
+async def stream_chat_simple(
+    request: StreamChatRequest
+):
+    """
+    Simplified streaming endpoint that only streams text tokens.
+    
+    This is easier to consume from frontends that don't need full metadata.
+    Just concatenate all received chunks to build the response.
+    """
+    import json
+    
+    async def generate_simple_stream():
+        """Simple generator that only yields text chunks"""
+        try:
+            pure_llm_core = startup_manager.get_pure_llm_core()
+            if not pure_llm_core:
+                yield "Sorry, the AI service is currently unavailable."
+                return
+            
+            # Detect language
+            effective_language = request.language or 'en'
+            try:
+                from services.advanced_language_detection import get_language_detector
+                detector = get_language_detector()
+                detected = detector.detect_with_confidence(request.message)
+                if detected['confidence'] > 0.7:
+                    effective_language = detected['language']
+            except:
+                pass
+            
+            # Stream tokens only
+            async for chunk in pure_llm_core.process_query_stream(
+                query=request.message,
+                user_location=request.user_location,
+                session_id=request.session_id,
+                language=effective_language,
+                enable_conversation=request.include_context
+            ):
+                if chunk.get('type') == 'token':
+                    yield chunk.get('data', '')
+                    
+        except Exception as e:
+            logger.error(f"Simple streaming error: {e}")
+            yield f"\n\nSorry, an error occurred: {str(e)}"
+    
+    return StreamingResponse(
+        generate_simple_stream(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )

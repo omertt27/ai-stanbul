@@ -267,13 +267,76 @@ class AdvancedNLPService:
     
     def _detect_language(self, text: str) -> Tuple[str, float]:
         """Detect the language of the text."""
-        if not text or len(text.strip()) < 3:
+        if not text or len(text.strip()) < 2:
             return "en", 0.5
         
-        # Quick check for Turkish characters
+        text_lower = text.lower().strip()
+        
+        # Quick check for Turkish characters (ş, ğ, ü, ö, ç, ı)
         turkish_chars = set("şğüöçıŞĞÜÖÇİ")
         if any(c in text for c in turkish_chars):
             return "tr", 0.95
+        
+        # EXACT MATCH for short Turkish words (very high confidence)
+        # These are standalone words that are DEFINITELY Turkish
+        turkish_exact_words = {
+            # Greetings - exact match only
+            'merhaba', 'selam', 'nasilsin', 'naber', 'nbr',
+            'iyiyim', 'sagol', 'eyvallah', 'tamam', 'tmm',
+            'evet', 'hayir', 'belki', 'tabii', 'tabi',
+            # Common short questions
+            'nerede', 'nasil', 'neden', 'niye', 'nerelere',
+            # Common short phrases (as typed without special chars)
+            'gunayin', 'gunaydin', 'iyi gunler', 'iyi aksamlar',
+            'hosgeldin', 'hosgeldiniz', 'hosca kal', 'gorusuruz',
+            'tesekkurler', 'tesekkur ederim', 'rica ederim',
+            'sen nasilsin', 'sen nasil', 'iyi misin',
+        }
+        
+        # Check exact match first (for short Turkish queries)
+        if text_lower in turkish_exact_words:
+            logger.info(f"🇹🇷 Turkish detected (exact match): '{text_lower}'")
+            return "tr", 0.98
+        
+        # Quick check for common Turkish words WITHOUT special characters
+        # These are frequently used and don't require special Turkish chars
+        turkish_words = [
+            # Greetings and small talk (with variations)
+            'merhaba', 'selam', 'selamlar', 'nasilsin', 'nasılsın', 'naber', 'neredesin',
+            'iyiyim', 'tesekkur', 'teşekkür', 'sagol', 'sağol', 'eyvallah', 'tamam',
+            'evet', 'hayir', 'hayır', 'belki', 'tabii', 'tabi',
+            'gunaydin', 'günaydın', 'iyi gunler', 'iyi aksamlar',
+            'hosgeldin', 'hoşgeldin', 'hosgeldiniz', 'hoşgeldiniz',
+            'gorusuruz', 'görüşürüz', 'hosca kal', 'hoşça kal',
+            # Questions
+            'nerede', 'nasil', 'nasıl', 'ne zaman', 'neden', 'niye', 'kim', 'hangi',
+            'kadar', 'kac', 'kaç', 'nerelerde', 'nereden', 'nereye',
+            # Common verbs/phrases
+            'istiyorum', 'gitmek', 'yemek', 'icmek', 'içmek', 'bulmak', 'bakmak',
+            'var mi', 'var mı', 'yok mu', 'lazim', 'lazım', 'gerek',
+            'gidebilir miyim', 'nasil gidebilirim', 'nasıl giderim',
+            # Locations/travel
+            'yakinda', 'yakında', 'burada', 'orada', 'nereye', 'nereden',
+            'restoran', 'otel', 'havaalani', 'havaalanı', 'otobus', 'otobüs', 'taksi',
+            'mekan', 'yer', 'yerler', 'mekanlar',
+            # Food
+            'kebap', 'kebab', 'lahmacun', 'pide', 'balik', 'balık', 'et', 'tavuk',
+            'yiyecek', 'icecek', 'içecek', 'lokanta', 'kafe', 'kahve',
+            # Time
+            'bugun', 'bugün', 'yarin', 'yarın', 'simdi', 'şimdi', 'sonra', 'once', 'önce',
+            # Numbers
+            'bir', 'iki', 'uc', 'üç', 'dort', 'dört', 'bes', 'beş',
+            # Common words
+            'bana', 'sana', 'beni', 'seni', 'benim', 'senin',
+            'en iyi', 'en yakin', 'en yakın', 'en guzel', 'en güzel',
+            'lutfen', 'lütfen', 'rica', 'ederim',
+        ]
+        
+        # Check if any Turkish word is in the text
+        for word in turkish_words:
+            if word in text_lower or text_lower == word:
+                logger.info(f"🇹🇷 Turkish detected (word match: '{word}'): '{text_lower}'")
+                return "tr", 0.90
         
         # Quick check for Arabic
         if re.search(r'[\u0600-\u06FF]', text):
@@ -283,11 +346,38 @@ class AdvancedNLPService:
         if re.search(r'[\u0400-\u04FF]', text):
             return "ru", 0.95
         
+        # Quick check for German common words
+        german_words = ['wie', 'geht', 'danke', 'bitte', 'guten', 'morgen', 'abend', 
+                        'ich', 'du', 'sie', 'wir', 'wo', 'was', 'wann', 'warum']
+        for word in german_words:
+            if word in text_lower.split():
+                return "de", 0.85
+        
+        # Check for clear English sentence structure BEFORE langdetect
+        # This prevents false Turkish detection for queries like "where is taksim"
+        english_patterns = [
+            r'^(where|what|how|when|who|which|can|could|would|should|is|are|do|does|did|will|have|has)\b',
+            r'\b(the|a|an|is|are|to|from|in|on|at|for|with|about|near|nearby)\b',
+            r'\b(please|help|tell|show|find|get|give|take|make|want|need|like)\b',
+            r'\b(me|my|i|you|your|we|our|they|their|it|this|that)\b',
+        ]
+        
+        english_match_count = sum(1 for pattern in english_patterns if re.search(pattern, text_lower))
+        if english_match_count >= 2:
+            # Strong English sentence structure detected
+            logger.info(f"🇬🇧 English detected (sentence structure): '{text_lower}'")
+            return "en", 0.85
+        
         if LANGDETECT_AVAILABLE:
             try:
                 langs = detect_langs(text)
                 if langs:
                     top_lang = langs[0]
+                    # Don't trust langdetect for Turkish if it's mixed with English words
+                    # (e.g., "where is taksim" might be detected as Turkish due to "taksim")
+                    if top_lang.lang == 'tr' and english_match_count >= 1:
+                        logger.info(f"🇬🇧 Overriding langdetect (tr -> en) due to English structure: '{text_lower}'")
+                        return "en", 0.75
                     return top_lang.lang, top_lang.prob
             except Exception as e:
                 logger.debug(f"Language detection failed: {e}")
