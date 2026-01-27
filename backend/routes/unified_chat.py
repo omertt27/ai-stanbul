@@ -38,6 +38,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     user_id: Optional[str] = None
     gps_location: Optional[dict] = None
+    language: Optional[str] = "en"  # Response language (en/tr/etc.)
 
 
 @router.post("/chat")
@@ -62,15 +63,16 @@ async def unified_chat(request: ChatRequest):
     from backend.api.chat import pure_llm_chat, ChatRequest as PureLLMRequest
     
     # Convert request to pure-llm format
+    # Pass the language from the request (frontend sends this)
     pure_llm_request = PureLLMRequest(
         message=request.message,
         session_id=request.session_id,
         user_id=request.user_id,
         user_location=request.gps_location,
-        language='en'  # TODO: detect language
+        language=request.language or 'en'  # Use language from request, default to 'en'
     )
     
-    logger.info(f"🔀 Routing /api/chat to /api/v1/chat/pure-llm for query: {request.message[:50]}...")
+    logger.info(f"🔀 Routing /api/chat to /api/v1/chat/pure-llm for query: {request.message[:50]}... (language: {request.language})")
     
     # Call the pure-llm endpoint directly
     return await pure_llm_chat(pure_llm_request)

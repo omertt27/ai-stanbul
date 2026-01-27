@@ -23,9 +23,16 @@ Date: December 2025
 """
 
 import logging
+import sys
+import os
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
+
+# Add parent directory to path for istanbul_ai imports
+_parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +163,8 @@ class UnifiedIntentRouter:
         query: str,
         user_location: Optional[Dict[str, float]] = None,
         session_id: str = 'default',
-        user_context: Optional[Dict[str, Any]] = None
+        user_context: Optional[Dict[str, Any]] = None,
+        language: str = None  # Explicit language from request (takes priority)
     ) -> Optional[HandlerResult]:
         """
         Route query to appropriate handler.
@@ -166,12 +174,21 @@ class UnifiedIntentRouter:
             user_location: Optional GPS coordinates {lat, lon}
             session_id: Session identifier
             user_context: Additional context (preferences, history, etc.)
+            language: Explicit language from request (takes priority over auto-detection)
         
         Returns:
             HandlerResult if handled, None if should fall through to LLM
         """
-        # Detect intent
-        intent_result = self.detect_intent(query)
+        # Detect intent - pass explicit language if provided
+        # If language is explicitly set by user (e.g., "en"), don't override it with auto-detection
+        intent_result = self.detect_intent(query, language)
+        
+        # CRITICAL FIX: If explicit language was provided, override the detected language
+        # This ensures the user's language preference is respected even if the query
+        # contains Turkish place names like "Beşiktaş" or "Kadıköy"
+        if language:
+            intent_result.language = language
+            logger.info(f"🌍 Using explicit language from request: {language}")
         
         logger.info(
             f"🎯 Intent detected: {intent_result.intent.value} "
@@ -275,35 +292,11 @@ class UnifiedIntentRouter:
         session_id: str,
         intent: IntentResult
     ) -> Optional[HandlerResult]:
-        """Handle hidden gems queries"""
-        try:
-            from services.hidden_gems_gps_integration import get_hidden_gems_gps_integration
-            
-            handler = get_hidden_gems_gps_integration(self.db)
-            result = handler.handle_hidden_gem_chat_request(
-                message=query,
-                user_location=user_location,
-                session_id=session_id
-            )
-            
-            if result:
-                return HandlerResult(
-                    success=not result.get('error'),
-                    response=result.get('message', ''),
-                    intent='hidden_gems',
-                    data={'gems': result.get('gems', [])},
-                    suggestions=result.get('suggestions', [
-                        "Show hidden restaurants",
-                        "Navigate to first gem",
-                        "Show more hidden gems"
-                    ]),
-                    map_data=result.get('map_data'),
-                    navigation_data=result.get('navigation_data'),
-                    error=result.get('error')
-                )
-        except Exception as e:
-            logger.warning(f"Hidden gems handler error: {e}")
-        
+        """Handle hidden gems queries - falls through to LLM/RAG for natural response generation"""
+        # Let the query fall through to LLM/RAG pipeline
+        # The context builder will gather hidden gems data and provide it to the LLM
+        # This produces more natural, language-appropriate responses than direct handler output
+        logger.info(f"🔮 Hidden gems query detected - falling through to LLM/RAG for natural response")
         return None
     
     async def _handle_restaurant(
@@ -422,34 +415,11 @@ class UnifiedIntentRouter:
         query: str,
         intent: IntentResult
     ) -> Optional[HandlerResult]:
-        """Handle attractions/places queries"""
-        try:
-            # Try loading attractions data
-            from data.attractions_database import get_attractions
-            
-            attractions = get_attractions(
-                neighborhood=intent.neighborhood,
-                query=query
-            )
-            
-            if attractions:
-                response = self._format_attractions_response(attractions, intent.language)
-                return HandlerResult(
-                    success=True,
-                    response=response,
-                    intent='attractions',
-                    data={'attractions': attractions},
-                    suggestions=[
-                        f"How do I get to {attractions[0]['name']}?" if attractions else "Show popular attractions",
-                        "Show museums",
-                        "What are the opening hours?"
-                    ]
-                )
-        except ImportError:
-            logger.warning("Attractions database not available")
-        except Exception as e:
-            logger.warning(f"Attractions handler error: {e}")
-        
+        """Handle attractions/places queries - falls through to LLM/RAG for natural response generation"""
+        # Let the query fall through to LLM/RAG pipeline
+        # The context builder will gather attractions data and provide it to the LLM
+        # This produces more natural, language-appropriate responses than direct handler output
+        logger.info(f"🏛️ Attractions query detected - falling through to LLM/RAG for natural response")
         return None
     
     async def _handle_weather(
@@ -458,31 +428,11 @@ class UnifiedIntentRouter:
         user_location: Optional[Dict[str, float]],
         intent: IntentResult
     ) -> Optional[HandlerResult]:
-        """Handle weather queries"""
-        try:
-            from services.weather_service import get_weather_service
-            
-            service = get_weather_service()
-            weather = await service.get_current_weather()
-            
-            if weather:
-                response = self._format_weather_response(weather, intent.language)
-                return HandlerResult(
-                    success=True,
-                    response=response,
-                    intent='weather',
-                    data=weather,
-                    suggestions=[
-                        "What should I wear today?",
-                        "Best indoor activities?",
-                        "Weather forecast for tomorrow"
-                    ]
-                )
-        except ImportError:
-            logger.warning("Weather service not available")
-        except Exception as e:
-            logger.warning(f"Weather handler error: {e}")
-        
+        """Handle weather queries - falls through to LLM/RAG for natural response generation"""
+        # Let the query fall through to LLM/RAG pipeline
+        # The context builder will gather weather data and provide it to the LLM
+        # This produces more natural, language-appropriate responses than direct handler output
+        logger.info(f"🌤️ Weather query detected - falling through to LLM/RAG for natural response")
         return None
     
     async def _handle_events(
@@ -490,33 +440,11 @@ class UnifiedIntentRouter:
         query: str,
         intent: IntentResult
     ) -> Optional[HandlerResult]:
-        """Handle events queries"""
-        try:
-            from services.events_service import get_events_service
-            
-            service = get_events_service()
-            events = await service.get_upcoming_events(
-                neighborhood=intent.neighborhood
-            )
-            
-            if events:
-                response = self._format_events_response(events, intent.language)
-                return HandlerResult(
-                    success=True,
-                    response=response,
-                    intent='events',
-                    data={'events': events},
-                    suggestions=[
-                        "Show concerts this weekend",
-                        "Family-friendly events?",
-                        "Free events today"
-                    ]
-                )
-        except ImportError:
-            logger.warning("Events service not available")
-        except Exception as e:
-            logger.warning(f"Events handler error: {e}")
-        
+        """Handle events queries - falls through to LLM/RAG for natural response generation"""
+        # Let the query fall through to LLM/RAG pipeline
+        # The context builder will gather events data and provide it to the LLM
+        # This produces more natural, language-appropriate responses than direct handler output
+        logger.info(f"🎭 Events query detected - falling through to LLM/RAG for natural response")
         return None
     
     async def _handle_neighborhood(
@@ -554,10 +482,12 @@ class UnifiedIntentRouter:
                     ]
                 )
         except ImportError:
-            # Fallback to basic info
-            return self._get_basic_neighborhood_info(neighborhood, intent.language)
+            # Neighborhood guide service not available - fall through to LLM/RAG
+            # The LLM with RAG context will provide detailed, language-appropriate responses
+            logger.info(f"ℹ️ Neighborhood guide service unavailable, falling back to LLM/RAG for {neighborhood}")
+            return None
         except Exception as e:
-            logger.warning(f"Neighborhood handler error: {e}")
+            logger.warning(f"Neighborhood handler error: {e}, falling back to LLM/RAG")
         
         return None
     

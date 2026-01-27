@@ -617,39 +617,37 @@ async def pure_llm_chat(
     if resolved_context:
         user_context['resolved_context'] = resolved_context.get('implicit_context', {})
     
-    # === AUTO-DETECT LANGUAGE FROM QUERY (Using LLM's Detection) ===
-    # Use the multilingual intent system's language detection
-    # This is more accurate than character-based detection
-    detected_language = request.language or "en"
-    
-    try:
-        from services.multilingual_intent_keywords import detect_intent_multilingual
-        
-        # Detect intent and language together (fast, ~10ms)
-        # Returns: (intent, confidence, matched_keywords, detected_language)
-        intent_result, confidence, matched_keywords, lang_detected = detect_intent_multilingual(request.message)
-        
-        if lang_detected and lang_detected != "en":
-            detected_language = lang_detected
-            logger.info(f"🌍 LLM detected language: {detected_language} from query")
-        
-    except Exception as e:
-        logger.warning(f"Language detection failed, using default: {e}")
+    # === LANGUAGE DETECTION MOVED - See enhanced section below ===
+    # The explicit request.language should take priority
+    # Only auto-detect if no explicit language is provided
     
     # === ENHANCED LANGUAGE DETECTION ===
-    # Priority: 1) Current message detection, 2) Session history, 3) Request param, 4) Default 'en'
-    input_language = detect_input_language(request.message)
+    # FIXED PRIORITY: 1) Explicit request.language, 2) Session history, 3) Auto-detect, 4) Default 'en'
+    # The user's explicit language choice MUST take priority over auto-detection
+    # Auto-detection was incorrectly overriding English requests when query contained Turkish place names
     
-    if input_language != 'en':
-        detected_language = input_language
-        logger.info(f"🌍 Input language detected: {detected_language}")
+    # Start with the explicitly requested language (this is what the user/frontend wants)
+    if request.language and request.language != 'en':
+        # User explicitly requested a non-English language - honor it
+        effective_language = request.language
+        logger.info(f"🌍 Using explicit request language: {effective_language}")
+    elif request.language == 'en':
+        # User explicitly requested English - DO NOT override with auto-detection!
+        effective_language = 'en'
+        logger.info(f"🌍 User explicitly requested English - ignoring auto-detection")
     elif session_language and session_language != 'en':
         # Use session language if current message doesn't have clear indicators
-        detected_language = session_language
-        logger.info(f"🌍 Using session language: {detected_language}")
-    
-    # Update request language for downstream use
-    effective_language = detected_language
+        effective_language = session_language
+        logger.info(f"🌍 Using session language: {effective_language}")
+    else:
+        # Only use auto-detection if no explicit language was provided
+        input_language = detect_input_language(request.message)
+        if input_language != 'en':
+            effective_language = input_language
+            logger.info(f"🌍 Input language detected: {effective_language}")
+        else:
+            effective_language = 'en'
+            logger.info(f"🌍 Using default language: en")
     user_context['language'] = effective_language
     user_context['conversation_history'] = conversation_history_for_llm  # Add history to context
     
@@ -668,7 +666,8 @@ async def pure_llm_chat(
             query=request.message,
             user_location=request.user_location,
             session_id=session_id,
-            user_context=user_context
+            user_context=user_context,
+            language=effective_language  # Pass explicit language from request
         )
         
         if router_result and router_result.success:

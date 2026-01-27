@@ -1291,7 +1291,7 @@ Fixed version (max 50 chars):"""
         session_id: Optional[str] = None,
         user_location: Optional[Dict[str, float]] = None,
         language: str = "en",
-        max_tokens: int = 250,
+        max_tokens: int = 768,
         enable_conversation: bool = True,
         conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> Dict[str, Any]:
@@ -2106,7 +2106,7 @@ Fixed version (max 50 chars):"""
         session_id: Optional[str] = None,
         user_location: Optional[Dict[str, float]] = None,
         language: str = "en",
-        max_tokens: int = 250,
+        max_tokens: int = 768,
         enable_conversation: bool = True
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """

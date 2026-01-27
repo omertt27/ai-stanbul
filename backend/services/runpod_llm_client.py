@@ -410,10 +410,48 @@ class RunPodLLMClient:
         Prompt building is handled upstream by PromptBuilder (prompts.py).
         """
         
+        # Split prompt into system instruction and user query for better language control
+        # Look for the user query section (starts with "User:" or "---\n\nUser:")
+        messages = []
+        
+        # Try to split the prompt at the user query boundary
+        user_query_markers = ["\n---\n\nUser:", "\nUser:"]
+        split_idx = -1
+        split_marker = None
+        
+        for marker in user_query_markers:
+            idx = prompt.rfind(marker)  # Find the last occurrence
+            if idx > split_idx:
+                split_idx = idx
+                split_marker = marker
+        
+        if split_idx > 0:
+            # Split into system (instructions + context) and user (query)
+            system_content = prompt[:split_idx].strip()
+            user_content = prompt[split_idx + len(split_marker):].strip()
+            
+            # Extract language instruction to reinforce in system message
+            # Add a strong language enforcement header
+            lang_instruction = ""
+            if "respond in English" in prompt.lower() or "respond in **english**" in prompt.lower():
+                lang_instruction = "\n\n🚨 MANDATORY: You MUST respond ONLY in English. Do NOT use Turkish or any other language, even for Turkish place names."
+            elif "respond in Turkish" in prompt.lower() or "respond in **turkish**" in prompt.lower():
+                lang_instruction = "\n\n🚨 MANDATORY: You MUST respond ONLY in Turkish (Türkçe)."
+            
+            messages = [
+                {"role": "system", "content": system_content + lang_instruction},
+                {"role": "user", "content": user_content}
+            ]
+            logger.info(f"[{req_id}] 📝 Split prompt: system={len(system_content)} chars, user={len(user_content)} chars")
+        else:
+            # Fallback: put everything in user message (old behavior)
+            messages = [{"role": "user", "content": prompt}]
+            logger.info(f"[{req_id}] 📝 Using full prompt as user message: {len(prompt)} chars")
+        
         # Use chat/completions format for vLLM (OpenAI-compatible)
         payload = {
             "model": self.model_name,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": messages,
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": temperature,
             "top_p": top_p,

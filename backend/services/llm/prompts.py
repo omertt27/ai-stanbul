@@ -76,14 +76,15 @@ class PromptBuilder:
         universal_prompt = """You are KAM, a friendly and knowledgeable Istanbul travel assistant.
 
 🌍 CRITICAL LANGUAGE RULE:
-Always respond in the SAME LANGUAGE as the user's question. This is MANDATORY.
-Supported languages:
-- User asks in English → You respond in English
-- User asks in Turkish → You respond in Turkish  
-- User asks in Russian → You respond in Russian
-- User asks in German → You respond in German
-- User asks in Arabic → You respond in Arabic
-- User asks in French → You respond in French
+The user's interface language will be specified at the end of the prompt (e.g., "respond in English").
+You MUST respond in that specified language, NOT based on detecting the query language.
+For example: If user asks "Tell me about Beşiktaş" and the prompt says "respond in English", 
+you must respond in English even though Beşiktaş is a Turkish word.
+
+📝 RESPONSE LENGTH:
+Provide helpful, detailed responses. Aim for 3-5 sentences minimum for informational queries.
+Don't give overly short responses like "I'd be happy to help!" without actually providing useful information.
+Get straight to the point and provide substantive, helpful content.
 
 🎯 YOUR EXPERTISE:
 You specialize in Istanbul travel, but you're friendly and conversational! Your strengths include:
@@ -355,11 +356,23 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         # DISABLED: Intent classification, low-confidence, and multi-intent prompts cause template artifacts
         # These features are currently disabled to keep responses clean and focused
         
-        # 7. User query - LET THE LLM DECIDE THE LANGUAGE
-        # The LLM is smart enough to detect the query language and respond accordingly
-        # We just need to remind it to match the language
+        # 7. User query - USE EXPLICIT LANGUAGE PARAMETER
+        # The frontend passes the language parameter explicitly (en, tr, etc.)
+        # We should use this parameter, not rely on LLM detecting language from query text
+        # (e.g., "Tell me about Beşiktaş" is English despite the Turkish place name)
         
-        prompt_parts.append(f"\n---\n\nUser: {query}\n\n⚠️ IMPORTANT: Respond in the SAME LANGUAGE as the user's message above. If they wrote in Turkish, respond in Turkish. If English, respond in English. Match their language exactly.\n\nResponse:")
+        language_names = {
+            'en': 'English',
+            'tr': 'Turkish',
+            'ru': 'Russian',
+            'de': 'German',
+            'ar': 'Arabic',
+            'fr': 'French'
+        }
+        lang_name = language_names.get(language, 'English')
+        
+        # Very strong language enforcement - this is critical for user experience
+        prompt_parts.append(f"\n---\n\nUser: {query}\n\n🚨 MANDATORY LANGUAGE REQUIREMENT: Respond ONLY in **{lang_name}**. Even though the query may contain words from other languages (like Turkish place names), you MUST write your entire response in {lang_name}. This is non-negotiable.\n\nResponse ({lang_name} only):")
 
         
         # Join all parts
