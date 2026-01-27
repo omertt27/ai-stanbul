@@ -2680,9 +2680,27 @@ Fixed version (max 50 chars):"""
         if not response or len(response.strip()) < 10:
             return False, "Response too short"
         
-        # Check for generic error messages
-        if "error" in response.lower() or "sorry" in response.lower():
-            return False, "Generic error response"
+        # Check for actual LLM error patterns (not conversational "sorry")
+        # Only fail on specific error patterns that indicate LLM failure
+        response_lower = response.lower()
+        
+        # Specific error patterns that indicate actual failures
+        error_patterns = [
+            "i cannot process",
+            "i am unable to",
+            "internal error",
+            "service unavailable",
+            "technical difficulties",
+            "something went wrong",
+            "failed to generate",
+            "error occurred",
+            "unable to complete your request",
+            "i apologize, but i'm experiencing technical difficulties"
+        ]
+        
+        for pattern in error_patterns:
+            if pattern in response_lower:
+                return False, f"Error pattern detected: {pattern}"
         
         # Response is valid
         return True, None

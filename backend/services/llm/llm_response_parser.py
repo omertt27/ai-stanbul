@@ -544,30 +544,10 @@ def clean_training_data_leakage(text: str, prompt: Optional[str] = None) -> str:
                 logger.error(f"🚨 Response starts with mid-prompt fragment: '{fragment[:40]}...'")
                 return ""  # Trigger fallback
         
-        # NEW: Detect responses that start with lowercase (likely mid-sentence continuation)
-        # Valid responses should start with capital letter, emoji, or number
-        if stripped_text and len(stripped_text) > 3:
-            first_char = stripped_text[0]
-            # Check if it starts with lowercase letter (a-z) but not emojis or special chars
-            if first_char.islower() and first_char.isascii():
-                # Additional check: if first few words look like instruction fragments
-                first_words = stripped_text[:80].lower()
-                instruction_indicators = [
-                    "ues ", "ues,", "ues.", "or ", "and ", "the ", "to ", "a ",
-                    "in ", "with ", "as ", "at ", "on ", "for ", "from ", "by ",
-                    "should ", "must ", "can ", "will ", "may ", "if ", "when ",
-                    "response", "answer", "question", "user", "context", "information",
-                    "provide", "include", "avoid", "ensure", "follow", "guidelines",
-                    # NEW: Additional indicators
-                    "weather", "temperature", "forecast", "humidity", "wind",
-                    "example", "sample", "template", "format", "output",
-                    "instruction", "prompt", "system", "assistant", "model",
-                    "training", "data", "leakage", "artifact",
-                ]
-                if any(first_words.startswith(ind) for ind in instruction_indicators) or \
-                   any(ind in first_words[:30] for ind in ["unnecessary", "instruction", "guideline", "response", "training", "example"]):
-                    logger.error(f"🚨 Response starts with lowercase + instruction indicators: '{stripped_text[:50]}...'")
-                    return ""  # Trigger fallback
+        # NOTE: REMOVED overly aggressive lowercase detection check
+        # The previous check was rejecting valid conversational responses 
+        # that start with lowercase (e.g., "i'm doing great!")
+        # Valid responses can start with lowercase letters in casual conversation
     
     # First, check if the response starts with a training format marker
     start_markers = [

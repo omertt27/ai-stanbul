@@ -1683,9 +1683,8 @@ function Chatbot({ userLocation: propUserLocation }) {
         console.log('🌍 Language:', i18n.language);
         
         // CRITICAL: Use sanitized input for API call
-        const restaurantData = await fetchRestaurantRecommendations(sanitizedInput, {
-          language: i18n.language
-        });
+        // Note: fetchRestaurantRecommendations takes (userInput, limit) - limit is a number
+        const restaurantData = await fetchRestaurantRecommendations(sanitizedInput, 6);
         console.log('Restaurant API response:', restaurantData);
         const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
         console.log('Formatted response:', formattedResponse);
@@ -1712,9 +1711,8 @@ function Chatbot({ userLocation: propUserLocation }) {
         console.log('🌍 Language:', i18n.language);
         
         // CRITICAL: Use sanitized input for API call
-        const placesData = await fetchPlacesRecommendations(sanitizedInput, {
-          language: i18n.language
-        });
+        // Note: fetchPlacesRecommendations takes (userInput, limit) - limit is a number
+        const placesData = await fetchPlacesRecommendations(sanitizedInput, 6);
         console.log('Places API response:', placesData);
         const formattedResponse = formatPlacesRecommendations(placesData.places);
         console.log('Formatted response:', formattedResponse);

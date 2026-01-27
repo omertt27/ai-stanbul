@@ -1,10 +1,12 @@
 .language-switcher {
   position: relative;
   display: inline-block;
+  z-index: 999999;
 }
 
 .language-dropdown {
   position: relative;
+  z-index: 999999;
 }
 
 .language-button {
