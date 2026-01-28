@@ -39,8 +39,9 @@ steps:
       - '--vpc-egress'
       - 'all-traffic'
       # Environment Variables - COMPLETE LIST (using Unix socket for Cloud SQL)
+      # REDIS: Using correct credentials (ai-istanbul-user:TestPassword123!) from REDIS_CONNECTION_SUCCESS.md
       - '--set-env-vars'
-      - 'DATABASE_URL=postgresql://postgres:Yeniden.1881@/postgres?host=/cloudsql/cryptic-portal-475411-g3:europe-west1:dfsadasdsadsa23123,REDIS_URL=redis://ai-istanbul-cache:AiIstanbul2025%21Redis%23Secure%24@3.126.153.140:6379,ENABLE_REDIS_CACHE=true,REDIS_SOCKET_TIMEOUT=2,REDIS_SOCKET_CONNECT_TIMEOUT=2,ENVIRONMENT=production,LLM_API_URL=https://p9lf44wbmqzs5l-8000.proxy.runpod.net/v1,LLM_MODEL_NAME=meta-llama/Meta-Llama-3.1-8B-Instruct,LLM_TIMEOUT=120,LLM_MAX_TOKENS=768,PYTHONUNBUFFERED=1,TOKENIZERS_PARALLELISM=false'
+      - 'DATABASE_URL=postgresql://postgres:Yeniden.1881@/postgres?host=/cloudsql/cryptic-portal-475411-g3:europe-west1:dfsadasdsadsa23123,REDIS_URL=redis://ai-istanbul-user:TestPassword123%21@3.126.153.140:6379/0,ENABLE_REDIS_CACHE=true,REDIS_SOCKET_TIMEOUT=30,REDIS_SOCKET_CONNECT_TIMEOUT=30,ENVIRONMENT=production,LLM_API_URL=https://p9lf44wbmqzs5l-8000.proxy.runpod.net/v1,LLM_MODEL_NAME=meta-llama/Meta-Llama-3.1-8B-Instruct,LLM_TIMEOUT=120,LLM_MAX_TOKENS=768,PYTHONUNBUFFERED=1,TOKENIZERS_PARALLELISM=false'
       # Resource Configuration
       - '--timeout'
       - '300'

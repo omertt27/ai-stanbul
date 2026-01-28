@@ -283,7 +283,7 @@ def get_conversation_memory(redis_client: Optional[Any] = None) -> ConversationM
         # Try to get Redis from centralized client
         if redis_client is None:
             try:
-                from core.redis_client import get_redis_client
+                from core.startup_guard import get_redis_client
                 redis_client = get_redis_client()
             except Exception as e:
                 logger.warning(f"Could not get centralized Redis client: {e}")

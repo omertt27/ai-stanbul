@@ -1954,8 +1954,9 @@ function Chatbot({ userLocation: propUserLocation }) {
         }
       }
       
-      // Regular (non-streaming) fallback function - MOVED BEFORE STREAMING CODE
-      const fallbackToRegularChat = async () => {
+      // Regular (non-streaming) fallback function
+      // Using function declaration for hoisting (can be called before definition)
+      async function fallbackToRegularChat() {
         console.log('⚡ Using regular chat API (fallback)');
         setIsTyping(true);
         setTypingMessage('KAM is thinking...');

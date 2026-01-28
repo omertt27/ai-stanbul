@@ -176,8 +176,16 @@ async def stream_chat_sse(request: StreamChatRequest):
     # ==========================================
     
     async def generate_stream():
+        # ==========================================
+        # OPTIMIZATION: Send start event IMMEDIATELY
+        # This reduces perceived latency significantly
+        # ==========================================
+        start_time = time.time()
+        yield f"event: start\ndata: {json.dumps({'timestamp': start_time, 'intent': 'processing'})}\n\n"
+        
         try:
-            # Import services
+            # Import services (these are cached singletons, fast)
+
             from services.streaming_llm_service import get_streaming_llm_service
             from services.conversation_history_service import get_conversation_history_service
             from services.advanced_nlp_service import get_nlp_service
@@ -200,10 +208,16 @@ async def stream_chat_sse(request: StreamChatRequest):
             query_lower = request.message.lower()
             
             # Check if this is a transportation query using LLM intent detection
+            # OPTIMIZATION: Add timeout to prevent slow LLM calls from blocking
             from services.llm_intent_detector import detect_query_intent
             
+            is_transportation = False
             try:
-                intent_result = await detect_query_intent(request.message, request.user_location)
+                # Timeout intent detection at 3 seconds to prevent blocking
+                intent_result = await asyncio.wait_for(
+                    detect_query_intent(request.message, request.user_location),
+                    timeout=3.0
+                )
                 logger.info(f"🎯 Streaming LLM Intent: {intent_result.intent.value} (confidence: {intent_result.confidence:.2f})")
                 
                 is_transportation = intent_result.is_transportation and intent_result.confidence >= 0.6
@@ -212,7 +226,12 @@ async def stream_chat_sse(request: StreamChatRequest):
                     logger.info("🚦 Transportation intent detected by LLM")
                 else:
                     logger.info(f"🚦 Non-transportation intent: {intent_result.intent.value}")
-                    
+            except asyncio.TimeoutError:
+                logger.warning("⏱️ LLM Intent detection timed out (3s), using fast keyword detection")
+                # Fast fallback to keyword detection
+                transportation_keywords = ['how do i get', 'how to get', 'route to', 'from', 
+                                           'directions to', 'go to', 'way to', 'metro', 'tram']
+                is_transportation = any(keyword in query_lower for keyword in transportation_keywords)
             except Exception as e:
                 logger.error(f"❌ LLM Intent Detection failed in streaming: {str(e)}, falling back to keyword detection")
                 # Fallback to keyword detection
@@ -448,6 +467,7 @@ async def stream_chat_sse(request: StreamChatRequest):
                                 logger.info(f"✅ Got enriched route_data: {route_data.get('origin')} → {route_data.get('destination')}")
                 else:
                     # Use LLM RAG for general queries (no HuggingFace required!)
+                    # OPTIMIZATION: Timeout at 5 seconds to prevent blocking
                     logger.info("🔍 Using LLM RAG for general query")
                     try:
                         from services.llm_rag_service import get_llm_rag_service
@@ -458,9 +478,19 @@ async def stream_chat_sse(request: StreamChatRequest):
                         try:
                             rag_service = get_llm_rag_service(db=db)
                             if rag_service:
-                                rag_context = rag_service.get_context_for_llm(request.message, top_k=3)
-                                if rag_context:
-                                    logger.info(f"✅ Got LLM RAG context")
+                                # Wrap in timeout to prevent slow queries
+                                async def get_rag_with_timeout():
+                                    return rag_service.get_context_for_llm(request.message, top_k=3)
+                                
+                                try:
+                                    rag_context = await asyncio.wait_for(
+                                        asyncio.get_event_loop().run_in_executor(None, lambda: rag_service.get_context_for_llm(request.message, top_k=3)),
+                                        timeout=5.0
+                                    )
+                                    if rag_context:
+                                        logger.info(f"✅ Got LLM RAG context")
+                                except asyncio.TimeoutError:
+                                    logger.warning("⏱️ LLM RAG context timed out (5s)")
                         finally:
                             db.close()
                     except Exception as e:
@@ -507,12 +537,14 @@ async def stream_chat_sse(request: StreamChatRequest):
                 )
                 context["conversation_history"] = conversation_history
             
-            # Send start event with trip planning flag
-            start_data = {'timestamp': time.time(), 'intent': intent_value}
+            # Send intent event with details (start was already sent immediately)
+            context_build_time = time.time() - start_time
+            intent_data = {'timestamp': time.time(), 'intent': intent_value, 'context_build_time': round(context_build_time, 2)}
             if is_trip_planning:
-                start_data['is_trip_planning'] = True
-                start_data['trip_duration'] = trip_duration
-            yield f"event: start\ndata: {json.dumps(start_data)}\n\n"
+                intent_data['is_trip_planning'] = True
+                intent_data['trip_duration'] = trip_duration
+            yield f"event: intent\ndata: {json.dumps(intent_data)}\n\n"
+            logger.info(f"⚡ Context built in {context_build_time:.2f}s")
             
             # Use NLP-detected language (overrides request.language)
             # This ensures we respond in the same language as the query

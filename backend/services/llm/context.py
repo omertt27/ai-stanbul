@@ -199,6 +199,95 @@ class ContextBuilder:
         if service_manager:
             logger.info("   📦 Service Manager available for enhanced context building")
     
+    # ================================================================
+    # SAFE WRAPPER METHODS FOR PARALLEL EXECUTION
+    # These catch exceptions to prevent one failure from blocking others
+    # ================================================================
+    
+    async def _safe_rag_context(self, query: str, language: str, top_k: int) -> str:
+        """Safe wrapper for RAG context fetch."""
+        try:
+            rag_cb = self.circuit_breakers.get('rag')
+            if rag_cb:
+                return await rag_cb.call(self._get_rag_context_with_retry, query, language, top_k)
+            return await self._get_rag_context_with_retry(query, language, top_k)
+        except CircuitBreakerError:
+            logger.warning("RAG circuit breaker open")
+            return GracefulDegradation.get_fallback_context('rag').get('message', '')
+        except Exception as e:
+            logger.warning(f"RAG context failed: {e}")
+            return ''
+    
+    async def _safe_weather_context(self, query: str) -> str:
+        """Safe wrapper for weather context fetch."""
+        try:
+            weather_cb = self.circuit_breakers.get('weather')
+            if weather_cb:
+                return await weather_cb.call(self._get_weather_context_with_retry, query)
+            return await self._get_weather_context_with_retry(query)
+        except Exception as e:
+            logger.warning(f"Weather context failed: {e}")
+            return ''
+    
+    async def _safe_events_context(self) -> str:
+        """Safe wrapper for events context fetch."""
+        try:
+            events_cb = self.circuit_breakers.get('events')
+            if events_cb:
+                return await events_cb.call(self._get_events_context_with_retry)
+            return await self._get_events_context_with_retry()
+        except Exception as e:
+            logger.warning(f"Events context failed: {e}")
+            return ''
+    
+    async def _safe_hidden_gems_context(self, query: str) -> str:
+        """Safe wrapper for hidden gems context fetch."""
+        try:
+            return await self._get_hidden_gems_context(query)
+        except Exception as e:
+            logger.warning(f"Hidden gems context failed: {e}")
+            return ''
+    
+    async def _safe_airport_context(self, query: str, user_location, language: str) -> str:
+        """Safe wrapper for airport context fetch."""
+        try:
+            return await self._get_airport_context(query, user_location, language)
+        except Exception as e:
+            logger.warning(f"Airport context failed: {e}")
+            return ''
+    
+    async def _safe_daily_life_context(self, query: str, language: str) -> str:
+        """Safe wrapper for daily life context fetch."""
+        try:
+            return await self._get_daily_life_context(query, language)
+        except Exception as e:
+            logger.warning(f"Daily life context failed: {e}")
+            return ''
+    
+    async def _safe_shopping_context(self, query: str, user_location, language: str) -> str:
+        """Safe wrapper for shopping context fetch."""
+        try:
+            return await self._get_shopping_context(query, user_location, language)
+        except Exception as e:
+            logger.warning(f"Shopping context failed: {e}")
+            return ''
+    
+    async def _safe_nightlife_context(self, query: str, user_location, language: str) -> str:
+        """Safe wrapper for nightlife context fetch."""
+        try:
+            return await self._get_nightlife_context(query, user_location, language)
+        except Exception as e:
+            logger.warning(f"Nightlife context failed: {e}")
+            return ''
+    
+    async def _safe_family_context(self, query: str, user_location, language: str) -> str:
+        """Safe wrapper for family context fetch."""
+        try:
+            return await self._get_family_friendly_context(query, user_location, language)
+        except Exception as e:
+            logger.warning(f"Family context failed: {e}")
+            return ''
+    
     async def build_context(
         self,
         query: str,
@@ -211,9 +300,7 @@ class ContextBuilder:
         """
         Build smart context based on detected signals.
         
-        PRIORITY 3 ENHANCEMENT: Adjust context breadth based on signal confidence.
-        Low confidence → Provide MORE context to help LLM infer intent.
-        High confidence → Provide focused context.
+        OPTIMIZED: Runs independent context fetches in PARALLEL for faster response.
         
         Args:
             query: User query (may be rewritten)
@@ -230,6 +317,9 @@ class ContextBuilder:
             - services: Service context dict
             - map_data: Map visualization data (if applicable)
         """
+        import time
+        start_time = time.time()
+        
         context = {
             'database': '',
             'rag': '',
@@ -240,146 +330,117 @@ class ContextBuilder:
         # PRIORITY 3: Adjust context provisioning based on signal confidence
         if signal_confidence < 0.5:
             logger.info(f"⚠️ Low signal confidence ({signal_confidence:.2f}), providing BROADER context")
-            context_strategy = 'broad'  # Fetch more data
-            rag_top_k = 10  # More RAG documents
+            context_strategy = 'broad'
+            rag_top_k = 10
         elif signal_confidence < 0.7:
             logger.info(f"ℹ️ Medium signal confidence ({signal_confidence:.2f}), providing STANDARD context")
             context_strategy = 'standard'
             rag_top_k = 5
         else:
             logger.info(f"✅ High signal confidence ({signal_confidence:.2f}), providing FOCUSED context")
-            context_strategy = 'focused'  # Only relevant data
+            context_strategy = 'focused'
             rag_top_k = 3
         
-        # Build database context (with strategy)
+        # ================================================================
+        # PARALLEL CONTEXT FETCHING - Run independent fetches concurrently
+        # ================================================================
+        tasks = []
+        task_names = []
+        
+        # Database context task
         if self._needs_database_context(signals):
-            context['database'] = await self._build_database_context(
-                query=query,
-                signals=signals,
-                user_location=user_location,
-                language=language,
-                context_strategy=context_strategy,  # Pass strategy
-                original_query=original_query  # Pass original query for transportation
-            )
-            
-            # CRITICAL: For transportation queries, also extract the route_data object
-            # This enables the HYBRID ARCHITECTURE (template facts + LLM reasoning)
-            if signals.get('needs_transportation') and TRANSPORTATION_RAG_AVAILABLE:
-                try:
-                    from services.transportation_rag_system import get_transportation_rag
-                    transport_rag = get_transportation_rag()
-                    if transport_rag.last_route:
-                        # TransitRoute is an object - convert to dict for prompt builder
-                        route_obj = transport_rag.last_route
-                        context['route_data'] = {
-                            'origin': getattr(route_obj, 'origin', None),
-                            'destination': getattr(route_obj, 'destination', None),
-                            'steps': getattr(route_obj, 'steps', []),
-                            'total_time': getattr(route_obj, 'total_time', None),
-                            'total_distance': getattr(route_obj, 'total_distance', None),
-                            'transfers': getattr(route_obj, 'transfers', None),
-                            'lines_used': getattr(route_obj, 'lines_used', [])
-                        }
-                        logger.info(f"✅ Route data extracted: {context['route_data']['origin']} → {context['route_data']['destination']}")
-                except Exception as e:
-                    logger.warning(f"Could not extract route_data: {e}")
+            tasks.append(self._build_database_context(
+                query=query, signals=signals, user_location=user_location,
+                language=language, context_strategy=context_strategy, original_query=original_query
+            ))
+            task_names.append('database')
         
-        # Get RAG context with retry and circuit breaker (with confidence-based top_k)
+        # RAG context task
         if self.rag_service:
-            try:
-                rag_cb = self.circuit_breakers.get('rag')
-                if rag_cb:
-                    context['rag'] = await rag_cb.call(
-                        self._get_rag_context_with_retry, query, language, rag_top_k
-                    )
-                else:
-                    context['rag'] = await self._get_rag_context_with_retry(query, language, rag_top_k)
-            except CircuitBreakerError:
-                logger.warning("RAG circuit breaker is open, using fallback")
-                context['rag'] = GracefulDegradation.get_fallback_context('rag').get('message', '')
-            except Exception as e:
-                logger.warning(f"RAG context failed: {e}")
-                context['rag'] = GracefulDegradation.get_fallback_context('rag').get('message', '')
+            tasks.append(self._safe_rag_context(query, language, rag_top_k))
+            task_names.append('rag')
         
-        # Get weather context with retry and circuit breaker
+        # Weather context task
         if signals.get('needs_weather') and self.weather_service:
-            try:
-                weather_cb = self.circuit_breakers.get('weather')
-                if weather_cb:
-                    context['services']['weather'] = await weather_cb.call(
-                        self._get_weather_context_with_retry, query
-                    )
-                else:
-                    context['services']['weather'] = await self._get_weather_context_with_retry(query)
-                logger.info(f"✅ Weather context added: {context['services']['weather'][:200]}...")
-            except CircuitBreakerError:
-                logger.warning("Weather circuit breaker is open, using fallback")
-                context['services']['weather'] = GracefulDegradation.get_fallback_context('weather')
-            except Exception as e:
-                logger.warning(f"Weather context failed: {e}")
-                context['services']['weather'] = GracefulDegradation.get_fallback_context('weather')
+            tasks.append(self._safe_weather_context(query))
+            task_names.append('weather')
         
-        # Get events context with retry and circuit breaker
+        # Events context task
         if signals.get('needs_events') and self.events_service:
-            try:
-                events_cb = self.circuit_breakers.get('events')
-                if events_cb:
-                    context['services']['events'] = await events_cb.call(
-                        self._get_events_context_with_retry
-                    )
-                else:
-                    context['services']['events'] = await self._get_events_context_with_retry()
-            except CircuitBreakerError:
-                logger.warning("Events circuit breaker is open, using fallback")
-                context['services']['events'] = GracefulDegradation.get_fallback_context('events')
-            except Exception as e:
-                logger.warning(f"Events context failed: {e}")
-                context['services']['events'] = GracefulDegradation.get_fallback_context('events')
+            tasks.append(self._safe_events_context())
+            task_names.append('events')
         
-        # Get hidden gems context
+        # Hidden gems context task
         if signals.get('needs_hidden_gems') and self.hidden_gems_service:
-            try:
-                context['services']['hidden_gems'] = await self._get_hidden_gems_context(query)
-            except Exception as e:
-                logger.warning(f"Hidden gems context failed: {e}")
+            tasks.append(self._safe_hidden_gems_context(query))
+            task_names.append('hidden_gems')
         
-        # Get airport transport context (NEW)
+        # Airport context task
         if signals.get('needs_airport'):
-            try:
-                context['services']['airport'] = await self._get_airport_context(query, user_location, language)
-            except Exception as e:
-                logger.warning(f"Airport context failed: {e}")
+            tasks.append(self._safe_airport_context(query, user_location, language))
+            task_names.append('airport')
         
-        # Get daily life suggestions context (NEW - Phase 2)
+        # Daily life context task
         if signals.get('needs_daily_life'):
-            try:
-                context['services']['daily_life'] = await self._get_daily_life_context(query, language)
-            except Exception as e:
-                logger.warning(f"Daily life context failed: {e}")
+            tasks.append(self._safe_daily_life_context(query, language))
+            task_names.append('daily_life')
         
-        # Get shopping context (NEW)
+        # Shopping context task
         if signals.get('needs_shopping'):
-            try:
-                context['services']['shopping'] = await self._get_shopping_context(query, user_location, language)
-                logger.info(f"✅ Shopping context added")
-            except Exception as e:
-                logger.warning(f"Shopping context failed: {e}")
+            tasks.append(self._safe_shopping_context(query, user_location, language))
+            task_names.append('shopping')
         
-        # Get nightlife context (NEW)
+        # Nightlife context task
         if signals.get('needs_nightlife'):
-            try:
-                context['services']['nightlife'] = await self._get_nightlife_context(query, user_location, language)
-                logger.info(f"✅ Nightlife context added")
-            except Exception as e:
-                logger.warning(f"Nightlife context failed: {e}")
+            tasks.append(self._safe_nightlife_context(query, user_location, language))
+            task_names.append('nightlife')
         
-        # Get family-friendly context (NEW)
+        # Family-friendly context task
         if signals.get('needs_family_friendly'):
+            tasks.append(self._safe_family_context(query, user_location, language))
+            task_names.append('family_friendly')
+        
+        # Execute all tasks in parallel
+        if tasks:
+            logger.info(f"⚡ Running {len(tasks)} context fetches in PARALLEL: {task_names}")
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Process results
+            for name, result in zip(task_names, results):
+                if isinstance(result, Exception):
+                    logger.warning(f"Context fetch '{name}' failed: {result}")
+                    continue
+                
+                if name == 'database':
+                    context['database'] = result or ''
+                elif name == 'rag':
+                    context['rag'] = result or ''
+                elif name in ['weather', 'events', 'hidden_gems', 'airport', 'daily_life', 'shopping', 'nightlife', 'family_friendly']:
+                    if result:
+                        context['services'][name] = result
+        
+        parallel_time = time.time() - start_time
+        logger.info(f"⚡ Parallel context fetch completed in {parallel_time:.2f}s")
+        
+        # Extract route_data for transportation (after database context is built)
+        if signals.get('needs_transportation') and TRANSPORTATION_RAG_AVAILABLE:
             try:
-                context['services']['family_friendly'] = await self._get_family_friendly_context(query, user_location, language)
-                logger.info(f"✅ Family-friendly context added")
+                from services.transportation_rag_system import get_transportation_rag
+                transport_rag = get_transportation_rag()
+                if transport_rag.last_route:
+                    route_obj = transport_rag.last_route
+                    context['route_data'] = {
+                        'origin': getattr(route_obj, 'origin', None),
+                        'destination': getattr(route_obj, 'destination', None),
+                        'steps': getattr(route_obj, 'steps', []),
+                        'total_time': getattr(route_obj, 'total_time', None),
+                        'total_distance': getattr(route_obj, 'total_distance', None),
+                        'transfers': getattr(route_obj, 'transfers', None),
+                        'lines_used': getattr(route_obj, 'lines_used', [])
+                    }
+                    logger.info(f"✅ Route data extracted: {context['route_data']['origin']} → {context['route_data']['destination']}")
             except Exception as e:
-                logger.warning(f"Family-friendly context failed: {e}")
+                logger.warning(f"Could not extract route_data: {e}")
         
         # Generate map visualization with multi-route support
         # Auto-generate maps for location-based queries (neighborhoods, attractions, restaurants)
