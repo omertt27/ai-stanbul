@@ -17,7 +17,7 @@ if parent_dir not in sys.path:
 
 # Import events database functions
 try:
-    from backend.data.events_database import (
+    from data.events_database import (
         load_live_iksv_events,
         get_all_events,
         get_events_by_month,
@@ -28,7 +28,21 @@ try:
     )
     EVENTS_DATABASE_AVAILABLE = True
 except ImportError:
-    EVENTS_DATABASE_AVAILABLE = False
+    try:
+        # Fallback for different import context
+        from backend.data.events_database import (
+            load_live_iksv_events,
+            get_all_events,
+            get_events_by_month,
+            get_current_and_upcoming_events,
+            search_events,
+            get_iksv_events_only,
+            get_live_events_metadata
+        )
+        EVENTS_DATABASE_AVAILABLE = True
+    except ImportError as e:
+        print(f"⚠️ Events database not available: {e}")
+        EVENTS_DATABASE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 

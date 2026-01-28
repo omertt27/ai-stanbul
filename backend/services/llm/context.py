@@ -610,15 +610,106 @@ class ContextBuilder:
         user_location: Optional[Dict[str, float]],
         language: str
     ) -> str:
-        """Get restaurant data from database with retry and timeout protection."""
+        """
+        Get restaurant data using ServiceManager's RestaurantDatabaseService.
+        
+        The RestaurantDatabaseService provides:
+        - Query parsing (cuisine, district, budget extraction)
+        - Search with filters
+        - Distance-based sorting
+        - Rich data with descriptions, ratings, addresses, dietary options
+        """
         try:
-            # Database query with circuit breaker and timeout
+            # PRIORITY 1: Use ServiceManager's restaurant_service (RestaurantDatabaseService)
+            if self.service_manager and self.service_manager.restaurant_service:
+                try:
+                    restaurant_service = self.service_manager.restaurant_service
+                    
+                    # Parse query using the service's built-in parser
+                    parsed_query = restaurant_service.parse_restaurant_query(query)
+                    
+                    logger.info(f"🍽️ Restaurant query parsed - cuisine: {parsed_query.cuisine_type}, "
+                               f"district: {parsed_query.district}, budget: {parsed_query.budget}")
+                    
+                    # Add user location if available
+                    if user_location:
+                        parsed_query.location = (user_location.get('lat'), user_location.get('lng'))
+                        parsed_query.radius_km = 5.0  # Default 5km radius
+                    
+                    # Search restaurants using the service
+                    restaurants = restaurant_service.search_restaurants(parsed_query)
+                    
+                    if not restaurants and (parsed_query.cuisine_type or parsed_query.district or parsed_query.budget):
+                        # Retry without filters
+                        logger.info("No restaurants with filters, retrying without filters")
+                        basic_query = restaurant_service.parse_restaurant_query("")
+                        if user_location:
+                            basic_query.location = (user_location.get('lat'), user_location.get('lng'))
+                        restaurants = restaurant_service.search_restaurants(basic_query)
+                    
+                    if restaurants:
+                        results = []
+                        for r in restaurants[:8]:  # Top 8
+                            info = f"- **{r.get('name', 'Unknown')}**"
+                            
+                            cuisine = r.get('cuisine_types') or r.get('cuisine_type') or r.get('cuisine')
+                            if cuisine:
+                                if isinstance(cuisine, list):
+                                    cuisine = ', '.join(cuisine)
+                                info += f": {cuisine} cuisine"
+                            
+                            district = r.get('district') or r.get('location') or r.get('neighborhood')
+                            if district:
+                                info += f" in {district}"
+                            
+                            if r.get('rating'):
+                                info += f" | Rating: {r['rating']}/5"
+                            
+                            price = r.get('price_level') or r.get('budget_category')
+                            if price:
+                                if isinstance(price, (int, float)):
+                                    info += f" | Price: {'₺' * int(price)}"
+                                else:
+                                    info += f" | Price: {price}"
+                            
+                            if r.get('distance_km'):
+                                info += f" | {r['distance_km']:.1f}km away"
+                            
+                            desc = r.get('description') or r.get('about')
+                            if desc:
+                                desc = desc[:120] + '...' if len(desc) > 120 else desc
+                                info += f"\n  {desc}"
+                            
+                            address = r.get('address') or r.get('full_address')
+                            if address:
+                                info += f"\n  📍 {address}"
+                            
+                            # Dietary options
+                            dietary = r.get('dietary_options') or r.get('dietary_info')
+                            if dietary:
+                                if isinstance(dietary, list):
+                                    dietary = ', '.join(dietary)
+                                info += f"\n  🥗 {dietary}"
+                            
+                            results.append(info)
+                        
+                        # Store raw data for map generation
+                        self._raw_restaurants = restaurants[:5]
+                        
+                        logger.info(f"✅ Found {len(restaurants)} restaurants via ServiceManager.restaurant_service")
+                        return "\n".join(results)
+                        
+                except Exception as e:
+                    logger.warning(f"ServiceManager restaurant_service failed: {e}, falling back to database")
+            
+            # PRIORITY 2: Direct database query fallback
             async def _query_db():
                 cursor = await self.db.execute(
                     text("""
-                        SELECT name, cuisine, location, price_level, rating
+                        SELECT name, cuisine, location, price_level, rating, description, address
                         FROM restaurants
-                        LIMIT 5
+                        ORDER BY rating DESC NULLS LAST
+                        LIMIT 8
                     """)
                 )
                 return await cursor.fetchall()
@@ -639,10 +730,17 @@ class ContextBuilder:
             # Format results
             results = []
             for row in rows:
-                results.append(
-                    f"- {row[0]}: {row[1]} cuisine in {row[2]}, "
-                    f"Price Level: {row[3]}, Rating: {row[4]}/5"
-                )
+                info = f"- **{row[0]}**: {row[1]} cuisine in {row[2]}"
+                if row[3]:
+                    info += f" | Price: {'₺' * int(row[3])}"
+                if row[4]:
+                    info += f" | Rating: {row[4]}/5"
+                if row[5]:
+                    desc = row[5][:100] + '...' if len(row[5]) > 100 else row[5]
+                    info += f"\n  {desc}"
+                if row[6]:
+                    info += f"\n  📍 {row[6]}"
+                results.append(info)
             
             return "\n".join(results)
             
@@ -1208,16 +1306,208 @@ Total time: ~30 minutes (more scenic!)"""
         return "\n".join(lines)
     
     async def _get_daily_life_context(self, query: str, language: str) -> str:
-        """Get daily life context (visa, customs, etc.)"""
-        # Placeholder implementation - replace with actual data fetching logic
-        return "Daily life context information is not yet available."
+        """Get daily life context using ServiceManager's daily_life_service."""
+        try:
+            daily_life_service = None
+            if self.service_manager and self.service_manager.daily_life_service:
+                daily_life_service = self.service_manager.daily_life_service
+            
+            if daily_life_service and hasattr(daily_life_service, 'get_suggestions'):
+                suggestions = daily_life_service.get_suggestions(query)
+                if suggestions:
+                    return suggestions
+            
+            # Fallback to general daily life info
+            return """DAILY LIFE IN ISTANBUL:
+
+🔑 ESSENTIALS:
+• Currency: Turkish Lira (TRY/TL) - ATMs widely available
+• Language: Turkish (English spoken in tourist areas)
+• Tipping: 10-15% at restaurants, round up for taxis
+• Power: 220V, European plugs (Type C/F)
+
+📱 CONNECTIVITY:
+• Buy local SIM at airport (Turkcell, Vodafone, Türk Telekom)
+• Istanbulkart for public transport (buy at metro stations)
+• Free WiFi in most cafes and hotels
+
+🕌 CULTURAL TIPS:
+• Remove shoes before entering mosques
+• Dress modestly at religious sites
+• Bargaining expected at bazaars
+• Tea/çay is a social ritual - accept when offered
+
+🚨 SAFETY:
+• Istanbul is generally safe for tourists
+• Watch for pickpockets in crowded areas
+• Use licensed taxis or apps (BiTaksi, Uber)
+• Keep passport copy separate from original"""
+            
+        except Exception as e:
+            logger.error(f"Failed to get daily life context: {e}")
+            return "Daily life information temporarily unavailable."
+    
+    async def _get_airport_context(
+        self,
+        query: str,
+        user_location: Optional[Dict[str, float]],
+        language: str
+    ) -> str:
+        """
+        Get airport transport context using ServiceManager's airport_service.
+        
+        The IstanbulAirportTransportService provides:
+        - Airport info (IST, SAW)
+        - Transport routes (metro, bus, taxi)
+        - Prices, durations, schedules
+        - Best route recommendations
+        """
+        try:
+            # Get airport service
+            airport_service = None
+            if self.service_manager and self.service_manager.airport_service:
+                airport_service = self.service_manager.airport_service
+            
+            if not airport_service:
+                # Use comprehensive fallback data
+                return self._get_airport_fallback_context(query)
+            
+            # Determine which airport from query
+            query_lower = query.lower()
+            airport_code = None
+            if any(term in query_lower for term in ['istanbul airport', 'new airport', 'ist airport', 'ist ']):
+                airport_code = 'IST'
+            elif any(term in query_lower for term in ['sabiha', 'saw', 'asian airport']):
+                airport_code = 'SAW'
+            
+            lines = ["✈️ ISTANBUL AIRPORT TRANSPORT:"]
+            
+            # Get transport options for specific or both airports
+            if hasattr(airport_service, 'get_transport_options'):
+                if airport_code:
+                    options = airport_service.get_transport_options(airport_code)
+                    if options:
+                        lines.append(f"\n=== {airport_code} - {'Istanbul Airport' if airport_code == 'IST' else 'Sabiha Gökçen'} ===")
+                        for opt in options[:5]:
+                            lines.append(self._format_transport_option(opt))
+                else:
+                    # Show both airports
+                    for code in ['IST', 'SAW']:
+                        options = airport_service.get_transport_options(code)
+                        if options:
+                            name = 'Istanbul Airport (European)' if code == 'IST' else 'Sabiha Gökçen (Asian)'
+                            lines.append(f"\n=== {code} - {name} ===")
+                            for opt in options[:3]:
+                                lines.append(self._format_transport_option(opt))
+            
+            # Add recommendation if going to specific destination
+            if hasattr(airport_service, 'get_best_route'):
+                destination = self._extract_destination_from_query(query)
+                if destination and airport_code:
+                    best = airport_service.get_best_route(airport_code, destination)
+                    if best:
+                        lines.append(f"\n💡 RECOMMENDED: {best}")
+            
+            if len(lines) == 1:
+                return self._get_airport_fallback_context(query)
+            
+            logger.info(f"✅ Airport context retrieved for {airport_code or 'both airports'}")
+            return "\n".join(lines)
+            
+        except Exception as e:
+            logger.error(f"Failed to get airport context: {e}")
+            return self._get_airport_fallback_context(query)
+    
+    def _format_transport_option(self, option: dict) -> str:
+        """Format a transport option for display"""
+        name = option.get('name', option.get('route_id', 'Unknown'))
+        transport_type = option.get('transport_type', '')
+        duration = option.get('duration_minutes', '')
+        price = option.get('price_try', option.get('price', ''))
+        destination = option.get('destination', '')
+        
+        line = f"  • {name}"
+        if transport_type:
+            line += f" ({transport_type})"
+        if destination:
+            line += f" → {destination}"
+        if duration:
+            line += f" | {duration} min"
+        if price:
+            line += f" | {price} TL"
+        
+        return line
+    
+    def _extract_destination_from_query(self, query: str) -> Optional[str]:
+        """Extract destination from airport query"""
+        query_lower = query.lower()
+        destinations = {
+            'taksim': 'Taksim',
+            'sultanahmet': 'Sultanahmet',
+            'kadikoy': 'Kadıköy',
+            'kadıköy': 'Kadıköy',
+            'besiktas': 'Beşiktaş',
+            'city center': 'City Center',
+        }
+        for key, value in destinations.items():
+            if key in query_lower:
+                return value
+        return None
+    
+    def _get_airport_fallback_context(self, query: str) -> str:
+        """Comprehensive airport transport fallback data"""
+        return """✈️ ISTANBUL AIRPORTS TRANSPORT GUIDE:
+
+=== IST - ISTANBUL AIRPORT (European Side) ===
+Main international hub, opened 2019
+
+🚇 M11 METRO (RECOMMENDED):
+• Route: Airport ↔ Gayrettepe (connects to M2)
+• Duration: 35-45 min to city center
+• Price: ~35 TL
+• Hours: 06:00-00:30
+• Frequency: Every 4-8 min
+• Tip: Transfer at Gayrettepe for Taksim (M2)
+
+🚌 HAVAIST BUSES:
+• IST-1: Airport → Taksim | 90 min | ~180 TL
+• IST-19: Airport → Yenikapı | 60 min | ~150 TL
+• IST-20: Airport → Kadıköy | 120 min | ~200 TL
+• 24/7 service
+• Book at hava.ist
+
+🚕 TAXI:
+• Fixed rates: ~500-700 TL to central Istanbul
+• Duration: 45-90 min depending on traffic
+• Use BiTaksi app for fair pricing
+
+=== SAW - SABIHA GÖKÇEN (Asian Side) ===
+Budget airlines and domestic flights
+
+🚇 M4 METRO:
+• Route: Kadıköy ↔ Airport (via Pendik)
+• Duration: 50-70 min from Kadıköy
+• Price: ~35 TL
+• Transfer at Kadıköy for European side
+
+🚌 HAVABUS:
+• SAW → Taksim | 90-120 min | ~150 TL
+• SAW → Kadıköy | 60 min | ~100 TL
+
+💡 TIPS:
+• IST has better public transport connections
+• Use Istanbulkart for discounted metro fares
+• Book airport transfer in advance during peak times
+• Night flights: Taxis or pre-booked transfers recommended"""
     
     async def _get_hidden_gems_context(self, query: str) -> str:
         """
-        Get hidden gems context for LLM.
+        Get hidden gems context using ServiceManager's HiddenGemsService.
         
-        Fetches local secret spots, off-the-beaten-path locations,
-        and insider recommendations from the hidden gems service.
+        The HiddenGemsService provides:
+        - Query parsing (district, category, difficulty, cost extraction)
+        - Filtered search
+        - Rich data with descriptions, coordinates, tips
         
         Args:
             query: User query
@@ -1225,21 +1515,33 @@ Total time: ~30 minutes (more scenic!)"""
         Returns:
             Formatted hidden gems context string
         """
-        if not self.hidden_gems_service:
-            logger.warning("Hidden gems service not available")
-            return "Hidden gems information temporarily unavailable."
-        
         try:
-            # Get hidden gems from service
-            gems = []
+            # PRIORITY 1: Use ServiceManager's hidden_gems_service
+            hidden_gems_service = self.hidden_gems_service
+            if not hidden_gems_service and self.service_manager:
+                hidden_gems_service = self.service_manager.hidden_gems_service
             
-            # Try to get gems based on query context
-            if hasattr(self.hidden_gems_service, 'get_gems'):
-                gems = self.hidden_gems_service.get_gems(limit=10)
-            elif hasattr(self.hidden_gems_service, 'search_gems'):
-                gems = self.hidden_gems_service.search_gems(query, limit=10)
-            elif hasattr(self.hidden_gems_service, 'get_all_gems'):
-                gems = self.hidden_gems_service.get_all_gems()[:10]
+            if not hidden_gems_service:
+                logger.warning("Hidden gems service not available")
+                return "Hidden gems information temporarily unavailable."
+            
+            # Parse query using service's built-in parser
+            gems = []
+            if hasattr(hidden_gems_service, 'parse_hidden_gems_query') and hasattr(hidden_gems_service, 'filter_gems'):
+                parsed_query = hidden_gems_service.parse_hidden_gems_query(query)
+                logger.info(f"💎 Hidden gems query - district: {parsed_query.district}, category: {parsed_query.category}")
+                gems = hidden_gems_service.filter_gems(parsed_query, limit=10)
+                
+                # If no results with filters, try without filters
+                if not gems:
+                    from services.hidden_gems_service import HiddenGemQuery
+                    gems = hidden_gems_service.filter_gems(HiddenGemQuery(), limit=10)
+            elif hasattr(hidden_gems_service, 'search_gems'):
+                gems = hidden_gems_service.search_gems(query, limit=10)
+            elif hasattr(hidden_gems_service, 'get_all_gems'):
+                gems = hidden_gems_service.get_all_gems()[:10]
+            elif hasattr(hidden_gems_service, 'gems'):
+                gems = hidden_gems_service.gems[:10]
             
             if not gems:
                 return "No hidden gems found for your query. Try asking about a specific neighborhood!"
@@ -1250,24 +1552,43 @@ Total time: ~30 minutes (more scenic!)"""
             for i, gem in enumerate(gems[:8], 1):
                 if isinstance(gem, dict):
                     name = gem.get('name', 'Unknown')
-                    neighborhood = gem.get('neighborhood', gem.get('area', 'Istanbul'))
-                    description = gem.get('description', gem.get('tip', ''))[:200]
+                    neighborhood = gem.get('district', gem.get('neighborhood', gem.get('area', 'Istanbul')))
+                    description = gem.get('description', gem.get('tip', ''))
+                    if description and len(description) > 200:
+                        description = description[:200] + '...'
                     category = gem.get('category', gem.get('type', 'hidden gem'))
                     
-                    lines.append(f"\n{i}. {name} ({neighborhood})")
+                    lines.append(f"\n{i}. **{name}** ({neighborhood})")
                     lines.append(f"   Category: {category}")
                     if description:
-                        lines.append(f"   Description: {description}")
+                        lines.append(f"   {description}")
                     
-                    # Add coordinates if available
-                    if gem.get('lat') and gem.get('lng'):
-                        lines.append(f"   Coordinates: ({gem['lat']}, {gem['lng']})")
-                    elif gem.get('location'):
-                        loc = gem['location']
-                        if isinstance(loc, dict) and loc.get('lat'):
-                            lines.append(f"   Coordinates: ({loc['lat']}, {loc.get('lng', loc.get('lon'))})")
+                    # Access info
+                    difficulty = gem.get('access_difficulty', gem.get('difficulty'))
+                    if difficulty:
+                        lines.append(f"   Access: {difficulty}")
+                    
+                    # Cost info
+                    cost = gem.get('cost')
+                    if cost:
+                        lines.append(f"   Cost: {cost}")
+                    
+                    # Best time to visit
+                    best_time = gem.get('best_time', gem.get('best_time_to_visit'))
+                    if best_time:
+                        lines.append(f"   Best time: {best_time}")
+                    
+                    # Insider tip
+                    tip = gem.get('insider_tip', gem.get('local_tip'))
+                    if tip:
+                        lines.append(f"   💡 Tip: {tip[:150]}")
+                    
+                    # Coordinates for mapping
+                    lat = gem.get('lat', gem.get('latitude'))
+                    lng = gem.get('lng', gem.get('longitude'))
+                    if lat and lng:
+                        lines.append(f"   📍 Coordinates: ({lat}, {lng})")
                 else:
-                    # Handle string gems
                     lines.append(f"\n{i}. {gem}")
             
             hidden_gems_context = "\n".join(lines)
@@ -1281,63 +1602,190 @@ Total time: ~30 minutes (more scenic!)"""
     
     async def _get_events_context_with_retry(self) -> str:
         """
-        Get upcoming events context for LLM.
+        Get upcoming events context using ServiceManager's EventsService.
         
-        Fetches concerts, festivals, exhibitions, and cultural events
-        happening in Istanbul.
+        The EventsService provides:
+        - Recurring events (weekly markets, performances)
+        - Seasonal events (festivals, cultural events)
+        - İKSV events (film, music, theatre festivals)
+        - Salon İKSV concerts
+        - Temporal parsing (today, tonight, this weekend, etc.)
         
         Returns:
             Formatted events context string
         """
-        if not self.events_service:
-            logger.warning("Events service not available")
-            return "Events information temporarily unavailable."
-        
         try:
-            # Get upcoming events from service
+            # Get events service
+            events_service = self.events_service
+            if not events_service and self.service_manager:
+                events_service = self.service_manager.events_service
+            
+            if not events_service:
+                logger.warning("Events service not available")
+                return "Events information temporarily unavailable."
+            
             events = []
             
-            if hasattr(self.events_service, 'get_upcoming_events'):
-                events = await self.events_service.get_upcoming_events(limit=10)
-            elif hasattr(self.events_service, 'get_events'):
-                events = self.events_service.get_events(limit=10)
-            elif hasattr(self.events_service, 'list_events'):
-                events = self.events_service.list_events()[:10]
+            # PRIORITY 1: Get İKSV events directly (most accurate and up-to-date)
+            if hasattr(events_service, 'iksv_events') and events_service.iksv_events:
+                for e in events_service.iksv_events:
+                    e_copy = dict(e)  # Make a copy to avoid modifying original
+                    e_copy['source'] = e.get('source', 'İKSV')
+                    events.append(e_copy)
+                logger.info(f"📅 Loaded {len(events_service.iksv_events)} İKSV events")
+            
+            # PRIORITY 2: Get today's and this week's recurring events
+            if hasattr(events_service, 'parse_temporal_query') and hasattr(events_service, 'get_events_by_timeframe'):
+                # Get today's events
+                today_timeframe = events_service.parse_temporal_query("today")
+                if today_timeframe:
+                    today_events = events_service.get_events_by_timeframe(today_timeframe)
+                    for e in today_events:
+                        e['timeframe'] = 'today'
+                        if e not in events:
+                            events.append(e)
+                
+                # Get this week's events
+                week_timeframe = events_service.parse_temporal_query("this week")
+                if week_timeframe:
+                    week_events = events_service.get_events_by_timeframe(week_timeframe)
+                    for e in week_events:
+                        if e not in events:
+                            e['timeframe'] = 'this week'
+                            events.append(e)
+            
+            # PRIORITY 3: Get seasonal events
+            if hasattr(events_service, 'get_seasonal_events'):
+                seasonal = events_service.get_seasonal_events()
+                for e in seasonal[:5]:
+                    if e not in events:
+                        e['timeframe'] = 'seasonal'
+                        events.append(e)
             
             if not events:
                 return "No upcoming events found. Check back later for new events!"
             
-            # Format events for LLM context
-            lines = ["UPCOMING EVENTS IN ISTANBUL:"]
+            # Format events for LLM context - GROUP BY CATEGORY
+            lines = ["UPCOMING EVENTS IN ISTANBUL (Current Calendar):"]
             
-            for i, event in enumerate(events[:8], 1):
-                if isinstance(event, dict):
-                    name = event.get('name', event.get('title', 'Unknown Event'))
-                    venue = event.get('venue', event.get('location', 'TBA'))
-                    date = event.get('date', event.get('start_date', 'TBA'))
-                    category = event.get('category', event.get('type', 'event'))
-                    description = event.get('description', '')[:150]
-                    price = event.get('price', event.get('ticket_price', ''))
-                    
-                    lines.append(f"\n{i}. {name}")
-                    lines.append(f"   Date: {date}")
-                    lines.append(f"   Venue: {venue}")
-                    lines.append(f"   Category: {category}")
-                    if description:
-                        lines.append(f"   Description: {description}")
-                    if price:
-                        lines.append(f"   Price: {price}")
-                else:
-                    lines.append(f"\n{i}. {event}")
+            # Helper: Turkish-aware case-insensitive check (İ -> i, ı -> i)
+            def contains_iksv_or_salon(source_str: str) -> bool:
+                """Check if source contains 'iksv' or 'salon' (Turkish-aware)"""
+                s = source_str.lower().replace('i̇', 'i').replace('ı', 'i')  # Normalize Turkish i
+                return 'iksv' in s or 'salon' in s
+            
+            # Separate İKSV/Salon events from recurring events
+            iksv_events = [e for e in events if contains_iksv_or_salon(str(e.get('source', '')))]
+            theatre_events = [e for e in iksv_events if e.get('type') == 'theater' or 'theatre' in str(e.get('category', '')).lower()]
+            music_events = [e for e in iksv_events if e.get('type') == 'concert' or 'music' in str(e.get('category', '')).lower() or 'salon' in str(e.get('category', '')).lower()]
+            other_iksv = [e for e in iksv_events if e not in theatre_events and e not in music_events]
+            
+            recurring_events = [e for e in events if e not in iksv_events]
+            today_events = [e for e in recurring_events if e.get('timeframe') == 'today']
+            week_events = [e for e in recurring_events if e.get('timeframe') == 'this week']
+            seasonal_events = [e for e in recurring_events if e.get('timeframe') == 'seasonal']
+            
+            # Theatre events
+            if theatre_events:
+                lines.append("\n🎭 THEATRE:")
+                for event in theatre_events[:6]:
+                    lines.append(self._format_event(event))
+            
+            # Music / Salon İKSV events
+            if music_events:
+                lines.append("\n🎵 MUSIC & SALON İKSV:")
+                for event in music_events[:10]:
+                    lines.append(self._format_event(event))
+            
+            # Other İKSV events (art, exhibitions, etc.)
+            if other_iksv:
+                lines.append("\n🎨 ART & CULTURAL:")
+                for event in other_iksv[:4]:
+                    lines.append(self._format_event(event))
+            
+            # Today's recurring events
+            if today_events:
+                lines.append("\n📅 TODAY:")
+                for event in today_events[:4]:
+                    lines.append(self._format_event(event))
+            
+            # This week's recurring events
+            if week_events:
+                lines.append("\n📆 THIS WEEK:")
+                for event in week_events[:4]:
+                    lines.append(self._format_event(event))
+            
+            # Seasonal events
+            if seasonal_events:
+                lines.append("\n� SEASONAL:")
+                for event in seasonal_events[:3]:
+                    lines.append(self._format_event(event))
             
             events_context = "\n".join(lines)
-            logger.info(f"✅ Events context retrieved: {len(events)} events")
+            logger.info(f"✅ Events context retrieved: {len(events)} events (İKSV: {len(iksv_events)}, Theatre: {len(theatre_events)}, Music: {len(music_events)})")
             
             return events_context
             
         except Exception as e:
             logger.error(f"Failed to get events context: {e}")
             return "Events information currently unavailable. Please try again later."
+    
+    def _format_event(self, event: dict) -> str:
+        """Format a single event for display in LLM context"""
+        # Handle name - can be string or dict
+        name = event.get('name', event.get('title', 'Unknown Event'))
+        if isinstance(name, dict):
+            name = name.get('en', name.get('tr', 'Unknown Event'))
+        
+        venue = event.get('venue', event.get('location', ''))
+        
+        # Handle time/date - prioritize date_str for İKSV events
+        date_str = event.get('date_str', '')
+        time_str = event.get('time', '')
+        date_display = date_str if date_str else event.get('date', '')
+        
+        # If we have both date_str and time, combine them nicely
+        if date_str and time_str and time_str not in date_str:
+            date_display = f"{date_str}"
+        
+        category = event.get('type', event.get('category', ''))
+        
+        # Handle description - can be string or dict
+        description_raw = event.get('description', '')
+        if isinstance(description_raw, dict):
+            description = description_raw.get('en', description_raw.get('tr', ''))[:100]
+        elif description_raw:
+            description = str(description_raw)[:100]
+        else:
+            description = ''
+        
+        source = event.get('source', '')
+        
+        # Handle cost - can be string or dict
+        cost_raw = event.get('cost', event.get('price', ''))
+        if isinstance(cost_raw, dict):
+            cost = cost_raw.get('en', cost_raw.get('tr', ''))
+        else:
+            cost = str(cost_raw) if cost_raw else ''
+        
+        # Build the formatted line
+        line = f"  • **{name}**"
+        if date_display:
+            line += f" | {date_display}"
+        if venue:
+            line += f" @ {venue}"
+        if category and category not in ['concert', 'theater', 'cultural']:
+            line += f" [{category}]"
+        
+        # Add İKSV label only if venue doesn't already indicate Salon İKSV
+        # Turkish-aware check (İ -> i)
+        source_normalized = source.lower().replace('i̇', 'i').replace('ı', 'i') if source else ''
+        venue_lower = venue.lower().replace('i̇', 'i').replace('ı', 'i') if venue else ''
+        
+        if 'iksv' in source_normalized and 'salon' not in venue_lower:
+            line += " (İKSV)"
+        
+        return line
     
     async def _get_weather_context_with_retry(self, query: str) -> str:
         """

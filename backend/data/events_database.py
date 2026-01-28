@@ -531,7 +531,8 @@ def load_live_iksv_events() -> List[Dict]:
     all_live_events = []
     
     # 1. Load manually curated İKSV events (PRIMARY SOURCE)
-    manual_events_file = Path(__file__).parent.parent.parent / "data" / "events" / "iksv_manual_events.json"
+    # Path(__file__).parent is /backend/data/, so we need to go to /backend/data/events/
+    manual_events_file = Path(__file__).parent / "events" / "iksv_manual_events.json"
     if manual_events_file.exists():
         try:
             with open(manual_events_file, 'r', encoding='utf-8') as f:
@@ -577,7 +578,8 @@ def load_live_iksv_events() -> List[Dict]:
             print(f"⚠️ Could not load manual İKSV events: {e}")
     
     # 2. Load auto-scraped events (FALLBACK)
-    events_file = Path(__file__).parent.parent.parent / "data" / "events" / "current_events.json"
+    # Path(__file__).parent is /backend/data/, so we need to go to /backend/data/events/
+    events_file = Path(__file__).parent / "events" / "current_events.json"
     
     if events_file.exists():
         try:

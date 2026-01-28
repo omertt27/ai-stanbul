@@ -1737,9 +1737,85 @@ function Chatbot({ userLocation: propUserLocation }) {
       console.log('🦙 Using Pure LLM:', usePureLLM);
       console.log('🌊 Streaming enabled:', enableStreaming);
       
-      // 🌊 STREAMING: If streaming is enabled, use streaming API
+      // 🚇 TRANSPORTATION QUERIES: Always use regular API for transportation to ensure RAG and map data
+      const isTransportationQuery = /\b(nasıl\s+(giderim|gidebilirim)|yolculuk|güzergah|rota|metro|otobüs|tramvay|vapur|dolmuş|minibüs|how\s+to\s+get|route|directions|transportation|transit|taksim|sultan|galata|kadıköy|üsküdar|beşiktaş)\b/i.test(sanitizedInput);
+      
+      if (isTransportationQuery) {
+        console.log('🚇 Transportation query detected, using regular API to ensure RAG and map data');
+        console.log('🛡️ Bypassing streaming for transportation query');
+        
+        // Use regular chat API directly (bypass streaming)
+        setIsTyping(true);
+        setTypingMessage('Finding the best route for you...');
+        
+        try {
+          const chatResponse = await fetchUnifiedChatV2(sanitizedInput, {
+            sessionId: getSessionId(),
+            gpsLocation: userLocation,
+            language: i18n.language,
+            usePureLLM: false // Force standard backend for transportation queries to use RAG
+          });
+          
+          console.log('🔍 Transportation Chat Response:', chatResponse);
+          console.log('🗺️ Transportation Map Data:', chatResponse.map_data);
+          console.log('🚌 Transportation Route Data:', chatResponse.route_data);
+          
+          addMessage(chatResponse.response || chatResponse.message, 'assistant', {
+            type: chatResponse.intent || 'transportation',
+            confidence: chatResponse.confidence,
+            mapData: chatResponse.map_data, // Include map data if present (camelCase)
+            map_data: chatResponse.map_data, // Also include snake_case version for condition compatibility
+            routeData: chatResponse.route_data, // Include route_data for TransportationRouteCard (camelCase)
+            route_data: chatResponse.route_data, // Also include snake_case version for condition compatibility 
+            route_info: chatResponse.route_info, // Include route_info if present
+            llmMode: chatResponse.llm_mode,
+            intent: chatResponse.intent,
+            method: 'transportation-rag',
+            cached: chatResponse.cached,
+            responseTime: chatResponse.response_time,
+            backend: 'standard-rag',
+            // 🚀 UnifiedLLM metadata for badges
+            llm_backend: chatResponse.llm_backend,
+            cache_hit: chatResponse.cache_hit,
+            circuit_breaker_state: chatResponse.circuit_breaker_state,
+            llm_latency_ms: chatResponse.llm_latency_ms
+          });
+          
+          // Track message received (analytics)
+          try {
+            const responseTime = Date.now() - messageStartTime;
+            const responseLength = (chatResponse.response || chatResponse.message).length;
+            trackEvent('chatMessage', { action: 'received', length: responseLength, responseTime, type: 'transportation' });
+          } catch (e) {
+            console.warn('Analytics tracking failed:', e);
+          }
+          
+          // Clear failed message on success
+          setLastFailedMessage(null);
+          setRetryAction(null);
+          return;
+          
+        } catch (error) {
+          console.error('❌ Transportation query failed:', error);
+          handleError(error, 'transportation query', { input: originalUserInput });
+          
+          addMessage('Sorry, I encountered an error finding your route. Please try again.', 'assistant', {
+            type: 'error',
+            errorType: classifyError(error),
+            canRetry: true,
+            originalInput: originalUserInput
+          });
+          return;
+        } finally {
+          setIsTyping(false);
+          setTypingMessage('');
+          setLoading(false);
+        }
+      }
+      
+      // 🌊 STREAMING: If streaming is enabled and NOT a transportation query, use streaming API
       // Note: Streaming works with both Pure LLM and standard modes
-      if (enableStreaming) {
+      if (enableStreaming && !isTransportationQuery) {
         console.log('🌊 Starting streaming response...');
         setIsStreamingResponse(true);
         setStreamingText('');
@@ -1815,8 +1891,11 @@ function Chatbot({ userLocation: propUserLocation }) {
               addMessage(content, 'assistant', {
                 type: metadata?.intent || 'general',
                 confidence: metadata?.confidence,
-                mapData: metadata?.map_data,
-                routeData: metadata?.route_data,
+                mapData: metadata?.map_data, // Include map data if present (camelCase)
+                map_data: metadata?.map_data, // Also include snake_case version for condition compatibility
+                routeData: metadata?.route_data, // Include route_data for TransportationRouteCard (camelCase)
+                route_data: metadata?.route_data, // Also include snake_case version for condition compatibility 
+                route_info: metadata?.route_info, // Include route_info if present
                 tripPlan: metadata?.trip_plan,
                 llmMode: metadata?.llm_mode,
                 intent: metadata?.intent,
@@ -1875,7 +1954,7 @@ function Chatbot({ userLocation: propUserLocation }) {
         }
       }
       
-      // Regular (non-streaming) fallback function
+      // Regular (non-streaming) fallback function - MOVED BEFORE STREAMING CODE
       const fallbackToRegularChat = async () => {
         console.log('⚡ Using regular chat API (fallback)');
         setIsTyping(true);
@@ -1889,17 +1968,23 @@ function Chatbot({ userLocation: propUserLocation }) {
             usePureLLM: usePureLLM
           });
           
+          console.log('🔍 Fallback Chat Response:', chatResponse);
+          console.log('🗺️ Fallback Map Data:', chatResponse.map_data);
+          
           addMessage(chatResponse.response || chatResponse.message, 'assistant', {
             type: chatResponse.intent || 'general',
             confidence: chatResponse.confidence,
-            mapData: chatResponse.map_data,
-            routeData: chatResponse.route_data,
+            mapData: chatResponse.map_data, // Include map data if present (camelCase)
+            map_data: chatResponse.map_data, // Also include snake_case version for condition compatibility
+            routeData: chatResponse.route_data, // Include route_data for TransportationRouteCard (camelCase)
+            route_data: chatResponse.route_data, // Also include snake_case version for condition compatibility 
+            route_info: chatResponse.route_info, // Include route_info if present
             llmMode: chatResponse.llm_mode,
             intent: chatResponse.intent,
             method: chatResponse.method,
             cached: chatResponse.cached,
             responseTime: chatResponse.response_time,
-            backend: usePureLLM ? 'pure-llm' : 'standard',
+            backend: usePureLLM ? 'pure-llm-fallback' : 'standard',
             // 🚀 UnifiedLLM metadata for badges
             llm_backend: chatResponse.llm_backend,
             cache_hit: chatResponse.cache_hit,

@@ -681,8 +681,32 @@ const RouteCard = ({ routeData }) => {
   }, [routeDataId, duration, distance, transfers, linesKey, stepsKey]);
 
   // Map visualization data
-  const hasMapData = map_data && (map_data.routes || map_data.markers);
-  const routes = map_data?.routes || [];
+  const hasMapData = map_data && (map_data.routes || map_data.polyline || map_data.markers);
+  
+  // Handle both formats: 
+  // 1. routes array with coordinates (new format)
+  // 2. polyline array at top level (backend format)
+  const routes = (() => {
+    if (map_data?.routes && map_data.routes.length > 0) {
+      return map_data.routes;
+    }
+    // Convert top-level polyline to routes format
+    if (map_data?.polyline && map_data.polyline.length > 0) {
+      return [{
+        mode: 'transit',
+        color: '#4F46E5',
+        coordinates: map_data.polyline.map(coord => {
+          // Handle both [lat, lon] arrays and {lat, lon} objects
+          if (Array.isArray(coord)) {
+            return { lat: coord[0], lon: coord[1] };
+          }
+          return coord;
+        })
+      }];
+    }
+    return [];
+  })();
+  
   const markers = map_data?.markers || [];
   
   // Calculate center - handle both 'lon' and 'lng' field names
