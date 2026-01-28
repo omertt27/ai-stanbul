@@ -542,12 +542,26 @@ const RouteCard = ({ routeData }) => {
   // Extract route information - handle different field name variations
   const origin = actualRouteInfo?.start_location || actualRouteInfo?.origin || 'Starting point';
   const destination = actualRouteInfo?.end_location || actualRouteInfo?.destination || 'Destination';
-  const distance = actualRouteInfo?.total_distance 
-    ? (actualRouteInfo.total_distance / 1000).toFixed(1) 
-    : '0.0';
-  const duration = actualRouteInfo?.total_time 
-    ? Math.round(actualRouteInfo.total_time / 60) 
-    : 0;
+  
+  // Handle both time formats: seconds (total_time) and minutes (duration_min)
+  let duration;
+  if (actualRouteInfo?.duration_min) {
+    duration = actualRouteInfo.duration_min; // Already in minutes
+  } else if (actualRouteInfo?.total_time) {
+    duration = Math.round(actualRouteInfo.total_time / 60); // Convert seconds to minutes
+  } else {
+    duration = 0;
+  }
+  
+  // Handle both distance formats: meters (total_distance) and km (distance_km)
+  let distance;
+  if (actualRouteInfo?.distance_km) {
+    distance = actualRouteInfo.distance_km.toFixed(1); // Already in km
+  } else if (actualRouteInfo?.total_distance) {
+    distance = (actualRouteInfo.total_distance / 1000).toFixed(1); // Convert meters to km
+  } else {
+    distance = '0.0';
+  }
   const transfers = actualRouteInfo?.transfer_count || actualRouteInfo?.transfers || 0;
   const confidence = actualRouteInfo?.confidence || 'Medium';
   const lines = actualRouteInfo?.transit_lines || actualRouteInfo?.lines_used || [];

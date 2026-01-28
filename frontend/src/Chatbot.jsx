@@ -1939,8 +1939,11 @@ function Chatbot({ userLocation: propUserLocation }) {
       addMessage(chatResponse.response || chatResponse.message, 'assistant', {
         type: chatResponse.intent || 'general',
         confidence: chatResponse.confidence,
-        mapData: chatResponse.map_data, // Include map data if present
-        routeData: chatResponse.route_data, // 🔥 WEEK 2: Include route_data for TransportationRouteCard
+        mapData: chatResponse.map_data, // Include map data if present (camelCase)
+        map_data: chatResponse.map_data, // Also include snake_case version for condition compatibility
+        routeData: chatResponse.route_data, // 🔥 WEEK 2: Include route_data for TransportationRouteCard (camelCase)
+        route_data: chatResponse.route_data, // Also include snake_case version for condition compatibility 
+        route_info: chatResponse.route_info, // Include route_info if present
         llmMode: chatResponse.llm_mode, // 🔥 WEEK 2: Include llm_mode for conditional rendering
         intent: chatResponse.intent, // 🔥 WEEK 2: Include intent classification
         method: chatResponse.method, // Include LLM method (cached/fresh)
@@ -2340,11 +2343,21 @@ function Chatbot({ userLocation: propUserLocation }) {
                           </div>
                           
                           {/* Route Card for mobile - show if route data present */}
-                          {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
-                            <div className="mt-3">
-                              <RouteCard routeData={msg} />
-                            </div>
-                          )}
+                          {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (() => {
+                            console.log('🗺️ RouteCard Debug (Mobile):', {
+                              hasMapData: !!msg.mapData,
+                              hasRouteData: !!msg.routeData,
+                              hasMap_data: !!msg.map_data,
+                              hasRoute_info: !!msg.route_info,
+                              msgKeys: Object.keys(msg),
+                              fullMsg: msg
+                            });
+                            return (
+                              <div className="mt-3">
+                                <RouteCard routeData={msg} />
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </SwipeableMessage>
@@ -2493,7 +2506,10 @@ function Chatbot({ userLocation: propUserLocation }) {
                             hasRoute_info: !!msg.route_info,
                             msgKeys: Object.keys(msg),
                             mapData: msg.mapData,
-                            routeData: msg.routeData
+                            routeData: msg.routeData,
+                            map_data: msg.map_data,
+                            route_info: msg.route_info,
+                            fullMsg: msg
                           });
                           return (
                             <div className="mt-4">
@@ -2761,7 +2777,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                 }`}>
                   <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                  </svg>
+                </svg>
                 </div>
                 
                 {/* Mobile: Show SkeletonMessage, Desktop: Show typing indicator */}
