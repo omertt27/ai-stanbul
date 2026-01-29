@@ -88,7 +88,19 @@ class SemanticCache:
         logger.info(f"🧠 Semantic Cache initialized (max={max_entries}, threshold={similarity_threshold})")
     
     def _load_embedding_model(self):
-        """Lazy load embedding model"""
+        """Lazy load embedding model - DISABLED for performance in production"""
+        import os
+        
+        # Check environment variable to explicitly disable embeddings
+        disable_embeddings = os.environ.get('DISABLE_EMBEDDINGS', 'true').lower() == 'true'
+        is_production = os.environ.get('ENVIRONMENT', '').lower() == 'production'
+        
+        if disable_embeddings or is_production:
+            logger.info("⚡ Semantic cache using exact match only (embeddings disabled for speed)")
+            self._embeddings_available = False
+            return
+        
+        # Only load embeddings in development with explicit opt-in
         if self._embedding_model is not None:
             return
         

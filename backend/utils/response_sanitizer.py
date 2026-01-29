@@ -22,6 +22,40 @@ class ResponseSanitizer:
     def __init__(self):
         """Initialize sanitizer with cleanup patterns"""
         self.system_prompt_patterns = [
+            # === Language detection meta-commentary (highest priority) ===
+            r"^I detect that the user's query is in \w+\.?\s*(?:Here's my response:?)?\s*",
+            r"^Based on the user's query,?\s*I detect that the language is \w+\.?\s*(?:Here's my)?\s*(?:response:?)?\s*",
+            r"^I detect that the language is \w+\.?\s*(?:Here's my)?\s*(?:response:?)?\s*",
+            r"^The user's query is in \w+\.?\s*",
+            r"^Language detected:?\s*\w+\.?\s*",
+            r"^Detected language:?\s*\w+\.?\s*",
+            r"^Query language:?\s*\w+\.?\s*",
+            # More flexible patterns (can appear anywhere in text)
+            r"I detect that the user's query is in \w+\.?\s*(?:Here's my response:?)?\s*",
+            r"Based on the user's query,?\s*I detect that the language is \w+\.?\s*(?:Here's my)?\s*(?:response:?)?\s*",
+            r"I detect that the language is \w+\.?\s*",
+            r"I've detected that the (?:user's )?query is in \w+\.?\s*",
+            
+            # === Internal instruction leakage / Meta-notes ===
+            r"\(Note:.*?(?:as per your request|per the instructions|as instructed|you asked)\.?\)\s*",
+            r"\(I've bolded.*?\)\s*",
+            r"\(I have bolded.*?\)\s*",
+            r"\(As requested.*?\)\s*",
+            r"\(As you requested.*?\)\s*",
+            r"\(Following your instructions.*?\)\s*",
+            r"\(Per your instructions.*?\)\s*",
+            r"\(Note:[^)]*bolded[^)]*\)\s*",
+            
+            # === Translation section leakage (Turkish appearing in English response) ===
+            r"\n\nTarihçe:.*$",
+            r"\n\nTürkçe:.*$",
+            r"\n\nTürkçe Çeviri:.*$",
+            r"\n\n---\s*\n\nTarihçe:.*$",
+            r"\n\nİstanbul'un en güzel.*$",
+            # Turkish sentences at the end of English response
+            r"\n\n[A-Za-z çğıİöşüÇĞÖŞÜ]+(?:ü|ı|ş|ğ|ç)[a-zA-Z çğıİöşüÇĞÖŞÜ]{30,}$",
+            
+            # === Existing patterns ===
             # System instructions - catch all variations
             r"Never use Turkish[,\s]*(?:French[,\s]*)?(?:or any other language)?\.?\s*\|?\s*",
             r"Never use (?:Turkish|French|any other language).*?\.?\s*",

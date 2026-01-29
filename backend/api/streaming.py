@@ -47,6 +47,40 @@ def clean_llm_response(text: str) -> str:
     
     # Patterns that indicate prompt leakage (case insensitive)
     leakage_patterns = [
+        # === Language detection meta-commentary (highest priority, at start) ===
+        r'^I detect that the user\'s query is in \w+\.?\s*(?:Here\'s my response:?)?\s*',
+        r'^Based on the user\'s query,?\s*I detect that the language is \w+\.?\s*(?:Here\'s my)?\s*(?:response:?)?\s*',
+        r'^I detect that the language is \w+\.?\s*(?:Here\'s my)?\s*(?:response:?)?\s*',
+        r'^The user\'s query is in \w+\.?\s*',
+        r'^Language detected:?\s*\w+\.?\s*',
+        r'^Detected language:?\s*\w+\.?\s*',
+        r'^Query language:?\s*\w+\.?\s*',
+        # More flexible patterns (can appear anywhere in text)
+        r'I detect that the user\'s query is in \w+\.?\s*(?:Here\'s my response:?)?\s*',
+        r'Based on the user\'s query,?\s*I detect that the language is \w+\.?\s*(?:Here\'s my)?\s*(?:response:?)?\s*',
+        r'I detect that the language is \w+\.?\s*',
+        r'I\'ve detected that the (?:user\'s )?query is in \w+\.?\s*',
+        
+        # === Internal instruction leakage / Meta-notes ===
+        r'\(Note:.*?(?:as per your request|per the instructions|as instructed|you asked)\.?\)\s*',
+        r'\(I\'ve bolded.*?\)\s*',
+        r'\(I have bolded.*?\)\s*',
+        r'\(As requested.*?\)\s*',
+        r'\(As you requested.*?\)\s*',
+        r'\(Following your instructions.*?\)\s*',
+        r'\(Per your instructions.*?\)\s*',
+        r'\(Note:[^)]*bolded[^)]*\)\s*',
+        
+        # === Turkish translation appearing in English response ===
+        r'\n\nTarihçe:.*$',
+        r'\n\nTürkçe:.*$',
+        r'\n\nTürkçe Çeviri:.*$',
+        r'\n\n---\s*\n\nTarihçe:.*$',
+        r'\n\nİstanbul\'un en güzel.*$',
+        # Turkish sentences at the end of English response
+        r'\n\n[A-Za-z çğıİöşüÇĞÖŞÜ]+(?:ü|ı|ş|ğ|ç)[a-zA-Z çğıİöşüÇĞÖŞÜ]{30,}$',
+        
+        # === Existing patterns ===
         r'\*\*Map:\*\*.*?(?=\n|$)',  # **Map:** ...
         r'Map:.*will be shown.*?(?=\n|$)',  # Map will be shown
         r'⚠️\s*CRITICAL.*?(?=\n\n|\Z)',  # ⚠️ CRITICAL warnings
@@ -207,42 +241,75 @@ async def stream_chat_sse(request: StreamChatRequest):
             # Prepare query for analysis
             query_lower = request.message.lower()
             
-            # Check if this is a transportation query using LLM intent detection
-            # OPTIMIZATION: Add timeout to prevent slow LLM calls from blocking
-            from services.llm_intent_detector import detect_query_intent
+            # === OPTIMIZED INTENT DETECTION ===
+            # Step 1: Fast-path keyword detection (no LLM call needed for clear cases)
+            # This reduces response time by ~2-3s for obvious queries
+            
+            # Strong transportation indicators (high confidence without LLM)
+            strong_transport_patterns = [
+                'how do i get to', 'how can i get to', 'how to get to', 
+                'directions to', 'route to', 'navigate to',
+                'nasıl giderim', 'nasıl gidebilirim', 'nasıl ulaşırım',
+                'from taksim to', 'from kadıköy to', 'from sultanahmet to',
+                'taksim to', 'kadıköy to', 'sultanahmet to',
+                'get to taksim', 'get to kadıköy', 'get to sultanahmet',
+                'way to get to', 'best way to'
+            ]
+            
+            # Non-transportation indicators (skip LLM call for these)
+            non_transport_patterns = [
+                'what is', 'tell me about', 'recommend', 'best restaurant',
+                'weather', 'hello', 'hi', 'merhaba', 'history of',
+                'what are', 'where can i eat', 'good food', 'attractions',
+                'tourist', 'museum', 'culture', 'event', 'shopping',
+                'romantic', 'dinner', 'breakfast', 'lunch', 'cafe'
+            ]
+            
+            # Fast-path detection
+            is_clear_transport = any(pattern in query_lower for pattern in strong_transport_patterns)
+            is_clear_non_transport = any(pattern in query_lower for pattern in non_transport_patterns)
             
             is_transportation = False
-            try:
-                # Timeout intent detection at 3 seconds to prevent blocking
-                intent_result = await asyncio.wait_for(
-                    detect_query_intent(request.message, request.user_location),
-                    timeout=3.0
-                )
-                logger.info(f"🎯 Streaming LLM Intent: {intent_result.intent.value} (confidence: {intent_result.confidence:.2f})")
+            if is_clear_transport and not is_clear_non_transport:
+                # Clear transportation query - skip LLM intent detection
+                logger.info("🚀 FAST-PATH: Clear transportation query detected (skipping LLM intent detection)")
+                is_transportation = True
+            elif is_clear_non_transport and not is_clear_transport:
+                # Clear non-transportation query - skip LLM intent detection
+                logger.info("🚀 FAST-PATH: Clear non-transportation query detected (skipping LLM intent detection)")
+                is_transportation = False
+            else:
+                # Ambiguous case - use LLM intent detection with timeout
+                from services.llm_intent_detector import detect_query_intent
                 
-                is_transportation = intent_result.is_transportation and intent_result.confidence >= 0.6
-                
-                if is_transportation:
-                    logger.info("🚦 Transportation intent detected by LLM")
-                else:
-                    logger.info(f"🚦 Non-transportation intent: {intent_result.intent.value}")
-            except asyncio.TimeoutError:
-                logger.warning("⏱️ LLM Intent detection timed out (3s), using fast keyword detection")
-                # Fast fallback to keyword detection
-                transportation_keywords = ['how do i get', 'how to get', 'route to', 'from', 
-                                           'directions to', 'go to', 'way to', 'metro', 'tram']
-                is_transportation = any(keyword in query_lower for keyword in transportation_keywords)
-            except Exception as e:
-                logger.error(f"❌ LLM Intent Detection failed in streaming: {str(e)}, falling back to keyword detection")
-                # Fallback to keyword detection
-                transportation_keywords = ['how do i get', 'how can i get', 'how to get', 'route to', 
-                                           'from', 'directions to', 'navigate to', 'take me to', 'go to',
-                                           'way to', 'best way to', 'how can i reach', 'how do i reach',
-                                           'nasıl giderim', 'nasıl gidebilirim', 'metro', 'otobüs']
-                is_transportation = (
-                    intent_value in ['transportation', 'directions', 'route', 'navigate'] or
-                    any(keyword in query_lower for keyword in transportation_keywords)
-                )
+                try:
+                    # Timeout intent detection at 3 seconds to prevent blocking
+                    intent_result = await asyncio.wait_for(
+                        detect_query_intent(request.message, request.user_location),
+                        timeout=3.0
+                    )
+                    logger.info(f"🎯 Streaming LLM Intent: {intent_result.intent.value} (confidence: {intent_result.confidence:.2f})")
+                    
+                    is_transportation = intent_result.is_transportation and intent_result.confidence >= 0.6
+                    
+                    if is_transportation:
+                        logger.info("🚦 Transportation intent detected by LLM")
+                    else:
+                        logger.info(f"🚦 Non-transportation intent: {intent_result.intent.value}")
+                except asyncio.TimeoutError:
+                    logger.warning("⏱️ LLM Intent detection timed out (3s), using fast keyword detection")
+                    # Fast fallback to keyword detection
+                    transportation_keywords = ['how do i get', 'how to get', 'route to', 'from', 
+                                               'directions to', 'go to', 'way to', 'metro', 'tram']
+                    is_transportation = any(keyword in query_lower for keyword in transportation_keywords)
+                except Exception as e:
+                    logger.error(f"❌ LLM Intent Detection failed in streaming: {str(e)}, falling back to keyword detection")
+                    # Fallback to keyword detection
+                    transportation_keywords = ['how do i get', 'how can i get', 'how to get', 'route to', 
+                                               'from', 'directions to', 'navigate to', 'take me to', 'go to',
+                                               'way to', 'best way to', 'how can i reach', 'how do i reach',
+                                               'nasıl giderim', 'nasıl gidebilirim', 'metro', 'otobüs']
+                    is_transportation = any(keyword in query_lower for keyword in transportation_keywords)
             
             # Check if query asks for route alternatives/options (only if transportation)
             use_multi_route = False
