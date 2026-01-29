@@ -2,12 +2,12 @@
  * Enhanced Service Worker
  * Integrates map tile caching, periodic sync, and improved offline handling
  * 
- * @version 2.8.0
+ * @version 2.9.0
  * @features Map tiles (OSM + CARTO), Periodic sync, Background sync, Push notifications, Cache busting for JS/CSS
- * @updated 2025-01-27 - Added CARTO map tile support, CDN allowlist for Leaflet icons
+ * @updated 2025-01-29 - Fixed CSP issues by bypassing map tile and CDN requests (let browser handle)
  */
 
-const CACHE_VERSION = 'ai-istanbul-v2.8.0';
+const CACHE_VERSION = 'ai-istanbul-v2.9.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const MAP_TILES_CACHE = 'map-tiles-v2.1';
@@ -115,25 +115,30 @@ self.addEventListener('fetch', (event) => {
   
   const url = new URL(request.url);
 
-  // Bypass service worker for external analytics and fonts
+  // Bypass service worker for external domains - let browser handle directly
+  // This prevents CSP issues since the browser context has proper CSP permissions
   const externalDomains = [
     'google-analytics.com',
     'googletagmanager.com', 
     'analytics.google.com',
     'fonts.googleapis.com',
-    'fonts.gstatic.com'
+    'fonts.gstatic.com',
+    // Map tile providers - let browser handle to avoid CSP issues
+    'tile.openstreetmap.org',
+    'basemaps.cartocdn.com',
+    // CDN providers for Leaflet icons and assets
+    'cdnjs.cloudflare.com',
+    'unpkg.com'
   ];
   
   if (externalDomains.some(domain => url.hostname.includes(domain))) {
     // Let browser handle these directly - don't intercept
+    // This avoids CSP issues in the service worker context
     return;
   }
 
-  // Handle map tiles separately (OpenStreetMap and CARTO)
-  if (MAP_TILE_PATTERN.test(request.url) || CARTO_TILE_PATTERN.test(request.url)) {
-    event.respondWith(handleMapTileRequest(request));
-    return;
-  }
+  // REMOVED: Map tile handling - now bypassed above to avoid CSP issues
+  // Map tiles are handled by the browser directly which has proper CSP permissions
 
   // CRITICAL FIX: Let API requests pass through directly to network
   // Don't intercept them - the app has its own error handling

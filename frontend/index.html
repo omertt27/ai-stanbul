@@ -49,6 +49,18 @@
     <!-- Prevent indexing of sensitive content -->
     <meta name="googlebot" content="noarchive, nosnippet, nocache" />
     <meta name="bingbot" content="noarchive, nosnippet, nocache" />
+    
+    <!-- Content Security Policy for map tiles and external resources -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://unpkg.com https://cdnjs.cloudflare.com;
+      style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com https://cdnjs.cloudflare.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+      img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org https://unpkg.com https://cdnjs.cloudflare.com https://*.google.com https://*.googleapis.com;
+      connect-src 'self' https://ai-stanbul-509659445005.europe-west1.run.app https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org https://www.google-analytics.com https://www.googletagmanager.com https://unpkg.com https://cdnjs.cloudflare.com wss://* ws://*;
+      frame-src 'self' https://www.google.com;
+      worker-src 'self' blob:;
+    " />
   </head>
   <body>
     <div id="root">

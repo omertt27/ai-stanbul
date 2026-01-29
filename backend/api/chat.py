@@ -918,41 +918,81 @@ async def pure_llm_chat(
             logger.warning(f"RAG retrieval failed: {e}")
             rag_context = None
         
-        # 🔥 FIX #1: GATE - LLM-based intent detection for transportation queries
+        # 🔥 FIX #1: GATE - Intent detection for transportation queries
         # Do NOT skip Pure LLM (it generates the response), but flag for structured mode
         force_structured_mode = False
         force_intent = None
         force_confidence = None
         
-        # Use LLM-based intent detection instead of keyword matching
-        from services.llm_intent_detector import detect_query_intent
+        # === OPTIMIZED INTENT DETECTION ===
+        # Step 1: Fast-path keyword detection (no LLM call needed for clear cases)
+        # This reduces response time by ~2-3s for obvious transportation queries
+        query_lower = request.message.lower()
         
-        try:
-            intent_result = await detect_query_intent(request.message, request.user_location)
-            logger.info(f"🎯 LLM Intent Detection: {intent_result.intent.value} (confidence: {intent_result.confidence:.2f}) - {intent_result.reasoning}")
+        # Strong transportation indicators (high confidence without LLM)
+        strong_transport_patterns = [
+            'how do i get to', 'how can i get to', 'how to get to', 
+            'directions to', 'route to', 'navigate to',
+            'nasıl giderim', 'nasıl gidebilirim', 'nasıl ulaşırım',
+            'from taksim to', 'from kadıköy to', 'from sultanahmet to',
+            'taksim to', 'kadıköy to', 'sultanahmet to',
+            'get to taksim', 'get to kadıköy', 'get to sultanahmet',
+            'way to get to', 'best way to'
+        ]
+        
+        # Non-transportation indicators (skip LLM call for these)
+        non_transport_patterns = [
+            'what is', 'tell me about', 'recommend', 'best restaurant',
+            'weather', 'hello', 'hi', 'merhaba', 'history of',
+            'what are', 'where can i eat', 'good food', 'attractions',
+            'tourist', 'museum', 'culture', 'event', 'shopping'
+        ]
+        
+        # Fast-path detection
+        is_clear_transport = any(pattern in query_lower for pattern in strong_transport_patterns)
+        is_clear_non_transport = any(pattern in query_lower for pattern in non_transport_patterns)
+        
+        if is_clear_transport and not is_clear_non_transport:
+            # Clear transportation query - skip LLM intent detection
+            logger.info("🚀 FAST-PATH: Clear transportation query detected (skipping LLM intent detection)")
+            force_structured_mode = True
+            force_intent = "transportation"
+            force_confidence = 0.85
+        elif is_clear_non_transport and not is_clear_transport:
+            # Clear non-transportation query - skip LLM intent detection
+            logger.info("🚀 FAST-PATH: Clear non-transportation query detected (skipping LLM intent detection)")
+            force_structured_mode = False
+            force_intent = None
+            force_confidence = None
+        else:
+            # Ambiguous case - use LLM intent detection
+            from services.llm_intent_detector import detect_query_intent
             
-            if intent_result.is_transportation and intent_result.confidence >= 0.6:
-                logger.info("🚦 GATE: Transportation intent detected by LLM - forcing structured mode")
-                force_structured_mode = True
-                force_intent = intent_result.intent.value
-                force_confidence = intent_result.confidence
-            else:
-                logger.info(f"🚦 GATE: Non-transportation intent ({intent_result.intent.value}) - proceeding with normal mode")
+            try:
+                intent_result = await detect_query_intent(request.message, request.user_location)
+                logger.info(f"🎯 LLM Intent Detection: {intent_result.intent.value} (confidence: {intent_result.confidence:.2f}) - {intent_result.reasoning}")
                 
-        except Exception as e:
-            logger.error(f"❌ LLM Intent Detection failed: {str(e)}, falling back to keyword detection")
-            # Fallback to keyword detection
-            query_lower = request.message.lower()
-            transportation_keywords = [
-                'how do i get', 'how can i get', 'how to get', 'route to', 'way to', 
-                'from', 'directions to', 'navigate to', 'take me to', 'go to',
-                'nasıl giderim', 'nasıl gidebilirim', 'nasıl ulaşırım', 'metro', 'otobüs'
-            ]
-            if any(keyword in query_lower for keyword in transportation_keywords):
-                logger.info("🚦 GATE: Transportation query detected by fallback keywords - forcing structured mode")
-                force_structured_mode = True
-                force_intent = "transportation"
-                force_confidence = 0.70
+                if intent_result.is_transportation and intent_result.confidence >= 0.6:
+                    logger.info("🚦 GATE: Transportation intent detected by LLM - forcing structured mode")
+                    force_structured_mode = True
+                    force_intent = intent_result.intent.value
+                    force_confidence = intent_result.confidence
+                else:
+                    logger.info(f"🚦 GATE: Non-transportation intent ({intent_result.intent.value}) - proceeding with normal mode")
+                    
+            except Exception as e:
+                logger.error(f"❌ LLM Intent Detection failed: {str(e)}, falling back to keyword detection")
+                # Fallback to basic keyword detection
+                transportation_keywords = [
+                    'how do i get', 'how can i get', 'how to get', 'route to', 'way to', 
+                    'from', 'directions to', 'navigate to', 'take me to', 'go to',
+                    'nasıl giderim', 'nasıl gidebilirim', 'nasıl ulaşırım', 'metro', 'otobüs'
+                ]
+                if any(keyword in query_lower for keyword in transportation_keywords):
+                    logger.info("🚦 GATE: Transportation query detected by fallback keywords - forcing structured mode")
+                    force_structured_mode = True
+                    force_intent = "transportation"
+                    force_confidence = 0.70
         
         # Process query through Pure LLM
         # Use auto-detected language (effective_language) instead of request.language
@@ -1010,63 +1050,74 @@ async def pure_llm_chat(
         response_time = time.time() - start_time
         
         # === EXTRACT MAPDATA FROM TRANSPORTATION RAG ===
-        # 🔥 CRITICAL FIX: Extract route AFTER LLM processing (when last_route is set)
-        # The transportation RAG is called during pure_llm_core.process_query() above
-        # So last_route is NOW available (previously it was null)
+        # 🔥 CRITICAL FIX: Only extract route data for TRANSPORTATION queries
+        # Previously, we extracted route data unconditionally, which caused stale routes
+        # from previous queries to leak into non-transportation responses
         map_data_from_transport = None
         route_data_from_transport = None
-        try:
-            from services.transportation_rag_system import get_transportation_rag
-            transport_rag = get_transportation_rag()
-            
-            logger.info(f"🔍 Checking transport_rag.last_route: {transport_rag.last_route is not None if transport_rag else 'transport_rag is None'}")
-            
-            if transport_rag:
-                # Get map data for visualization
-                map_data_from_transport = transport_rag.get_map_data_for_last_route()
+        
+        # 🚦 GATE: Only extract route data if this is a transportation query
+        is_transportation_query = (
+            force_structured_mode or  # LLM-detected transportation intent
+            force_intent == "transportation" or  # Explicitly forced
+            (result and result.get('signals', {}).get('needs_transportation'))  # Signal from LLM
+        )
+        
+        if is_transportation_query:
+            try:
+                from services.transportation_rag_system import get_transportation_rag
+                transport_rag = get_transportation_rag()
                 
-                # 🔥 DIRECT FIX: Enrich route_data directly from last_route
-                if transport_rag.last_route:
-                    logger.info(f"✅ Found last_route: {transport_rag.last_route.origin} → {transport_rag.last_route.destination}")
+                logger.info(f"🔍 [TRANSPORT QUERY] Checking transport_rag.last_route: {transport_rag.last_route is not None if transport_rag else 'transport_rag is None'}")
+                
+                if transport_rag:
+                    # Get map data for visualization
+                    map_data_from_transport = transport_rag.get_map_data_for_last_route()
                     
-                    # Build basic route_data from last_route
-                    basic_route_data = {
-                        'origin': transport_rag.last_route.origin,
-                        'destination': transport_rag.last_route.destination,
-                        'steps': transport_rag.last_route.steps,
-                        'total_time': transport_rag.last_route.total_time,
-                        'total_distance': transport_rag.last_route.total_distance,
-                        'transfers': transport_rag.last_route.transfers,
-                        'lines_used': transport_rag.last_route.lines_used
-                    }
-                    
-                    # Enrich it directly with canonical IDs
-                    route_data_from_transport = transport_rag.station_normalizer.enrich_route_data(basic_route_data)
-                    
-                    logger.info(f"✅ Directly enriched route_data:")
-                    logger.info(f"   Origin: {route_data_from_transport.get('origin')} (ID: {route_data_from_transport.get('origin_station_id')})")
-                    logger.info(f"   Dest: {route_data_from_transport.get('destination')} (ID: {route_data_from_transport.get('destination_station_id')})")
-                    logger.info(f"   Steps: {len(route_data_from_transport.get('steps', []))}")
-                    
-                    # Also update map_data metadata with enriched route_data
-                    if map_data_from_transport and 'metadata' in map_data_from_transport:
-                        map_data_from_transport['metadata']['route_data'] = route_data_from_transport
-                        logger.info(f"   ✅ Updated map_data.metadata with enriched route_data")
-                else:
-                    logger.warning("⚠️  No last_route available for enrichment")
-                    # Fallback to basic route_data if no last_route
-                    if map_data_from_transport and 'metadata' in map_data_from_transport:
-                        route_data_from_transport = {
-                            'origin': 'Unknown',
-                            'destination': 'Unknown',
-                            'steps': [],
-                            'total_time': map_data_from_transport.get('metadata', {}).get('total_time', 0),
-                            'total_distance': map_data_from_transport.get('metadata', {}).get('total_distance', 0),
-                            'transfers': map_data_from_transport.get('metadata', {}).get('transfers', 0),
-                            'lines_used': map_data_from_transport.get('metadata', {}).get('lines_used', [])
+                    # 🔥 DIRECT FIX: Enrich route_data directly from last_route
+                    if transport_rag.last_route:
+                        logger.info(f"✅ Found last_route: {transport_rag.last_route.origin} → {transport_rag.last_route.destination}")
+                        
+                        # Build basic route_data from last_route
+                        basic_route_data = {
+                            'origin': transport_rag.last_route.origin,
+                            'destination': transport_rag.last_route.destination,
+                            'steps': transport_rag.last_route.steps,
+                            'total_time': transport_rag.last_route.total_time,
+                            'total_distance': transport_rag.last_route.total_distance,
+                            'transfers': transport_rag.last_route.transfers,
+                            'lines_used': transport_rag.last_route.lines_used
                         }
-        except Exception as e:
-            logger.warning(f"Failed to extract mapData from transportation RAG: {e}")
+                        
+                        # Enrich it directly with canonical IDs
+                        route_data_from_transport = transport_rag.station_normalizer.enrich_route_data(basic_route_data)
+                        
+                        logger.info(f"✅ Directly enriched route_data:")
+                        logger.info(f"   Origin: {route_data_from_transport.get('origin')} (ID: {route_data_from_transport.get('origin_station_id')})")
+                        logger.info(f"   Dest: {route_data_from_transport.get('destination')} (ID: {route_data_from_transport.get('destination_station_id')})")
+                        logger.info(f"   Steps: {len(route_data_from_transport.get('steps', []))}")
+                        
+                        # Also update map_data metadata with enriched route_data
+                        if map_data_from_transport and 'metadata' in map_data_from_transport:
+                            map_data_from_transport['metadata']['route_data'] = route_data_from_transport
+                            logger.info(f"   ✅ Updated map_data.metadata with enriched route_data")
+                    else:
+                        logger.warning("⚠️  No last_route available for enrichment")
+                        # Fallback to basic route_data if no last_route
+                        if map_data_from_transport and 'metadata' in map_data_from_transport:
+                            route_data_from_transport = {
+                                'origin': 'Unknown',
+                                'destination': 'Unknown',
+                                'steps': [],
+                                'total_time': map_data_from_transport.get('metadata', {}).get('total_time', 0),
+                                'total_distance': map_data_from_transport.get('metadata', {}).get('total_distance', 0),
+                                'transfers': map_data_from_transport.get('metadata', {}).get('transfers', 0),
+                                'lines_used': map_data_from_transport.get('metadata', {}).get('lines_used', [])
+                            }
+            except Exception as e:
+                logger.warning(f"Failed to extract mapData from transportation RAG: {e}")
+        else:
+            logger.info(f"🚦 [NON-TRANSPORT QUERY] Skipping route data extraction (force_structured={force_structured_mode}, force_intent={force_intent})")
         
         # If RAG was used, post-process the response to ensure it's grounded in the retrieved data
         if rag_used and rag_context:
@@ -1081,12 +1132,11 @@ async def pure_llm_chat(
             logger.info(f"Pure LLM response generated in {response_time:.2f}s (RAG: ✗)")
         
         # 🔥 CRITICAL FIX: Re-extract route_data AFTER Pure LLM processing
-        # The Pure LLM call triggers transportation RAG which sets last_route
-        # We need to extract it here, AFTER the LLM has processed the query
+        # But ONLY for transportation queries - avoid leaking stale route data
         logger.info(f"🔍 POST-LLM Check: route_data_from_transport is {'None' if not route_data_from_transport else 'SET'}")
         
-        if not route_data_from_transport:
-            logger.info("🔥 POST-LLM: Attempting to extract route data...")
+        if not route_data_from_transport and is_transportation_query:
+            logger.info("🔥 POST-LLM: [TRANSPORT QUERY] Attempting to extract route data...")
             try:
                 from services.transportation_rag_system import get_transportation_rag
                 transport_rag_post = get_transportation_rag()
@@ -1122,11 +1172,13 @@ async def pure_llm_chat(
                     logger.warning("⚠️ POST-LLM: last_route is None - transportation RAG may not have been called")
             except Exception as e:
                 logger.error(f"POST-LLM route extraction failed: {e}", exc_info=True)
+        elif not route_data_from_transport:
+            logger.info(f"🚦 POST-LLM: [NON-TRANSPORT QUERY] Skipping route extraction")
         
-        # Extract route_data from map_data if present
+        # Extract route_data from map_data if present (only for transport queries)
         route_data = None
         map_data = result.get('map_data')
-        if map_data and isinstance(map_data, dict):
+        if is_transportation_query and map_data and isinstance(map_data, dict):
             # If map_data contains route_data, extract it
             if 'route_data' in map_data:
                 route_data = map_data['route_data']
@@ -1137,7 +1189,8 @@ async def pure_llm_chat(
         # === LLM ROUTE EXTRACTION: For landmarks not in database ===
         # Try to extract route data from LLM response if we don't have complete data
         # This handles landmarks (Galataport, Grand Bazaar, etc.) that aren't transit stations
-        if not map_data or not route_data:
+        # But ONLY for transportation queries
+        if is_transportation_query and (not map_data or not route_data):
             try:
                 from services.llm_route_extractor import get_llm_route_extractor
                 
@@ -1343,7 +1396,8 @@ async def pure_llm_chat(
             final_intent = "transportation"
             final_confidence = 0.80  # 0.80
             logger.info(f"🔒 FORCED: llm_mode={llm_mode}, intent={final_intent}, confidence={final_confidence}")
-        elif route_data_from_transport or route_data:
+        elif is_transportation_query and (route_data_from_transport or route_data):
+            # Only set transportation mode if this IS a transportation query
             llm_mode = "explain"  # Explaining a verified route
             final_intent = "transportation"
             final_confidence = 0.85
@@ -1392,75 +1446,85 @@ async def pure_llm_chat(
                         final_response = "I found a route for you. Please check the map for details."
         
         # Use route_data_from_transport if available, otherwise fall back to extracted route_data
-        final_route_data = route_data_from_transport or route_data
+        # ONLY set route data for transportation queries to prevent stale data leakage
+        final_route_data = None
+        if is_transportation_query:
+            final_route_data = route_data_from_transport or route_data
         
         # 🌍 Priority #3: Translate final response to user's language
         translated_response = translate_if_needed(final_response, effective_language)
         
         # CRITICAL: Merge multi-route data into map_data for frontend
         # Priority: transport RAG > result > LLM extractor
-        final_map_data = map_data_from_transport or result.get('map_data') or map_data
+        # For non-transportation queries, only use map_data from result (for restaurants, etc.)
+        # Do NOT use map_data_from_transport for non-transport queries (would leak stale routes)
+        if is_transportation_query:
+            final_map_data = map_data_from_transport or result.get('map_data') or map_data
+        else:
+            # For non-transport queries, only use map_data from result (e.g., restaurant/POI locations)
+            final_map_data = result.get('map_data')
         
-        # Try to get transport alternatives from context builder
+        # Try to get transport alternatives from context builder (only for transport queries)
         # The context builder stores it but we need to access it from the result
-        try:
-            # Check if context was built and has transport alternatives
-            if pure_llm_core and hasattr(pure_llm_core, 'context_builder'):
-                ctx_builder = pure_llm_core.context_builder
-                if hasattr(ctx_builder, '_transport_alternatives') and ctx_builder._transport_alternatives:
-                    transport_alts = ctx_builder._transport_alternatives
-                    
-                    if transport_alts and (transport_alts.get('alternatives') or transport_alts.get('primary_route')):
-                        logger.info(f"🗺️ Merging multi-route data into map_data for frontend")
+        if is_transportation_query:
+            try:
+                # Check if context was built and has transport alternatives
+                if pure_llm_core and hasattr(pure_llm_core, 'context_builder'):
+                    ctx_builder = pure_llm_core.context_builder
+                    if hasattr(ctx_builder, '_transport_alternatives') and ctx_builder._transport_alternatives:
+                        transport_alts = ctx_builder._transport_alternatives
                         
-                        if not final_map_data:
-                            final_map_data = {}
-                        
-                        # Normalize alternative routes to frontend-expected format
-                        normalized_alts = []
-                        for alt in transport_alts.get('alternatives', []):
-                            # Handle route optimizer format (has nested 'route' object)
-                            if 'route' in alt:
-                                route = alt['route']
-                                normalized_alts.append({
-                                    'total_time': route.get('total_duration') or alt.get('duration_minutes'),
-                                    'lines_used': route.get('modes_used', []),
-                                    'transfers': alt.get('num_transfers', 0),
-                                    'total_distance': route.get('total_distance', 0),
-                                    'steps': route.get('steps', []),
-                                    'summary': route.get('summary', ''),
-                                    'preference': alt.get('preference', 'alternative'),
-                                    'comfort_score': alt.get('comfort_score', {}).get('overall_comfort'),
-                                    'highlights': alt.get('highlights', [])
-                                })
-                            # Handle transportation RAG format (flat structure)
-                            elif 'total_time' in alt:
-                                normalized_alts.append(alt)
-                            # Handle other formats
-                            else:
-                                normalized_alts.append({
-                                    'total_time': alt.get('duration_minutes') or alt.get('total_duration'),
-                                    'lines_used': alt.get('modes_used', []),
-                                    'transfers': alt.get('transfers', 0),
-                                    'steps': alt.get('steps', []),
-                                    'summary': str(alt)
-                                })
-                        
-                        # Add multi-route data
-                        final_map_data.update({
-                            'type': 'multi_route',
-                            'multi_routes': normalized_alts,
-                            'primary_route': transport_alts.get('primary_route'),
-                            'route_comparison': transport_alts.get('route_comparison', {})
-                        })
-                        
-                        # Preserve existing map_data if present
-                        if transport_alts.get('map_data'):
-                            final_map_data.update(transport_alts['map_data'])
-                        
-                        logger.info(f"✅ Added {len(normalized_alts)} route alternatives to map_data")
-        except Exception as e:
-            logger.warning(f"Failed to merge multi-route data: {e}")
+                        if transport_alts and (transport_alts.get('alternatives') or transport_alts.get('primary_route')):
+                            logger.info(f"🗺️ Merging multi-route data into map_data for frontend")
+                            
+                            if not final_map_data:
+                                final_map_data = {}
+                            
+                            # Normalize alternative routes to frontend-expected format
+                            normalized_alts = []
+                            for alt in transport_alts.get('alternatives', []):
+                                # Handle route optimizer format (has nested 'route' object)
+                                if 'route' in alt:
+                                    route = alt['route']
+                                    normalized_alts.append({
+                                        'total_time': route.get('total_duration') or alt.get('duration_minutes'),
+                                        'lines_used': route.get('modes_used', []),
+                                        'transfers': alt.get('num_transfers', 0),
+                                        'total_distance': route.get('total_distance', 0),
+                                        'steps': route.get('steps', []),
+                                        'summary': route.get('summary', ''),
+                                        'preference': alt.get('preference', 'alternative'),
+                                        'comfort_score': alt.get('comfort_score', {}).get('overall_comfort'),
+                                        'highlights': alt.get('highlights', [])
+                                    })
+                                # Handle transportation RAG format (flat structure)
+                                elif 'total_time' in alt:
+                                    normalized_alts.append(alt)
+                                # Handle other formats
+                                else:
+                                    normalized_alts.append({
+                                        'total_time': alt.get('duration_minutes') or alt.get('total_duration'),
+                                        'lines_used': alt.get('modes_used', []),
+                                        'transfers': alt.get('transfers', 0),
+                                        'steps': alt.get('steps', []),
+                                        'summary': str(alt)
+                                    })
+                            
+                            # Add multi-route data
+                            final_map_data.update({
+                                'type': 'multi_route',
+                                'multi_routes': normalized_alts,
+                                'primary_route': transport_alts.get('primary_route'),
+                                'route_comparison': transport_alts.get('route_comparison', {})
+                            })
+                            
+                            # Preserve existing map_data if present
+                            if transport_alts.get('map_data'):
+                                final_map_data.update(transport_alts['map_data'])
+                            
+                            logger.info(f"✅ Added {len(normalized_alts)} route alternatives to map_data")
+            except Exception as e:
+                logger.warning(f"Failed to merge multi-route data: {e}")
         
         # === PHASE 5B: EXTRACT UNIFIEDLLMSERVICE METADATA ===
         # Extract caching, backend, and performance metrics from UnifiedLLMService

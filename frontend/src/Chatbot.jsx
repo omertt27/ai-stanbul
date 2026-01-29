@@ -1483,10 +1483,11 @@ function Chatbot({ userLocation: propUserLocation }) {
   }, []);
 
   useEffect(() => {
-    // Periodic API health checks
+    // Periodic API health checks - reduced frequency to minimize console spam
     const checkHealth = async () => {
       try {
-        const isHealthy = await checkApiHealth();
+        const result = await checkApiHealth();
+        const isHealthy = result?.healthy ?? result;
         setApiHealth(isHealthy ? 'healthy' : 'unhealthy');
         
         // If API is healthy, reset circuit breakers to allow requests
@@ -1494,12 +1495,13 @@ function Chatbot({ userLocation: propUserLocation }) {
           resetAllCircuitBreakers();
         }
       } catch (error) {
+        // Silently handle health check failures - don't spam console
         setApiHealth('error');
       }
     };
 
     checkHealth();
-    const interval = setInterval(checkHealth, 30000); // Check every 30 seconds
+    const interval = setInterval(checkHealth, 60000); // Check every 60 seconds (reduced from 30)
     return () => clearInterval(interval);
   }, []);
 
@@ -2429,21 +2431,11 @@ function Chatbot({ userLocation: propUserLocation }) {
                           </div>
                           
                           {/* Route Card for mobile - show if route data present */}
-                          {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (() => {
-                            console.log('🗺️ RouteCard Debug (Mobile):', {
-                              hasMapData: !!msg.mapData,
-                              hasRouteData: !!msg.routeData,
-                              hasMap_data: !!msg.map_data,
-                              hasRoute_info: !!msg.route_info,
-                              msgKeys: Object.keys(msg),
-                              fullMsg: msg
-                            });
-                            return (
+                          {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
                               <div className="mt-3">
                                 <RouteCard routeData={msg} />
                               </div>
-                            );
-                          })()}
+                          )}
                         </div>
                       </div>
                     </SwipeableMessage>
@@ -2584,25 +2576,11 @@ function Chatbot({ userLocation: propUserLocation }) {
                         
                         {/* PRIORITY 1: Enhanced Route Card with Map - Mobile-style visualization */}
                         {/* Shows when backend provides route_info + map_data (new route system) */}
-                        {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (() => {
-                          console.log('🗺️ RouteCard Debug (Desktop):', {
-                            hasMapData: !!msg.mapData,
-                            hasRouteData: !!msg.routeData,
-                            hasMap_data: !!msg.map_data,
-                            hasRoute_info: !!msg.route_info,
-                            msgKeys: Object.keys(msg),
-                            mapData: msg.mapData,
-                            routeData: msg.routeData,
-                            map_data: msg.map_data,
-                            route_info: msg.route_info,
-                            fullMsg: msg
-                          });
-                          return (
+                        {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
                             <div className="mt-4">
                               <RouteCard routeData={msg} />
                             </div>
-                          );
-                        })()}
+                        )}
                         
                         {/* PRIORITY 2: FALLBACK - Transportation Route Card (Legacy) */}
                         {/* Only show if RouteCard data is NOT present */}
