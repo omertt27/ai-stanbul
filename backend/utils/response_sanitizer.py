@@ -30,11 +30,16 @@ class ResponseSanitizer:
             r"^Language detected:?\s*\w+\.?\s*",
             r"^Detected language:?\s*\w+\.?\s*",
             r"^Query language:?\s*\w+\.?\s*",
+            r"^The query is in \w+\.?\s*",
+            r"^This query is in \w+\.?\s*",
             # More flexible patterns (can appear anywhere in text)
             r"I detect that the user's query is in \w+\.?\s*(?:Here's my response:?)?\s*",
             r"Based on the user's query,?\s*I detect that the language is \w+\.?\s*(?:Here's my)?\s*(?:response:?)?\s*",
             r"I detect that the language is \w+\.?\s*",
             r"I've detected that the (?:user's )?query is in \w+\.?\s*",
+            r"I notice (?:that )?the (?:user's )?query is in \w+\.?\s*",
+            r"Since the query is in \w+,?\s*",
+            r"As the query is in \w+,?\s*",
             
             # === Internal instruction leakage / Meta-notes ===
             r"\(Note:.*?(?:as per your request|per the instructions|as instructed|you asked)\.?\)\s*",

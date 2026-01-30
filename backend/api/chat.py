@@ -676,32 +676,13 @@ async def pure_llm_chat(
     # The explicit request.language should take priority
     # Only auto-detect if no explicit language is provided
     
-    # === ENHANCED LANGUAGE DETECTION ===
-    # FIXED PRIORITY: 1) Explicit request.language (if provided), 2) Auto-detect from query, 3) Session history, 4) Default 'en'
-    # When language is None (default), we auto-detect from the query text
-    # Llama 3.1 8B is multilingual and will respond in the user's language
+    # === LLM HANDLES LANGUAGE AUTOMATICALLY ===
+    # Llama 3.1 8B is multilingual and will naturally respond in the same language as the query
+    # No need for complex language detection logic - just let the LLM handle it
+    # We pass 'auto' to indicate the LLM should match the query's language
+    effective_language = 'auto'
+    logger.info(f"🌍 Language: Letting LLM detect and match query language automatically")
     
-    if request.language is not None:
-        # User explicitly provided a language - honor it
-        effective_language = request.language
-        logger.info(f"🌍 Using explicit request language: {effective_language}")
-    else:
-        # No explicit language - auto-detect from query text
-        input_language = detect_input_language(request.message)
-        logger.info(f"🌍 Auto-detected language: {input_language}")
-        
-        if input_language != 'en':
-            # Detected a non-English language
-            effective_language = input_language
-        elif session_language and session_language != 'en':
-            # Use session language if query looks English but session was in another language
-            effective_language = session_language
-            logger.info(f"🌍 Using session language (query ambiguous): {effective_language}")
-        else:
-            # Default to English
-            effective_language = 'en'
-            
-    logger.info(f"🌍 Final effective language: {effective_language}")
     user_context['language'] = effective_language
     user_context['conversation_history'] = conversation_history_for_llm  # Add history to context
     

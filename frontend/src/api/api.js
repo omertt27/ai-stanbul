@@ -170,18 +170,21 @@ export const fetchUnifiedChat = async (query, options = {}) => {
       const sessionId = options.sessionId || getSessionId();
       const userId = options.userId || 'anonymous';
       const gpsLocation = options.gpsLocation || null;
+      const language = options.language || 'en';  // Add language support
       
       console.log('🎯 Making chat API request:', {
         url: API_URL,
         query: query.substring(0, 50) + '...',
         sessionId,
+        language,  // Log language
         hasGPS: !!gpsLocation
       });
       
       const requestBody = { 
         message: query,
         session_id: sessionId,
-        user_id: userId
+        user_id: userId,
+        language: language  // Include language in request
       };
       
       // Add GPS location if available (backend expects user_location with lat/lon)

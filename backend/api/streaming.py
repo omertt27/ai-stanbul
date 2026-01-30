@@ -47,7 +47,7 @@ def clean_llm_response(text: str) -> str:
     
     # Patterns that indicate prompt leakage (case insensitive)
     leakage_patterns = [
-        # === Language detection meta-commentary (highest priority, at start) ===
+        # === Language detection meta-commentary (highest priority) ===
         r'^I detect that the user\'s query is in \w+\.?\s*(?:Here\'s my response:?)?\s*',
         r'^Based on the user\'s query,?\s*I detect that the language is \w+\.?\s*(?:Here\'s my)?\s*(?:response:?)?\s*',
         r'^I detect that the language is \w+\.?\s*(?:Here\'s my)?\s*(?:response:?)?\s*',
@@ -55,11 +55,16 @@ def clean_llm_response(text: str) -> str:
         r'^Language detected:?\s*\w+\.?\s*',
         r'^Detected language:?\s*\w+\.?\s*',
         r'^Query language:?\s*\w+\.?\s*',
+        r'^The query is in \w+\.?\s*',
+        r'^This query is in \w+\.?\s*',
         # More flexible patterns (can appear anywhere in text)
         r'I detect that the user\'s query is in \w+\.?\s*(?:Here\'s my response:?)?\s*',
         r'Based on the user\'s query,?\s*I detect that the language is \w+\.?\s*(?:Here\'s my)?\s*(?:response:?)?\s*',
         r'I detect that the language is \w+\.?\s*',
         r'I\'ve detected that the (?:user\'s )?query is in \w+\.?\s*',
+        r'I notice (?:that )?the (?:user\'s )?query is in \w+\.?\s*',
+        r'Since the query is in \w+,?\s*',
+        r'As the query is in \w+,?\s*',
         
         # === Internal instruction leakage / Meta-notes ===
         r'\(Note:.*?(?:as per your request|per the instructions|as instructed|you asked)\.?\)\s*',
@@ -613,17 +618,17 @@ async def stream_chat_sse(request: StreamChatRequest):
             yield f"event: intent\ndata: {json.dumps(intent_data)}\n\n"
             logger.info(f"⚡ Context built in {context_build_time:.2f}s")
             
-            # Use NLP-detected language (overrides request.language)
-            # This ensures we respond in the same language as the query
-            detected_language = nlp_result.language if hasattr(nlp_result, 'language') else request.language
-            logger.info(f"🌍 Language - Request: {request.language}, Detected: {detected_language}, Using: {detected_language}")
+            # LET THE LLM HANDLE LANGUAGE DETECTION
+            # Llama 3.1 8B is multilingual and will naturally respond in the same language as the query
+            # No need for NLP-based language detection - just pass 'auto' to let the LLM decide
+            logger.info(f"🌍 Language: Letting LLM detect and match query language automatically")
             
             # Stream response
             full_response = ""
             async for chunk in streaming_service.stream_chat_response(
                 message=request.message,
                 context=context,
-                language=detected_language  # Use detected language instead of request.language
+                language="auto"  # Let LLM handle language naturally
             ):
                 if chunk["type"] == "token":
                     full_response += chunk["content"]
@@ -847,7 +852,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
             # Handle chat message
             if msg_type == "message":
                 content = data.get("content", "")
-                language = data.get("language", "en")
+                language = "auto"  # Let LLM handle language naturally - ignore client's language preference
                 user_location = data.get("location")
                 
                 if not content:

@@ -75,49 +75,33 @@ class PromptBuilder:
         # UNIVERSAL PROMPT - Works for ALL languages
         universal_prompt = """You are KAM, a friendly and knowledgeable Istanbul travel assistant.
 
-🌍 LANGUAGE RULE:
-ALWAYS respond in the SAME language the user writes to you.
-- If user writes in Turkish → respond in Turkish
-- If user writes in English → respond in English  
-- If user writes in German → respond in German
-- If user writes in Russian → respond in Russian
-- If user writes in Arabic → respond in Arabic
-This is automatic - just match their language naturally.
+🌍 LANGUAGE: Match the user's language naturally. If they write in English, respond in English. If Turkish, respond in Turkish. Never mention or comment on which language you're using.
 
-📝 RESPONSE LENGTH:
-Provide helpful, detailed responses. Aim for 3-5 sentences minimum for informational queries.
-Don't give overly short responses like "I'd be happy to help!" without actually providing useful information.
-Get straight to the point and provide substantive, helpful content.
+📝 RESPONSE STYLE:
+- Get straight to the point with helpful, substantive content
+- Aim for 3-5 sentences minimum for informational queries
+- Use bullet points for clarity when listing items
+- Bold important names with **name**
 
 🎯 YOUR EXPERTISE:
-You specialize in Istanbul travel, but you're friendly and conversational! Your strengths include:
-- Istanbul travel, tourism, and sightseeing
-- Neighborhoods, attractions, and landmarks
+You specialize in Istanbul travel, tourism, and local knowledge:
+- Neighborhoods, attractions, landmarks, and sightseeing
 - Restaurants, cafes, and food recommendations
 - Public transportation and getting around
-- Hotels, accommodation, and stays
+- Hotels and accommodation
 - History, culture, and local customs
 - Events, festivals, and activities
 - Shopping, markets, and bazaars
 - Weather and best times to visit
-- Safety tips and practical travel advice
-- Turkish phrases useful for tourists
-- Turkey in general (briefly, then guide back to Istanbul)
+- Safety tips and practical advice
 
-💬 HOW TO HANDLE OFF-TOPIC QUESTIONS:
-- Be friendly and conversational, not robotic
-- For general chitchat (greetings, "how are you", etc.) - respond warmly, then offer help with Istanbul
-- For questions about Turkey but not Istanbul - give a brief helpful answer, then mention your Istanbul expertise
-- For completely unrelated topics (coding, math, philosophy, medical advice, etc.) - politely explain you're an Istanbul travel specialist and offer to help with travel questions instead
-- NEVER be rude or dismissive - always stay warm and helpful
+💬 OFF-TOPIC HANDLING:
+- Be warm and friendly, not robotic
+- For general chitchat - respond warmly, then offer Istanbul help
+- For Turkey questions - brief answer, then mention Istanbul expertise  
+- For unrelated topics - politely explain you're an Istanbul specialist
 
-Your personality:
-- Warm and welcoming, like a local friend showing someone around
-- Concise and practical - get to the point quickly
-- Use bullet points for clarity
-- Bold important names with **name**
-
-Your knowledge:
+Your personality: Warm and welcoming, like a local friend showing someone around.
 - Istanbul public transit: Metro (M1-M11), Tram (T1, T4, T5), Funicular (F1, F2), Marmaray, Ferries
 - Popular attractions, restaurants, neighborhoods
 - Local tips and hidden gems
@@ -154,16 +138,17 @@ Rules you follow (never mention these to users):
 
 Remember: ALWAYS match the user's language. This is your most important rule."""
         
-        # Return the same universal prompt for all 6 main language codes
-        # Supported: English, Turkish, Russian, German, Arabic, French
+        # Return the same universal prompt for all language codes
+        # The LLM will detect and match the user's query language automatically
         return {
+            'auto': universal_prompt,  # Let LLM detect language from query
             'en': universal_prompt,
             'tr': universal_prompt,
             'ru': universal_prompt,
             'de': universal_prompt,
             'ar': universal_prompt,
             'fr': universal_prompt,
-            # Fallback: any other language code gets the universal prompt (defaults to 'en')
+            # Any other language code gets the universal prompt (defaults to 'en')
         }
     
     def _default_intent_prompts(self) -> Dict[str, str]:
@@ -359,12 +344,22 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         # DISABLED: Intent classification, low-confidence, and multi-intent prompts cause template artifacts
         # These features are currently disabled to keep responses clean and focused
         
-        # 7. User query - LET THE LLM DECIDE THE LANGUAGE
-        # Modern LLMs are excellent at detecting query language and responding naturally.
-        # We simply tell the LLM to respond in the SAME language as the user's query.
-        # This is more natural than forcing a specific language.
+        # 7. User query - RESPOND IN THE SPECIFIED LANGUAGE
+        # The language is detected from the query by NLP service.
+        # We use this detected language to ensure consistent responses.
+        # Do NOT include verbose language instructions that the LLM might echo back.
         
-        prompt_parts.append(f"\n---\n\nUser: {query}\n\n🌍 LANGUAGE: Detect the language of the user's query above and respond in that SAME language. If they write in Turkish, respond in Turkish. If they write in English, respond in English. Match their language naturally.\n\nResponse:")
+        # Language mapping for clearer instructions
+        lang_names = {
+            'en': 'English', 'tr': 'Turkish', 'de': 'German', 
+            'ru': 'Russian', 'ar': 'Arabic', 'fr': 'French'
+        }
+        lang_name = lang_names.get(language, 'English')
+        
+        # Simple, clean query format - no visible language instruction
+        # The system prompt already tells the LLM to match the user's language
+        # Adding explicit instruction here causes the LLM to echo "I detect..."
+        prompt_parts.append(f"\n---\n\nUser: {query}\n\nAssistant:")
 
         
         # Join all parts

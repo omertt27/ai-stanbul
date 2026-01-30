@@ -360,12 +360,15 @@ class AdvancedNLPService:
             r'\b(the|a|an|is|are|to|from|in|on|at|for|with|about|near|nearby)\b',
             r'\b(please|help|tell|show|find|get|give|take|make|want|need|like)\b',
             r'\b(me|my|i|you|your|we|our|they|their|it|this|that)\b',
+            r'\b(best|good|great|nice|beautiful|popular|famous|top|recommended)\b',  # Common adjectives
+            r'\b(spots|places|location|area|district|neighborhood|restaurant|hotel|museum)\b',  # Common nouns
+            r'\b(sunset|sunrise|view|food|eat|drink|visit|see|explore|tour)\b',  # Tourism words
         ]
         
         english_match_count = sum(1 for pattern in english_patterns if re.search(pattern, text_lower))
         if english_match_count >= 2:
             # Strong English sentence structure detected
-            logger.info(f"🇬🇧 English detected (sentence structure): '{text_lower}'")
+            logger.info(f"🇬🇧 English detected (sentence structure, {english_match_count} matches): '{text_lower}'")
             return "en", 0.85
         
         if LANGDETECT_AVAILABLE:
