@@ -46,13 +46,13 @@ class LLMIntentDetector:
     """
     
     def __init__(self):
-        # Import RunPod LLM client
+        # Import and use singleton RunPod LLM client
         try:
-            from .runpod_llm_client import RunPodLLMClient
-            self.llm_client = RunPodLLMClient()
-            self.llm_available = self.llm_client.enabled
+            from .runpod_llm_client import get_llm_client
+            self.llm_client = get_llm_client()
+            self.llm_available = self.llm_client is not None and self.llm_client.enabled
             if self.llm_available:
-                logger.info("🤖 LLM Intent Detector initialized with RunPod LLM")
+                logger.info("🤖 LLM Intent Detector initialized with RunPod LLM (singleton)")
             else:
                 logger.warning("⚠️ RunPod LLM not available - will use keyword fallback")
         except Exception as e:

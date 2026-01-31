@@ -1,12 +1,13 @@
 """
-Advanced NLP Service using spaCy
+Lightweight NLP Service for Istanbul Travel Assistant
 
-Provides enhanced natural language processing capabilities:
-- Named Entity Recognition (NER)
-- Intent classification
-- Entity extraction
-- Language detection
-- Semantic similarity
+Provides basic text processing capabilities:
+- Istanbul location extraction
+- Text preprocessing
+- Basic entity extraction
+
+NOTE: Intent detection and language detection are handled by the LLM directly.
+This service is kept lightweight for fast startup and processing.
 
 Author: AI Istanbul Team
 Date: December 2024
@@ -14,30 +15,11 @@ Date: December 2024
 
 import logging
 import re
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 
 logger = logging.getLogger(__name__)
-
-# Try to import spaCy
-try:
-    import spacy
-    from spacy.language import Language
-    SPACY_AVAILABLE = True
-    logger.info("✅ spaCy NLP library loaded successfully")
-except ImportError:
-    SPACY_AVAILABLE = False
-    logger.info("ℹ️  spaCy not installed. Install with: pip install spacy")
-
-# Try to import language detection
-try:
-    from langdetect import detect, detect_langs
-    LANGDETECT_AVAILABLE = True
-    logger.info("✅ Language detection loaded successfully")
-except ImportError:
-    LANGDETECT_AVAILABLE = False
-    logger.info("ℹ️  langdetect not installed")
 
 
 class IntentType(str, Enum):
@@ -106,63 +88,16 @@ class NLPResult:
 
 class AdvancedNLPService:
     """
-    Advanced NLP service for enhanced text understanding.
+    Lightweight NLP service for text processing.
     
-    Uses spaCy for:
-    - Named Entity Recognition
-    - Part-of-speech tagging
-    - Dependency parsing
-    - Lemmatization
+    NOTE: Language detection and intent classification are handled by the LLM.
+    This service only handles:
+    - Istanbul location extraction
+    - Text preprocessing
+    - Basic entity extraction (time, locations)
     """
     
-    # Intent keywords mapping
-    INTENT_KEYWORDS = {
-        IntentType.RESTAURANT: [
-            "restaurant", "food", "eat", "dinner", "lunch", "breakfast",
-            "cafe", "coffee", "cuisine", "yemek", "restoran", "lokanta",
-            "kebab", "döner", "meze", "baklava", "hungry"
-        ],
-        IntentType.ATTRACTION: [
-            "visit", "see", "attraction", "museum", "mosque", "palace",
-            "hagia sophia", "blue mosque", "topkapi", "basilica cistern",
-            "galata", "bosphorus", "tour", "sightseeing", "gezilecek"
-        ],
-        IntentType.TRANSPORTATION: [
-            "go", "get", "metro", "bus", "tram", "ferry", "taxi",
-            "transport", "direction", "route", "how to get", "nasıl gidilir",
-            "ulaşım", "metro", "otobüs", "vapur", "marmaray"
-        ],
-        IntentType.HOTEL: [
-            "hotel", "stay", "accommodation", "hostel", "airbnb",
-            "book", "room", "otel", "konaklama", "oda"
-        ],
-        IntentType.WEATHER: [
-            "weather", "temperature", "rain", "sunny", "forecast",
-            "hava", "sıcaklık", "yağmur", "güneşli"
-        ],
-        IntentType.GREETING: [
-            "hi", "hello", "hey", "good morning", "good evening",
-            "merhaba", "selam", "günaydın", "iyi akşamlar"
-        ],
-        IntentType.FAREWELL: [
-            "bye", "goodbye", "see you", "thanks", "thank you",
-            "hoşça kal", "güle güle", "teşekkürler", "sağol"
-        ],
-        IntentType.HELP: [
-            "help", "what can you do", "how to use", "yardım",
-            "ne yapabilirsin", "nasıl kullanılır"
-        ],
-        IntentType.HIDDEN_GEM: [
-            "hidden gem", "secret", "local", "off the beaten path",
-            "unknown", "authentic", "gizli", "yerel", "bilinmeyen"
-        ],
-        IntentType.ITINERARY: [
-            "itinerary", "plan", "schedule", "day trip", "tour",
-            "program", "günlük", "plan", "tur"
-        ]
-    }
-    
-    # Istanbul-specific entities
+    # Istanbul-specific entities (kept for location extraction)
     ISTANBUL_LOCATIONS = {
         "sultanahmet": {"type": "district", "normalized": "Sultanahmet"},
         "taksim": {"type": "district", "normalized": "Taksim"},
@@ -197,37 +132,16 @@ class AdvancedNLPService:
         "adalar": {"type": "landmark", "normalized": "Princess Islands"},
     }
     
-    def __init__(self, model_name: str = "en_core_web_sm"):
+    def __init__(self):
         """
-        Initialize the NLP service.
-        
-        Args:
-            model_name: spaCy model to load (default: en_core_web_sm)
+        Initialize the lightweight NLP service.
+        No external dependencies needed - instant startup.
         """
-        self.nlp = None
-        self.model_name = model_name
-        
-        if SPACY_AVAILABLE:
-            try:
-                self.nlp = spacy.load(model_name)
-                logger.info(f"✅ spaCy model '{model_name}' loaded")
-            except OSError:
-                logger.warning(f"⚠️ spaCy model '{model_name}' not found")
-                logger.info("   Install with: python -m spacy download en_core_web_sm")
-                # Try to download
-                try:
-                    import subprocess
-                    subprocess.run(["python", "-m", "spacy", "download", model_name], check=True)
-                    self.nlp = spacy.load(model_name)
-                    logger.info(f"✅ Downloaded and loaded '{model_name}'")
-                except Exception as e:
-                    logger.error(f"Failed to download spaCy model: {e}")
-        else:
-            logger.warning("spaCy not available - using rule-based NLP")
+        logger.info("✅ Lightweight NLP service initialized (no spaCy/langdetect)")
     
     def process(self, text: str) -> NLPResult:
         """
-        Process text through the NLP pipeline.
+        Process text through the lightweight NLP pipeline.
         
         Args:
             text: Input text to process
@@ -235,157 +149,28 @@ class AdvancedNLPService:
         Returns:
             NLPResult with extracted information
         """
-        # Detect language
-        language, lang_confidence = self._detect_language(text)
-        
         # Clean and normalize text
         processed_text = self._preprocess_text(text)
         
-        # Classify intent
-        intent, intent_confidence = self._classify_intent(processed_text, language)
+        # Extract Istanbul locations
+        entities = self._extract_entities(processed_text)
         
-        # Extract entities
-        entities = self._extract_entities(processed_text, language)
-        
-        # Extract keywords
+        # Extract basic keywords
         keywords = self._extract_keywords(processed_text)
         
-        # Analyze sentiment (basic)
-        sentiment = self._analyze_sentiment(processed_text)
-        
+        # NOTE: Language and intent detection are done by the LLM
+        # We return defaults here - the LLM will determine the actual values
         return NLPResult(
             original_text=text,
             processed_text=processed_text,
-            language=language,
-            language_confidence=lang_confidence,
-            intent=intent,
-            intent_confidence=intent_confidence,
+            language="auto",  # LLM will detect
+            language_confidence=1.0,
+            intent=IntentType.GENERAL,  # LLM will determine
+            intent_confidence=1.0,
             entities=entities,
             keywords=keywords,
-            sentiment=sentiment
+            sentiment=0.0
         )
-    
-    def _detect_language(self, text: str) -> Tuple[str, float]:
-        """Detect the language of the text."""
-        if not text or len(text.strip()) < 2:
-            return "en", 0.5
-        
-        text_lower = text.lower().strip()
-        
-        # Quick check for Turkish characters (ş, ğ, ü, ö, ç, ı)
-        turkish_chars = set("şğüöçıŞĞÜÖÇİ")
-        if any(c in text for c in turkish_chars):
-            return "tr", 0.95
-        
-        # EXACT MATCH for short Turkish words (very high confidence)
-        # These are standalone words that are DEFINITELY Turkish
-        turkish_exact_words = {
-            # Greetings - exact match only
-            'merhaba', 'selam', 'nasilsin', 'naber', 'nbr',
-            'iyiyim', 'sagol', 'eyvallah', 'tamam', 'tmm',
-            'evet', 'hayir', 'belki', 'tabii', 'tabi',
-            # Common short questions
-            'nerede', 'nasil', 'neden', 'niye', 'nerelere',
-            # Common short phrases (as typed without special chars)
-            'gunayin', 'gunaydin', 'iyi gunler', 'iyi aksamlar',
-            'hosgeldin', 'hosgeldiniz', 'hosca kal', 'gorusuruz',
-            'tesekkurler', 'tesekkur ederim', 'rica ederim',
-            'sen nasilsin', 'sen nasil', 'iyi misin',
-        }
-        
-        # Check exact match first (for short Turkish queries)
-        if text_lower in turkish_exact_words:
-            logger.info(f"🇹🇷 Turkish detected (exact match): '{text_lower}'")
-            return "tr", 0.98
-        
-        # Quick check for common Turkish words WITHOUT special characters
-        # These are frequently used and don't require special Turkish chars
-        turkish_words = [
-            # Greetings and small talk (with variations)
-            'merhaba', 'selam', 'selamlar', 'nasilsin', 'nasılsın', 'naber', 'neredesin',
-            'iyiyim', 'tesekkur', 'teşekkür', 'sagol', 'sağol', 'eyvallah', 'tamam',
-            'evet', 'hayir', 'hayır', 'belki', 'tabii', 'tabi',
-            'gunaydin', 'günaydın', 'iyi gunler', 'iyi aksamlar',
-            'hosgeldin', 'hoşgeldin', 'hosgeldiniz', 'hoşgeldiniz',
-            'gorusuruz', 'görüşürüz', 'hosca kal', 'hoşça kal',
-            # Questions
-            'nerede', 'nasil', 'nasıl', 'ne zaman', 'neden', 'niye', 'kim', 'hangi',
-            'kadar', 'kac', 'kaç', 'nerelerde', 'nereden', 'nereye',
-            # Common verbs/phrases
-            'istiyorum', 'gitmek', 'yemek', 'icmek', 'içmek', 'bulmak', 'bakmak',
-            'var mi', 'var mı', 'yok mu', 'lazim', 'lazım', 'gerek',
-            'gidebilir miyim', 'nasil gidebilirim', 'nasıl giderim',
-            # Locations/travel
-            'yakinda', 'yakında', 'burada', 'orada', 'nereye', 'nereden',
-            'restoran', 'otel', 'havaalani', 'havaalanı', 'otobus', 'otobüs', 'taksi',
-            'mekan', 'yer', 'yerler', 'mekanlar',
-            # Food
-            'kebap', 'kebab', 'lahmacun', 'pide', 'balik', 'balık', 'et', 'tavuk',
-            'yiyecek', 'icecek', 'içecek', 'lokanta', 'kafe', 'kahve',
-            # Time
-            'bugun', 'bugün', 'yarin', 'yarın', 'simdi', 'şimdi', 'sonra', 'once', 'önce',
-            # Numbers
-            'bir', 'iki', 'uc', 'üç', 'dort', 'dört', 'bes', 'beş',
-            # Common words
-            'bana', 'sana', 'beni', 'seni', 'benim', 'senin',
-            'en iyi', 'en yakin', 'en yakın', 'en guzel', 'en güzel',
-            'lutfen', 'lütfen', 'rica', 'ederim',
-        ]
-        
-        # Check if any Turkish word is in the text
-        for word in turkish_words:
-            if word in text_lower or text_lower == word:
-                logger.info(f"🇹🇷 Turkish detected (word match: '{word}'): '{text_lower}'")
-                return "tr", 0.90
-        
-        # Quick check for Arabic
-        if re.search(r'[\u0600-\u06FF]', text):
-            return "ar", 0.95
-        
-        # Quick check for Russian/Cyrillic
-        if re.search(r'[\u0400-\u04FF]', text):
-            return "ru", 0.95
-        
-        # Quick check for German common words
-        german_words = ['wie', 'geht', 'danke', 'bitte', 'guten', 'morgen', 'abend', 
-                        'ich', 'du', 'sie', 'wir', 'wo', 'was', 'wann', 'warum']
-        for word in german_words:
-            if word in text_lower.split():
-                return "de", 0.85
-        
-        # Check for clear English sentence structure BEFORE langdetect
-        # This prevents false Turkish detection for queries like "where is taksim"
-        english_patterns = [
-            r'^(where|what|how|when|who|which|can|could|would|should|is|are|do|does|did|will|have|has)\b',
-            r'\b(the|a|an|is|are|to|from|in|on|at|for|with|about|near|nearby)\b',
-            r'\b(please|help|tell|show|find|get|give|take|make|want|need|like)\b',
-            r'\b(me|my|i|you|your|we|our|they|their|it|this|that)\b',
-            r'\b(best|good|great|nice|beautiful|popular|famous|top|recommended)\b',  # Common adjectives
-            r'\b(spots|places|location|area|district|neighborhood|restaurant|hotel|museum)\b',  # Common nouns
-            r'\b(sunset|sunrise|view|food|eat|drink|visit|see|explore|tour)\b',  # Tourism words
-        ]
-        
-        english_match_count = sum(1 for pattern in english_patterns if re.search(pattern, text_lower))
-        if english_match_count >= 2:
-            # Strong English sentence structure detected
-            logger.info(f"🇬🇧 English detected (sentence structure, {english_match_count} matches): '{text_lower}'")
-            return "en", 0.85
-        
-        if LANGDETECT_AVAILABLE:
-            try:
-                langs = detect_langs(text)
-                if langs:
-                    top_lang = langs[0]
-                    # Don't trust langdetect for Turkish if it's mixed with English words
-                    # (e.g., "where is taksim" might be detected as Turkish due to "taksim")
-                    if top_lang.lang == 'tr' and english_match_count >= 1:
-                        logger.info(f"🇬🇧 Overriding langdetect (tr -> en) due to English structure: '{text_lower}'")
-                        return "en", 0.75
-                    return top_lang.lang, top_lang.prob
-            except Exception as e:
-                logger.debug(f"Language detection failed: {e}")
-        
-        return "en", 0.7
     
     def _preprocess_text(self, text: str) -> str:
         """Clean and normalize text."""
@@ -400,55 +185,14 @@ class AdvancedNLPService:
         
         return text
     
-    def _classify_intent(self, text: str, language: str) -> Tuple[IntentType, float]:
-        """
-        Classify the intent of the text.
-        
-        Uses keyword matching with scoring.
-        """
-        text_lower = text.lower()
-        
-        scores: Dict[IntentType, float] = {}
-        
-        for intent, keywords in self.INTENT_KEYWORDS.items():
-            score = 0.0
-            matches = 0
-            
-            for keyword in keywords:
-                if keyword.lower() in text_lower:
-                    # Exact word match gets higher score
-                    if re.search(rf'\b{re.escape(keyword.lower())}\b', text_lower):
-                        score += 2.0
-                        matches += 1
-                    else:
-                        score += 1.0
-                        matches += 1
-            
-            # Normalize by keyword count
-            if matches > 0:
-                scores[intent] = score / len(keywords) * matches
-        
-        if not scores:
-            return IntentType.GENERAL, 0.5
-        
-        # Get top intent
-        top_intent = max(scores, key=scores.get)
-        top_score = scores[top_intent]
-        
-        # Normalize confidence
-        confidence = min(1.0, top_score / 3.0)
-        
-        return top_intent, confidence
-    
-    def _extract_entities(self, text: str, language: str) -> List[ExtractedEntity]:
-        """Extract named entities from text."""
+    def _extract_entities(self, text: str) -> List[ExtractedEntity]:
+        """Extract Istanbul locations and time expressions from text."""
         entities = []
         text_lower = text.lower()
         
         # 1. Extract Istanbul-specific locations
         for location, info in self.ISTANBUL_LOCATIONS.items():
             if location.lower() in text_lower:
-                # Find position
                 start = text_lower.find(location.lower())
                 end = start + len(location)
                 
@@ -461,23 +205,7 @@ class AdvancedNLPService:
                     normalized=info['normalized']
                 ))
         
-        # 2. Use spaCy for general NER if available
-        if self.nlp:
-            doc = self.nlp(text)
-            for ent in doc.ents:
-                # Skip if already found as Istanbul location
-                if any(e.text.lower() == ent.text.lower() for e in entities):
-                    continue
-                
-                entities.append(ExtractedEntity(
-                    text=ent.text,
-                    label=ent.label_,
-                    start=ent.start_char,
-                    end=ent.end_char,
-                    confidence=0.8
-                ))
-        
-        # 3. Extract time expressions
+        # 2. Extract time expressions
         time_patterns = [
             (r'\b(\d{1,2}:\d{2})\b', "TIME"),
             (r'\b(today|tomorrow|yesterday|bugün|yarın|dün)\b', "DATE"),
@@ -499,61 +227,16 @@ class AdvancedNLPService:
     
     def _extract_keywords(self, text: str) -> List[str]:
         """Extract important keywords from text."""
-        keywords = []
-        
-        if self.nlp:
-            doc = self.nlp(text)
-            
-            # Extract nouns and proper nouns
-            for token in doc:
-                if token.pos_ in ["NOUN", "PROPN"] and not token.is_stop:
-                    keywords.append(token.lemma_)
-            
-            # Extract noun chunks
-            for chunk in doc.noun_chunks:
-                if len(chunk.text.split()) > 1:
-                    keywords.append(chunk.text)
-        else:
-            # Simple keyword extraction
-            stop_words = {"the", "a", "an", "is", "are", "was", "were", "to", "from", "in", "on", "at"}
-            words = text.lower().split()
-            keywords = [w for w in words if w not in stop_words and len(w) > 2]
-        
+        stop_words = {"the", "a", "an", "is", "are", "was", "were", "to", "from", 
+                      "in", "on", "at", "for", "with", "and", "or", "but", "i", 
+                      "you", "we", "they", "it", "this", "that", "can", "do", "how"}
+        words = text.lower().split()
+        keywords = [w for w in words if w not in stop_words and len(w) > 2]
         return list(set(keywords))[:10]
-    
-    def _analyze_sentiment(self, text: str) -> float:
-        """
-        Basic sentiment analysis.
-        
-        Returns a score from -1 (negative) to 1 (positive).
-        """
-        positive_words = {
-            "good", "great", "excellent", "amazing", "wonderful", "beautiful",
-            "best", "love", "like", "nice", "recommend", "perfect", "awesome",
-            "güzel", "harika", "mükemmel", "süper", "iyi"
-        }
-        
-        negative_words = {
-            "bad", "terrible", "awful", "horrible", "worst", "hate", "dislike",
-            "expensive", "crowded", "dirty", "disappointing", "avoid",
-            "kötü", "berbat", "pahalı", "kalabalık", "pis"
-        }
-        
-        text_lower = text.lower()
-        words = set(text_lower.split())
-        
-        positive_count = len(words.intersection(positive_words))
-        negative_count = len(words.intersection(negative_words))
-        
-        if positive_count + negative_count == 0:
-            return 0.0
-        
-        return (positive_count - negative_count) / (positive_count + negative_count)
     
     def get_location_suggestions(self, text: str) -> List[Dict[str, Any]]:
         """
         Get location suggestions based on partial text input.
-        
         Useful for autocomplete functionality.
         """
         suggestions = []
@@ -567,9 +250,7 @@ class AdvancedNLPService:
                     "match_score": len(text_lower) / len(location)
                 })
         
-        # Sort by match score
         suggestions.sort(key=lambda x: x['match_score'], reverse=True)
-        
         return suggestions[:5]
 
 

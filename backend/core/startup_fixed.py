@@ -45,10 +45,10 @@ class FastStartupManager:
         """Fast initialization - minimal blocking"""
         # Guard against duplicate initialization
         if not ensure_single_init("startup_manager"):
-            logger.info("� StartupManager already initialized, skipping")
+            logger.info("🔁 StartupManager already initialized, skipping")
             return
         
-        logger.info("�🚀 Starting ULTRA-FAST initialization...")
+        logger.info("🚀 Starting ULTRA-FAST initialization...")
         
         try:
             # 1. Database (critical) - but don't wait too long
@@ -66,9 +66,12 @@ class FastStartupManager:
             # 4. Multi-route system (enhanced map visualization)
             asyncio.create_task(self._initialize_multi_route_system())
             
+            # 5. Pre-initialize NLP service to avoid cold-start delays
+            asyncio.create_task(self._initialize_nlp_service())
+            
             logger.info("✅ App ready to serve traffic - components initializing in background!")
             
-            # 5. Schedule lazy initialization of heavy components
+            # 6. Schedule lazy initialization of heavy components
             asyncio.create_task(self._lazy_initialize_llm())
             
         except Exception as e:
@@ -264,6 +267,30 @@ class FastStartupManager:
             logger.error(f"❌ {error_msg}")
             self._initialization_errors.append(error_msg)
             self.pure_llm_core = None
+    
+    async def _initialize_nlp_service(self):
+        """Pre-initialize NLP service to load spaCy models at startup"""
+        # Guard against duplicate NLP init
+        if not ensure_single_init("nlp_service"):
+            logger.info("🔁 NLP Service already initialized, skipping")
+            return
+        
+        try:
+            logger.info("🔄 Pre-loading NLP service and spaCy models...")
+            
+            # Import and initialize the NLP service singleton
+            from services.advanced_nlp_service import get_nlp_service
+            nlp_service = get_nlp_service()
+            
+            if nlp_service.nlp:
+                logger.info("✅ NLP Service initialized with spaCy model")
+            else:
+                logger.warning("⚠️ NLP Service initialized without spaCy (rule-based only)")
+                
+        except Exception as e:
+            error_msg = f"NLP Service initialization failed: {str(e)}"
+            logger.warning(f"⚠️ {error_msg}")
+            self._initialization_errors.append(error_msg)
     
     async def shutdown(self):
         """Graceful shutdown"""

@@ -20,6 +20,9 @@ COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# NOTE: spaCy removed - LLM handles language detection and intent classification
+# This saves ~30s cold start time and reduces image size
+
 # Copy the backend application
 COPY backend/ ./
 

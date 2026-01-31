@@ -264,10 +264,14 @@ async def stream_chat_sse(request: StreamChatRequest):
             # Non-transportation indicators (skip LLM call for these)
             non_transport_patterns = [
                 'what is', 'tell me about', 'recommend', 'best restaurant',
-                'weather', 'hello', 'hi', 'merhaba', 'history of',
-                'what are', 'where can i eat', 'good food', 'attractions',
-                'tourist', 'museum', 'culture', 'event', 'shopping',
-                'romantic', 'dinner', 'breakfast', 'lunch', 'cafe'
+                'weather', 'hello', 'hi', 'merhaba', 'selam', 'hey', 'howdy',
+                'good morning', 'good evening', 'good afternoon', 'günaydın',
+                'iyi akşamlar', 'iyi günler', 'nasılsın', 'how are you',
+                'history of', 'what are', 'where can i eat', 'good food', 
+                'attractions', 'tourist', 'museum', 'culture', 'event', 
+                'shopping', 'romantic', 'dinner', 'breakfast', 'lunch', 'cafe',
+                'thank', 'thanks', 'teşekkür', 'sağol', 'bye', 'goodbye',
+                'hoşçakal', 'görüşürüz'
             ]
             
             # Fast-path detection
