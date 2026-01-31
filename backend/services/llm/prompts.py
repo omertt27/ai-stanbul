@@ -144,20 +144,6 @@ Rules you follow (never mention these to users):
 - Example (Arabic): "طريقك إلى تقسيم جاهز! الرحلة تستغرق حوالي 32 دقيقة مع تحويل واحد."
 - DO NOT write out all the transit steps - the route card shows detailed directions
 
-🍽️ FOR RESTAURANT RECOMMENDATIONS:
-Use the numbered list format above. Add cuisine type:
-
-1. **Restaurant Name** - Brief description.
-   📍 Location: Neighborhood
-   🍽️ Cuisine: Type of food
-
-🏛️ FOR ATTRACTIONS/SPOTS (sunset spots, viewpoints, parks, etc.):
-Use the numbered list format. Add practical info if known:
-
-1. **Place Name** - What makes it special (1 sentence).
-   📍 Location: Area/neighborhood
-   ⏰ Best time: When to visit (if relevant)
-
 Remember: ALWAYS match the user's language. This is your most important rule."""
         
         # Return the same universal prompt for all language codes
@@ -366,22 +352,39 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         # DISABLED: Intent classification, low-confidence, and multi-intent prompts cause template artifacts
         # These features are currently disabled to keep responses clean and focused
         
-        # 7. User query - RESPOND IN THE SPECIFIED LANGUAGE
-        # The language is detected from the query by NLP service.
-        # We use this detected language to ensure consistent responses.
-        # Do NOT include verbose language instructions that the LLM might echo back.
+        # 7. User query with EXPLICIT language instruction
+        # Testing showed the LLM needs explicit language instruction when query contains
+        # Turkish place names (like "Sultanahmet") but is written in English.
+        # We detect the query language and add a clear instruction.
         
-        # No explicit language instruction needed - LLM naturally responds in query's language
-        # The system prompt already says: "Match the user's language naturally"
-        # This keeps responses consistent across mobile and desktop
+        detected_lang = self._detect_query_language(query)
         
-        prompt_parts.append(f"\nUser: {query}\n\nAssistant:")
+        # Add explicit language instruction based on detected language
+        lang_instructions = {
+            'en': "Respond in English.",
+            'tr': "Türkçe yanıt ver.",
+            'ru': "Ответь на русском.",
+            'de': "Antworte auf Deutsch.",
+            'fr': "Réponds en français.",
+            'ar': "أجب بالعربية."
+        }
+        
+        lang_instruction = lang_instructions.get(detected_lang, lang_instructions['en'])
+        prompt_parts.append(f"\n[{lang_instruction}]\n\nUser: {query}\n\nAssistant:")
 
         
         # Join all parts
         full_prompt = "\n".join(prompt_parts)
         
-        logger.debug(f"Built prompt: {len(full_prompt)} chars")
+        # Validate prompt quality
+        validation_issues = self.validate_prompt_sections(full_prompt)
+        if validation_issues:
+            logger.warning(f"⚠️ Prompt validation issues: {validation_issues}")
+        
+        # Log metrics for continuous improvement
+        self.log_prompt_metrics(full_prompt, query, detected_lang)
+        
+        logger.debug(f"Built prompt: {len(full_prompt)} chars, language: {detected_lang}")
         
         # Log weather section if present for debugging
         if '🌤️ CURRENT WEATHER' in full_prompt:
@@ -391,6 +394,94 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
             logger.info(f"🌍 Weather section in final prompt:\n{weather_section}")
         
         return full_prompt
+    
+    def _detect_query_language(self, query: str) -> str:
+        """
+        Enhanced lightweight language detection for travel queries.
+        
+        This is critical because when queries contain Turkish place names (like "Sultanahmet")
+        but are written in English, the LLM may incorrectly respond in Turkish.
+        
+        Args:
+            query: User query text
+            
+        Returns:
+            Language code: 'en', 'tr', 'ru', 'de', 'fr', 'ar' with confidence
+        """
+        query_lower = query.lower()
+        
+        # Turkish indicators (common words + travel-specific phrases)
+        turkish_words = [
+            # Basic words
+            'nasıl', 'nerede', 'ne zaman', 'nedir', 'kaç', 'var mı', 'yok mu',
+            'gitmek', 'gelmek', 'istiyorum', 'yapabilir', 'misiniz', 'mısınız',
+            'için', 'olan', 'olarak', 'gibi', 'daha', 'çok', 'az', 'bu', 'şu',
+            'bana', 'beni', 'sana', 'ona', 'bize', 'size', 'onlara',
+            've', 'veya', 'ama', 'fakat', 'ancak', 'ile', 'den', 'dan',
+            'merhaba', 'selam', 'günaydın', 'iyi akşamlar', 'teşekkür',
+            'lütfen', 'evet', 'hayır', 'tamam', 'peki',
+            # Travel-specific Turkish
+            'tarihçesi', 'hakkında', 'anlat', 'göster', 'öner', 'tavsiye',
+            'restoran', 'müze', 'gezi', 'tur', 'ulaşım', 'metro'
+        ]
+        
+        # English indicators (enhanced with travel terms)
+        english_words = [
+            # Basic words
+            'how', 'what', 'where', 'when', 'why', 'which', 'who',
+            'can', 'could', 'would', 'should', 'will', 'do', 'does', 'did',
+            'is', 'are', 'was', 'were', 'am', 'been', 'being',
+            'the', 'a', 'an', 'this', 'that', 'these', 'those',
+            'to', 'from', 'in', 'on', 'at', 'by', 'for', 'with',
+            'please', 'thanks', 'thank', 'hello', 'hi', 'hey',
+            'tell', 'show', 'give', 'help', 'want', 'need', 'like',
+            # Travel-specific English
+            'about', 'history', 'recommend', 'best', 'good', 'visit',
+            'restaurant', 'museum', 'tour', 'travel', 'metro', 'route'
+        ]
+        
+        # Russian indicators (Cyrillic)
+        if any(ord(c) >= 0x0400 and ord(c) <= 0x04FF for c in query):
+            return 'ru'
+        
+        # Arabic indicators
+        if any(ord(c) >= 0x0600 and ord(c) <= 0x06FF for c in query):
+            return 'ar'
+        
+        # German indicators (enhanced)
+        german_words = [
+            'wie', 'was', 'wo', 'wann', 'warum', 'welche', 'können', 
+            'bitte', 'danke', 'guten', 'geschichte', 'empfehlen', 'restaurant'
+        ]
+        german_count = sum(1 for w in german_words if w in query_lower)
+        
+        # French indicators (enhanced)
+        french_words = [
+            'comment', 'quoi', 'où', 'quand', 'pourquoi', 'pouvez', "s'il", 
+            'merci', 'bonjour', 'histoire', 'recommander', 'restaurant'
+        ]
+        french_count = sum(1 for w in french_words if w in query_lower)
+        
+        # Count Turkish and English words
+        turkish_count = sum(1 for w in turkish_words if w in query_lower)
+        english_count = sum(1 for w in english_words if w in query_lower)
+        
+        # Enhanced decision logic with confidence
+        if turkish_count > english_count and turkish_count >= 2:
+            return 'tr'
+        elif german_count >= 2:
+            return 'de'
+        elif french_count >= 2:
+            return 'fr'
+        elif english_count >= 1:
+            return 'en'
+        elif 'sultanahmet' in query_lower or 'taksim' in query_lower or 'galata' in query_lower:
+            # If query contains Turkish place names but no clear language indicators,
+            # default to English (tourist asking about Turkish places)
+            return 'en'
+        
+        # Default to English if no clear signal
+        return 'en'
     
     def _build_intent_instructions(self, active_signals: List[str]) -> str:
         """Build intent-specific instructions."""
@@ -564,14 +655,19 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
     def optimize_prompt_length(
         self,
         prompt: str,
-        max_tokens: int = 2000
+        max_tokens: int = 2000,
+        query: Optional[str] = None
     ) -> str:
         """
-        Optimize prompt length to fit within token limits.
+        Smart prompt optimization with priority-based and relevance-scored truncation.
+        
+        Preserves critical sections and truncates less important ones based on
+        both priority and relevance to the user query.
         
         Args:
             prompt: Original prompt
             max_tokens: Maximum allowed tokens
+            query: User query for relevance scoring
             
         Returns:
             Optimized prompt
@@ -582,11 +678,84 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         if len(prompt) <= max_chars:
             return prompt
         
-        # Truncate context sections intelligently
-        # TODO: Implement smarter truncation (preserve system prompt, truncate context)
-        logger.warning(f"Prompt too long ({len(prompt)} chars), truncating to {max_chars}")
+        logger.warning(f"Prompt too long ({len(prompt)} chars), applying smart truncation to {max_chars}")
         
-        return prompt[:max_chars] + "\n\n[Context truncated for length]"
+        # Priority-based truncation strategy
+        sections = prompt.split('\n## ')
+        
+        # Define section priorities (1 = highest, 5 = lowest)
+        section_priorities = {
+            'system': 1,  # Never truncate system prompt
+            'user_query': 1,  # Never truncate user query
+            'Database Information': 2,  # Critical context
+            'Previous Conversation': 3,  # Important for context
+            'Additional Context': 4,  # RAG context - can be shortened
+            'Examples': 5,  # Can be removed if needed
+            'REAL-TIME INFORMATION': 2,  # Weather/events are important
+        }
+        
+        # Keep system prompt and user query intact
+        system_part = sections[0]  # Everything before first ##
+        user_query_part = prompt.split('\n\nUser: ')[-1] if '\n\nUser: ' in prompt else ""
+        
+        # Calculate remaining budget
+        fixed_size = len(system_part) + len(user_query_part) + 100  # Buffer
+        remaining_budget = max_chars - fixed_size
+        
+        # Score and sort sections by priority and relevance
+        scored_sections = []
+        for section in sections[1:]:
+            if '## ' not in section:
+                continue
+                
+            section_name = section.split('\n')[0].strip()
+            priority = section_priorities.get(section_name, 4)
+            
+            # Calculate relevance score if query is provided
+            relevance = 0.5  # Default relevance
+            if query:
+                relevance = self.get_context_relevance_score(section, query)
+            
+            # Combined score (lower is better - higher priority, higher relevance)
+            combined_score = priority - (relevance * 2)  # Relevance can boost priority
+            
+            scored_sections.append((combined_score, section_name, section, len(section)))
+        
+        # Sort by combined score (best first)
+        scored_sections.sort(key=lambda x: x[0])
+        
+        # Allocate space based on score and remaining budget
+        middle_sections = []
+        for score, section_name, section, section_len in scored_sections:
+            priority = section_priorities.get(section_name, 4)
+            
+            if priority <= 2 and section_len <= remaining_budget * 0.6:
+                # High priority sections get more space
+                middle_sections.append('## ' + section)
+                remaining_budget -= section_len
+            elif priority <= 3 and section_len <= remaining_budget * 0.3:
+                # Medium priority sections get moderate space
+                middle_sections.append('## ' + section)
+                remaining_budget -= section_len
+            elif remaining_budget > 200 and priority <= 4:
+                # Low priority sections get truncated
+                max_section_len = min(section_len, remaining_budget // 2)
+                truncated = section[:max_section_len]
+                middle_sections.append('## ' + truncated + '\n[Section truncated for length...]')
+                remaining_budget -= len(truncated)
+            
+            if remaining_budget <= 200:
+                break  # Stop adding sections
+        
+        # Reassemble optimized prompt
+        optimized = system_part
+        if middle_sections:
+            optimized += '\n' + '\n'.join(middle_sections)
+        if user_query_part:
+            optimized += '\n\nUser: ' + user_query_part
+        
+        logger.info(f"Prompt optimized: {len(prompt)} → {len(optimized)} chars ({len(scored_sections)} sections processed)")
+        return optimized
     
     def add_safety_guidelines(self, prompt: str, language: str = "en") -> str:
         """
@@ -647,3 +816,127 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         safety = safety_guidelines.get(language, safety_guidelines['en'])
         
         return f"{prompt}\n{safety}"
+    
+    def validate_prompt_sections(self, prompt: str) -> List[str]:
+        """
+        Validate that prompt is well-formed and contains required sections.
+        
+        Args:
+            prompt: Complete prompt to validate
+            
+        Returns:
+            List of validation warnings/errors (empty if all good)
+        """
+        issues = []
+        
+        # Check for required components
+        if "You are KAM" not in prompt:
+            issues.append("Missing system identity section")
+        
+        if "User:" not in prompt:
+            issues.append("Missing user query section")
+        
+        if "Assistant:" not in prompt:
+            issues.append("Missing assistant prompt section")
+        
+        # Check for language instruction
+        lang_instructions = ["Respond in English", "Türkçe yanıt ver", "Ответь на русском"]
+        if not any(instruction in prompt for instruction in lang_instructions):
+            issues.append("Missing explicit language instruction")
+        
+        # Check for potential formatting issues
+        if prompt.count("*") > 5:  # Too many asterisks might indicate old formatting
+            issues.append("Potential asterisk formatting detected (should use numbered lists)")
+        
+        # Check prompt length
+        if len(prompt) > 8000:  # Very long prompt
+            issues.append(f"Prompt very long ({len(prompt)} chars) - may hit token limits")
+        
+        # Check for context redundancy
+        route_mentions = prompt.count("route card") + prompt.count("interactive map")
+        if route_mentions > 3:
+            issues.append("Redundant route/map instructions detected")
+        
+        # Check for conflicting instructions
+        if "NEVER use asterisks" in prompt and "*" in prompt.split("NEVER use asterisks")[1]:
+            issues.append("Conflicting asterisk usage after prohibition")
+        
+        return issues
+
+    def get_context_relevance_score(self, context_section: str, query: str) -> float:
+        """
+        Score context relevance to prioritize what to keep during truncation.
+        
+        Args:
+            context_section: Section of context to score
+            query: User query to match against
+            
+        Returns:
+            Relevance score from 0.0 to 1.0
+        """
+        if not context_section or not query:
+            return 0.0
+        
+        score = 0.0
+        query_lower = query.lower()
+        context_lower = context_section.lower()
+        
+        # Keyword overlap scoring
+        query_words = set(query_lower.split())
+        context_words = set(context_lower.split())
+        overlap = len(query_words & context_words)
+        score += min(overlap / max(len(query_words), 1), 0.3)
+        
+        # Travel-specific relevance
+        travel_keywords = ['restaurant', 'museum', 'history', 'route', 'metro', 'tram', 'bus']
+        travel_matches = sum(1 for word in travel_keywords if word in query_lower and word in context_lower)
+        score += min(travel_matches * 0.1, 0.2)
+        
+        # Location-specific relevance
+        locations = ['sultanahmet', 'taksim', 'galata', 'kadikoy', 'besiktas']
+        location_matches = sum(1 for loc in locations if loc in query_lower and loc in context_lower)
+        score += min(location_matches * 0.15, 0.3)
+        
+        # Section type bonus
+        if 'database information' in context_lower:
+            score += 0.1  # Database info is usually relevant
+        elif 'weather' in context_lower:
+            if any(word in query_lower for word in ['weather', 'rain', 'temperature', 'today']):
+                score += 0.2
+        elif 'previous conversation' in context_lower:
+            score += 0.05  # Context is moderately useful
+        
+        return min(score, 1.0)
+
+    def log_prompt_metrics(self, prompt: str, query: str, detected_language: str, response_quality: Optional[float] = None):
+        """
+        Track prompt effectiveness for continuous improvement.
+        
+        Args:
+            prompt: Generated prompt
+            query: Original user query
+            detected_language: Language detected by _detect_query_language
+            response_quality: Optional quality score (0.0-1.0)
+        """
+        metrics = {
+            'prompt_length': len(prompt),
+            'query_length': len(query),
+            'detected_language': detected_language,
+            'sections_count': prompt.count('## '),
+            'has_gps_context': 'GPS location' in prompt,
+            'has_conversation_history': 'Previous Conversation' in prompt,
+            'has_database_context': 'Database Information' in prompt,
+            'validation_issues': len(self.validate_prompt_sections(prompt))
+        }
+        
+        if response_quality is not None:
+            metrics['response_quality'] = response_quality
+        
+        # Log metrics for analysis
+        logger.info(f"🔍 Prompt metrics: {metrics}")
+        
+        # Store for potential analytics (could be extended to send to monitoring service)
+        if hasattr(self, '_metrics_history'):
+            self._metrics_history.append(metrics)
+        else:
+            self._metrics_history = [metrics]
