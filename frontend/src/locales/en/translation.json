@@ -736,6 +736,9 @@
     "funicular": "Funicular",
     "minutes": "min",
     "km": "km",
-    "m": "m"
+    "m": "m",
+    "expandMap": "Full Map",
+    "dragHint": "Drag to resize • Tap outside to see chat",
+    "routeReady": "Your route is ready!"
   }
 }

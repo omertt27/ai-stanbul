@@ -640,6 +640,9 @@
     "funicular": "Seilbahn",
     "minutes": "Min",
     "km": "km",
-    "m": "m"
+    "m": "m",
+    "expandMap": "Karte erweitern",
+    "dragHint": "Nach oben ziehen für Wegbeschreibung",
+    "routeReady": "Ihre Route ist fertig!"
   }
 }

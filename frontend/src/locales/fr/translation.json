@@ -640,6 +640,9 @@
     "funicular": "Funiculaire",
     "minutes": "min",
     "km": "km",
-    "m": "m"
+    "m": "m",
+    "expandMap": "Agrandir la carte",
+    "dragHint": "Faites glisser vers le haut pour les directions",
+    "routeReady": "Votre itinéraire est prêt!"
   }
 }

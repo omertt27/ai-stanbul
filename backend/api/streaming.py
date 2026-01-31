@@ -430,9 +430,9 @@ async def stream_chat_sse(request: StreamChatRequest):
                             else:
                                 logger.warning("⚠️ NO GPS LOCATION IN REQUEST - user_location is None")
                             
-                            # Parse origin and destination
+                            # Parse origin and destination using LLM (more accurate than regex)
                             logger.info(f"🔍 EXTRACTING LOCATIONS FROM QUERY: '{request.message}'")
-                            locations = _extract_transportation_locations(request.message, user_loc)
+                            locations = await _extract_transportation_locations_llm(request.message, user_loc)
                             
                             # DEBUG: Log extraction result
                             if locations:
@@ -1051,6 +1051,77 @@ async def clear_streaming_cache():
 # Helper Functions for Multi-Route System
 # ==========================================
 
+async def _extract_transportation_locations_llm(query: str, user_location: Optional[Dict[str, float]] = None) -> Optional[Dict[str, Any]]:
+    """
+    Extract origin and destination using LLM - much more accurate than regex.
+    
+    The LLM understands:
+    - Natural language variations ("how can i go to X from Y", "from Y to X")
+    - Multiple languages (Turkish, English, etc.)
+    - Typos and informal language
+    - Context (when no origin specified, use GPS)
+    
+    Returns dict with:
+    - origin: origin name or 'Current Location'
+    - destination: destination name
+    - origin_gps: optional GPS dict
+    - destination_gps: optional GPS dict
+    """
+    logger.info("🤖 LLM LOCATION EXTRACTION STARTED")
+    logger.info(f"   Query: '{query}'")
+    logger.info(f"   GPS Available: {user_location is not None}")
+    
+    try:
+        from services.llm_intent_detector import get_intent_detector
+        detector = get_intent_detector()
+        
+        user_has_gps = user_location is not None
+        result = await detector.extract_locations(query, user_has_gps)
+        
+        if result:
+            logger.info(f"✅ LLM extracted: origin={result.get('origin')}, dest={result.get('destination')}, use_gps={result.get('use_gps_for_origin')}")
+            
+            # Build the response dict
+            response = {}
+            
+            # Handle origin
+            if result.get('use_gps_for_origin') and user_location:
+                response['origin'] = 'Current Location'
+                response['origin_gps'] = user_location
+                logger.info(f"   📍 Using GPS as origin: {user_location}")
+            elif result.get('origin'):
+                response['origin'] = result['origin']
+                logger.info(f"   📍 Origin: {result['origin']}")
+            else:
+                # No origin specified and no GPS - try to use GPS anyway
+                if user_location:
+                    response['origin'] = 'Current Location'
+                    response['origin_gps'] = user_location
+                    logger.info(f"   📍 Defaulting to GPS origin: {user_location}")
+                else:
+                    logger.warning("   ⚠️ No origin and no GPS available")
+                    return None
+            
+            # Handle destination
+            if result.get('destination'):
+                response['destination'] = result['destination']
+                logger.info(f"   🎯 Destination: {result['destination']}")
+            else:
+                logger.warning("   ⚠️ No destination extracted")
+                return None
+            
+            logger.info(f"✅ LLM LOCATION EXTRACTION SUCCESS: {response}")
+            return response
+        else:
+            logger.warning("❌ LLM returned no result - falling back to regex")
+            return _extract_transportation_locations(query, user_location)
+            
+    except Exception as e:
+        logger.error(f"❌ LLM location extraction failed: {str(e)}")
+        logger.info("🔄 Falling back to regex-based extraction")
+        return _extract_transportation_locations(query, user_location)
+
+
 def _extract_transportation_locations(query: str, user_location: Optional[Dict[str, float]] = None) -> Optional[Dict[str, Any]]:
     """
     Extract origin and destination from transportation query.
@@ -1091,6 +1162,25 @@ def _extract_transportation_locations(query: str, user_location: Optional[Dict[s
     logger.info(f"      - Uses GPS destination: {uses_gps_dest}")
     
     # Extract locations using patterns
+    # Pattern 0: "to X from Y" (reversed order) - MUST CHECK FIRST
+    # Handles: "how can i go to taksim from atakoy", "get to kadikoy from taksim"
+    logger.info(f"   Testing Pattern 0: 'to X from Y' (reversed)")
+    match = re.search(r'(?:get|go|reach|travel)\s+to\s+([a-zğüşöçıİ\s]+?)\s+from\s+([a-zğüşöçıİ\s]+?)(?:\s*\?|$)', query_lower, re.IGNORECASE)
+    
+    if match:
+        destination = match.group(1).strip()
+        origin = match.group(2).strip()
+        logger.info(f"   ✅ Pattern 0 MATCHED (reversed order):")
+        logger.info(f"      - Raw origin: '{origin}'")
+        logger.info(f"      - Raw destination: '{destination}'")
+        
+        result = {
+            'origin': origin.title(),
+            'destination': destination.title()
+        }
+        logger.info(f"   ✅ LOCATION EXTRACTION SUCCESS (Pattern 0): {result}")
+        return result
+    
     # Pattern 1: "from X to Y" or "X to Y"
     logger.info(f"   Testing Pattern 1: 'from X to Y'")
     match = re.search(r'(?:from\s+)?([a-zğüşöçıİ\s]+?)\s+to\s+([a-zğüşöçıİ\s]+)', query_lower, re.IGNORECASE)

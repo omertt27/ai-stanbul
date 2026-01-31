@@ -671,6 +671,9 @@
     "funicular": "Füniküler",
     "minutes": "dk",
     "km": "km",
-    "m": "m"
+    "m": "m",
+    "expandMap": "Haritayı Genişlet",
+    "dragHint": "Yön tarifleri için yukarı sürükleyin",
+    "routeReady": "Rotanız hazır!"
   }
 }

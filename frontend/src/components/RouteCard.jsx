@@ -492,7 +492,7 @@ const RouteCard = ({ routeData }) => {
   
   // Mobile-specific states
   const [isMobile, setIsMobile] = useState(false);
-  const [showMobileBottomSheet, setShowMobileBottomSheet] = useState(true);
+  const [showMobileBottomSheet, setShowMobileBottomSheet] = useState(false); // Start collapsed on mobile
   const [useMobileNavigation, setUseMobileNavigation] = useState(false);
   
   // Multi-route comparison states
@@ -867,6 +867,58 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
       <>
         {/* Mobile: Full-screen map view */}
         <div className="fixed inset-0 z-40 bg-white">
+          {/* Floating Route Summary Header */}
+          <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-white via-white to-transparent pb-6 pt-2 px-3">
+            <div className="bg-white rounded-2xl shadow-lg p-3 border border-gray-100">
+              {/* Route Title */}
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-base font-bold text-gray-900 truncate flex-1 mr-2">
+                  📍 {origin} → {destination}
+                </h2>
+                <button
+                  onClick={() => setShowMobileBottomSheet(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                  aria-label="Close"
+                >
+                  <span className="text-gray-600 text-lg">×</span>
+                </button>
+              </div>
+              
+              {/* Quick Stats Row */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-semibold flex items-center">
+                  ⏱️ {duration} min
+                </span>
+                {transfers > 0 && (
+                  <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-semibold flex items-center">
+                    🔄 {transfers} {transfers === 1 ? 'transfer' : 'transfers'}
+                  </span>
+                )}
+                {lines.length > 0 && (
+                  <div className="flex gap-1 overflow-x-auto">
+                    {lines.slice(0, 3).map((line, idx) => (
+                      <span key={idx} className="bg-indigo-600 text-white px-2 py-1 rounded text-xs font-bold whitespace-nowrap">
+                        {line}
+                      </span>
+                    ))}
+                    {lines.length > 3 && (
+                      <span className="text-gray-500 text-xs">+{lines.length - 3}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Quick Action - Open in Google Maps */}
+              <button
+                onClick={handleStartNavigation}
+                className="mt-2 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-xl transition-colors flex items-center justify-center space-x-2 text-sm"
+              >
+                <span>🧭</span>
+                <span>{t('routeCard.startNavigation')}</span>
+              </button>
+            </div>
+          </div>
+
           {/* Full-Screen Map */}
           <div className="absolute inset-0">
             {hasMapData && (
@@ -986,27 +1038,27 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
             )}
           </div>
 
-          {/* Close Button */}
-          <button
-            onClick={() => setShowMobileBottomSheet(false)}
-            className="absolute top-4 left-4 z-50 bg-white rounded-full shadow-lg p-3 hover:bg-gray-100 transition-colors"
-            aria-label="Close mobile view"
-          >
-            <span className="text-xl">×</span>
-          </button>
-
           {/* Bottom Sheet with Route Details */}
           {!useMobileNavigation && (
             <RouteBottomSheet
               isOpen={true}
               onClose={() => setShowMobileBottomSheet(false)}
               snapPoints={[0.25, 0.5, 0.85]}
-              initialSnapPoint={0.5}
+              initialSnapPoint={0.35}
             >
-              {/* Route Header */}
+              {/* Route Ready Banner */}
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center space-x-3">
+                <span className="text-2xl">✅</span>
+                <div>
+                  <p className="font-semibold text-green-800">{t('routeCard.routeReady') || 'Your route is ready!'}</p>
+                  <p className="text-xs text-green-600">{t('routeCard.dragHint') || 'Drag up for step-by-step directions'}</p>
+                </div>
+              </div>
+
+              {/* Route Header - Simplified since we have floating header */}
               <div className="mb-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
-                  {origin} → {destination}
+                <h2 className="text-lg font-bold text-gray-900 mb-2">
+                  📍 {origin} → {destination}
                 </h2>
                 
                 {/* Route Stats */}
@@ -1042,15 +1094,25 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
                 )}
               </div>
 
-              {/* Start Navigation Button */}
+              {/* Action Buttons Row */}
               {steps.length > 0 && (
-                <button
-                  onClick={() => setUseMobileNavigation(true)}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-xl transition-colors shadow-lg flex items-center justify-center space-x-2 mb-4"
-                >
-                  <span className="text-2xl">🧭</span>
-                  <span className="text-lg">{t('routeCard.startNavigation')}</span>
-                </button>
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => setUseMobileNavigation(true)}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-lg flex items-center justify-center space-x-2"
+                  >
+                    <span className="text-xl">🚶</span>
+                    <span className="text-sm">{t('routeCard.startNavigation')}</span>
+                  </button>
+                  <button
+                    onClick={handleStartNavigation}
+                    className="bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center space-x-2"
+                    title="Open in Google Maps"
+                  >
+                    <span className="text-xl">🗺️</span>
+                    <span className="text-sm">Maps</span>
+                  </button>
+                </div>
               )}
 
               {/* Compact Steps List */}
@@ -1237,7 +1299,20 @@ ${steps.map((step, idx) => `${idx + 1}. ${step.instruction || step.description}`
       {hasMapData && (
         <div className="map-container relative" style={{ height: '300px' }}>
           {isMapLoading && <MapLoadingSkeleton t={t} />}
-          <MapContainer 
+          
+          {/* Mobile: Tap to expand button */}
+          {isMobile && (
+            <button
+              onClick={() => setShowMobileBottomSheet(true)}
+              className="absolute top-2 left-2 z-[1001] bg-white/95 backdrop-blur-sm shadow-lg px-3 py-2 rounded-lg flex items-center space-x-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 transition-colors border border-indigo-200"
+              aria-label="Expand map to fullscreen"
+            >
+              <span>🗺️</span>
+              <span>{t('routeCard.expandMap') || 'Expand Map'}</span>
+            </button>
+          )}
+          
+          <MapContainer
             center={center} 
             zoom={13} 
             style={{ height: '100%', width: '100%' }}

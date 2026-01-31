@@ -282,6 +282,184 @@ Respond with valid JSON only:
             requires_location=False,
             language_detected=None
         )
+    
+    async def extract_locations(self, query: str, user_has_gps: bool = False) -> Optional[Dict[str, Any]]:
+        """
+        Use LLM to extract origin and destination from a transportation query.
+        
+        This is much more accurate than regex patterns because the LLM understands:
+        - Natural language variations ("how can i go to X from Y", "from Y to X", "get to X")
+        - Multiple languages (Turkish, English, etc.)
+        - Typos and informal language
+        - Context (when no origin is specified, it might mean "from current location")
+        
+        Args:
+            query: The user's transportation query
+            user_has_gps: Whether the user has GPS location available
+            
+        Returns:
+            Dict with 'origin', 'destination', 'use_gps_for_origin' keys, or None if extraction fails
+        """
+        if not self.llm_available:
+            logger.warning("🔄 LLM not available for location extraction - using fallback")
+            return self._fallback_location_extraction(query, user_has_gps)
+        
+        try:
+            prompt = f"""Extract the origin and destination from this Istanbul transportation query.
+
+Query: "{query}"
+
+User has GPS location: {user_has_gps}
+
+Instructions:
+1. Identify the ORIGIN (starting point) and DESTINATION (ending point)
+2. If no origin is specified but user has GPS, set use_gps_for_origin to true
+3. If query says "from my location", "from here", "from current location", set use_gps_for_origin to true
+4. Clean up location names (e.g., "atakoy" → "Ataköy", "taksim" → "Taksim")
+5. Handle reversed order (e.g., "to Taksim from Ataköy" means origin=Ataköy, destination=Taksim)
+
+Respond with JSON only:
+{{
+    "origin": "location name or null",
+    "destination": "location name or null", 
+    "use_gps_for_origin": true/false,
+    "confidence": 0.0-1.0
+}}
+
+Examples:
+- "how can i go to taksim from atakoy" → {{"origin": "Ataköy", "destination": "Taksim", "use_gps_for_origin": false, "confidence": 0.95}}
+- "how do I get to Sultanahmet" → {{"origin": null, "destination": "Sultanahmet", "use_gps_for_origin": true, "confidence": 0.9}}
+- "from kadikoy to besiktas" → {{"origin": "Kadıköy", "destination": "Beşiktaş", "use_gps_for_origin": false, "confidence": 0.95}}
+- "taksimden kadıköye nasıl giderim" → {{"origin": "Taksim", "destination": "Kadıköy", "use_gps_for_origin": false, "confidence": 0.95}}
+
+JSON response:"""
+
+            response = await self._call_runpod_llm(prompt)
+            
+            if not response:
+                raise Exception("Empty response from LLM")
+            
+            # Parse JSON from response
+            result = self._parse_location_response(response)
+            
+            if result:
+                logger.info(f"🎯 LLM Location Extraction: {result.get('origin')} → {result.get('destination')} (GPS: {result.get('use_gps_for_origin')})")
+                return result
+            else:
+                raise Exception("Failed to parse location response")
+                
+        except Exception as e:
+            logger.error(f"❌ LLM location extraction failed: {str(e)}")
+            return self._fallback_location_extraction(query, user_has_gps)
+    
+    def _parse_location_response(self, response: str) -> Optional[Dict[str, Any]]:
+        """Parse the JSON response from location extraction."""
+        try:
+            response = response.strip()
+            
+            # Extract JSON from response
+            start_idx = response.find('{')
+            end_idx = response.rfind('}') + 1
+            
+            if start_idx != -1 and end_idx > start_idx:
+                json_str = response[start_idx:end_idx]
+                data = json.loads(json_str)
+                
+                # Validate required fields
+                if 'destination' in data:
+                    return {
+                        'origin': data.get('origin'),
+                        'destination': data.get('destination'),
+                        'use_gps_for_origin': data.get('use_gps_for_origin', False),
+                        'confidence': data.get('confidence', 0.8)
+                    }
+            
+            return None
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Failed to parse location JSON: {str(e)}")
+            return None
+    
+    def _fallback_location_extraction(self, query: str, user_has_gps: bool) -> Optional[Dict[str, Any]]:
+        """Simple fallback location extraction using basic patterns."""
+        import re
+        
+        query_lower = query.lower()
+        
+        # Istanbul locations to recognize
+        locations = [
+            'taksim', 'kadıköy', 'kadikoy', 'sultanahmet', 'beşiktaş', 'besiktas',
+            'ataköy', 'atakoy', 'eminönü', 'eminonu', 'karaköy', 'karakoy',
+            'galata', 'üsküdar', 'uskudar', 'bakırköy', 'bakirkoy', 'mecidiyeköy',
+            'levent', 'maslak', 'şişli', 'sisli', 'beykoz', 'sarıyer', 'sariyer',
+            'fatih', 'beyoğlu', 'beyoglu', 'ortaköy', 'ortakoy', 'bebek',
+            'airport', 'havalimanı', 'havalimani', 'ist airport', 'sabiha',
+            'grand bazaar', 'kapalıçarşı', 'kapalicarsi', 'spice bazaar',
+            'hagia sophia', 'ayasofya', 'blue mosque', 'topkapı', 'topkapi'
+        ]
+        
+        # Normalize location names
+        location_map = {
+            'kadikoy': 'Kadıköy', 'kadıköy': 'Kadıköy',
+            'taksim': 'Taksim',
+            'sultanahmet': 'Sultanahmet',
+            'besiktas': 'Beşiktaş', 'beşiktaş': 'Beşiktaş',
+            'atakoy': 'Ataköy', 'ataköy': 'Ataköy',
+            'eminonu': 'Eminönü', 'eminönü': 'Eminönü',
+            'karakoy': 'Karaköy', 'karaköy': 'Karaköy',
+            'uskudar': 'Üsküdar', 'üsküdar': 'Üsküdar',
+            'bakirkoy': 'Bakırköy', 'bakırköy': 'Bakırköy',
+            'sisli': 'Şişli', 'şişli': 'Şişli',
+            'beyoglu': 'Beyoğlu', 'beyoğlu': 'Beyoğlu',
+            'ortakoy': 'Ortaköy', 'ortaköy': 'Ortaköy',
+            'galata': 'Galata', 'levent': 'Levent', 'maslak': 'Maslak',
+            'bebek': 'Bebek', 'fatih': 'Fatih', 'beykoz': 'Beykoz',
+            'sariyer': 'Sarıyer', 'sarıyer': 'Sarıyer',
+            'mecidiyeköy': 'Mecidiyeköy', 'mecidiyekoy': 'Mecidiyeköy',
+        }
+        
+        found_locations = []
+        for loc in locations:
+            if loc in query_lower:
+                normalized = location_map.get(loc, loc.title())
+                if normalized not in [l[1] for l in found_locations]:
+                    found_locations.append((query_lower.find(loc), normalized))
+        
+        # Sort by position in query
+        found_locations.sort(key=lambda x: x[0])
+        
+        if len(found_locations) >= 2:
+            # Check for "to X from Y" pattern (reversed)
+            if ' from ' in query_lower:
+                from_idx = query_lower.find(' from ')
+                to_idx = query_lower.find(' to ')
+                if to_idx != -1 and to_idx < from_idx:
+                    # "to X from Y" pattern - second location is origin
+                    return {
+                        'origin': found_locations[1][1],
+                        'destination': found_locations[0][1],
+                        'use_gps_for_origin': False,
+                        'confidence': 0.7
+                    }
+            
+            # Default: first is origin, second is destination
+            return {
+                'origin': found_locations[0][1],
+                'destination': found_locations[1][1],
+                'use_gps_for_origin': False,
+                'confidence': 0.7
+            }
+        elif len(found_locations) == 1:
+            # Only destination found, use GPS for origin if available
+            return {
+                'origin': None,
+                'destination': found_locations[0][1],
+                'use_gps_for_origin': user_has_gps,
+                'confidence': 0.6
+            }
+        
+        return None
+
 
 # Global instance
 _intent_detector = None
@@ -306,3 +484,18 @@ async def detect_query_intent(query: str, user_location: Optional[Dict] = None) 
     """
     detector = get_intent_detector()
     return await detector.detect_intent(query, user_location)
+
+async def extract_query_locations(query: str, user_has_gps: bool = False) -> Optional[Dict[str, Any]]:
+    """
+    Convenience function to extract locations from a transportation query.
+    
+    Args:
+        query: User's query text
+        user_has_gps: Whether user has GPS location available
+        
+    Returns:
+        Dict with origin, destination, use_gps_for_origin, confidence
+        or None if extraction fails
+    """
+    detector = get_intent_detector()
+    return await detector.extract_locations(query, user_has_gps)

@@ -165,9 +165,10 @@ const RouteBottomSheet = ({
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
       >
-        {/* Drag Handle */}
-        <div className="bottom-sheet-handle flex items-center justify-center py-3 cursor-grab active:cursor-grabbing">
-          <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+        {/* Drag Handle with visual hint */}
+        <div className="bottom-sheet-handle flex flex-col items-center justify-center py-3 cursor-grab active:cursor-grabbing">
+          <div className="w-12 h-1.5 bg-gray-300 rounded-full mb-1"></div>
+          <span className="text-[10px] text-gray-400 font-medium">Drag to resize</span>
         </div>
         
         {/* Snap Point Indicators (optional) */}

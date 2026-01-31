@@ -349,17 +349,11 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         # We use this detected language to ensure consistent responses.
         # Do NOT include verbose language instructions that the LLM might echo back.
         
-        # Language mapping for clearer instructions
-        lang_names = {
-            'en': 'English', 'tr': 'Turkish', 'de': 'German', 
-            'ru': 'Russian', 'ar': 'Arabic', 'fr': 'French'
-        }
-        lang_name = lang_names.get(language, 'English')
+        # No explicit language instruction needed - LLM naturally responds in query's language
+        # The system prompt already says: "Match the user's language naturally"
+        # This keeps responses consistent across mobile and desktop
         
-        # Simple, clean query format - no visible language instruction
-        # The system prompt already tells the LLM to match the user's language
-        # Adding explicit instruction here causes the LLM to echo "I detect..."
-        prompt_parts.append(f"\n---\n\nUser: {query}\n\nAssistant:")
+        prompt_parts.append(f"\nUser: {query}\n\nAssistant:")
 
         
         # Join all parts
