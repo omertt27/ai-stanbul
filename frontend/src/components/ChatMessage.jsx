@@ -66,7 +66,41 @@ const ChatMessage = ({ message }) => {
         {/* Smart text rendering: If route card is shown, display condensed summary instead of full details */}
         <div className="message-text">
           {sender === 'ai' ? (
-            <ReactMarkdown>
+            <ReactMarkdown
+              components={{
+                // Custom paragraph to avoid extra spacing issues
+                p: ({ node, ...props }) => (
+                  <p {...props} style={{ marginBottom: '0.75em' }} />
+                ),
+                // Ensure proper list rendering with good spacing
+                ul: ({ node, ...props }) => (
+                  <ul {...props} style={{ 
+                    listStyleType: 'disc', 
+                    paddingLeft: '1.5em', 
+                    marginBottom: '0.75em',
+                    marginTop: '0.5em'
+                  }} />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol {...props} style={{ 
+                    listStyleType: 'decimal', 
+                    paddingLeft: '1.5em', 
+                    marginBottom: '0.75em',
+                    marginTop: '0.5em'
+                  }} />
+                ),
+                li: ({ node, ...props }) => (
+                  <li {...props} style={{ 
+                    marginBottom: '0.5em',
+                    lineHeight: '1.5'
+                  }} />
+                ),
+                // Bold text styling
+                strong: ({ node, ...props }) => (
+                  <strong {...props} style={{ fontWeight: '600', color: '#222' }} />
+                ),
+              }}
+            >
               {(route_info || map_data || (data && (data.route_info || data.map_data))) 
                 ? extractRouteSummary(text) 
                 : text}
