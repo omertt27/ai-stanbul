@@ -48,6 +48,15 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Import LLM-based location extraction for robust natural language parsing
+try:
+    from .llm_intent_detector import extract_query_locations, LLMIntentDetector
+    LLM_LOCATION_EXTRACTION_AVAILABLE = True
+    logger.info("✅ LLM Location Extraction available")
+except ImportError as e:
+    LLM_LOCATION_EXTRACTION_AVAILABLE = False
+    logger.warning(f"⚠️ LLM Location Extraction not available: {e}")
+
 # Import LLM route preference detector
 try:
     from .llm.route_preference_detector import detect_route_preferences
@@ -215,14 +224,41 @@ class AIChatRouteHandler:
         
         # Asian side
         'kadikoy': (40.9900, 29.0250),
+        'kadıköy': (40.9900, 29.0250),
         'uskudar': (41.0226, 29.0150),
+        'üsküdar': (41.0226, 29.0150),
         'maiden tower': (41.0210, 29.0044),
         
         # Other districts
         'besiktas': (41.0426, 29.0050),
+        'beşiktaş': (41.0426, 29.0050),
         'fatih': (41.0182, 28.9497),
         'eminonu': (41.0177, 28.9742),
+        'eminönü': (41.0177, 28.9742),
         'balat': (41.0297, 28.9489),
+        
+        # Ataköy area (European side, near airport)
+        'atakoy': (40.9833, 28.8500),
+        'ataköy': (40.9833, 28.8500),
+        'atakoy metro': (40.9833, 28.8500),
+        
+        # Bakırköy area
+        'bakirkoy': (40.9800, 28.8700),
+        'bakırköy': (40.9800, 28.8700),
+        
+        # Additional districts
+        'sisli': (41.0600, 28.9870),
+        'şişli': (41.0600, 28.9870),
+        'mecidiyekoy': (41.0700, 28.9900),
+        'mecidiyeköy': (41.0700, 28.9900),
+        'levent': (41.0850, 29.0100),
+        'maslak': (41.1100, 29.0200),
+        
+        # Airport areas
+        'istanbul airport': (41.2619, 28.7419),
+        'ist airport': (41.2619, 28.7419),
+        'sabiha gokcen': (40.8986, 29.3092),
+        'sabiha gökçen': (40.8986, 29.3092),
     }
     
     def __init__(self, redis_url: str = "redis://localhost:6379/0"):
@@ -358,7 +394,11 @@ class AIChatRouteHandler:
         user_context: Optional[Dict[str, Any]] = None
     ) -> Tuple[List[Tuple[float, float]], Dict[str, Any]]:
         """
-        Validate and prepare locations from message
+        Validate and prepare locations from message.
+        
+        IMPROVED: Uses LLM-based extraction as PRIMARY method for robust
+        natural language understanding across multiple languages and patterns.
+        Falls back to regex patterns if LLM fails.
         
         Returns:
             Tuple of (locations list, extraction metadata)
@@ -367,28 +407,114 @@ class AIChatRouteHandler:
             InsufficientLocationsError: If less than 2 locations found
             LocationExtractionError: If extraction fails
         """
-        # Extract locations using existing _extract_locations method
-        locations = await self._extract_locations(message)
+        locations = []
+        extraction_method = 'unknown'
+        user_gps = self._get_user_gps_location(user_context)
+        user_has_gps = user_gps is not None
         
-        user_gps = None
+        # ===== STRATEGY 1: LLM-based extraction (PRIMARY - most robust) =====
+        if LLM_LOCATION_EXTRACTION_AVAILABLE:
+            try:
+                logger.info(f"🤖 Attempting LLM-based location extraction for: '{message}'")
+                llm_result = await extract_query_locations(message, user_has_gps=user_has_gps)
+                
+                if llm_result and llm_result.get('destination'):
+                    origin_name = llm_result.get('origin')
+                    dest_name = llm_result.get('destination')
+                    use_gps = llm_result.get('use_gps_for_origin', False)
+                    confidence = llm_result.get('confidence', 0.8)
+                    
+                    logger.info(f"🤖 LLM extracted: origin='{origin_name}', dest='{dest_name}', use_gps={use_gps}, confidence={confidence}")
+                    
+                    # Resolve destination coordinates
+                    dest_coords = await self._find_best_location_match(dest_name) if dest_name else None
+                    
+                    if dest_coords:
+                        # Determine origin
+                        if use_gps and user_gps:
+                            # Use GPS as origin
+                            locations = [user_gps, dest_coords]
+                            extraction_method = 'llm_with_gps_origin'
+                            logger.info(f"✅ LLM extraction success: GPS → {dest_name}")
+                        elif origin_name:
+                            # Resolve origin coordinates
+                            origin_coords = await self._find_best_location_match(origin_name)
+                            if origin_coords:
+                                locations = [origin_coords, dest_coords]
+                                extraction_method = 'llm_full_extraction'
+                                logger.info(f"✅ LLM extraction success: {origin_name} → {dest_name}")
+                            else:
+                                # Origin not found, try GPS fallback
+                                if user_gps:
+                                    locations = [user_gps, dest_coords]
+                                    extraction_method = 'llm_origin_fallback_gps'
+                                    logger.warning(f"⚠️ Origin '{origin_name}' not found, using GPS")
+                                else:
+                                    # Only destination found
+                                    locations = [dest_coords]
+                                    extraction_method = 'llm_dest_only'
+                                    logger.warning(f"⚠️ Origin '{origin_name}' not found, no GPS available")
+                        elif use_gps and not user_gps:
+                            # LLM wants GPS but user doesn't have it
+                            locations = [dest_coords]
+                            extraction_method = 'llm_dest_only_no_gps'
+                            logger.warning(f"⚠️ LLM requests GPS but not available, only dest found")
+                        else:
+                            # Only destination extracted
+                            if user_gps:
+                                locations = [user_gps, dest_coords]
+                                extraction_method = 'llm_implicit_gps_origin'
+                            else:
+                                locations = [dest_coords]
+                                extraction_method = 'llm_dest_only'
+                    else:
+                        logger.warning(f"⚠️ LLM destination '{dest_name}' not found in geocoder")
+                else:
+                    logger.info(f"🤖 LLM did not extract clear locations, trying regex fallback")
+            except Exception as e:
+                logger.warning(f"⚠️ LLM location extraction failed: {e}")
+        
+        # ===== STRATEGY 2: Regex pattern extraction (FALLBACK) =====
         if len(locations) < 2:
-            # Check if user has GPS location for single-location queries
-            user_gps = self._get_user_gps_location(user_context)
-            if user_gps and len(locations) == 1:
-                locations.insert(0, user_gps)  # Add as starting point
-            else:
-                raise InsufficientLocationsError(
-                    "I need at least 2 locations to plan a route. "
-                    "Please specify both a starting point and destination, "
-                    "or enable GPS location to use your current location."
-                )
+            logger.info(f"🔄 Falling back to regex pattern extraction for: '{message}'")
+            regex_locations = await self._extract_locations(message)
+            
+            if len(regex_locations) >= 2:
+                locations = regex_locations
+                extraction_method = 'regex_pattern'
+                logger.info(f"✅ Regex extraction found {len(regex_locations)} locations")
+            elif len(regex_locations) == 1 and len(locations) < 1:
+                # Regex found one location, and LLM didn't find anything
+                locations = regex_locations
+                extraction_method = 'regex_partial'
+            elif len(regex_locations) == 1 and user_gps and len(locations) == 0:
+                # Regex found destination, use GPS as origin
+                locations = [user_gps, regex_locations[0]]
+                extraction_method = 'regex_with_gps_origin'
+        
+        # ===== STRATEGY 3: GPS fallback for single location =====
+        if len(locations) == 1 and user_gps:
+            locations.insert(0, user_gps)  # Add GPS as starting point
+            extraction_method = extraction_method + '_gps_fallback'
+            logger.info(f"✅ Added GPS as origin, now have 2 locations")
+        
+        # ===== VALIDATION =====
+        if len(locations) < 2:
+            logger.error(f"❌ Could not extract enough locations. Found: {len(locations)}")
+            raise InsufficientLocationsError(
+                "I need at least 2 locations to plan a route. "
+                "Please specify both a starting point and destination, "
+                "or enable GPS location to use your current location."
+            )
         
         metadata = {
             'total_locations': len(locations),
-            'extraction_method': 'nlp_pattern_matching',
-            'has_gps_fallback': user_gps is not None
+            'extraction_method': extraction_method,
+            'has_gps_fallback': user_has_gps,
+            'llm_available': LLM_LOCATION_EXTRACTION_AVAILABLE
         }
         
+        logger.info(f"✅ Location extraction complete: {len(locations)} locations via {extraction_method}")
         return locations, metadata
     
     async def _extract_route_preferences(
@@ -1088,16 +1214,19 @@ class AIChatRouteHandler:
     
     async def _find_best_location_match(self, query: str) -> Optional[Tuple[float, float]]:
         """
-        Find best matching location from KNOWN_LOCATIONS using fuzzy matching.
+        Find best matching location using multiple strategies.
         
-        Strategies:
-        1. Exact match (case-insensitive)
-        2. Substring match (location name contains query or vice versa)
-        3. Word-based partial match (all query words appear in location name)
-        4. Geocoder fallback (100+ landmarks + Nominatim API)
+        IMPROVED: Prioritizes Istanbul Geocoder (100+ landmarks + Nominatim API)
+        over the limited KNOWN_LOCATIONS dictionary.
+        
+        Strategies (in order):
+        1. Quick check in KNOWN_LOCATIONS (fast cache)
+        2. Istanbul Geocoder (100+ landmarks)
+        3. Nominatim API fallback (any Istanbul location)
+        4. Fuzzy matching in KNOWN_LOCATIONS (last resort)
         
         Args:
-            query: Location query string (cleaned)
+            query: Location query string (cleaned by LLM or regex)
             
         Returns:
             Coordinate tuple if found, None otherwise
@@ -1108,56 +1237,80 @@ class AIChatRouteHandler:
         if not query:
             return None
         
-        # Strategy 1: Exact match
+        # Also try Turkish-normalized version
+        query_normalized = normalize_turkish(query)
+        
+        # ===== STRATEGY 1: Quick exact match in KNOWN_LOCATIONS =====
         if query in self.KNOWN_LOCATIONS:
-            logger.info(f"✅ Found exact match in KNOWN_LOCATIONS for: '{query}'")
+            logger.info(f"✅ Quick match in KNOWN_LOCATIONS for: '{query}'")
             return self.KNOWN_LOCATIONS[query]
         
-        # Strategy 2: Check if query is substring of any location name
+        if query_normalized in self.KNOWN_LOCATIONS:
+            logger.info(f"✅ Quick match (normalized) in KNOWN_LOCATIONS for: '{query_normalized}'")
+            return self.KNOWN_LOCATIONS[query_normalized]
+        
+        # ===== STRATEGY 2: Istanbul Geocoder (100+ landmarks + API) =====
+        # This is the PRIMARY resolution strategy - has far more locations
+        if self.geocoder:
+            logger.info(f"🌍 Trying Istanbul Geocoder for: '{query}'")
+            try:
+                # Try original query
+                geocoded = await self.geocoder.geocode_async(query)
+                if geocoded:
+                    logger.info(f"✅ Geocoder found: '{query}' -> {geocoded.name} at ({geocoded.lat}, {geocoded.lon}) [source: {geocoded.source}]")
+                    return geocoded.to_tuple()
+                
+                # Try Turkish-normalized version if different
+                if query_normalized != query:
+                    geocoded = await self.geocoder.geocode_async(query_normalized)
+                    if geocoded:
+                        logger.info(f"✅ Geocoder found (normalized): '{query_normalized}' -> {geocoded.name}")
+                        return geocoded.to_tuple()
+                
+                # Try with "Istanbul" suffix for better API matching
+                geocoded = await self.geocoder.geocode_async(f"{query} istanbul")
+                if geocoded:
+                    logger.info(f"✅ Geocoder found (with Istanbul): '{query}' -> {geocoded.name}")
+                    return geocoded.to_tuple()
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ Geocoder error for '{query}': {e}")
+        
+        # ===== STRATEGY 3: Fuzzy matching in KNOWN_LOCATIONS =====
+        # Only as fallback when geocoder fails
+        logger.info(f"🔄 Geocoder failed, trying fuzzy matching in KNOWN_LOCATIONS for: '{query}'")
+        
+        # Substring match
         for location_name, coords in self.KNOWN_LOCATIONS.items():
             if query in location_name or location_name in query:
-                # Prefer shorter matches (more specific)
-                logger.info(f"✅ Found substring match in KNOWN_LOCATIONS: '{query}' -> '{location_name}'")
+                logger.info(f"✅ Substring match: '{query}' -> '{location_name}'")
+                return coords
+            if query_normalized in location_name or location_name in query_normalized:
+                logger.info(f"✅ Substring match (normalized): '{query_normalized}' -> '{location_name}'")
                 return coords
         
-        # Strategy 3: Word-based partial matching
-        query_words = set(query.split())
+        # Word-based partial matching
+        query_words = set(query.split()) | set(query_normalized.split())
         best_match = None
         best_match_score = 0
         best_match_name = None
         
         for location_name, coords in self.KNOWN_LOCATIONS.items():
             location_words = set(location_name.split())
-            
-            # Count matching words
             matching_words = query_words & location_words
             match_score = len(matching_words)
             
-            # Require at least one matching word
             if match_score > 0 and match_score > best_match_score:
                 best_match = coords
                 best_match_score = match_score
                 best_match_name = location_name
         
         if best_match:
-            logger.info(f"✅ Found word-based match in KNOWN_LOCATIONS: '{query}' -> '{best_match_name}'")
+            logger.info(f"✅ Word match: '{query}' -> '{best_match_name}'")
             return best_match
         
-        # Strategy 4: Geocoder fallback (100+ landmarks + external geocoding)
-        if self.geocoder:
-            logger.info(f"🔍 No match in KNOWN_LOCATIONS, trying geocoder fallback for: '{query}'")
-            try:
-                geocoded = await self.geocoder.geocode_async(query)
-                if geocoded:
-                    logger.info(f"✅ Geocoder found location: '{query}' -> {geocoded.name} at ({geocoded.lat}, {geocoded.lon}) [source: {geocoded.source}, confidence: {geocoded.confidence}]")
-                    return geocoded.to_tuple()
-                else:
-                    logger.info(f"⚠️ Geocoder could not find location: '{query}'")
-            except Exception as e:
-                logger.warning(f"⚠️ Error using geocoder for '{query}': {e}")
-        
         # No match found
-        logger.warning(f"❌ Could not find location match for: '{query}' (tried KNOWN_LOCATIONS and geocoder)")
+        logger.warning(f"❌ Could not find location: '{query}' (tried geocoder + KNOWN_LOCATIONS)")
         return None
     
     async def _extract_comma_separated_locations(self, message: str) -> List[Tuple[float, float]]:
