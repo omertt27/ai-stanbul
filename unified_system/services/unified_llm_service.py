@@ -412,6 +412,9 @@ class UnifiedLLMService:
         self.circuit_breaker = CircuitBreaker() if self.circuit_breaker_enabled else None
         self.context_builder = None  # Optional context builder (not used in current implementation)
         
+        # Circuit breaker state (for API compatibility)
+        self.circuit_breaker_open = False
+        
         # Startup tracking (for cache alert warm-up)
         self.startup_time = time.time()
         self.warmup_period_seconds = 60  # Don't alert on low cache hit rate for first 60 seconds
@@ -1104,6 +1107,19 @@ class UnifiedLLMService:
             'ttl_seconds': self.cache_ttl,
             'enabled': self.cache_enabled
         }
+    
+    def update_circuit_breaker_state(self) -> None:
+        """Update circuit breaker state for API compatibility"""
+        if self.circuit_breaker:
+            self.circuit_breaker_open = not self.circuit_breaker.can_execute()
+        else:
+            self.circuit_breaker_open = False
+    
+    @property
+    def is_circuit_breaker_open(self) -> bool:
+        """Check if circuit breaker is open (for API compatibility)"""
+        self.update_circuit_breaker_state()
+        return self.circuit_breaker_open
 
 
 # ============================================================================

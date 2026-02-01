@@ -60,13 +60,14 @@ class LLMIntentDetector:
             self.llm_client = None
             self.llm_available = False
         
-    async def detect_intent(self, query: str, user_location: Optional[Dict] = None) -> IntentResult:
+    async def detect_intent(self, query: str, user_location: Optional[Dict] = None, binary_mode: bool = False) -> IntentResult:
         """
         Detect the intent of a user query using LLM classification.
         
         Args:
             query: The user's query text
             user_location: Optional user location context
+            binary_mode: If True, use simplified binary classification (Transportation vs Others)
             
         Returns:
             IntentResult with classification details
@@ -78,16 +79,22 @@ class LLMIntentDetector:
         
         try:
             # Construct the prompt for intent detection
-            prompt = self._build_intent_detection_prompt(query, user_location)
+            if binary_mode:
+                prompt = self._build_binary_detection_prompt(query, user_location)
+            else:
+                prompt = self._build_intent_detection_prompt(query, user_location)
             
             # Call RunPod LLM API
-            response = await self._call_runpod_llm(prompt)
+            response = await self._call_runpod_llm(prompt, max_tokens=100 if binary_mode else 200)
             
             if not response:
                 raise Exception("Empty response from RunPod LLM")
             
             # Parse the response
-            intent_data = self._parse_intent_response(response)
+            if binary_mode:
+                intent_data = self._parse_binary_response(response)
+            else:
+                intent_data = self._parse_intent_response(response)
             
             # Create IntentResult
             intent_type = IntentType(intent_data.get('intent', 'other'))
@@ -108,13 +115,82 @@ class LLMIntentDetector:
                 language_detected=language
             )
             
-            logger.info(f"🎯 RunPod LLM Intent Detection: {intent_type.value} (confidence: {confidence:.2f}) - {reasoning}")
+            mode_text = "BINARY" if binary_mode else "FULL"
+            logger.info(f"🎯 RunPod LLM Intent Detection ({mode_text}): {intent_type.value} (confidence: {confidence:.2f}) - {reasoning}")
             return result
             
         except Exception as e:
             logger.error(f"❌ RunPod LLM Intent Detection failed: {str(e)}")
             # Fallback to keyword-based detection
             return self._fallback_keyword_detection(query)
+    
+    def _build_binary_detection_prompt(self, query: str, user_location: Optional[Dict] = None) -> str:
+        """Build a simplified prompt for binary classification (Transportation vs Others)."""
+        location_context = ""
+        if user_location:
+            location_context = f"User is in Istanbul (lat: {user_location.get('latitude', 'unknown')}, lon: {user_location.get('longitude', 'unknown')}). "
+        
+        prompt = f"""
+You are a transportation intent classifier for Istanbul travel assistant. 
+Your job is SIMPLE: determine if the user wants transportation/route help or something else.
+
+{location_context}
+
+USER QUERY: "{query}"
+
+CLASSIFICATION RULES:
+- "transportation" = User wants directions, routes, how to get somewhere, travel between places, metro/bus/taxi info
+- "other" = Everything else (restaurants, attractions, weather, general info, etc.)
+
+Examples:
+"How do I get to Galata Tower?" → transportation
+"Best restaurants in Sultanahmet?" → other  
+"Taksim'den Kadıköy'e nasıl giderim?" → transportation
+"What's the weather today?" → other
+
+Respond with JSON:
+{{"intent": "transportation" or "other", "confidence": 0.0-1.0, "reasoning": "brief explanation"}}
+"""
+        return prompt
+    
+    def _parse_binary_response(self, response: str) -> Dict[str, Any]:
+        """Parse the binary classification response from RunPod LLM."""
+        try:
+            # Extract JSON from response
+            response = response.strip()
+            
+            # Handle code blocks
+            if '```' in response:
+                start_idx = response.find('{')
+                end_idx = response.rfind('}') + 1
+                if start_idx != -1 and end_idx != -1:
+                    response = response[start_idx:end_idx]
+            
+            # Find JSON object
+            start_idx = response.find('{')
+            end_idx = response.rfind('}') + 1
+            if start_idx != -1 and end_idx != -1:
+                json_str = response[start_idx:end_idx]
+                data = json.loads(json_str)
+                
+                # Normalize intent value
+                intent_value = data.get('intent', 'other').lower().strip()
+                if intent_value == 'transportation':
+                    data['intent'] = 'transportation'
+                else:
+                    data['intent'] = 'other'
+                
+                return data
+            else:
+                raise Exception("No JSON object found in response")
+                
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Failed to parse binary classification JSON: {e}")
+            logger.error(f"   Response was: {response}")
+            raise Exception(f"Invalid JSON in binary classification: {e}")
+        except Exception as e:
+            logger.error(f"❌ Binary response parsing error: {e}")
+            raise
     
     def _build_intent_detection_prompt(self, query: str, user_location: Optional[Dict] = None) -> str:
         """Build the prompt for LLM intent detection."""
@@ -156,13 +232,13 @@ Respond with valid JSON only:
 """
         return prompt
     
-    async def _call_runpod_llm(self, prompt: str) -> str:
+    async def _call_runpod_llm(self, prompt: str, max_tokens: int = 200) -> str:
         """Call RunPod LLM API for intent detection."""
         try:
             # Use RunPod LLM client to generate response
             response = await self.llm_client.generate(
                 prompt=prompt,
-                max_tokens=200,  # Short response for classification
+                max_tokens=max_tokens,  # Configurable token limit
                 temperature=0.1  # Low temperature for consistent classification
             )
             
@@ -471,19 +547,20 @@ def get_intent_detector() -> LLMIntentDetector:
         _intent_detector = LLMIntentDetector()
     return _intent_detector
 
-async def detect_query_intent(query: str, user_location: Optional[Dict] = None) -> IntentResult:
+async def detect_query_intent(query: str, user_location: Optional[Dict] = None, binary_mode: bool = False) -> IntentResult:
     """
     Convenience function to detect query intent.
     
     Args:
         query: User's query text
         user_location: Optional user location context
+        binary_mode: If True, use simplified binary classification (Transportation vs Others)
         
     Returns:
         IntentResult with classification
     """
     detector = get_intent_detector()
-    return await detector.detect_intent(query, user_location)
+    return await detector.detect_intent(query, user_location, binary_mode)
 
 async def extract_query_locations(query: str, user_has_gps: bool = False) -> Optional[Dict[str, Any]]:
     """

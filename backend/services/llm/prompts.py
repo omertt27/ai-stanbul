@@ -77,29 +77,62 @@ class PromptBuilder:
 
 🌍 LANGUAGE: Match the user's language naturally. If they write in English, respond in English. If Turkish, respond in Turkish. Never mention or comment on which language you're using.
 
-📝 RESPONSE STYLE:
+📝 RESPONSE STYLE - CHATGPT-LIKE FORMATTING:
 - Get straight to the point with helpful, substantive content
-- Aim for 3-5 sentences minimum for informational queries
-- Bold important names with **name**
+- CRITICAL: Use proper paragraph structure with clear breaks - NEVER write everything in one paragraph
+- Each paragraph should contain ONE main idea (2-4 sentences maximum)
+- Add blank lines between paragraphs for readability (like ChatGPT does)
+- Use natural indentation and spacing to organize information
+- Structure your response: intro paragraph → main content → conclusion (if relevant)
+- DO NOT use asterisks for any formatting - write place names normally
+- NEVER use asterisks anywhere in your response
+
+🔧 PARAGRAPH FORMATTING RULES:
+- Start responses with a brief introductory paragraph
+- Use blank lines to separate different topics or ideas
+- When explaining multiple points, use separate paragraphs for each
+- Add spacing before and after numbered lists
+- End with a helpful conclusion paragraph when appropriate
+- Think of each paragraph as a complete thought or concept
 
 📋 CRITICAL LIST FORMATTING (for ANY recommendations - restaurants, attractions, spots, etc.):
-NEVER use asterisks (*) or dashes (-) for lists. ALWAYS use numbered format:
+NEVER use asterisks or dashes for lists. ALWAYS use numbered format with BLANK LINES:
 
-1. **Place Name** - Brief description (1 sentence).
+1. Place Name - Brief description (1 sentence).  
    📍 Location: Neighborhood/area
 
-2. **Place Name** - Brief description (1 sentence).
+2. Place Name - Brief description (1 sentence).  
    📍 Location: Neighborhood/area
 
-3. **Place Name** - Brief description (1 sentence).
+3. Place Name - Brief description (1 sentence).  
    📍 Location: Neighborhood/area
 
-RULES:
+FORMATTING RULES:
 - Use numbered list (1. 2. 3.) for ALL recommendations
-- Put a BLANK LINE between each numbered item
-- Bold the place name with **double asterisks**
+- Put a BLANK LINE between each numbered item (this is CRITICAL for readability)
+- Add two spaces at the end of each description line for proper Markdown line breaks
+- DO NOT use asterisks for bold formatting - just write place names normally
 - Keep each description to ONE short sentence
 - Add 📍 Location on a new line with indentation
+- NEVER put numbered items back-to-back without blank lines
+- ABSOLUTELY NO ASTERISKS anywhere in your response
+
+PARAGRAPH STRUCTURE EXAMPLES:
+For informational responses:
+→ Introduction paragraph explaining what you'll cover
+→ Blank line
+→ Main content (lists, details, explanations) with proper spacing
+→ Blank line  
+→ Conclusion paragraph with helpful tips or next steps
+
+For recommendations:
+→ Brief intro about the area/topic
+→ Blank line
+→ Numbered list with blank lines between items
+→ Blank line
+→ Practical tips or additional context paragraph
+
+Remember: Each paragraph = one complete thought. Use blank lines liberally!
 
 🎯 YOUR EXPERTISE:
 You specialize in Istanbul travel, tourism, and local knowledge:
@@ -253,9 +286,13 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
             if conv_formatted:
                 prompt_parts.append("\n## Previous Conversation:")
                 prompt_parts.append(conv_formatted)
-                prompt_parts.append("\n🔗 IMPORTANT: Use the conversation history above to understand context and references.")
-                prompt_parts.append("If the current question refers to something mentioned earlier (like 'there', 'it', or an implied location),")
-                prompt_parts.append("make sure your answer is about that specific place/topic from the conversation.")
+                prompt_parts.append("\n🔗 CRITICAL CONTEXT AWARENESS:")
+                prompt_parts.append("- The conversation above shows what we've been discussing")
+                prompt_parts.append("- If the user says 'more', 'tell me more', 'general', or asks follow-up questions, they want MORE INFO about the SAME TOPIC")
+                prompt_parts.append("- Look for the main topic/location in the previous conversation and continue with that theme")
+                prompt_parts.append("- If they asked about a district/area, give more details about THAT district")
+                prompt_parts.append("- If they asked about restaurants, give more restaurants in THAT area")
+                prompt_parts.append("- Don't change topics unless they explicitly mention something completely different")
         
         # 3. Database context
         if context.get('database'):
@@ -478,6 +515,9 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         elif 'sultanahmet' in query_lower or 'taksim' in query_lower or 'galata' in query_lower:
             # If query contains Turkish place names but no clear language indicators,
             # default to English (tourist asking about Turkish places)
+            return 'en'
+        elif query_lower in ['more', 'general', 'tell me more', 'continue', 'what else']:
+            # Follow-up queries - default to English unless clear indicators
             return 'en'
         
         # Default to English if no clear signal
@@ -844,9 +884,24 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         if not any(instruction in prompt for instruction in lang_instructions):
             issues.append("Missing explicit language instruction")
         
-        # Check for potential formatting issues
-        if prompt.count("*") > 5:  # Too many asterisks might indicate old formatting
-            issues.append("Potential asterisk formatting detected (should use numbered lists)")
+        # Check for potential formatting issues - NO asterisks allowed anywhere
+        asterisk_count = prompt.count("*")
+        
+        if asterisk_count > 0:
+            issues.append(f"Found {asterisk_count} asterisks in prompt - NO asterisks should be used for any formatting")
+        
+        # Check for proper list spacing in recommendations
+        if "1. " in prompt and "2. " in prompt:
+            # Check if numbered lists have proper spacing
+            prompt_lines = prompt.split('\n')
+            for i, line in enumerate(prompt_lines):
+                if line.strip().startswith(('1. ', '2. ', '3. ', '4. ', '5. ')):
+                    # Check if there's a blank line before this item (except for first item)
+                    if not line.strip().startswith('1. ') and i > 0:
+                        prev_line = prompt_lines[i-1].strip()
+                        if prev_line and not prev_line.startswith('📍'):
+                            issues.append("Missing blank lines between numbered list items")
+                            break
         
         # Check prompt length
         if len(prompt) > 8000:  # Very long prompt
@@ -858,8 +913,13 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
             issues.append("Redundant route/map instructions detected")
         
         # Check for conflicting instructions
-        if "NEVER use asterisks" in prompt and "*" in prompt.split("NEVER use asterisks")[1]:
-            issues.append("Conflicting asterisk usage after prohibition")
+        if "NEVER use asterisks" in prompt:
+            # Check for ANY asterisks after the prohibition
+            after_prohibition = prompt.split("NEVER use asterisks")[1]
+            asterisk_count = after_prohibition.count("*")
+            
+            if asterisk_count > 0:
+                issues.append(f"Found {asterisk_count} asterisks used after asterisk prohibition")
         
         return issues
 
@@ -881,6 +941,14 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         query_lower = query.lower()
         context_lower = context_section.lower()
         
+        # Follow-up query detection - if user says "more", "general", etc., conversation context is critical
+        follow_up_indicators = ['more', 'general', 'tell me more', 'continue', 'what else', 'anything else']
+        if any(indicator in query_lower for indicator in follow_up_indicators):
+            if 'previous conversation' in context_lower:
+                score += 0.5  # Conversation context is extremely important for follow-ups
+            elif 'database information' in context_lower:
+                score += 0.3  # Database context still valuable
+        
         # Keyword overlap scoring
         query_words = set(query_lower.split())
         context_words = set(context_lower.split())
@@ -893,7 +961,7 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         score += min(travel_matches * 0.1, 0.2)
         
         # Location-specific relevance
-        locations = ['sultanahmet', 'taksim', 'galata', 'kadikoy', 'besiktas']
+        locations = ['sultanahmet', 'taksim', 'galata', 'kadikoy', 'besiktas', 'beyoğlu', 'beyoglu']
         location_matches = sum(1 for loc in locations if loc in query_lower and loc in context_lower)
         score += min(location_matches * 0.15, 0.3)
         
@@ -918,10 +986,15 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
             detected_language: Language detected by _detect_query_language
             response_quality: Optional quality score (0.0-1.0)
         """
+        # Check for follow-up query patterns
+        follow_up_indicators = ['more', 'general', 'tell me more', 'continue', 'what else', 'anything else']
+        is_follow_up = any(indicator in query.lower() for indicator in follow_up_indicators)
+        
         metrics = {
             'prompt_length': len(prompt),
             'query_length': len(query),
             'detected_language': detected_language,
+            'is_follow_up_query': is_follow_up,
             'sections_count': prompt.count('## '),
             'has_gps_context': 'GPS location' in prompt,
             'has_conversation_history': 'Previous Conversation' in prompt,

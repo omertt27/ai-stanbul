@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/v1/llm", tags=["RunPod LLM"])
 class LLMTestRequest(BaseModel):
     """Request model for LLM testing"""
     prompt: str = Field(..., description="Prompt for LLM generation")
-    max_tokens: Optional[int] = Field(250, description="Maximum tokens to generate")
+    max_tokens: Optional[int] = Field(2500, description="Maximum tokens to generate")
 
 
 class LLMTestResponse(BaseModel):

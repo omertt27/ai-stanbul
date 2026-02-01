@@ -480,6 +480,26 @@ class PureLLMCore:
             jitter=True
         )
         
+        # 🚀 Redis Client for LLM Response Caching (PERFORMANCE OPTIMIZATION)
+        self.redis_client = None
+        try:
+            if self.config.get('redis_client'):
+                self.redis_client = self.config['redis_client']
+                logger.info("✅ Redis client provided via config - LLM caching enabled")
+            elif self.services and hasattr(self.services, 'redis_manager') and self.services.redis_manager:
+                self.redis_client = self.services.redis_manager.client
+                logger.info("✅ Redis client from service manager - LLM caching enabled")
+            else:
+                # Try to import and get Redis client from global cache
+                try:
+                    from services.cache_service import get_redis_client
+                    self.redis_client = get_redis_client()
+                    logger.info("✅ Redis client from global cache service - LLM caching enabled")
+                except ImportError:
+                    logger.warning("⚠️  No Redis client available - LLM caching disabled")
+        except Exception as e:
+            logger.warning(f"⚠️  Failed to initialize Redis client: {e} - LLM caching disabled")
+        
         # Timeout Manager
         self.timeout_manager = TimeoutManager()
         
@@ -1576,6 +1596,36 @@ Fixed version (max 50 chars):"""
         
         # STEP 7: LLM Generation with Resilience
         try:
+            # 🚀 PERFORMANCE OPTIMIZATION: LLM Response Caching
+            # Generate cache key from normalized query + context
+            import hashlib
+            cache_key_data = f"{query.lower().strip()}:{language}:{len(context.get('db_results', []))}:{len(context.get('rag_results', []))}"
+            cache_key = f"llm_response:{hashlib.md5(cache_key_data.encode()).hexdigest()}"
+            
+            # Check Redis cache first (MAJOR PERFORMANCE BOOST)
+            cached_response = None
+            if hasattr(self, 'redis_client') and self.redis_client:
+                try:
+                    cached_data = await self.redis_client.get(cache_key)
+                    if cached_data:
+                        cached_response = json.loads(cached_data)
+                        logger.info(f"✅ LLM CACHE HIT! Saved ~9s (key: {cache_key[:16]}...)")
+                        
+                        # Track cache hit in analytics
+                        self.analytics.track_cache_hit()
+                        
+                        # Return cached response with fresh metadata
+                        cached_response['metadata']['cached'] = True
+                        cached_response['metadata']['cache_key'] = cache_key
+                        cached_response['metadata']['processing_time'] = time.time() - start_time
+                        
+                        return cached_response
+                except Exception as cache_err:
+                    logger.warning(f"Cache lookup failed: {cache_err}")
+            
+            self.analytics.track_cache_miss()
+            logger.info(f"💫 LLM CACHE MISS - generating new response (key: {cache_key[:16]}...)")
+            
             llm_start = time.time()
             
             # Simplified LLM call with circuit breaker only
@@ -2052,6 +2102,21 @@ Fixed version (max 50 chars):"""
                 "source": "pure_llm_core"
             }
         }
+
+        # 🚀 PERFORMANCE: Cache LLM Response for Future Use
+        # Store the result in Redis cache (MAJOR PERFORMANCE OPTIMIZATION)
+        if not bypass_cache and hasattr(self, 'redis_client') and self.redis_client:
+            try:
+                cache_ttl = 3600  # Cache for 1 hour
+                await self.redis_client.setex(
+                    cache_key, 
+                    cache_ttl, 
+                    json.dumps(result, ensure_ascii=False)
+                )
+                logger.info(f"💾 Cached LLM response for {cache_ttl}s (key: {cache_key[:16]}...)")
+                logger.info(f"   📊 Response size: {len(json.dumps(result))} bytes")
+            except Exception as cache_err:
+                logger.warning(f"Failed to cache LLM response: {cache_err}")
         
         # STEP 9: Store in Conversation (if enabled)
         if enable_conversation and session_id:

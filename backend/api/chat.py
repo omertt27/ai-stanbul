@@ -946,33 +946,69 @@ async def pure_llm_chat(
             force_intent = None
             force_confidence = None
         else:
-            # Ambiguous case - use LLM intent detection
-            from services.llm_intent_detector import detect_query_intent
+            # 🎯 SIMPLIFIED LLM INTENT CLASSIFICATION: Transportation vs Others
+            # Single LLM call with simple binary classification (replaces 3.76s + 0.54s with ~1.5s)
+            logger.info("🤖 SIMPLIFIED LLM INTENT: Calling binary classifier (Transportation vs Others)")
             
             try:
-                intent_result = await detect_query_intent(request.message, request.user_location)
-                logger.info(f"🎯 LLM Intent Detection: {intent_result.intent.value} (confidence: {intent_result.confidence:.2f}) - {intent_result.reasoning}")
+                from services.llm_intent_detector import detect_query_intent
                 
-                if intent_result.is_transportation and intent_result.confidence >= 0.6:
-                    logger.info("🚦 GATE: Transportation intent detected by LLM - forcing structured mode")
-                    force_structured_mode = True
-                    force_intent = intent_result.intent.value
-                    force_confidence = intent_result.confidence
+                # Simple binary classification prompt
+                binary_result = await detect_query_intent(
+                    message=request.message, 
+                    user_location=request.user_location,
+                    binary_mode=True  # Enable simplified binary classification
+                )
+                
+                if binary_result and binary_result.confidence >= 0.6:
+                    if binary_result.intent.value == "transportation":
+                        logger.info(f"🚦 LLM BINARY: Transportation detected (confidence: {binary_result.confidence:.2f}) - forcing structured mode")
+                        force_structured_mode = True
+                        force_intent = "transportation"
+                        force_confidence = binary_result.confidence
+                    else:
+                        logger.info(f"🚦 LLM BINARY: Non-transportation detected (confidence: {binary_result.confidence:.2f}) - normal mode")
+                        force_structured_mode = False
+                        force_intent = "general"
+                        force_confidence = binary_result.confidence
                 else:
-                    logger.info(f"🚦 GATE: Non-transportation intent ({intent_result.intent.value}) - proceeding with normal mode")
+                    logger.info(f"🚦 LLM BINARY: Low confidence ({binary_result.confidence if binary_result else 0:.2f}) - fallback to keywords")
+                    # Fallback to fast keyword detection for ambiguous cases
+                    transportation_keywords = [
+                        'how do i get', 'how to get', 'route to', 'directions to', 'navigate to',
+                        'metro', 'bus', 'tram', 'taxi', 'transport', 'station', 'airport',
+                        'nasıl giderim', 'nasıl gidebilirim', 'metro', 'otobüs', 'ulaşım'
+                    ]
+                    is_transportation = any(keyword in query_lower for keyword in transportation_keywords)
                     
+                    if is_transportation:
+                        force_structured_mode = True
+                        force_intent = "transportation"
+                        force_confidence = 0.70
+                    else:
+                        force_structured_mode = False
+                        force_intent = "general"
+                        force_confidence = 0.70
+                        
             except Exception as e:
-                logger.error(f"❌ LLM Intent Detection failed: {str(e)}, falling back to keyword detection")
-                # Fallback to basic keyword detection
+                logger.error(f"❌ LLM Binary Classification failed: {str(e)}, falling back to keywords")
+                # Fallback to fast keyword detection
                 transportation_keywords = [
-                    'how do i get', 'how can i get', 'how to get', 'route to', 'way to', 
-                    'from', 'directions to', 'navigate to', 'take me to', 'go to',
-                    'nasıl giderim', 'nasıl gidebilirim', 'nasıl ulaşırım', 'metro', 'otobüs'
+                    'how do i get', 'how to get', 'route to', 'directions to', 'navigate to',
+                    'metro', 'bus', 'tram', 'taxi', 'transport', 'station', 'airport',
+                    'nasıl giderim', 'nasıl gidebilirim', 'metro', 'otobüs', 'ulaşım'
                 ]
-                if any(keyword in query_lower for keyword in transportation_keywords):
-                    logger.info("🚦 GATE: Transportation query detected by fallback keywords - forcing structured mode")
+                is_transportation = any(keyword in query_lower for keyword in transportation_keywords)
+                
+                if is_transportation:
+                    logger.info("🚦 FALLBACK: Transportation query detected by keywords")
                     force_structured_mode = True
                     force_intent = "transportation"
+                    force_confidence = 0.70
+                else:
+                    logger.info("🚦 FALLBACK: Non-transportation query detected")
+                    force_structured_mode = False
+                    force_intent = "general" 
                     force_confidence = 0.70
         
         # Process query through Pure LLM
@@ -1287,8 +1323,19 @@ async def pure_llm_chat(
             logger.warning(f"Proactive suggestion generation failed: {e}")
             proactive_suggestions = None
         
-        # Use proactive suggestions if available, fallback to original or defaults
-        final_suggestions = proactive_suggestions if proactive_suggestions else result.get('suggestions', [])
+        # Generate contextual suggestions first (more relevant than generic proactive ones)
+        final_suggestions = []
+        try:
+            contextual_suggestions = generate_contextual_suggestions(enhanced_response, original_query, effective_language)
+            if contextual_suggestions:
+                final_suggestions = contextual_suggestions
+                logger.info(f"🎯 Generated {len(contextual_suggestions)} contextual suggestions")
+        except Exception as e:
+            logger.warning(f"Failed to generate contextual suggestions: {e}")
+        
+        # Fallback to proactive suggestions if no contextual ones available
+        if not final_suggestions:
+            final_suggestions = proactive_suggestions if proactive_suggestions else result.get('suggestions', [])
         
         # Define language-aware default suggestions
         default_suggestions_by_lang = {
@@ -2394,3 +2441,181 @@ async def stream_chat_simple(
             "X-Accel-Buffering": "no"
         }
     )
+
+
+def generate_contextual_suggestions(response: str, query: str, language: str = 'en') -> List[str]:
+    """
+    Generate contextual suggestions based on the response content.
+    
+    Args:
+        response: The bot's response text
+        query: The user's original query
+        language: Response language
+        
+    Returns:
+        List of contextual suggestion strings
+    """
+    suggestions = []
+    response_lower = response.lower()
+    query_lower = query.lower()
+    
+    # Language-specific suggestion templates
+    templates = {
+        'en': {
+            'restaurants': ["What restaurants are near {location}?", "Show me restaurants in {area}", "Best restaurants for {cuisine}"],
+            'attractions': ["More attractions in {area}", "What else to see in {location}?", "Other nearby attractions"],
+            'transportation': ["How to get to {location}?", "Best way to reach {place}?", "Transportation options"],
+            'history': ["More history about {place}", "Tell me more about {location}", "Historical significance"],
+            'nearby': ["What's nearby?", "Things to do around here", "Explore the area"],
+            'weather': ["What's the weather like?", "Weather forecast", "Best time to visit"],
+            'hidden': ["Hidden gems in {area}", "Secret spots near {location}", "Local favorites"],
+            'shopping': ["Shopping in {area}", "Best markets near {location}", "Where to shop"],
+            'nightlife': ["Nightlife in {area}", "Bars near {location}", "Evening activities"],
+            'culture': ["Cultural sites in {area}", "Museums near {location}", "Art galleries"],
+            'food': ["Food specialties in {area}", "Local dishes to try", "Where to eat {cuisine}"]
+        },
+        'tr': {
+            'restaurants': ["{location} yakınında restoranlar?", "{area} restoranları göster", "En iyi {cuisine} restoranları"],
+            'attractions': ["{area}'da daha fazla yer", "{location}'da ne görebilirim?", "Yakındaki yerler"],
+            'transportation': ["{location}'a nasıl gidilir?", "{place}'ye en iyi yol?", "Ulaşım seçenekleri"],
+            'history': ["{place} hakkında daha fazla", "{location} tarihi", "Tarihi önemi"],
+            'nearby': ["Yakında ne var?", "Burada yapılacaklar", "Bölgeyi keşfet"],
+            'weather': ["Hava durumu nasıl?", "Hava tahmini", "En iyi ziyaret zamanı"],
+            'hidden': ["{area}'da gizli yerler", "{location} yakınında saklı hazineler", "Yerel favoriler"],
+            'shopping': ["{area}'da alışveriş", "{location} yakınında çarşılar", "Nerede alışveriş"],
+            'nightlife': ["{area}'da gece hayatı", "{location} yakınında barlar", "Akşam aktiviteleri"],
+            'culture': ["{area}'da kültürel yerler", "{location} yakınında müzeler", "Sanat galerileri"],
+            'food': ["{area}'nın yemek kültürü", "Denenmesi gereken yerel lezzetler", "{cuisine} nerede yenir"]
+        }
+    }
+    
+    # Get templates for the language, fallback to English
+    lang_templates = templates.get(language, templates['en'])
+    
+    # Extract location names from response (improved extraction)
+    locations = []
+    
+    # Look for common location patterns
+    import re
+    location_patterns = [
+        r'📍 Location: ([^,\n]+)',  # Location markers
+        r'📍 ([^,\n]+)',  # Simple location markers
+        r'\b(?:in|at|near|around|from|to)\s+([A-Z][a-zA-ZğüşıöçĞÜŞİÖÇ]+(?:\s+[A-Z][a-zA-ZğüşıöçĞÜŞİÖÇ]+)*)',  # "in Sultanahmet"
+        r'([A-Z][a-zA-ZğüşıöçĞÜŞİÖÇ]+(?:\s+[A-Z][a-zA-ZğüşıöçĞÜŞİÖÇ]+)*)\s+(?:area|neighborhood|district|quarter)',  # "Karaköy area"
+        r'([A-Z][a-zA-ZğüşıöçĞÜŞİÖÇ]+(?:\s+[A-Z][a-zA-ZğüşıöçĞÜŞİÖÇ]+)*)\s+(?:Metro|Station|Tram|Ferry)',  # "Karaköy Metro"
+    ]
+    
+    for pattern in location_patterns:
+        matches = re.findall(pattern, response, re.IGNORECASE)
+        for match in matches:
+            clean_location = match.strip()
+            if len(clean_location) > 2 and clean_location not in locations and clean_location not in ['The', 'This', 'That']:
+                locations.append(clean_location)
+    
+    # Extract cuisine types
+    cuisines = []
+    cuisine_patterns = [
+        r'\b(Turkish|Ottoman|Mediterranean|seafood|street food|kebab|meze|baklava)\b'
+    ]
+    
+    for pattern in cuisine_patterns:
+        matches = re.findall(pattern, response, re.IGNORECASE)
+        cuisines.extend([m for m in matches if m not in cuisines])
+    
+    # Generate contextual suggestions based on response content analysis
+    suggestion_count = 0
+    max_suggestions = 5
+    
+    # Restaurant/Food related suggestions
+    if any(word in response_lower for word in ['restaurant', 'food', 'eat', 'dining', 'cafe', 'kebab', 'meze', 'breakfast']):
+        if locations and suggestion_count < max_suggestions:
+            location = locations[0]
+            if cuisines:
+                suggestions.append(lang_templates['food'][2].format(cuisine=cuisines[0], area=location, location=location))
+                suggestion_count += 1
+            if suggestion_count < max_suggestions:
+                suggestions.append(lang_templates['restaurants'][0].format(location=location, area=location))
+                suggestion_count += 1
+        elif suggestion_count < max_suggestions:
+            suggestions.extend(lang_templates['restaurants'][:2])
+            suggestion_count += 2
+            
+    # Attraction/Sightseeing suggestions
+    elif any(word in response_lower for word in ['attraction', 'visit', 'see', 'tower', 'palace', 'mosque', 'museum', 'church', 'basilica']):
+        if locations and suggestion_count < max_suggestions:
+            location = locations[0]
+            suggestions.append(lang_templates['attractions'][0].format(area=location, location=location))
+            suggestion_count += 1
+            if any(word in response_lower for word in ['museum', 'art', 'culture']):
+                suggestions.append(lang_templates['culture'][0].format(area=location, location=location))
+                suggestion_count += 1
+        elif suggestion_count < max_suggestions:
+            suggestions.extend(lang_templates['attractions'][:2])
+            suggestion_count += 2
+            
+    # Transportation suggestions
+    elif any(word in response_lower for word in ['metro', 'tram', 'bus', 'ferry', 'route', 'transport', 'get to', 'travel']):
+        if locations and suggestion_count < max_suggestions:
+            location = locations[0]
+            suggestions.append(lang_templates['transportation'][0].format(location=location, place=location))
+            suggestion_count += 1
+            
+    # History/Culture suggestions  
+    elif any(word in response_lower for word in ['history', 'historic', 'century', 'built', 'empire', 'ottoman', 'byzantine']):
+        if locations and suggestion_count < max_suggestions:
+            location = locations[0]
+            suggestions.append(lang_templates['history'][0].format(location=location, place=location))
+            suggestion_count += 1
+            suggestions.append(lang_templates['culture'][0].format(area=location, location=location))
+            suggestion_count += 1
+    
+    # Shopping suggestions
+    elif any(word in response_lower for word in ['shop', 'market', 'bazaar', 'mall', 'store', 'buy']):
+        if locations and suggestion_count < max_suggestions:
+            location = locations[0]
+            suggestions.append(lang_templates['shopping'][0].format(area=location, location=location))
+            suggestion_count += 1
+    
+    # Nightlife suggestions
+    elif any(word in response_lower for word in ['bar', 'club', 'nightlife', 'evening', 'night', 'drink']):
+        if locations and suggestion_count < max_suggestions:
+            location = locations[0]
+            suggestions.append(lang_templates['nightlife'][0].format(area=location, location=location))
+            suggestion_count += 1
+    
+    # Add location-based suggestions if we found locations
+    if locations and suggestion_count < max_suggestions:
+        location = locations[0]
+        # Add different types of suggestions based on what wasn't already covered
+        remaining_slots = max_suggestions - suggestion_count
+        
+        if 'restaurant' not in ' '.join(suggestions).lower() and remaining_slots > 0:
+            suggestions.append(lang_templates['restaurants'][0].format(location=location, area=location))
+            remaining_slots -= 1
+            
+        if 'attraction' not in ' '.join(suggestions).lower() and remaining_slots > 0:
+            suggestions.append(lang_templates['attractions'][1].format(location=location, area=location))
+            remaining_slots -= 1
+            
+        if 'hidden' not in ' '.join(suggestions).lower() and remaining_slots > 0:
+            suggestions.append(lang_templates['hidden'][0].format(area=location, location=location))
+            remaining_slots -= 1
+    
+    # Fill remaining slots with general suggestions
+    while len(suggestions) < max_suggestions:
+        general_suggestions = [
+            lang_templates['nearby'][0],
+            lang_templates['weather'][0],
+            lang_templates['hidden'][2] if locations else lang_templates['hidden'][2].replace(' near {location}', ''),
+        ]
+        
+        for sug in general_suggestions:
+            if sug not in suggestions and len(suggestions) < max_suggestions:
+                suggestions.append(sug)
+            if len(suggestions) >= max_suggestions:
+                break
+    
+    # Clean up and limit to max suggestions
+    suggestions = [s for s in suggestions if s and len(s.strip()) > 0][:max_suggestions]
+    
+    return suggestions
