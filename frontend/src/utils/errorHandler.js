@@ -185,90 +185,59 @@ export const getUserFriendlyMessage = (error, response = null) => {
 export const fetchWithRetry = async (url, options = {}, customConfig = {}) => {
   const config = { ...RETRY_CONFIG, ...customConfig };
   let lastError = null;
-  let lastResponse = null;
-  
-  console.log(`🔄 Starting request to: ${url}`);
   
   for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
     try {
-      console.log(`🌐 Attempt ${attempt}/${config.maxAttempts} for: ${url}`);
+      // Use caller's signal directly if provided, otherwise create timeout-only controller
+      const timeoutMs = options.timeout || 30000;
+      let signal = options.signal;
+      let timeoutId = null;
+      let controller = null;
       
-      // Note: We intentionally don't check navigator.onLine here because it's unreliable
-      // and can cause false offline errors. Let the actual fetch attempt determine connectivity.
-      
-      // Create AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(
-        () => controller.abort(),
-        options.timeout || 30000 // 30 second default timeout
-      );
-      
-      // If the caller provided a signal, listen for it too
-      const originalSignal = options.signal;
-      if (originalSignal) {
-        const abortHandler = () => controller.abort();
-        originalSignal.addEventListener('abort', abortHandler, { once: true });
+      // Only create our own controller if caller didn't provide a signal
+      if (!signal) {
+        controller = new AbortController();
+        signal = controller.signal;
+        timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       }
       
       const response = await fetch(url, {
         ...options,
-        signal: controller.signal
+        signal
       });
       
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       
-      // Check if response is successful
       if (response.ok) {
-        console.log(`✅ Request succeeded on attempt ${attempt}`);
         return response;
       }
       
-      // Store response for error handling
-      lastResponse = response;
-      const errorText = await response.text().catch(() => 'Unknown error');
-      lastError = new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      // Non-OK response
+      const errorText = await response.text().catch(() => '');
+      lastError = new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
       
-      // Check if we should retry
       if (attempt < config.maxAttempts && isRetryable(lastError, response)) {
-        const delay = calculateRetryDelay(attempt, config.baseDelay);
-        console.log(`⏳ Retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${config.maxAttempts})`);
-        await sleep(delay);
+        await sleep(calculateRetryDelay(attempt, config.baseDelay));
         continue;
       }
-      
-      // No more retries or not retryable
       throw lastError;
       
     } catch (error) {
       lastError = error;
       
-      // Handle AbortError - check if it's from component unmount or timeout
+      // Don't retry aborted requests
       if (error.name === 'AbortError') {
-        // If the original signal was aborted (component unmount), don't retry
-        if (options.signal && options.signal.aborted) {
-          console.log(`🛑 Request aborted (component unmounted), skipping retries`);
-          throw new Error('Request cancelled');
-        }
-        // Otherwise it's a timeout, convert to TimeoutError
-        lastError = new Error('TimeoutError: Request timed out');
+        throw error;
       }
       
-      console.log(`❌ Attempt ${attempt} failed:`, error.message);
-      
-      // Check if we should retry
       if (attempt < config.maxAttempts && isRetryable(error)) {
-        const delay = calculateRetryDelay(attempt, config.baseDelay);
-        console.log(`⏳ Retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${config.maxAttempts})`);
-        await sleep(delay);
+        await sleep(calculateRetryDelay(attempt, config.baseDelay));
         continue;
       }
-      
-      // No more retries or not retryable
       throw error;
     }
   }
   
-  // This should never be reached, but just in case
   throw lastError || new Error('All retry attempts failed');
 };
 

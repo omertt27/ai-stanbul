@@ -1484,7 +1484,13 @@ function Chatbot({ userLocation: propUserLocation }) {
 
   useEffect(() => {
     // Periodic API health checks - reduced frequency to minimize console spam
+    // Skip health checks during streaming to avoid concurrent request issues
     const checkHealth = async () => {
+      // Skip if currently streaming to avoid interference
+      if (isStreamingResponse || loading) {
+        return;
+      }
+      
       try {
         const result = await checkApiHealth();
         const isHealthy = result?.healthy ?? result;
@@ -1503,7 +1509,7 @@ function Chatbot({ userLocation: propUserLocation }) {
     checkHealth();
     const interval = setInterval(checkHealth, 60000); // Check every 60 seconds (reduced from 30)
     return () => clearInterval(interval);
-  }, []);
+  }, [isStreamingResponse, loading]);
 
   // Handle initial query from navigation state
   useEffect(() => {
