@@ -35,12 +35,14 @@ class DatabaseConfig:
     
     def __init__(self):
         """Initialize database configuration"""
+        # Set these first since _get_database_url() depends on them
+        self.is_production = self._is_production()
+        self.is_cloud_run = self._is_cloud_run()
+        # Now we can get the database URL
         self.database_url = self._get_database_url()
         self.is_postgres = self._is_postgresql()
         self.is_render = self._is_render_postgres()
         self.is_gcp = self._is_gcp_postgres()
-        self.is_production = self._is_production()
-        self.is_cloud_run = self._is_cloud_run()
         self.connection_params = self._get_connection_params()
         
     def _is_production(self) -> bool:
