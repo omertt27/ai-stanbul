@@ -119,50 +119,6 @@ class DatabaseConfig:
             logger.info("🔧 Fixed DATABASE_URL scheme: postgres:// -> postgresql://")
         
         return db_url
-            
-            if is_production or is_cloud_run:
-                # Production: Use Cloud SQL Connection Name (Unix Socket)
-                if cloud_sql_instance and gcp_project:
-                    # Cloud Run uses Unix socket connection for optimal performance
-                    socket_path = f"/cloudsql/{cloud_sql_instance}"
-                    if password:
-                        db_url = f"postgresql://{user}:{password}@/{db_name}?host={socket_path}"
-                    else:
-                        db_url = f"postgresql://{user}@/{db_name}?host={socket_path}"
-                    logger.info(f"� Production: Using Cloud SQL Unix Socket: {socket_path}")
-                elif host and host.startswith(('34.', '35.')):
-                    # Fallback to public IP for production (not recommended)
-                    logger.warning("⚠️ Production using public IP - consider Unix socket for better performance")
-                    if password:
-                        db_url = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
-                    else:
-                        db_url = f"postgresql://{user}@{host}:{port}/{db_name}"
-                else:
-                    logger.error("❌ Production environment requires CLOUD_SQL_INSTANCE or valid DATABASE_HOST")
-                    raise ValueError("Production database configuration incomplete")
-            else:
-                # Development: Use direct connection or proxy
-                if not host:
-                    host = 'localhost'
-                    port = '5433'  # Cloud SQL Proxy default
-                    logger.info("� Development: Using Cloud SQL Proxy (localhost:5433)")
-                
-                if all([host, db_name, user]):
-                    if password:
-                        db_url = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
-                    else:
-                        db_url = f"postgresql://{user}@{host}:{port}/{db_name}"
-                    logger.info(f"✅ Development: Constructed DATABASE_URL (host={host}, port={port})")
-                else:
-                    logger.warning("⚠️ No DATABASE_URL found, using SQLite fallback")
-                    db_url = "sqlite:///./app.db"
-        
-        # Fix postgres:// to postgresql:// for SQLAlchemy
-        if db_url.startswith('postgres://'):
-            db_url = db_url.replace('postgres://', 'postgresql://', 1)
-            logger.info("🔧 Fixed DATABASE_URL scheme: postgres:// -> postgresql://")
-        
-        return db_url
     
     def _is_postgresql(self) -> bool:
         """Check if using PostgreSQL"""
