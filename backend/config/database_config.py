@@ -143,7 +143,9 @@ class DatabaseConfig:
             'cloudsql' in self.database_url.lower() or
             'gcp' in self.database_url.lower() or
             os.getenv('GCP_PROJECT_ID') is not None or  # GCP environment
-            os.getenv('GCP_CLOUDSQL_INSTANCE') is not None
+            os.getenv('CLOUD_SQL_INSTANCE') is not None or  # Cloud SQL instance
+            os.getenv('GOOGLE_CLOUD_PROJECT') is not None or  # Google Cloud project
+            self._is_cloud_sql_unix_socket()  # Unix socket indicates Cloud SQL
         )
     
     def _is_cloud_sql_unix_socket(self) -> bool:

@@ -141,9 +141,11 @@ class ResponseSanitizer:
         cleaned = re.sub(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)', r'\1', cleaned)
         cleaned = re.sub(r'_([^_]+)_', r'\1', cleaned)
         
-        # Remove excessive whitespace
+        # Remove excessive whitespace while preserving paragraph structure
         cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)  # Max 2 consecutive newlines
-        cleaned = re.sub(r'[ \t]+', ' ', cleaned)  # Single spaces only
+        cleaned = re.sub(r'[ \t]+', ' ', cleaned)  # Single spaces only on same line
+        cleaned = re.sub(r' +\n', '\n', cleaned)  # Remove trailing spaces before newlines
+        cleaned = re.sub(r'\n +', '\n', cleaned)  # Remove leading spaces after newlines
         
         # Trim
         cleaned = cleaned.strip()
