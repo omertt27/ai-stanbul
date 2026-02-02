@@ -2544,7 +2544,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                         
                         {/* NO background, just text - ChatGPT style */}
                         <ReactMarkdown
-                          className={`text-sm md:text-base leading-[1.6] transition-colors duration-200 select-text ${
+                          className={`prose prose-sm md:prose-base max-w-none text-sm md:text-base leading-[1.6] transition-colors duration-200 select-text ${
                             darkMode ? 'text-gray-100' : 'text-gray-800'
                           }`}
                           style={{ 
@@ -2556,9 +2556,9 @@ function Chatbot({ userLocation: propUserLocation }) {
                             overflowWrap: 'break-word'
                           }}
                           components={{
-                            // Custom paragraph with better spacing
+                            // Custom paragraph with proper spacing for multiple paragraphs
                             p: ({ node, ...props }) => (
-                              <p {...props} className="mb-4 last:mb-0" />
+                              <p {...props} className="mb-4 last:mb-0 whitespace-pre-wrap" style={{ marginBottom: '1rem' }} />
                             ),
                             // Custom links
                             a: ({ node, ...props }) => (
@@ -2573,9 +2573,40 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 }`}
                               />
                             ),
+                            // Custom list styling with proper spacing
+                            ul: ({ node, ...props }) => (
+                              <ul {...props} className="list-disc list-inside mb-4 space-y-1" />
+                            ),
+                            ol: ({ node, ...props }) => (
+                              <ol {...props} className="list-decimal list-inside mb-4 space-y-1" />
+                            ),
+                            // List items with proper spacing
+                            li: ({ node, ...props }) => (
+                              <li {...props} className="mb-1" />
+                            ),
                             // Bold text
                             strong: ({ node, ...props }) => (
-                              <strong {...props} className="font-bold" />
+                              <strong {...props} className="font-semibold" />
+                            ),
+                            // Code blocks
+                            code: ({ node, inline, ...props }) => (
+                              inline 
+                                ? <code {...props} className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm" />
+                                : <code {...props} className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto mb-4" />
+                            ),
+                            // Headings
+                            h1: ({ node, ...props }) => (
+                              <h1 {...props} className="text-xl font-bold mb-3 mt-4 first:mt-0" />
+                            ),
+                            h2: ({ node, ...props }) => (
+                              <h2 {...props} className="text-lg font-bold mb-3 mt-4 first:mt-0" />
+                            ),
+                            h3: ({ node, ...props }) => (
+                              <h3 {...props} className="text-base font-bold mb-2 mt-3 first:mt-0" />
+                            ),
+                            // Blockquotes
+                            blockquote: ({ node, ...props }) => (
+                              <blockquote {...props} className="border-l-4 border-gray-300 pl-4 italic mb-4" />
                             )
                           }}
                         >
