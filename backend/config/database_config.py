@@ -159,53 +159,46 @@ class DatabaseConfig:
                 'echo': False
             }
         
-        # PostgreSQL configuration - Production ready
+        # PostgreSQL configuration - Optimized for Cloud Run
         params = {
-            'pool_size': 15,                # Increased for production
-            'max_overflow': 30,             # Handle traffic spikes
+            'pool_size': 5,                 # Reduced for Cloud Run (serverless)
+            'max_overflow': 10,             # Smaller overflow for faster startup
             'pool_pre_ping': True,          # Test connections before use
-            'pool_recycle': 1800,           # Recycle connections every 30min
+            'pool_recycle': 300,            # Shorter recycle time (5min) for Cloud Run
             'echo': False,                  # No SQL logging in production
             'connect_args': {},
-            'pool_timeout': 30,             # Connection acquisition timeout
+            'pool_timeout': 10,             # Faster timeout for Cloud Run
             'pool_reset_on_return': 'commit'  # Clean state on return
         }
         
-        # Hybrid Cloud Configuration: GCP Database + AWS Redis
+        # Cloud Run and GCP optimized configuration
         if self.is_render:
             params['connect_args']['sslmode'] = 'require'
+            logger.info("🔐 Render PostgreSQL with SSL")
         elif self.is_gcp and not self._is_cloud_sql_unix_socket():
-            # GCP Cloud SQL with Public IP - Production Configuration
-            params['connect_args'].update({
-                'connect_timeout': 60,               # Increased timeout for GCP
-                'application_name': 'ai-istanbul-backend',  # For monitoring
-                'sslmode': 'require',                # Force SSL for GCP
-                'keepalives_idle': 600,              # Keep connection alive (10min)
-                'keepalives_interval': 30,           # Ping every 30 seconds
-                'keepalives_count': 3,               # Max 3 failed pings
-                'tcp_user_timeout': 60000,          # 60 second TCP timeout
-                'statement_timeout': 30000,         # 30 second statement timeout
-                'idle_in_transaction_session_timeout': 300000,  # 5 min idle timeout
-            })
-            logger.info("🔐 Production: GCP Cloud SQL connection with SSL and monitoring")
-        elif self.is_gcp and self._is_cloud_sql_unix_socket():
-            # GCP Cloud SQL Unix Socket - Optimal for Cloud Run
-            params['connect_args'].update({
-                'application_name': 'ai-istanbul-backend',
-                'statement_timeout': 30000,
-                'idle_in_transaction_session_timeout': 300000,
-            })
-            logger.info("🚀 Production: GCP Cloud SQL Unix Socket (optimal performance)")
-        else:
-            # Default PostgreSQL configuration
+            # GCP Cloud SQL with Public IP - Simplified for reliability
             params['connect_args'].update({
                 'connect_timeout': 30,
                 'application_name': 'ai-istanbul-backend',
+                'sslmode': 'require'
+            })
+            logger.info("🔐 GCP Cloud SQL with public IP and SSL")
+        elif self.is_gcp and self._is_cloud_sql_unix_socket():
+            # GCP Cloud SQL Unix Socket - Minimal config for optimal performance
+            params['connect_args'].update({
+                'application_name': 'ai-istanbul-backend'
+            })
+            logger.info("🚀 GCP Cloud SQL Unix Socket (optimal)")
+        else:
+            # Default PostgreSQL configuration
+            params['connect_args'].update({
+                'connect_timeout': 20,
+                'application_name': 'ai-istanbul-backend',
                 'sslmode': 'prefer'
             })
-        
-        # For Cloud SQL with Unix sockets, we don't need connect_args
-        # PostgreSQL driver will handle Unix sockets via the host parameter
+            logger.info("🔧 Default PostgreSQL configuration")
+        # For Cloud SQL with Unix sockets, PostgreSQL driver handles sockets automatically
+        # Removed problematic keepalive and timeout parameters that can cause connection issues
         
         return params
     
@@ -228,9 +221,10 @@ class DatabaseConfig:
             'database': parsed.path.lstrip('/').split('?')[0],  # Remove query string
             'username': parsed.username,
             'is_render': self.is_render,
+            'is_gcp': self.is_gcp,
             'is_cloud_sql_socket': self._is_cloud_sql_unix_socket(),
             'socket_path': socket_path,
-            'has_ssl': self.is_render
+            'has_ssl': self.is_render or self.is_gcp  # Both Render and GCP use SSL
         }
     
     def log_configuration(self):
@@ -252,7 +246,10 @@ class DatabaseConfig:
             logger.info(f"Database: {info['database']}")
             logger.info(f"Username: {info['username']}")
             logger.info(f"Render PostgreSQL: {'Yes' if info['is_render'] else 'No'}")
+            logger.info(f"GCP Cloud SQL: {'Yes' if info['is_gcp'] else 'No'}")
             logger.info(f"SSL Enabled: {'Yes' if info['has_ssl'] else 'No'}")
+            logger.info(f"Production Mode: {'Yes' if self.is_production else 'No'}")
+            logger.info(f"Cloud Run: {'Yes' if self.is_cloud_run else 'No'}")
         else:
             logger.info(f"Database File: {info['database']}")
         
@@ -274,15 +271,19 @@ def test_database_connection() -> bool:
     from sqlalchemy import create_engine, text
     
     max_retries = 3
-    retry_delay = 5
+    retry_delay = 2  # Faster retry for Cloud Run
     
     for attempt in range(1, max_retries + 1):
         try:
             logger.info(f"🔄 Connection attempt {attempt}/{max_retries}...")
             
+            # Use shorter timeout for individual connection test
+            test_params = db_config.connection_params.copy()
+            test_params['pool_timeout'] = 5
+            
             engine = create_engine(
                 db_config.get_sqlalchemy_url(),
-                **db_config.connection_params
+                **test_params
             )
             
             with engine.connect() as conn:
@@ -298,13 +299,13 @@ def test_database_connection() -> bool:
             logger.error(f"❌ Connection attempt {attempt} failed: {error_msg}")
             
             # Check for specific error types
-            if "timeout expired" in error_msg:
-                logger.error("🕐 Connection timeout - check network connectivity to GCP")
-            elif "authentication failed" in error_msg:
-                logger.error("🔑 Authentication failed - check username/password")
-            elif "Connection refused" in error_msg:
-                logger.error("🚫 Connection refused - check if database is running and accessible")
-            elif "SSL" in error_msg:
+            if "timeout" in error_msg.lower():
+                logger.error("🕐 Connection timeout - check network connectivity")
+            elif "authentication" in error_msg.lower():
+                logger.error("🔑 Authentication failed - check credentials")
+            elif "refused" in error_msg.lower():
+                logger.error("🚫 Connection refused - check if database is accessible")
+            elif "ssl" in error_msg.lower():
                 logger.error("🔐 SSL error - check SSL configuration")
             
             if attempt < max_retries:
@@ -313,6 +314,13 @@ def test_database_connection() -> bool:
             else:
                 logger.error("❌ All connection attempts failed")
                 return False
+        finally:
+            # Clean up engine if it exists
+            try:
+                if 'engine' in locals():
+                    engine.dispose()
+            except:
+                pass
     
     return False
 
