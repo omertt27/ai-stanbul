@@ -292,10 +292,10 @@ async def stream_chat_sse(request: StreamChatRequest):
                 from services.llm_intent_detector import detect_query_intent
                 
                 try:
-                    # Timeout intent detection at 3 seconds to prevent blocking
+                    # Timeout intent detection at 0.5 seconds to prevent blocking
                     intent_result = await asyncio.wait_for(
                         detect_query_intent(request.message, request.user_location),
-                        timeout=3.0
+                        timeout=0.5
                     )
                     logger.info(f"🎯 Streaming LLM Intent: {intent_result.intent.value} (confidence: {intent_result.confidence:.2f})")
                     
@@ -306,7 +306,7 @@ async def stream_chat_sse(request: StreamChatRequest):
                     else:
                         logger.info(f"🚦 Non-transportation intent: {intent_result.intent.value}")
                 except asyncio.TimeoutError:
-                    logger.warning("⏱️ LLM Intent detection timed out (3s), using fast keyword detection")
+                    logger.warning("⏱️ LLM Intent detection timed out (0.5s), using fast keyword detection")
                     # Fast fallback to keyword detection
                     transportation_keywords = ['how do i get', 'how to get', 'route to', 'from', 
                                                'directions to', 'go to', 'way to', 'metro', 'tram']
@@ -543,7 +543,7 @@ async def stream_chat_sse(request: StreamChatRequest):
                                 logger.info(f"✅ Got enriched route_data: {route_data.get('origin')} → {route_data.get('destination')}")
                 else:
                     # Use LLM RAG for general queries (no HuggingFace required!)
-                    # OPTIMIZATION: Timeout at 5 seconds to prevent blocking
+                    # OPTIMIZATION: Timeout at 2 seconds to prevent blocking
                     logger.info("🔍 Using LLM RAG for general query")
                     try:
                         from services.llm_rag_service import get_llm_rag_service
@@ -561,12 +561,12 @@ async def stream_chat_sse(request: StreamChatRequest):
                                 try:
                                     rag_context = await asyncio.wait_for(
                                         asyncio.get_event_loop().run_in_executor(None, lambda: rag_service.get_context_for_llm(request.message, top_k=3)),
-                                        timeout=5.0
+                                        timeout=2.0
                                     )
                                     if rag_context:
                                         logger.info(f"✅ Got LLM RAG context")
                                 except asyncio.TimeoutError:
-                                    logger.warning("⏱️ LLM RAG context timed out (5s)")
+                                    logger.warning("⏱️ LLM RAG context timed out (2s)")
                         finally:
                             db.close()
                     except Exception as e:
@@ -626,6 +626,22 @@ async def stream_chat_sse(request: StreamChatRequest):
             # Llama 3.1 8B is multilingual and will naturally respond in the same language as the query
             # No need for NLP-based language detection - just pass 'auto' to let the LLM decide
             logger.info(f"🌍 Language: Letting LLM detect and match query language automatically")
+            
+            # === COLD START OPTIMIZATION ===
+            # Check if RunPod is warm to predict response time
+            try:
+                from services.runpod_warmer import is_runpod_warm
+                
+                if not is_runpod_warm():
+                    logger.warning("🥶 RunPod likely COLD - expect 10+ second response time")
+                    # Send a warning event to frontend
+                    yield f"event: warning\ndata: {json.dumps({'message': 'LLM starting up, this may take 10-15 seconds...', 'type': 'cold_start'})}\n\n"
+                else:
+                    logger.info("🔥 RunPod is WARM - expect fast response")
+                    
+            except Exception as e:
+                logger.debug(f"Could not check RunPod warm status: {e}")
+            # === END COLD START OPTIMIZATION ===
             
             # Stream response
             full_response = ""

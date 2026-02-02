@@ -179,6 +179,13 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
+    try:
+        from services.runpod_warmer import stop_runpod_warming
+        await stop_runpod_warming()
+        logger.info("🔥 RunPod warmer stopped")
+    except Exception as e:
+        logger.warning(f"⚠️ Error stopping RunPod warmer: {e}")
+        
     await startup_manager.shutdown()
     logger.info("👋 AI Istanbul Backend shut down complete")
 
@@ -216,6 +223,18 @@ async def _background_initialization():
             app.state.unified_llm = None
             logger.warning("⚠️  API will fall back to legacy LLM clients")
         # ===== END UNIFIED LLM SERVICE INITIALIZATION =====
+        
+        # ===== RUNPOD WARMER INITIALIZATION =====
+        # Start RunPod warmer to prevent cold starts
+        try:
+            from services.runpod_warmer import start_runpod_warming
+            
+            await start_runpod_warming()
+            logger.info("🔥 RunPod warmer started - preventing cold starts")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to start RunPod warmer: {e}")
+        # ===== END RUNPOD WARMER INITIALIZATION =====
         
         # Initialize admin experiments managers
         try:
@@ -276,6 +295,14 @@ app.include_router(chat_router)
 app.include_router(aws_diagnostics_router)  # AWS S3 and Redis diagnostic endpoints
 app.include_router(startup_status_router)  # Startup diagnostics
 app.include_router(admin_experiments.router)
+
+# Register RunPod warmer API for monitoring cold start prevention
+try:
+    from api.runpod_warmer_api import router as runpod_warmer_router
+    app.include_router(runpod_warmer_router)
+    logger.info("🔥 RunPod warmer API registered at /api/runpod")
+except ImportError as e:
+    logger.warning(f"⚠️ RunPod warmer API not available: {e}")
 
 # Register streaming API for real-time chat responses
 if STREAMING_API_AVAILABLE and streaming_router:
