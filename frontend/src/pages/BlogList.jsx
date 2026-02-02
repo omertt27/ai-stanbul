@@ -279,8 +279,8 @@ const BlogList = () => {
           </div>
         </div>
 
-        {/* Recent/Featured Posts Section */}
-        {posts.length > 0 && !searchTerm && !selectedDistrict && (
+        {/* Recent/Featured Posts Section - Only show on page 1 */}
+        {posts.length > 0 && !searchTerm && !selectedDistrict && currentPage === 1 && (
           <div className="mb-8">
             <h2 className="text-2xl sm:text-3xl font-bold mb-6 transition-colors duration-200 text-white">
               Recent Stories
@@ -548,7 +548,8 @@ const BlogList = () => {
               </p>
             </div>
             <div className="blog-post-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6">
-            {posts.map((post) => (            <article
+            {/* Skip first 2 posts on page 1 if Recent Stories section is shown */}
+            {(currentPage === 1 && !searchTerm && !selectedDistrict ? posts.slice(2) : posts).map((post) => (            <article
               key={post.id}
               className={`blog-post-card blog-list-card rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 ${
                 darkMode

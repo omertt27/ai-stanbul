@@ -52,11 +52,12 @@ const handleBlogApiError = (error, response = null, context = '') => {
 export const fetchBlogPosts = async (params = {}) => {
   return blogCircuitBreaker.call(async () => {
     try {
-      // Transform page to offset for backend compatibility
+      // Use page-based pagination as expected by backend
       const backendParams = { ...params };
-      if (params.page && params.limit) {
-        backendParams.offset = (params.page - 1) * params.limit;
-        delete backendParams.page;
+      // Backend expects 'page' and 'per_page' parameters
+      if (params.limit) {
+        backendParams.per_page = params.limit;
+        delete backendParams.limit;
       }
       
       const searchParams = new URLSearchParams();
