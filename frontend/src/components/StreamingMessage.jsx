@@ -69,9 +69,9 @@ const StreamingMessage = memo(({
                   className="text-blue-500 hover:text-blue-600 underline"
                 />
               ),
-              // Custom paragraph to avoid extra spacing
+              // Custom paragraph with better spacing for readability
               p: ({ node, ...props }) => (
-                <p {...props} className="mb-2 last:mb-0" />
+                <p {...props} className="mb-4 last:mb-0" />
               ),
               // Custom list styling
               ul: ({ node, ...props }) => (

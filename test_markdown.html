@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Markdown Test</title>
+    <style>
+        .message-text p {
+            margin: 0 0 8px 0;
+        }
+        .message-text p:last-child {
+            margin-bottom: 0;
+        }
+        .container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+        }
+        .test-case {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .raw-text {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            white-space: pre-line;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Markdown Formatting Test</h1>
+        
+        <div class="test-case">
+            <h3>Test 1: Raw text with \n\n</h3>
+            <div class="raw-text">Istanbul is a treasure trove of historical and cultural landmarks.
+
+The Hagia Sophia is one of Istanbul's most iconic landmarks.
+
+Blue Mosque, located in the Sultanahmet district, is another iconic attraction.
+
+Topkapi Palace, the primary residence of the Ottoman sultans.</div>
+        </div>
+        
+        <div class="test-case">
+            <h3>Test 2: With message-text CSS class</h3>
+            <div class="message-text">
+                <p>Istanbul is a treasure trove of historical and cultural landmarks.</p>
+                <p>The Hagia Sophia is one of Istanbul's most iconic landmarks.</p>
+                <p>Blue Mosque, located in the Sultanahmet district, is another iconic attraction.</p>
+                <p>Topkapi Palace, the primary residence of the Ottoman sultans.</p>
+            </div>
+        </div>
+
+        <div class="test-case">
+            <h3>Test 3: Bold formatting with **</h3>
+            <div class="message-text">
+                <p><strong>The Hagia Sophia: A Marvel of Byzantine Architecture</strong></p>
+                <p>The Hagia Sophia is one of Istanbul's most iconic landmarks.</p>
+                <p><strong>The Blue Mosque: A Masterpiece of Ottoman Architecture</strong></p>
+                <p>The Blue Mosque is known for its stunning blue tiles.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

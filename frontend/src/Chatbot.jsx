@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useRef } from 'react';
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 
 /**
  * CHATBOT.JSX - Istanbul AI City Intelligence Assistant
@@ -2423,7 +2424,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                           {/* Hide verbose indicators on mobile for cleaner look */}
                           
                           {/* Message text - optimized size for mobile */}
-                          <div 
+                          <ReactMarkdown
                             className={`text-[14px] whitespace-pre-wrap leading-[1.55] select-text ${
                               darkMode ? 'text-gray-100' : 'text-gray-800'
                             }`}
@@ -2432,9 +2433,32 @@ function Chatbot({ userLocation: propUserLocation }) {
                               wordWrap: 'break-word',
                               overflowWrap: 'break-word'
                             }}
+                            components={{
+                              // Custom paragraph with better spacing
+                              p: ({ node, ...props }) => (
+                                <p {...props} className="mb-4 last:mb-0" />
+                              ),
+                              // Custom links
+                              a: ({ node, ...props }) => (
+                                <a 
+                                  {...props} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={`underline transition-colors duration-200 hover:opacity-80 cursor-pointer ${
+                                    darkMode 
+                                      ? 'text-blue-400 hover:text-blue-300' 
+                                      : 'text-blue-600 hover:text-blue-700'
+                                  }`}
+                                />
+                              ),
+                              // Bold text
+                              strong: ({ node, ...props }) => (
+                                <strong {...props} className="font-bold" />
+                              )
+                            }}
                           >
-                            {renderMessageContent(msg.text || msg.content, darkMode)}
-                          </div>
+                            {msg.text || msg.content || 'Message content not available'}
+                          </ReactMarkdown>
                           
                           {/* Route Card for mobile - show if route data present */}
                           {(msg.route_info || msg.map_data || msg.mapData || msg.routeData || (msg.data && (msg.data.route_info || msg.data.map_data))) && (
@@ -2519,7 +2543,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                         </div>
                         
                         {/* NO background, just text - ChatGPT style */}
-                        <div 
+                        <ReactMarkdown
                           className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 select-text ${
                             darkMode ? 'text-gray-100' : 'text-gray-800'
                           }`}
@@ -2531,9 +2555,32 @@ function Chatbot({ userLocation: propUserLocation }) {
                             wordWrap: 'break-word',
                             overflowWrap: 'break-word'
                           }}
+                          components={{
+                            // Custom paragraph with better spacing
+                            p: ({ node, ...props }) => (
+                              <p {...props} className="mb-4 last:mb-0" />
+                            ),
+                            // Custom links
+                            a: ({ node, ...props }) => (
+                              <a 
+                                {...props} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className={`underline transition-colors duration-200 hover:opacity-80 cursor-pointer ${
+                                  darkMode 
+                                    ? 'text-blue-400 hover:text-blue-300' 
+                                    : 'text-blue-600 hover:text-blue-700'
+                                }`}
+                              />
+                            ),
+                            // Bold text
+                            strong: ({ node, ...props }) => (
+                              <strong {...props} className="font-bold" />
+                            )
+                          }}
                         >
-                          {renderMessageContent(msg.text || msg.content, darkMode)}
-                        </div>
+                          {msg.text || msg.content || 'Message content not available'}
+                        </ReactMarkdown>
                         
                         {/* Copy Button - Easy copy functionality */}
                         <button
