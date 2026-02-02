@@ -2425,7 +2425,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                           
                           {/* Message text - optimized size for mobile */}
                           <ReactMarkdown
-                            className={`text-[14px] whitespace-pre-wrap leading-[1.55] select-text ${
+                            className={`text-[14px] leading-[1.55] select-text ${
                               darkMode ? 'text-gray-100' : 'text-gray-800'
                             }`}
                             style={{ 
@@ -2544,7 +2544,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                         
                         {/* NO background, just text - ChatGPT style */}
                         <ReactMarkdown
-                          className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] transition-colors duration-200 select-text ${
+                          className={`text-sm md:text-base leading-[1.6] transition-colors duration-200 select-text ${
                             darkMode ? 'text-gray-100' : 'text-gray-800'
                           }`}
                           style={{ 
@@ -2865,7 +2865,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                       isBot={true}
                       showCursor={true}
                       enableMarkdown={true}
-                      className={`text-sm md:text-base whitespace-pre-wrap leading-[1.6] ${
+                      className={`text-sm md:text-base leading-[1.6] ${
                         darkMode ? 'text-gray-100' : 'text-gray-800'
                       }`}
                     />
