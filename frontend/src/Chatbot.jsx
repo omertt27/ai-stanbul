@@ -2553,7 +2553,8 @@ function Chatbot({ userLocation: propUserLocation }) {
                             opacity: 1,
                             maxWidth: '100%',
                             wordWrap: 'break-word',
-                            overflowWrap: 'break-word'
+                            overflowWrap: 'break-word',
+                            whiteSpace: 'pre-wrap'
                           }}
                           components={{
                             // Custom paragraph with FORCED spacing for multiple paragraphs  

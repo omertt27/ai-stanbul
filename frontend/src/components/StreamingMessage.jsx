@@ -56,24 +56,49 @@ const StreamingMessage = memo(({
 
   return (
     <div className={messageClasses}>
-      <div className="message-content" style={{
-        // Force proper paragraph spacing
-        '& p': {
-          marginBottom: '1rem !important',
-          lineHeight: '1.6'
-        },
-        '& p:last-child': {
-          marginBottom: '0 !important'
-        },
-        '& ul, & ol': {
-          marginBottom: '1rem !important',
-          marginTop: '0.5rem !important'
-        },
-        '& li': {
-          marginBottom: '0.25rem',
-          lineHeight: '1.5'
-        }
-      }}>
+      <style>
+        {`
+          .streaming-message-content {
+            white-space: pre-wrap;
+          }
+          .streaming-message-content p {
+            margin-bottom: 1rem !important;
+            line-height: 1.6 !important;
+            display: block !important;
+          }
+          .streaming-message-content p:last-child {
+            margin-bottom: 0 !important;
+          }
+          .streaming-message-content ul,
+          .streaming-message-content ol {
+            margin-bottom: 1rem !important;
+            margin-top: 0.5rem !important;
+            padding-left: 1.5rem !important;
+          }
+          .streaming-message-content li {
+            margin-bottom: 0.25rem !important;
+            line-height: 1.5 !important;
+          }
+          .streaming-message-content h1,
+          .streaming-message-content h2,
+          .streaming-message-content h3 {
+            margin-top: 1rem !important;
+            margin-bottom: 0.75rem !important;
+            font-weight: bold !important;
+          }
+          .streaming-message-content blockquote {
+            margin: 1rem 0 !important;
+            padding-left: 1rem !important;
+            border-left: 4px solid #d1d5db !important;
+          }
+          /* Force line breaks for numbered items */
+          .streaming-message-content {
+            white-space: pre-wrap !important;
+            line-height: 1.6 !important;
+          }
+        `}
+      </style>
+      <div className="message-content streaming-message-content">
         {enableMarkdown && text ? (
           <ReactMarkdown
             className="prose prose-sm md:prose-base max-w-none"
@@ -87,38 +112,12 @@ const StreamingMessage = memo(({
                   className="text-blue-500 hover:text-blue-600 underline"
                 />
               ),
-              // Custom paragraph with FORCED spacing for multiple paragraphs
-              p: ({ node, ...props }) => (
-                <p {...props} style={{ 
-                  marginBottom: '1rem', 
-                  lineHeight: '1.6',
-                  display: 'block'
-                }} />
-              ),
-              // Custom list styling with proper spacing
-              ul: ({ node, ...props }) => (
-                <ul {...props} style={{ 
-                  listStyleType: 'disc',
-                  paddingLeft: '1.5rem',
-                  marginBottom: '1rem',
-                  marginTop: '0.5rem'
-                }} />
-              ),
-              ol: ({ node, ...props }) => (
-                <ol {...props} style={{ 
-                  listStyleType: 'decimal',
-                  paddingLeft: '1.5rem',
-                  marginBottom: '1rem',
-                  marginTop: '0.5rem'
-                }} />
-              ),
-              // List items with proper spacing
-              li: ({ node, ...props }) => (
-                <li {...props} style={{ 
-                  marginBottom: '0.25rem',
-                  lineHeight: '1.5'
-                }} />
-              ),
+              // Rely on CSS for paragraph spacing
+              p: ({ node, ...props }) => <p {...props} />,
+              // Rely on CSS for list spacing  
+              ul: ({ node, ...props }) => <ul {...props} style={{ listStyleType: 'disc' }} />,
+              ol: ({ node, ...props }) => <ol {...props} style={{ listStyleType: 'decimal' }} />,
+              li: ({ node, ...props }) => <li {...props} />,
               // Bold text
               strong: ({ node, ...props }) => (
                 <strong {...props} className="font-semibold" />
@@ -127,46 +126,14 @@ const StreamingMessage = memo(({
               code: ({ node, inline, ...props }) => (
                 inline 
                   ? <code {...props} className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm" />
-                  : <code {...props} className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto mb-4" />
+                  : <code {...props} className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto" />
               ),
-              // Headings with proper spacing
-              h1: ({ node, ...props }) => (
-                <h1 {...props} style={{ 
-                  fontSize: '1.25rem',
-                  fontWeight: 'bold',
-                  marginBottom: '0.75rem',
-                  marginTop: '1rem',
-                  lineHeight: '1.4'
-                }} />
-              ),
-              h2: ({ node, ...props }) => (
-                <h2 {...props} style={{ 
-                  fontSize: '1.125rem',
-                  fontWeight: 'bold',
-                  marginBottom: '0.75rem',
-                  marginTop: '1rem',
-                  lineHeight: '1.4'
-                }} />
-              ),
-              h3: ({ node, ...props }) => (
-                <h3 {...props} style={{ 
-                  fontSize: '1rem',
-                  fontWeight: 'bold',
-                  marginBottom: '0.5rem',
-                  marginTop: '0.75rem',
-                  lineHeight: '1.4'
-                }} />
-              ),
-              // Blockquotes
-              blockquote: ({ node, ...props }) => (
-                <blockquote {...props} style={{ 
-                  borderLeft: '4px solid #d1d5db',
-                  paddingLeft: '1rem',
-                  fontStyle: 'italic',
-                  marginBottom: '1rem',
-                  marginTop: '0.5rem'
-                }} />
-              )
+              // Headings - rely mostly on CSS
+              h1: ({ node, ...props }) => <h1 {...props} style={{ fontSize: '1.25rem' }} />,
+              h2: ({ node, ...props }) => <h2 {...props} style={{ fontSize: '1.125rem' }} />,
+              h3: ({ node, ...props }) => <h3 {...props} style={{ fontSize: '1rem' }} />,
+              // Blockquotes - rely on CSS
+              blockquote: ({ node, ...props }) => <blockquote {...props} />
             }}
           >
             {text}
