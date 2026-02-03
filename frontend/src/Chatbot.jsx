@@ -2556,9 +2556,13 @@ function Chatbot({ userLocation: propUserLocation }) {
                             overflowWrap: 'break-word'
                           }}
                           components={{
-                            // Custom paragraph with proper spacing for multiple paragraphs
+                            // Custom paragraph with FORCED spacing for multiple paragraphs  
                             p: ({ node, ...props }) => (
-                              <p {...props} className="mb-4 last:mb-0 whitespace-pre-wrap" style={{ marginBottom: '1rem' }} />
+                              <p {...props} style={{ 
+                                marginBottom: '1rem', 
+                                lineHeight: '1.6',
+                                display: 'block'
+                              }} />
                             ),
                             // Custom links
                             a: ({ node, ...props }) => (
@@ -2573,16 +2577,29 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 }`}
                               />
                             ),
-                            // Custom list styling with proper spacing
+                            // Custom list styling with FORCED spacing
                             ul: ({ node, ...props }) => (
-                              <ul {...props} className="list-disc list-inside mb-4 space-y-1" />
+                              <ul {...props} style={{ 
+                                listStyleType: 'disc',
+                                paddingLeft: '1.5rem',
+                                marginBottom: '1rem',
+                                marginTop: '0.5rem'
+                              }} />
                             ),
                             ol: ({ node, ...props }) => (
-                              <ol {...props} className="list-decimal list-inside mb-4 space-y-1" />
+                              <ol {...props} style={{ 
+                                listStyleType: 'decimal',
+                                paddingLeft: '1.5rem',
+                                marginBottom: '1rem',
+                                marginTop: '0.5rem'
+                              }} />
                             ),
                             // List items with proper spacing
                             li: ({ node, ...props }) => (
-                              <li {...props} className="mb-1" />
+                              <li {...props} style={{ 
+                                marginBottom: '0.25rem',
+                                lineHeight: '1.5'
+                              }} />
                             ),
                             // Bold text
                             strong: ({ node, ...props }) => (
@@ -2594,19 +2611,43 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 ? <code {...props} className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm" />
                                 : <code {...props} className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm overflow-x-auto mb-4" />
                             ),
-                            // Headings
+                            // Headings with FORCED spacing
                             h1: ({ node, ...props }) => (
-                              <h1 {...props} className="text-xl font-bold mb-3 mt-4 first:mt-0" />
+                              <h1 {...props} style={{ 
+                                fontSize: '1.25rem',
+                                fontWeight: 'bold',
+                                marginBottom: '0.75rem',
+                                marginTop: '1rem',
+                                lineHeight: '1.4'
+                              }} />
                             ),
                             h2: ({ node, ...props }) => (
-                              <h2 {...props} className="text-lg font-bold mb-3 mt-4 first:mt-0" />
+                              <h2 {...props} style={{ 
+                                fontSize: '1.125rem',
+                                fontWeight: 'bold',
+                                marginBottom: '0.75rem',
+                                marginTop: '1rem',
+                                lineHeight: '1.4'
+                              }} />
                             ),
                             h3: ({ node, ...props }) => (
-                              <h3 {...props} className="text-base font-bold mb-2 mt-3 first:mt-0" />
+                              <h3 {...props} style={{ 
+                                fontSize: '1rem',
+                                fontWeight: 'bold',
+                                marginBottom: '0.5rem',
+                                marginTop: '0.75rem',
+                                lineHeight: '1.4'
+                              }} />
                             ),
                             // Blockquotes
                             blockquote: ({ node, ...props }) => (
-                              <blockquote {...props} className="border-l-4 border-gray-300 pl-4 italic mb-4" />
+                              <blockquote {...props} style={{ 
+                                borderLeft: '4px solid #d1d5db',
+                                paddingLeft: '1rem',
+                                fontStyle: 'italic',
+                                marginBottom: '1rem',
+                                marginTop: '0.5rem'
+                              }} />
                             )
                           }}
                         >
