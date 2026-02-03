@@ -106,6 +106,38 @@ import useIsMobile from './hooks/useIsMobile';
 
 console.log('🔄 Chatbot component loaded');
 
+/**
+ * Preprocess text to fix common formatting issues and improve markdown rendering
+ */
+const preprocessTextForMarkdown = (text) => {
+  if (!text) return text;
+  
+  let processed = text;
+  
+  // Convert numbered lists to proper markdown with better spacing
+  // Pattern: "1. Restaurant Name - Description"
+  processed = processed.replace(/(\d+\.)\s+([^-\n]+)\s+-\s+([^\d]*?)(?=\s+\d+\.|📍|$)/g, (match, number, name, description) => {
+    return `${number} **${name.trim()}** - ${description.trim()}\n\n`;
+  });
+  
+  // Handle simple numbered items without restaurant pattern
+  processed = processed.replace(/^(\d+)\.\s+(.+)/gm, '\n$1. $2');
+  
+  // Add line breaks before location markers and make them bold
+  processed = processed.replace(/📍\s*Location:\s*(.+)/g, '\n**📍 Location:** $1');
+  
+  // Add line breaks before numbered items if they don't have them
+  processed = processed.replace(/(\S)\s+(\d+\.)\s+/g, '$1\n\n$2 ');
+  
+  // Ensure proper paragraph breaks for sentences
+  processed = processed.replace(/(\.\s+)([A-Z][^.]*\.\s*)/g, '$1\n\n$2');
+  
+  // Clean up multiple line breaks but preserve intentional spacing
+  processed = processed.replace(/\n{3,}/g, '\n\n');
+  
+  return processed.trim();
+};
+
 // Input security and normalization functions - ENHANCED SECURITY
 const sanitizeInput = (input) => {
   if (!input || typeof input !== 'string') return '';
@@ -2431,12 +2463,40 @@ function Chatbot({ userLocation: propUserLocation }) {
                             style={{ 
                               maxWidth: '100%',
                               wordWrap: 'break-word',
-                              overflowWrap: 'break-word'
+                              overflowWrap: 'break-word',
+                              whiteSpace: 'pre-wrap'
                             }}
                             components={{
                               // Custom paragraph with better spacing
                               p: ({ node, ...props }) => (
-                                <p {...props} className="mb-4 last:mb-0" />
+                                <p {...props} style={{ 
+                                  marginBottom: '1rem',
+                                  lineHeight: '1.6',
+                                  display: 'block'
+                                }} className="mb-4 last:mb-0" />
+                              ),
+                              // Enhanced list styling
+                              ul: ({ node, ...props }) => (
+                                <ul {...props} style={{ 
+                                  marginBottom: '1rem',
+                                  marginTop: '0.5rem',
+                                  paddingLeft: '1.5rem',
+                                  listStyleType: 'disc'
+                                }} />
+                              ),
+                              ol: ({ node, ...props }) => (
+                                <ol {...props} style={{ 
+                                  marginBottom: '1rem',
+                                  marginTop: '0.5rem',
+                                  paddingLeft: '1.5rem',
+                                  listStyleType: 'decimal'
+                                }} />
+                              ),
+                              li: ({ node, ...props }) => (
+                                <li {...props} style={{ 
+                                  marginBottom: '0.25rem',
+                                  lineHeight: '1.5'
+                                }} />
                               ),
                               // Custom links
                               a: ({ node, ...props }) => (
@@ -2457,7 +2517,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                               )
                             }}
                           >
-                            {msg.text || msg.content || 'Message content not available'}
+                            {preprocessTextForMarkdown(msg.text || msg.content || 'Message content not available')}
                           </ReactMarkdown>
                           
                           {/* Route Card for mobile - show if route data present */}
@@ -2565,6 +2625,29 @@ function Chatbot({ userLocation: propUserLocation }) {
                                 display: 'block'
                               }} />
                             ),
+                            // Enhanced list styling
+                            ul: ({ node, ...props }) => (
+                              <ul {...props} style={{ 
+                                marginBottom: '1rem',
+                                marginTop: '0.5rem',
+                                paddingLeft: '1.5rem',
+                                listStyleType: 'disc'
+                              }} />
+                            ),
+                            ol: ({ node, ...props }) => (
+                              <ol {...props} style={{ 
+                                marginBottom: '1rem',
+                                marginTop: '0.5rem',
+                                paddingLeft: '1.5rem',
+                                listStyleType: 'decimal'
+                              }} />
+                            ),
+                            li: ({ node, ...props }) => (
+                              <li {...props} style={{ 
+                                marginBottom: '0.25rem',
+                                lineHeight: '1.5'
+                              }} />
+                            ),
                             // Custom links
                             a: ({ node, ...props }) => (
                               <a 
@@ -2577,30 +2660,6 @@ function Chatbot({ userLocation: propUserLocation }) {
                                     : 'text-blue-600 hover:text-blue-700'
                                 }`}
                               />
-                            ),
-                            // Custom list styling with FORCED spacing
-                            ul: ({ node, ...props }) => (
-                              <ul {...props} style={{ 
-                                listStyleType: 'disc',
-                                paddingLeft: '1.5rem',
-                                marginBottom: '1rem',
-                                marginTop: '0.5rem'
-                              }} />
-                            ),
-                            ol: ({ node, ...props }) => (
-                              <ol {...props} style={{ 
-                                listStyleType: 'decimal',
-                                paddingLeft: '1.5rem',
-                                marginBottom: '1rem',
-                                marginTop: '0.5rem'
-                              }} />
-                            ),
-                            // List items with proper spacing
-                            li: ({ node, ...props }) => (
-                              <li {...props} style={{ 
-                                marginBottom: '0.25rem',
-                                lineHeight: '1.5'
-                              }} />
                             ),
                             // Bold text
                             strong: ({ node, ...props }) => (
@@ -2652,7 +2711,7 @@ function Chatbot({ userLocation: propUserLocation }) {
                             )
                           }}
                         >
-                          {msg.text || msg.content || 'Message content not available'}
+                          {preprocessTextForMarkdown(msg.text || msg.content || 'Message content not available')}
                         </ReactMarkdown>
                         
                         {/* Copy Button - Easy copy functionality */}

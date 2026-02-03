@@ -8,6 +8,8 @@
 import React, { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 
+
+
 /**
  * Blinking cursor component
  */
@@ -22,6 +24,38 @@ const BlinkingCursor = () => (
     `}</style>
   </span>
 );
+
+/**
+ * Preprocess text to fix common formatting issues and improve markdown rendering
+ */
+const preprocessTextForMarkdown = (text) => {
+  if (!text) return text;
+  
+  let processed = text;
+  
+  // Convert numbered lists to proper markdown with better spacing
+  // Pattern: "1. Restaurant Name - Description"
+  processed = processed.replace(/(\d+\.)\s+([^-\n]+)\s+-\s+([^\d]*?)(?=\s+\d+\.|📍|$)/g, (match, number, name, description) => {
+    return `${number} **${name.trim()}** - ${description.trim()}\n\n`;
+  });
+  
+  // Handle simple numbered items without restaurant pattern
+  processed = processed.replace(/^(\d+)\.\s+(.+)/gm, '\n$1. $2');
+  
+  // Add line breaks before location markers and make them bold
+  processed = processed.replace(/📍\s*Location:\s*(.+)/g, '\n**📍 Location:** $1');
+  
+  // Add line breaks before numbered items if they don't have them
+  processed = processed.replace(/(\S)\s+(\d+\.)\s+/g, '$1\n\n$2 ');
+  
+  // Ensure proper paragraph breaks for sentences
+  processed = processed.replace(/(\.\s+)([A-Z][^.]*\.\s*)/g, '$1\n\n$2');
+  
+  // Clean up multiple line breaks but preserve intentional spacing
+  processed = processed.replace(/\n{3,}/g, '\n\n');
+  
+  return processed.trim();
+};
 
 /**
  * StreamingMessage - Shows text with real-time streaming effect
@@ -53,6 +87,9 @@ const StreamingMessage = memo(({
     ${isStreaming ? 'streaming' : ''}
     ${className}
   `.trim();
+
+  // Preprocess the text to fix formatting issues
+  const processedText = preprocessTextForMarkdown(text);
 
   return (
     <div className={messageClasses}>
@@ -136,10 +173,10 @@ const StreamingMessage = memo(({
               blockquote: ({ node, ...props }) => <blockquote {...props} />
             }}
           >
-            {text}
+            {processedText}
           </ReactMarkdown>
         ) : (
-          <span className="whitespace-pre-wrap">{text}</span>
+          <span className="whitespace-pre-wrap">{processedText || text}</span>
         )}
         
         {/* Blinking cursor while streaming */}

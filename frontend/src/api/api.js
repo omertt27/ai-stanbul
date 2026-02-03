@@ -892,14 +892,20 @@ export const fetchStreamingChat = async (message, options = {}) => {
     let fullResponse = '';
     let metadata = null;
     let currentEvent = null;
+    let buffer = ''; // Buffer for incomplete chunks
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        // Process complete lines from buffer
+        const lines = buffer.split('\n');
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           // Parse SSE event type
@@ -965,7 +971,10 @@ export const fetchStreamingChat = async (message, options = {}) => {
               currentEvent = null;
               
             } catch (e) {
-              console.warn('Failed to parse SSE data:', data, e);
+              // Only warn if it's not a simple chunking issue
+              if (data.length > 10) {
+                console.warn('Failed to parse SSE data:', data.substring(0, 100) + '...', e.message);
+              }
               // Non-JSON data, treat as raw token if we're in a token event
               if (currentEvent === 'token' && data.trim()) {
                 fullResponse += data;
@@ -974,6 +983,25 @@ export const fetchStreamingChat = async (message, options = {}) => {
                 }
               }
             }
+          }
+        }
+      }
+
+      // Process any remaining buffer content
+      if (buffer.trim()) {
+        if (buffer.startsWith('data: ')) {
+          const data = buffer.slice(6).trim();
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.content) {
+              fullResponse += parsed.content;
+              if (onToken) {
+                onToken(parsed.content, fullResponse);
+              }
+            }
+          } catch (e) {
+            // Ignore incomplete JSON at the end
+            console.log('⚠️ Ignoring incomplete buffer content');
           }
         }
       }
