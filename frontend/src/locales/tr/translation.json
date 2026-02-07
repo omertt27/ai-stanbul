@@ -238,84 +238,96 @@
         "description": "Osmanlı ve Bizans hazineleriyle tarihi yarımada",
         "vibe": "İmparatorluk",
         "specialty": "Osmanlı Mirası",
-        "sideNote": "Avrupa Yakası • Tarihi Yarımada"
+        "sideNote": "Avrupa Yakası • Tarihi Yarımada",
+        "highlights": ["Ayasofya", "Sultanahmet Camii", "Topkapı Sarayı"]
       },
       "beyoglu": {
         "name": "Beyoğlu",
         "description": "Modern sanat ve gece hayatıyla canlı kültür merkezi",
         "vibe": "Sanatsal",
         "specialty": "Çağdaş Kültür",
-        "sideNote": "Avrupa Yakası • Kültürel Kalp"
+        "sideNote": "Avrupa Yakası • Kültürel Kalp",
+        "highlights": ["İstiklal Caddesi", "Sanat Galerileri", "Teras Barlar"]
       },
       "kadikoy": {
         "name": "Kadıköy",
         "description": "Otantik yerel yaşam ve yemeklerle Anadolu yakası incisi",
         "vibe": "Yerel",
         "specialty": "Sokak Lezzetleri",
-        "sideNote": "Anadolu Yakası • Bohemya Mahalesi"
+        "sideNote": "Anadolu Yakası • Bohemya Mahalesi",
+        "highlights": ["Moda Mahallesi", "Yerel Pazarlar", "Sokak Yemekleri"]
       },
       "besiktas": {
         "name": "Beşiktaş",
         "description": "Modern cazibe merkezleriyle lüks sahil bölgesi",
         "vibe": "Dinamik",
         "specialty": "Lüks ve Spor",
-        "sideNote": "Avrupa Yakası • Boğaz Kıyısı"
+        "sideNote": "Avrupa Yakası • Boğaz Kıyısı",
+        "highlights": ["Dolmabahçe Sarayı", "Boğaz Manzarası", "Vodafone Park"]
       },
       "uskudar": {
         "name": "Üsküdar",
         "description": "Büyüleyici şehir manzaralı geleneksel Anadolu yakası",
         "vibe": "Manevi",
         "specialty": "Geleneksel Yaşam",
-        "sideNote": "Anadolu Yakası • Tarihi Merkez"
+        "sideNote": "Anadolu Yakası • Tarihi Merkez",
+        "highlights": ["Kız Kulesi", "Çamlıca Tepesi", "Tarihi Camiler"]
       },
       "sisli": {
         "name": "Şişli",
         "description": "Lüks alışveriş ve otellerle iş bölgesi",
         "vibe": "İş",
         "specialty": "Ticaret ve Alışveriş",
-        "sideNote": "Avrupa Yakası • İş Merkezi"
+        "sideNote": "Avrupa Yakası • İş Merkezi",
+        "highlights": ["Cevahir AVM", "İş Merkezleri", "Lüks Oteller"]
       },
       "fatih": {
         "name": "Fatih",
         "description": "Çarşılar ve camilerle eski Konstantinopolis'in kalbi",
         "vibe": "Tarihi",
         "specialty": "Geleneksel Pazarlar",
-        "sideNote": "Avrupa Yakası • Eski Şehir"
+        "sideNote": "Avrupa Yakası • Eski Şehir",
+        "highlights": ["Kapalıçarşı", "Süleymaniye Camii", "Eminönü"]
       },
       "galata": {
         "name": "Galata",
         "description": "İkonik kulesi ve modern kafeleriyle ortaçağ mahallesi",
         "vibe": "Trendy",
         "specialty": "Kahve Kültürü",
-        "sideNote": "Avrupa Yakası • Tarihi Liman"
+        "sideNote": "Avrupa Yakası • Tarihi Liman",
+        "highlights": ["Galata Kulesi", "Taksim Meydanı", "Karaköy Kafeleri"]
       },
       "ortakoy": {
         "name": "Ortaköy",
         "description": "Sahil yemekleriyle büyüleyici Boğaz köyü",
         "vibe": "Romantik",
         "specialty": "Kumpir ve Waffle",
-        "sideNote": "Avrupa Yakası • Boğaz"
+        "sideNote": "Avrupa Yakası • Boğaz",
+        "highlights": ["Ortaköy Camii", "Boğaz Köprüsü", "Kumpir Tezgahları"]
       },
       "balat": {
         "name": "Balat",
         "description": "Instagram ünlü renkli tarihi mahalle",
         "vibe": "Bohem",
         "specialty": "Vintage Çekicilik",
-        "sideNote": "Avrupa Yakası • Haliç"
+        "sideNote": "Avrupa Yakası • Haliç",
+        "highlights": ["Renkli Evler", "Vintage Kafeler", "Rum Ortodoks Kilisesi"]
       },
       "arnavutkoy": {
         "name": "Arnavutköy",
         "description": "Osmanlı konakları ile zarif sahil köyü",
         "vibe": "Zarif",
         "specialty": "Deniz Ürünleri",
-        "sideNote": "Avrupa Yakası • Boğaz Kıyısı"
+        "sideNote": "Avrupa Yakası • Boğaz Kıyısı",
+        "highlights": ["Osmanlı Konakları", "Deniz Ürünleri Restoranları", "Boğaz Manzarası"]
       },
       "moda": {
         "name": "Moda",
         "description": "Bağımsız dükkanlar ve samimi kafelerle hipster cenneti",
         "vibe": "Hipster",
         "specialty": "Kahve ve Brunch",
-        "sideNote": "Anadolu Yakası • Kadıköy Mahallesi"
+        "sideNote": "Anadolu Yakası • Kadıköy Mahallesi",
+        "highlights": ["Moda Sahili", "Butik Dükkanlar", "Kahve Kültürü"]
       }
     },
     "labels": {

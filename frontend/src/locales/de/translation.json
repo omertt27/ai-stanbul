@@ -238,42 +238,96 @@
         "description": "Historische Halbinsel mit osmanischen & byzantinischen Schätzen",
         "vibe": "Kaiserlich",
         "specialty": "Osmanisches Erbe",
-        "sideNote": "Europäische Seite • Historische Halbinsel"
+        "sideNote": "Europäische Seite • Historische Halbinsel",
+        "highlights": ["Hagia Sophia", "Blaue Moschee", "Topkapi-Palast"]
       },
       "beyoglu": {
         "name": "Beyoğlu", 
         "description": "Lebendiges kulturelles Herz mit moderner Kunst & Nachtleben",
         "vibe": "Künstlerisch",
         "specialty": "Zeitgenössische Kultur",
-        "sideNote": "Europäische Seite • Kulturelles Herz"
+        "sideNote": "Europäische Seite • Kulturelles Herz",
+        "highlights": ["Istiklal-Straße", "Kunstgalerien", "Dachbars"]
       },
       "kadikoy": {
         "name": "Kadıköy",
         "description": "Juwel der asiatischen Seite mit authentischem lokalen Leben & Essen",
         "vibe": "Lokal",
         "specialty": "Straßenessen",
-        "sideNote": "Asiatische Seite • Bohème-Viertel"
+        "sideNote": "Asiatische Seite • Bohème-Viertel",
+        "highlights": ["Moda-Viertel", "Lokale Märkte", "Straßenessen"]
       },
       "besiktas": {
         "name": "Beşiktaş",
         "description": "Gehobenes Hafenviertel mit modernen Attraktionen",
         "vibe": "Dynamisch",
         "specialty": "Luxus & Sport",
-        "sideNote": "Europäische Seite • Bosporus-Küste"
+        "sideNote": "Europäische Seite • Bosporus-Küste",
+        "highlights": ["Dolmabahçe-Palast", "Bosporus-Aussicht", "Vodafone Park"]
       },
       "uskudar": {
         "name": "Üsküdar",
         "description": "Traditionelle asiatische Seite mit atemberaubenden Stadtblicken",
         "vibe": "Spirituell",
         "specialty": "Traditionelles Leben",
-        "sideNote": "Asiatische Seite • Historisches Zentrum"
+        "sideNote": "Asiatische Seite • Historisches Zentrum",
+        "highlights": ["Mädchenturm", "Çamlıca-Hügel", "Historische Moscheen"]
       },
       "sisli": {
         "name": "Şişli",
         "description": "Geschäftsviertel mit Luxus-Shopping & Hotels",
         "vibe": "Geschäft",
         "specialty": "Handel & Shopping",
-        "sideNote": "Europäische Seite • Business-Hub"
+        "sideNote": "Europäische Seite • Business-Hub",
+        "highlights": ["Cevahir Einkaufszentrum", "Geschäftszentren", "Luxushotels"]
+      },
+      "fatih": {
+        "name": "Fatih",
+        "description": "Herz des alten Konstantinopel mit Basaren & Moscheen",
+        "vibe": "Historisch",
+        "specialty": "Traditionelle Märkte",
+        "sideNote": "Europäische Seite • Altstadt",
+        "highlights": ["Großer Basar", "Süleymaniye-Moschee", "Eminönü"]
+      },
+      "galata": {
+        "name": "Galata",
+        "description": "Mittelalterliches Viertel mit ikonischem Turm & trendigen Cafés",
+        "vibe": "Trendig",
+        "specialty": "Kaffeekultur",
+        "sideNote": "Europäische Seite • Historischer Hafen",
+        "highlights": ["Galata-Turm", "Taksim-Platz", "Karaköy-Cafés"]
+      },
+      "ortakoy": {
+        "name": "Ortaköy",
+        "description": "Charmantes Bosporus-Dorf mit Uferrestaurants",
+        "vibe": "Romantisch",
+        "specialty": "Kumpir & Waffeln",
+        "sideNote": "Europäische Seite • Bosporus",
+        "highlights": ["Ortaköy-Moschee", "Bosporus-Brücke", "Kumpir-Stände"]
+      },
+      "balat": {
+        "name": "Balat",
+        "description": "Instagram-berühmtes buntes historisches Viertel",
+        "vibe": "Bohème",
+        "specialty": "Vintage-Charme",
+        "sideNote": "Europäische Seite • Goldenes Horn",
+        "highlights": ["Bunte Häuser", "Vintage-Cafés", "Griechisch-Orthodoxe Kirche"]
+      },
+      "arnavutkoy": {
+        "name": "Arnavutköy",
+        "description": "Elegantes Küstendorf mit osmanischen Villen",
+        "vibe": "Elegant",
+        "specialty": "Meeresfrüchte",
+        "sideNote": "Europäische Seite • Bosporus-Küste",
+        "highlights": ["Osmanische Villen", "Meeresfrüchte-Restaurants", "Bosporus-Aussicht"]
+      },
+      "moda": {
+        "name": "Moda",
+        "description": "Hipster-Paradies mit unabhängigen Läden und gemütlichen Cafés",
+        "vibe": "Hipster",
+        "specialty": "Kaffee & Brunch",
+        "sideNote": "Asiatische Seite • Kadıköy-Viertel",
+        "highlights": ["Moda-Küste", "Boutique-Läden", "Kaffeekultur"]
       }
     },
     "labels": {

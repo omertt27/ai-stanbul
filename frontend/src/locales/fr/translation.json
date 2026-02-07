@@ -238,42 +238,96 @@
         "description": "Péninsule historique avec des trésors ottomans et byzantins",
         "vibe": "Impérial",
         "specialty": "Héritage ottoman",
-        "sideNote": "Côté européen • Péninsule historique"
+        "sideNote": "Côté européen • Péninsule historique",
+        "highlights": ["Sainte-Sophie", "Mosquée Bleue", "Palais de Topkapi"]
       },
       "beyoglu": {
         "name": "Beyoğlu", 
         "description": "Cœur culturel vibrant avec art moderne et vie nocturne",
         "vibe": "Artistique",
         "specialty": "Culture contemporaine",
-        "sideNote": "Côté européen • Cœur culturel"
+        "sideNote": "Côté européen • Cœur culturel",
+        "highlights": ["Avenue Istiklal", "Galeries d'art", "Bars sur les toits"]
       },
       "kadikoy": {
         "name": "Kadıköy",
         "description": "Joyau du côté asiatique avec vie locale authentique et nourriture",
         "vibe": "Local",
         "specialty": "Nourriture de rue",
-        "sideNote": "Côté asiatique • Quartier bohème"
+        "sideNote": "Côté asiatique • Quartier bohème",
+        "highlights": ["Quartier Moda", "Marchés locaux", "Cuisine de rue"]
       },
       "besiktas": {
         "name": "Beşiktaş",
         "description": "Quartier haut de gamme en bord de mer avec attractions modernes",
         "vibe": "Dynamique",
         "specialty": "Luxe et Sport",
-        "sideNote": "Côté européen • Côte du Bosphore"
+        "sideNote": "Côté européen • Côte du Bosphore",
+        "highlights": ["Palais Dolmabahçe", "Vues du Bosphore", "Vodafone Park"]
       },
       "uskudar": {
         "name": "Üsküdar",
         "description": "Côté asiatique traditionnel avec vues magnifiques sur la ville",
         "vibe": "Spirituel",
         "specialty": "Vie traditionnelle",
-        "sideNote": "Côté asiatique • Centre historique"
+        "sideNote": "Côté asiatique • Centre historique",
+        "highlights": ["Tour de Léandre", "Colline Çamlıca", "Mosquées historiques"]
       },
       "sisli": {
         "name": "Şişli",
         "description": "Quartier d'affaires avec shopping de luxe et hôtels",
         "vibe": "Affaires",
         "specialty": "Commerce et Shopping",
-        "sideNote": "Côté européen • Hub d'affaires"
+        "sideNote": "Côté européen • Hub d'affaires",
+        "highlights": ["Centre Cevahir", "Centres d'affaires", "Hôtels de luxe"]
+      },
+      "fatih": {
+        "name": "Fatih",
+        "description": "Cœur de l'ancienne Constantinople avec bazars et mosquées",
+        "vibe": "Historique",
+        "specialty": "Marchés traditionnels",
+        "sideNote": "Côté européen • Vieille ville",
+        "highlights": ["Grand Bazar", "Mosquée Süleymaniye", "Eminönü"]
+      },
+      "galata": {
+        "name": "Galata",
+        "description": "Quartier médiéval avec tour emblématique et cafés branchés",
+        "vibe": "Tendance",
+        "specialty": "Culture du café",
+        "sideNote": "Côté européen • Port historique",
+        "highlights": ["Tour de Galata", "Place Taksim", "Cafés de Karaköy"]
+      },
+      "ortakoy": {
+        "name": "Ortaköy",
+        "description": "Charmant village du Bosphore avec restaurants au bord de l'eau",
+        "vibe": "Romantique",
+        "specialty": "Kumpir et Gaufres",
+        "sideNote": "Côté européen • Bosphore",
+        "highlights": ["Mosquée Ortaköy", "Pont du Bosphore", "Stands de Kumpir"]
+      },
+      "balat": {
+        "name": "Balat",
+        "description": "Quartier historique coloré célèbre sur Instagram",
+        "vibe": "Bohème",
+        "specialty": "Charme vintage",
+        "sideNote": "Côté européen • Corne d'Or",
+        "highlights": ["Maisons colorées", "Cafés vintage", "Église orthodoxe grecque"]
+      },
+      "arnavutkoy": {
+        "name": "Arnavutköy",
+        "description": "Élégant village côtier avec des demeures ottomanes",
+        "vibe": "Élégant",
+        "specialty": "Fruits de mer",
+        "sideNote": "Côté européen • Côte du Bosphore",
+        "highlights": ["Demeures ottomanes", "Restaurants de fruits de mer", "Vues du Bosphore"]
+      },
+      "moda": {
+        "name": "Moda",
+        "description": "Paradis hipster avec boutiques indépendantes et cafés cosy",
+        "vibe": "Hipster",
+        "specialty": "Café et Brunch",
+        "sideNote": "Côté asiatique • Quartier de Kadıköy",
+        "highlights": ["Côte de Moda", "Boutiques indépendantes", "Culture du café"]
       }
     },
     "labels": {
