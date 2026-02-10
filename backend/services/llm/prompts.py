@@ -205,6 +205,7 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         conversation_context: Optional[Dict[str, Any]] = None,
         language: str = "en",
         user_location: Optional[Dict[str, float]] = None,
+        user_profile: Optional[Dict[str, Any]] = None,  # NEW: User profile for personalization
         enable_intent_classification: bool = False,
         signal_confidence: float = 1.0
     ) -> str:
@@ -221,6 +222,7 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
             conversation_context: Conversation history
             language: Response language
             user_location: User's GPS coordinates (if available)
+            user_profile: User profile for personalized recommendations (NEW)
             enable_intent_classification: Enable LLM intent classification (Priority 2)
             signal_confidence: Overall signal detection confidence (Priority 3)
             
@@ -280,7 +282,14 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         
         prompt_parts.append(system_prompt)
         
-        # 2. Conversation context (if available)
+        # 2. USER PROFILE CONTEXT - PERSONALIZATION (NEW)
+        if user_profile and (user_profile.get('interests') or user_profile.get('dietary_restrictions') or user_profile.get('budget_range')):
+            profile_context = self._format_user_profile_context(user_profile, language)
+            prompt_parts.append("\n## 👤 USER PROFILE:")
+            prompt_parts.append(profile_context)
+            logger.info(f"✅ User profile context injected into prompt ({len(profile_context)} chars)")
+        
+        # 3. Conversation context (if available)
         if conversation_context:
             conv_formatted = self._format_conversation_context(conversation_context)
             if conv_formatted:
@@ -294,17 +303,17 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
                 prompt_parts.append("- If they asked about restaurants, give more restaurants in THAT area")
                 prompt_parts.append("- Don't change topics unless they explicitly mention something completely different")
         
-        # 3. Database context
+        # 4. Database context
         if context.get('database'):
             prompt_parts.append("\n## Database Information:")
             prompt_parts.append(context['database'])
         
-        # 4. RAG context
+        # 5. RAG context
         if context.get('rag'):
             prompt_parts.append("\n## Additional Context:")
             prompt_parts.append(context['rag'])
         
-        # 5. Service context (weather, events, hidden gems)
+        # 6. Service context (weather, events, hidden gems)
         service_context = self._format_service_context(context.get('services', {}))
         if service_context:
             prompt_parts.append("\n" + "="*80)
@@ -314,7 +323,7 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
             prompt_parts.append("="*80)
             logger.info(f"📝 Service context section added to prompt ({len(service_context)} chars)")
         
-        # 6. Map reference (if available)
+        # 7. Map reference (if available)
         if context.get('map_data'):
             map_data = context['map_data']
             map_type = map_data.get('type', 'route')
@@ -532,81 +541,6 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
                 instructions.append(self.intent_prompts[signal])
         
         return "\n".join(instructions) if instructions else ""
-    
-    def _format_conversation_context(
-        self,
-        conversation_context: Dict[str, Any]
-    ) -> str:
-        """Format conversation history for prompt."""
-        if not conversation_context or not conversation_context.get('history'):
-            return ""
-        
-        formatted = []
-        history = conversation_context['history']
-        
-        for turn in history[-3:]:  # Last 3 turns
-            role = turn.get('role', 'user')
-            content = turn.get('content', '')
-            
-            if role == 'user':
-                formatted.append(f"User: {content}")
-            elif role == 'assistant':
-                formatted.append(f"Assistant: {content}")
-        
-        return "\n".join(formatted) if formatted else ""
-    
-    def _format_service_context(self, services: Dict[str, Any]) -> str:
-        """Format service context (weather, events, etc.)."""
-        if not services:
-            return ""
-        
-        formatted = []
-        
-        # Weather - Make it crystal clear
-        if 'weather' in services:
-            weather_text = f"🌤️ CURRENT WEATHER (USE THESE EXACT VALUES):\n{services['weather']}"
-            formatted.append(weather_text)
-            logger.info(f"🌤️ Weather context formatted for prompt: {weather_text[:150]}...")
-        
-        # Events
-        if 'events' in services:
-            formatted.append(f"📅 Events:\n{services['events']}")
-        
-        # Hidden Gems
-        if 'hidden_gems' in services:
-            formatted.append(f"💎 Hidden Gems:\n{services['hidden_gems']}")
-        
-        return "\n\n".join(formatted) if formatted else ""
-    
-    def _get_response_instructions(
-        self,
-        language: str,
-        signals: Dict[str, bool]
-    ) -> str:
-        """Get response format instructions."""
-        # Language-specific response instructions for 6 main languages
-        language_instructions = {
-            'en': "Please respond in English.",
-            'tr': "Lütfen Türkçe olarak yanıt verin.",
-            'ru': "Пожалуйста, отвечайте на русском языке.",
-            'de': "Bitte antworten Sie auf Deutsch.",
-            'ar': "يرجى الرد باللغة العربية.",
-            'fr': "Veuillez répondre en français."
-        }
-        
-        base = language_instructions.get(language, language_instructions['en'])
-        
-        # Add signal-specific instructions
-        if signals.get('needs_map') or signals.get('needs_gps_routing'):
-            base += " Reference the provided map to help guide the user."
-        
-        if signals.get('needs_transportation'):
-            base += " Provide step-by-step directions."
-        
-        if signals.get('needs_restaurant'):
-            base += " Recommend 2-3 specific restaurants with details."
-        
-        return base
     
     def build_few_shot_prompt(
         self,
@@ -1013,3 +947,107 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
             self._metrics_history.append(metrics)
         else:
             self._metrics_history = [metrics]
+    
+    def _format_user_profile_context(
+        self,
+        user_profile: Dict[str, Any],
+        language: str = "en"
+    ) -> str:
+        """
+        Format user profile for LLM context injection.
+        
+        This is the core of personalization - injecting user preferences
+        directly into the LLM prompt so recommendations are naturally tailored.
+        
+        Args:
+            user_profile: User profile dictionary with preferences
+            language: Language code for localized instructions
+            
+        Returns:
+            Formatted profile context string for prompt injection
+        """
+        profile_parts = []
+        
+        # Travel style and group dynamics
+        if user_profile.get('travel_style'):
+            profile_parts.append(f"Travel Style: {user_profile['travel_style'].title()}")
+        
+        if user_profile.get('group_type'):
+            group_type = user_profile['group_type']
+            if user_profile.get('has_children'):
+                ages = user_profile.get('children_ages', [])
+                if ages:
+                    ages_str = f" (ages: {', '.join(map(str, ages))})"
+                    profile_parts.append(f"Group: {group_type.title()} with children{ages_str}")
+                else:
+                    profile_parts.append(f"Group: {group_type.title()} with children")
+            else:
+                profile_parts.append(f"Group: {group_type.title()}")
+        
+        # Interests (critical for recommendation matching)
+        if user_profile.get('interests'):
+            interests = ", ".join([i.title() for i in user_profile['interests']])
+            profile_parts.append(f"Interests: {interests}")
+        
+        # Budget preferences
+        if user_profile.get('budget_range'):
+            profile_parts.append(f"Budget: {user_profile['budget_range'].title()}")
+        
+        # Dietary restrictions (critical for restaurant recommendations)
+        if user_profile.get('dietary_restrictions'):
+            dietary = ", ".join([d.replace('_', ' ').title() for d in user_profile['dietary_restrictions']])
+            profile_parts.append(f"Dietary: {dietary}")
+        
+        # Cuisine preferences
+        if user_profile.get('cuisine_preferences'):
+            cuisines = ", ".join([c.title() for c in user_profile['cuisine_preferences']])
+            profile_parts.append(f"Preferred Cuisines: {cuisines}")
+        
+        # Pace and adventure level
+        if user_profile.get('pace_preference'):
+            profile_parts.append(f"Pace: {user_profile['pace_preference'].title()}")
+        
+        if user_profile.get('adventure_level'):
+            profile_parts.append(f"Adventure Level: {user_profile['adventure_level'].title()}")
+        
+        # Accessibility needs (important for inclusive recommendations)
+        if user_profile.get('accessibility_needs'):
+            profile_parts.append(f"Accessibility: {user_profile['accessibility_needs'].title()}")
+        
+        if user_profile.get('mobility_restrictions'):
+            mobility = ", ".join([m.replace('_', ' ').title() for m in user_profile['mobility_restrictions']])
+            profile_parts.append(f"Mobility: {mobility}")
+        
+        # Favorite neighborhoods (behavioral data - very valuable)
+        if user_profile.get('favorite_neighborhoods'):
+            favs = ", ".join(user_profile['favorite_neighborhoods'][:5])  # Top 5
+            profile_parts.append(f"Previously enjoyed: {favs}")
+        
+        # Cultural immersion level
+        if user_profile.get('cultural_immersion_level'):
+            profile_parts.append(f"Cultural Experience: {user_profile['cultural_immersion_level'].replace('_', ' ').title()}")
+        
+        # Time preferences
+        if user_profile.get('preferred_visit_times'):
+            times = ", ".join([t.title() for t in user_profile['preferred_visit_times']])
+            profile_parts.append(f"Preferred Times: {times}")
+        
+        # Format the profile string
+        if not profile_parts:
+            return ""
+        
+        profile_str = "\n".join(f"- {part}" for part in profile_parts)
+        
+        # Add multilingual instruction for the LLM to use this profile
+        instructions = {
+            'en': "\n\n⚠️ PERSONALIZATION: Tailor ALL recommendations to match this user's profile. Prioritize suggestions that align with their interests, budget, dietary needs, and travel style. If suggesting restaurants, MUST respect dietary restrictions. If suggesting activities, MUST match interests and pace preference.",
+            'tr': "\n\n⚠️ KİŞİSELLEŞTİRME: TÜM önerileri bu kullanıcının profiline göre uyarlayın. İlgi alanları, bütçe, diyet ihtiyaçları ve seyahat tarzına uygun önerilere öncelik verin. Restoran önerirken diyet kısıtlamalarına UYUN. Aktivite önerirken ilgi alanları ve tempo tercihine UYUN.",
+            'ru': "\n\n⚠️ ПЕРСОНАЛИЗАЦИЯ: Адаптируйте ВСЕ рекомендации под профиль этого пользователя. Приоритет предложениям, соответствующим их интересам, бюджету, диетическим потребностям и стилю путешествий. При рекомендации ресторанов ОБЯЗАТЕЛЬНО учитывайте диетические ограничения. При рекомендации активностей ОБЯЗАТЕЛЬНО учитывайте интересы и темп.",
+            'de': "\n\n⚠️ PERSONALISIERUNG: Passen Sie ALLE Empfehlungen an das Profil dieses Benutzers an. Priorisieren Sie Vorschläge, die ihren Interessen, Budget, Ernährungsbedürfnissen und Reisestil entsprechen. Bei Restaurantempfehlungen MÜSSEN Ernährungseinschränkungen beachtet werden. Bei Aktivitätenempfehlungen MÜSSEN Interessen und Tempo-Präferenz beachtet werden.",
+            'fr': "\n\n⚠️ PERSONNALISATION: Adaptez TOUTES les recommandations au profil de cet utilisateur. Priorisez les suggestions alignées sur leurs intérêts, budget, besoins alimentaires et style de voyage. Pour les restaurants, RESPECTEZ les restrictions alimentaires. Pour les activités, RESPECTEZ les intérêts et le rythme préféré.",
+            'ar': "\n\n⚠️ التخصيص: قم بتخصيص جميع التوصيات لتتناسب مع ملف تعريف هذا المستخدم. أعط الأولوية للاقتراحات التي تتوافق مع اهتماماتهم وميزانيتهم واحتياجاتهم الغذائية وأسلوب سفرهم. عند التوصية بالمطاعم، يجب احترام القيود الغذائية. عند التوصية بالأنشطة، يجب مطابقة الاهتمامات وتفضيلات الوتيرة."
+        }
+        
+        instruction = instructions.get(language, instructions['en'])
+        
+        return profile_str + instruction

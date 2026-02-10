@@ -18,7 +18,7 @@ Production Features:
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from enum import Enum
 import logging
 import time
@@ -483,3 +483,163 @@ async def export_dataset(
     except Exception as e:
         logger.error(f"Failed to export dataset: {e}")
         raise HTTPException(status_code=500, detail="Failed to export dataset")
+
+
+# ============================================
+# PHASE 1: PERSONALIZATION FEEDBACK ENDPOINTS
+# ============================================
+
+class RecommendationInteractionRequest(BaseModel):
+    """Track user interaction with recommendations for personalization"""
+    user_id: str = Field(..., min_length=1, max_length=100)
+    query: str = Field(..., max_length=2000)
+    selected_items: List[Dict[str, Any]] = Field(..., max_items=10)
+    signals: List[str] = Field(default_factory=list, max_items=20)
+    session_id: Optional[str] = Field(default=None, max_length=100)
+
+
+class ExplicitFeedbackRequest(BaseModel):
+    """Explicit user feedback for personalization (thumbs up/down)"""
+    user_id: str = Field(..., min_length=1, max_length=100)
+    query: str = Field(..., max_length=2000)
+    response: str = Field(..., max_length=10000)
+    feedback_type: str = Field(..., regex="^(positive|negative)$")
+    detected_signals: List[str] = Field(default_factory=list, max_items=20)
+    signal_scores: Dict[str, float] = Field(default_factory=dict)
+    session_id: Optional[str] = Field(default=None, max_length=100)
+
+
+@router.post("/recommendation-interaction")
+async def track_recommendation_interaction(request: RecommendationInteractionRequest):
+    """
+    Track user interaction with recommendations (PHASE 1).
+    
+    Called when user clicks on a restaurant, attraction, or route.
+    Updates user profile with inferred preferences.
+    
+    Example:
+        User clicks on "Mikla Restaurant" (Modern Turkish, Upscale, Beyoğlu)
+        → System learns: preferred_cuisines += ['Turkish'], preferred_districts += ['Beyoğlu']
+    """
+    try:
+        # Import personalization engine
+        from backend.services.llm.personalization import PersonalizationEngine
+        
+        # Create personalization engine instance (should be singleton in production)
+        # In production, this should be injected as a dependency
+        personalization = PersonalizationEngine()
+        
+        await personalization.update_profile_from_interaction(
+            user_id=request.user_id,
+            query=request.query,
+            selected_items=request.selected_items,
+            signals=request.signals
+        )
+        
+        logger.info(
+            f"✅ Recommendation interaction tracked for user {request.user_id}: "
+            f"{len(request.selected_items)} items"
+        )
+        
+        return {
+            "status": "success",
+            "message": "Preference updated",
+            "user_id": request.user_id,
+            "items_tracked": len(request.selected_items)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to track recommendation interaction: {e}")
+        # Don't fail the request - just log the error
+        return {
+            "status": "error",
+            "message": str(e),
+            "user_id": request.user_id
+        }
+
+
+@router.post("/explicit-feedback")
+async def explicit_feedback(request: ExplicitFeedbackRequest):
+    """
+    Process explicit user feedback for personalization (PHASE 1).
+    
+    Called when user clicks thumbs up/down on a response.
+    Updates user profile and helps refine recommendations.
+    
+    Example:
+        User gives thumbs down on restaurant recommendations
+        → System learns to adjust recommendation strategy
+    """
+    try:
+        # Import personalization engine
+        from backend.services.llm.personalization import PersonalizationEngine
+        
+        # Create personalization engine instance
+        personalization = PersonalizationEngine()
+        
+        feedback_record = await personalization.process_feedback(
+            user_id=request.user_id,
+            query=request.query,
+            response=request.response,
+            feedback_type=request.feedback_type,
+            detected_signals=request.detected_signals,
+            signal_scores=request.signal_scores
+        )
+        
+        logger.info(
+            f"✅ Explicit feedback processed for user {request.user_id}: {request.feedback_type}"
+        )
+        
+        return {
+            "status": "success",
+            "feedback_id": feedback_record.timestamp.isoformat(),
+            "user_id": request.user_id,
+            "feedback_type": request.feedback_type
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to process explicit feedback: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "user_id": request.user_id
+        }
+
+
+@router.get("/personalization/metrics/{user_id}")
+async def get_personalization_metrics(user_id: str):
+    """
+    Get personalization metrics for a user (PHASE 1).
+    
+    Shows profile completeness, interaction count, feedback stats, etc.
+    Useful for debugging and monitoring personalization quality.
+    """
+    try:
+        from backend.services.llm.personalization import PersonalizationEngine
+        
+        personalization = PersonalizationEngine()
+        profile = await personalization.get_user_profile(user_id)
+        
+        return {
+            "user_id": user_id,
+            "query_count": profile.query_count,
+            "positive_feedback": profile.positive_feedback_count,
+            "negative_feedback": profile.negative_feedback_count,
+            "profile_completeness": {
+                "has_cuisines": len(profile.preferred_cuisines) > 0,
+                "has_districts": len(profile.preferred_districts) > 0,
+                "has_price_range": profile.preferred_price_range is not None,
+                "has_interests": len(profile.interests) > 0
+            },
+            "preferences": {
+                "cuisines": profile.preferred_cuisines,
+                "districts": profile.preferred_districts,
+                "price_range": profile.preferred_price_range,
+                "interests": profile.interests
+            },
+            "last_interaction": profile.last_interaction.isoformat() if profile.last_interaction else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get personalization metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

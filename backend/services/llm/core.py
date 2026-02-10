@@ -1570,7 +1570,40 @@ Fixed version (max 50 chars):"""
             except Exception as e:
                 logger.warning(f"Personalization filtering failed: {e}")
         
-        # STEP 6: Prompt Engineering
+        # STEP 5.7: Get User Profile for Personalization (PHASE 1)
+        user_profile = None
+        if self.config.get('enable_personalization', True) and user_id and user_id != "anonymous":
+            try:
+                profile_obj = await self.personalization.get_user_profile(user_id)
+                
+                # Convert UserPreferences dataclass to dict for prompt injection
+                user_profile = {
+                    'interests': profile_obj.interests,
+                    'dietary_restrictions': profile_obj.dietary_restrictions,
+                    'cuisine_preferences': profile_obj.preferred_cuisines,
+                    'budget_range': profile_obj.preferred_price_range,
+                    'preferred_districts': profile_obj.preferred_districts,
+                    'favorite_neighborhoods': profile_obj.preferred_districts,  # Alias
+                    'preferred_activities': profile_obj.preferred_activities,
+                    'travel_style': None,  # Not in PersonalizationEngine profile
+                    'group_type': None,    # Not in PersonalizationEngine profile
+                    'has_children': False,  # Not in PersonalizationEngine profile
+                    'children_ages': [],    # Not in PersonalizationEngine profile
+                }
+                
+                # Filter out empty values
+                user_profile = {k: v for k, v in user_profile.items() if v}
+                
+                if user_profile:
+                    logger.info(f"👤 User profile loaded for {user_id}: {len(user_profile)} attributes")
+                else:
+                    user_profile = None
+                    
+            except Exception as e:
+                logger.warning(f"Failed to load user profile for {user_id}: {e}")
+                user_profile = None
+        
+        # STEP 6: Prompt Engineering (WITH PERSONALIZATION - PHASE 1)
         # Get overall confidence from signals
         overall_confidence = signals.get('overall_confidence', 1.0)
         enable_intent_classification = self.config.get('enable_llm_intent_classification', False)  # Disabled - causes template artifacts
@@ -1582,6 +1615,7 @@ Fixed version (max 50 chars):"""
             conversation_context=conversation_context,
             language=language,
             user_location=user_location,  # Pass GPS location to prompt
+            user_profile=user_profile,    # PHASE 1: Pass user profile for personalized recommendations
             enable_intent_classification=enable_intent_classification,  # Priority 2
             signal_confidence=overall_confidence  # Priority 3
         )
@@ -1589,6 +1623,8 @@ Fixed version (max 50 chars):"""
         logger.info(f"📝 Prompt built: {len(prompt)} chars, signal confidence: {overall_confidence:.2f}")
         if user_location:
             logger.info(f"   📍 GPS location included in prompt: {user_location}")
+        if user_profile:
+            logger.info(f"   👤 User profile injected into prompt: {list(user_profile.keys())}")
         if overall_confidence < 0.6:
             logger.warning(f"   ⚠️ Low signal confidence - added explicit instructions to prompt")
 
