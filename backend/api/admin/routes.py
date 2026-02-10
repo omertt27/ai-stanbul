@@ -232,7 +232,7 @@ async def get_comments(
 @router.get("/feedback/export")
 async def export_feedback(
     days: int = Query(30, le=365),
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
     db: Session = Depends(get_db)
 ):
     """Export feedback data in JSON or CSV format"""

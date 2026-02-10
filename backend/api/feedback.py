@@ -493,8 +493,8 @@ class RecommendationInteractionRequest(BaseModel):
     """Track user interaction with recommendations for personalization"""
     user_id: str = Field(..., min_length=1, max_length=100)
     query: str = Field(..., max_length=2000)
-    selected_items: List[Dict[str, Any]] = Field(..., max_items=10)
-    signals: List[str] = Field(default_factory=list, max_items=20)
+    selected_items: List[Dict[str, Any]] = Field(..., max_length=10)
+    signals: List[str] = Field(default_factory=list, max_length=20)
     session_id: Optional[str] = Field(default=None, max_length=100)
 
 
@@ -503,8 +503,8 @@ class ExplicitFeedbackRequest(BaseModel):
     user_id: str = Field(..., min_length=1, max_length=100)
     query: str = Field(..., max_length=2000)
     response: str = Field(..., max_length=10000)
-    feedback_type: str = Field(..., regex="^(positive|negative)$")
-    detected_signals: List[str] = Field(default_factory=list, max_items=20)
+    feedback_type: str = Field(..., pattern="^(positive|negative)$")
+    detected_signals: List[str] = Field(default_factory=list, max_length=20)
     signal_scores: Dict[str, float] = Field(default_factory=dict)
     session_id: Optional[str] = Field(default=None, max_length=100)
 
