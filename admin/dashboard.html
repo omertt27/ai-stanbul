@@ -628,6 +628,10 @@
                 <i class="fas fa-tachometer-alt"></i>
                 <span>System Performance</span>
             </a>
+            <a class="nav-item" data-section="ncf-recommendations">
+                <i class="fas fa-brain"></i>
+                <span>NCF Recommendations</span>
+            </a>
             <a class="nav-item" data-section="experiments">
                 <i class="fas fa-flask"></i>
                 <span>A/B Testing</span>
@@ -995,6 +999,148 @@
                 <div id="intent-breakdown">
                     <p style="text-align: center; color: var(--text-light); padding: 20px;">
                         Loading intent breakdown...
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- NCF Recommendations Section -->
+        <div class="content-section" id="ncf-recommendations">
+            <div class="header">
+                <h2><i class="fas fa-brain"></i> NCF Recommendation System</h2>
+                <p>Deep Learning personalization with ONNX optimization, caching, and A/B testing</p>
+            </div>
+
+            <!-- Real-time Metrics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="ncf-speedup">-</h3>
+                        <p>ONNX Speedup</p>
+                        <small id="ncf-speedup-trend" class="trend-indicator">-</small>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="ncf-latency">-</h3>
+                        <p>Avg. Latency (ms)</p>
+                        <small id="ncf-latency-trend" class="trend-indicator">-</small>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="ncf-cache-hit">-</h3>
+                        <p>Cache Hit Rate</p>
+                        <small id="ncf-cache-trend" class="trend-indicator">-</small>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="ncf-accuracy">-</h3>
+                        <p>Recommendation Accuracy</p>
+                        <small id="ncf-accuracy-trend" class="trend-indicator">-</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Status -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">
+                    <i class="fas fa-microchip"></i> Model Status
+                </h3>
+                <div id="ncf-model-status">
+                    <p style="text-align: center; color: var(--text-light); padding: 20px;">
+                        Loading model status...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Performance Charts -->
+            <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 16px;">
+                        <i class="fas fa-chart-line"></i> Inference Latency (24h)
+                    </h3>
+                    <canvas id="ncf-latency-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 16px;">
+                        <i class="fas fa-chart-area"></i> Cache Performance (24h)
+                    </h3>
+                    <canvas id="ncf-cache-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- A/B Testing Results -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">
+                    <i class="fas fa-flask"></i> A/B Testing Results
+                    <span class="badge" id="ncf-ab-badge" style="display: none;">0</span>
+                </h3>
+                <div id="ncf-ab-results">
+                    <p style="text-align: center; color: var(--text-light); padding: 20px;">
+                        Loading A/B test results...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Model Quality Metrics -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">
+                    <i class="fas fa-chart-pie"></i> Model Quality Metrics
+                </h3>
+                <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 16px;">
+                    <div class="stat-card">
+                        <div class="stat-label">Diversity</div>
+                        <div class="stat-value" id="ncf-diversity">-</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-random"></i> Unique items
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Novelty</div>
+                        <div class="stat-value" id="ncf-novelty">-</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-star"></i> New discoveries
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Coverage</div>
+                        <div class="stat-value" id="ncf-coverage">-</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-layer-group"></i> Catalog reach
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Fallbacks</div>
+                        <div class="stat-value" id="ncf-fallbacks">-</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-exchange-alt"></i> Backup used
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">
+                    <i class="fas fa-history"></i> Recent Recommendations
+                </h3>
+                <div id="ncf-recent-activity">
+                    <p style="text-align: center; color: var(--text-light); padding: 20px;">
+                        Loading recent activity...
                     </p>
                 </div>
             </div>

@@ -27,6 +27,79 @@ router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
 
 # ==========================================
+# NCF Deep Learning Recommendations
+# ==========================================
+async def get_ncf_enriched_suggestions(
+    user_id: str,
+    intent: Optional[str] = None,
+    top_k: int = 5,
+    language: str = 'en'
+) -> List[str]:
+    """
+    Get personalized suggestions using NCF deep learning model.
+    
+    Args:
+        user_id: User ID for personalization
+        intent: Detected user intent
+        top_k: Number of suggestions
+        language: User's language preference
+        
+    Returns:
+        List of suggestion strings
+    """
+    try:
+        from services.ncf_recommendation_service import get_ncf_recommendations
+        
+        # Get NCF recommendations
+        recommendations = await get_ncf_recommendations(
+            user_id=user_id,
+            top_k=top_k,
+            context={'intent': intent, 'language': language}
+        )
+        
+        if not recommendations:
+            return []
+        
+        # Convert recommendations to suggestion format
+        suggestions = []
+        for rec in recommendations:
+            # Create natural language suggestions based on recommendation
+            item_name = rec.get('name', 'this place')
+            item_type = rec.get('type', 'attraction')
+            
+            # Language-specific suggestion templates
+            templates = {
+                'en': {
+                    'attraction': f"Tell me about {item_name}",
+                    'restaurant': f"Show me {item_name} restaurant",
+                    'mosque': f"Visit {item_name}",
+                    'palace': f"Explore {item_name}",
+                    'market': f"Take me to {item_name}",
+                    'default': f"Learn about {item_name}"
+                },
+                'tr': {
+                    'attraction': f"{item_name} hakkında bilgi ver",
+                    'restaurant': f"{item_name} restoranını göster",
+                    'mosque': f"{item_name}'i ziyaret et",
+                    'palace': f"{item_name}'i keşfet",
+                    'market': f"{item_name}'e götür",
+                    'default': f"{item_name} hakkında bilgi al"
+                }
+            }
+            
+            lang_templates = templates.get(language, templates['en'])
+            suggestion = lang_templates.get(item_type, lang_templates['default'])
+            suggestions.append(suggestion)
+        
+        logger.info(f"🧠 NCF generated {len(suggestions)} personalized suggestions")
+        return suggestions[:top_k]
+        
+    except Exception as e:
+        logger.warning(f"⚠️ NCF suggestion generation failed: {e}")
+        return []
+
+
+# ==========================================
 # Optional Database Dependency
 # ==========================================
 def get_optional_db():
@@ -455,12 +528,15 @@ class ChatResponse(BaseModel):
     navigation_data: Optional[Dict[str, Any]] = Field(None, description="GPS navigation state and instructions")
     interaction_id: Optional[str] = Field(None, description="Interaction ID for feedback tracking")
     
-    # Phase 5B: UnifiedLLMService Metadata (NEW!)
+    # Phase 5B: UnifiedLLMService Metadata
     cached: Optional[bool] = Field(None, description="Whether response was served from cache")
     backend_used: Optional[str] = Field(None, description="LLM backend: 'vllm', 'groq', or 'fallback'")
     latency_ms: Optional[int] = Field(None, description="Response latency in milliseconds")
     circuit_breaker_state: Optional[str] = Field(None, description="Circuit breaker state: 'closed', 'open', 'half_open'")
     tokens_used: Optional[int] = Field(None, description="Tokens used for generation")
+    
+    # Phase 2: Deep Learning NCF Recommendations (NEW!)
+    ncf_recommendations: Optional[List[Dict[str, Any]]] = Field(None, description="Personalized recommendations from NCF deep learning model")
     
     @field_validator('response')
     @classmethod
@@ -1323,19 +1399,48 @@ async def pure_llm_chat(
             logger.warning(f"Proactive suggestion generation failed: {e}")
             proactive_suggestions = None
         
-        # Generate contextual suggestions first (more relevant than generic proactive ones)
+        # === PHASE 2: NCF DEEP LEARNING RECOMMENDATIONS ===
+        # Try NCF-based personalized suggestions first (if user_id available)
         final_suggestions = []
+        ncf_suggestions = []
+        
+        if request.user_id:
+            try:
+                ncf_suggestions = await get_ncf_enriched_suggestions(
+                    user_id=request.user_id,
+                    intent=result.get('intent'),
+                    top_k=3,
+                    language=effective_language
+                )
+                if ncf_suggestions:
+                    logger.info(f"🧠 NCF Deep Learning: {len(ncf_suggestions)} personalized suggestions")
+            except Exception as e:
+                logger.warning(f"NCF suggestions failed: {e}")
+        
+        # Generate contextual suggestions (more relevant than generic proactive ones)
+        contextual_suggestions = []
         try:
             contextual_suggestions = generate_contextual_suggestions(enhanced_response, original_query, effective_language)
             if contextual_suggestions:
-                final_suggestions = contextual_suggestions
                 logger.info(f"🎯 Generated {len(contextual_suggestions)} contextual suggestions")
         except Exception as e:
             logger.warning(f"Failed to generate contextual suggestions: {e}")
         
-        # Fallback to proactive suggestions if no contextual ones available
+        # Combine NCF + contextual + proactive suggestions (priority order)
+        if ncf_suggestions:
+            final_suggestions.extend(ncf_suggestions[:2])  # Top 2 NCF suggestions
+        
+        if contextual_suggestions:
+            final_suggestions.extend(contextual_suggestions[:2])  # Top 2 contextual
+        
+        # Add proactive suggestions if we still need more
+        if len(final_suggestions) < 4 and proactive_suggestions:
+            remaining = 4 - len(final_suggestions)
+            final_suggestions.extend(proactive_suggestions[:remaining])
+        
+        # Fallback to result suggestions if still empty
         if not final_suggestions:
-            final_suggestions = proactive_suggestions if proactive_suggestions else result.get('suggestions', [])
+            final_suggestions = result.get('suggestions', [])
         
         # Define language-aware default suggestions
         default_suggestions_by_lang = {
@@ -1608,6 +1713,22 @@ async def pure_llm_chat(
             entities=result.get('entities')
         )
         
+        # === PHASE 2: GET FULL NCF RECOMMENDATIONS FOR METADATA ===
+        ncf_recommendations_data = None
+        if request.user_id:
+            try:
+                from services.ncf_recommendation_service import get_ncf_recommendations
+                ncf_recs = await get_ncf_recommendations(
+                    user_id=request.user_id,
+                    top_k=5,
+                    context={'intent': final_intent, 'language': effective_language}
+                )
+                if ncf_recs:
+                    ncf_recommendations_data = ncf_recs
+                    logger.info(f"🧠 Added {len(ncf_recs)} NCF recommendations to response metadata")
+            except Exception as e:
+                logger.warning(f"Failed to get NCF recommendations for response: {e}")
+        
         return ChatResponse(
             response=translated_response,  # 🔥 Translated + safety-netted response
             session_id=result.get('session_id', request.session_id or 'new'),
@@ -1620,12 +1741,14 @@ async def pure_llm_chat(
             navigation_active=result.get('navigation_active', False),
             navigation_data=result.get('navigation_data'),
             interaction_id=interaction_id,  # Include for frontend feedback tracking
-            # Phase 5B: UnifiedLLMService metadata (NEW!)
+            # Phase 5B: UnifiedLLMService metadata
             cached=cached,
             backend_used=backend_used,
             latency_ms=latency_ms,
             circuit_breaker_state=circuit_breaker_state,
-            tokens_used=tokens_used
+            tokens_used=tokens_used,
+            # Phase 2: NCF Deep Learning Recommendations (NEW!)
+            ncf_recommendations=ncf_recommendations_data
         )
         
     except Exception as e:

@@ -948,6 +948,137 @@ Remember: ALWAYS match the user's language. This is your most important rule."""
         else:
             self._metrics_history = [metrics]
     
+    def _format_service_context(self, services: Dict[str, Any]) -> str:
+        """
+        Format service context (weather, events, hidden gems) for LLM prompt.
+        
+        Args:
+            services: Dictionary of service data from context builder
+            
+        Returns:
+            Formatted service context string
+        """
+        if not services:
+            return ""
+        
+        parts = []
+        
+        # Weather information
+        if services.get('weather'):
+            weather = services['weather']
+            parts.append("## 🌤️ CURRENT WEATHER:")
+            if isinstance(weather, dict):
+                temp = weather.get('temperature', 'N/A')
+                condition = weather.get('condition', 'N/A')
+                parts.append(f"Temperature: {temp}°C, Condition: {condition}")
+            else:
+                parts.append(str(weather))
+        
+        # Events information
+        if services.get('events'):
+            events = services['events']
+            parts.append("\n## 🎭 UPCOMING EVENTS:")
+            if isinstance(events, list):
+                for event in events[:5]:  # Limit to 5 events
+                    if isinstance(event, dict):
+                        name = event.get('name', 'Unknown Event')
+                        date = event.get('date', 'TBD')
+                        location = event.get('location', 'Various')
+                        parts.append(f"- {name} ({date}) at {location}")
+                    else:
+                        parts.append(f"- {event}")
+            else:
+                parts.append(str(events))
+        
+        # Hidden gems
+        if services.get('hidden_gems'):
+            gems = services['hidden_gems']
+            parts.append("\n## 💎 HIDDEN GEMS:")
+            if isinstance(gems, list):
+                for gem in gems[:5]:  # Limit to 5 gems
+                    if isinstance(gem, dict):
+                        name = gem.get('name', 'Unknown')
+                        district = gem.get('district', 'Istanbul')
+                        description = gem.get('description', '')
+                        parts.append(f"- {name} ({district}): {description[:100]}...")
+                    else:
+                        parts.append(f"- {gem}")
+            else:
+                parts.append(str(gems))
+        
+        # Transportation info
+        if services.get('transportation'):
+            transport = services['transportation']
+            parts.append("\n## 🚇 TRANSPORTATION:")
+            parts.append(str(transport))
+        
+        return "\n".join(parts) if parts else ""
+    
+    def _format_conversation_context(self, conversation_context: Dict[str, Any]) -> str:
+        """
+        Format conversation history for LLM context injection.
+        
+        Args:
+            conversation_context: Dictionary containing conversation history
+            
+        Returns:
+            Formatted conversation context string
+        """
+        if not conversation_context:
+            return ""
+        
+        parts = []
+        
+        # Handle different conversation context formats
+        if isinstance(conversation_context, dict):
+            # Check for 'messages' key (list of message dicts)
+            if 'messages' in conversation_context:
+                messages = conversation_context['messages']
+                if isinstance(messages, list) and messages:
+                    for msg in messages[-5:]:  # Last 5 messages
+                        if isinstance(msg, dict):
+                            role = msg.get('role', 'unknown')
+                            content = msg.get('content', '')
+                            if role == 'user':
+                                parts.append(f"User: {content}")
+                            elif role == 'assistant':
+                                parts.append(f"Assistant: {content}")
+            
+            # Check for 'history' key (string or list)
+            elif 'history' in conversation_context:
+                history = conversation_context['history']
+                if isinstance(history, str):
+                    parts.append(history)
+                elif isinstance(history, list):
+                    for item in history[-5:]:  # Last 5 items
+                        parts.append(str(item))
+            
+            # Direct dict with 'user' and 'assistant' keys
+            elif 'user' in conversation_context or 'assistant' in conversation_context:
+                if conversation_context.get('user'):
+                    parts.append(f"User: {conversation_context['user']}")
+                if conversation_context.get('assistant'):
+                    parts.append(f"Assistant: {conversation_context['assistant']}")
+        
+        # If string, use directly
+        elif isinstance(conversation_context, str):
+            parts.append(conversation_context)
+        
+        # If list, format each item
+        elif isinstance(conversation_context, list):
+            for item in conversation_context[-5:]:  # Last 5 items
+                if isinstance(item, dict):
+                    role = item.get('role', 'unknown')
+                    content = item.get('content', '')
+                    if role == 'user':
+                        parts.append(f"User: {content}")
+                    elif role == 'assistant':
+                        parts.append(f"Assistant: {content}")
+                else:
+                    parts.append(str(item))
+        
+        return "\n".join(parts) if parts else ""
+    
     def _format_user_profile_context(
         self,
         user_profile: Dict[str, Any],

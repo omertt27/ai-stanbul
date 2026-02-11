@@ -50,7 +50,7 @@ This means the SSH key isn't added to RunPod yet. You MUST:
 ### ⏱️ Minute 3-4: Restart Pod
 
 1. Go to: https://www.runpod.io/console/pods
-2. Find: `pvj233wwhiu6j3-64411542`
+2. Find: `p9lf44wbmqzs5l-64411547`
 3. Stop → Wait → Start
 4. Note SSH connection details ✅
 
@@ -61,11 +61,14 @@ This means the SSH key isn't added to RunPod yet. You MUST:
 Open a **new terminal on your Mac** and run:
 
 ```bash
-# Option 1: Simple test
-ssh pvj233wwhiu6j3-64411542@ssh.runpod.io -i ~/.ssh/id_ed25519 echo OK
+# Method 1: RunPod Proxy (Recommended - works behind firewalls)
+ssh p9lf44wbmqzs5l-64411547@ssh.runpod.io -i ~/.ssh/id_ed25519
 
-# Option 2: Interactive login (no command)
-ssh pvj233wwhiu6j3-64411542@ssh.runpod.io -i ~/.ssh/id_ed25519
+# Method 2: Direct TCP (Faster, supports SCP/SFTP)
+ssh root@69.30.85.235 -p 22100 -i ~/.ssh/id_ed25519
+
+# Quick test (option 1)
+ssh p9lf44wbmqzs5l-64411547@ssh.runpod.io -i ~/.ssh/id_ed25519 echo OK
 ```
 
 **Expected:** You should be logged into RunPod!
@@ -82,14 +85,31 @@ ssh pvj233wwhiu6j3-64411542@ssh.runpod.io -i ~/.ssh/id_ed25519
 
 If you see the RunPod shell prompt, continue! ✅
 
-### ⏱️ Minute 6-7: Start vLLM
+### ⏱️ Minute 6-7: Start vLLM (If Not Already Running)
 
-SSH in and run:
+First, check if vLLM is already running:
 ```bash
+# SSH into RunPod
+ssh p9lf44wbmqzs5l-64411547@ssh.runpod.io -i ~/.ssh/id_ed25519
+
+# Check if vLLM is running
+curl http://localhost:8000/v1/models
+```
+
+**If it works:** Skip to Minute 8! ✅
+
+**If it fails:** Start vLLM:
+```bash
+# Find your model path
+ls -la /workspace/models/  # Check if model is here
+# OR
+ls -la /root/.cache/huggingface/hub/
+
+# Start vLLM (adjust model path if needed)
 python3 -m vllm.entrypoints.openai.api_server \
-  --model /root/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B-Instruct/snapshots/0e9e39f249a16976918f6564b8830bc894c89659 \
+  --model meta-llama/Llama-3.1-8B-Instruct \
   --host 0.0.0.0 --port 8000 --dtype float16 --max-model-len 1024 \
-  --kv-cache-dtype fp8 --gpu-memory-utilization 0.85 > /root/vllm.log 2>&1 &
+  --gpu-memory-utilization 0.85 > /workspace/vllm.log 2>&1 &
 ```
 
 Wait 30 seconds, then test:
@@ -101,13 +121,27 @@ See model info? Continue! ✅
 
 ### ⏱️ Minute 8: Create Tunnel
 
-On your Mac:
+On your Mac (in a new terminal):
+
 ```bash
-ssh -f -N -L 8000:localhost:8000 pvj233wwhiu6j3-64411542@ssh.runpod.io -i ~/.ssh/id_ed25519
+# Method 1: RunPod Proxy (Recommended)
+ssh -f -N -L 8000:localhost:8000 p9lf44wbmqzs5l-64411547@ssh.runpod.io -i ~/.ssh/id_ed25519
+
+# Method 2: Direct TCP (Alternative - faster)
+ssh -f -N -L 8000:localhost:8000 root@69.30.85.235 -p 22100 -i ~/.ssh/id_ed25519
+
+# Test the tunnel
 curl http://localhost:8000/v1/models
 ```
 
+**Expected output:** Should show Llama-3.1-8B-Instruct model info
+
 See model info? Continue! ✅
+
+**Troubleshooting:**
+- If tunnel command gives error: Remove `-f` flag and run in separate terminal
+- If curl fails: Check vLLM is running on RunPod (Step 6-7)
+- If "port already in use": Kill existing tunnel: `pkill -f "8000:localhost:8000"`
 
 ### ⏱️ Minute 9: Start Backend & Frontend
 
