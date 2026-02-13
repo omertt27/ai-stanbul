@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import logging
+import time
 
 from services.production_ncf_service import get_ncf_service
 from services.ab_testing_service import get_ab_testing_service
@@ -131,13 +132,15 @@ async def get_personalized_recommendations(
             cached = False
         else:
             # Treatment: Use NCF personalization
-            recommendations = ncf_service.get_recommendations(
+            recommendations = await ncf_service.get_recommendations(
                 user_id=user_id,
                 top_k=limit,
                 exclude_interacted=exclude_seen
             )
             algorithm = "ncf"
-            cached = recommendations.get("cached", False)
+            # Note: NCF service handles caching internally but doesn't expose cached status
+            # TODO: Enhance service to return metadata including cache status
+            cached = False
         
         # Filter by category if requested
         if category:
