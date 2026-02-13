@@ -51,9 +51,9 @@ class NCFRecommendationService:
         self.user_encoder = None
         self.item_encoder = None
         self.item_metadata = {}
-        self.model_path = model_path or os.path.join(
-            os.path.dirname(__file__), 
-            '../ml/models/ncf_model.pt'
+        self.model_path = (
+            model_path or 
+            os.getenv('NCF_MODEL_PATH', 'backend/ml/deep_learning/models/ncf_model.pt')
         )
         self.enabled = False
         
