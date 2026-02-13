@@ -106,6 +106,15 @@ from api.admin import experiments as admin_experiments
 from api.admin import routes as admin_routes
 from api.startup_status import router as startup_status_router
 
+# Import production recommendations API (NCF + A/B testing)
+try:
+    from api.production_recommendations import router as production_recs_router
+    PRODUCTION_RECS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Production Recommendations API not available: {e}")
+    PRODUCTION_RECS_AVAILABLE = False
+    production_recs_router = None
+
 # Import streaming API for real-time responses
 try:
     from api.streaming import router as streaming_router
@@ -308,6 +317,11 @@ except ImportError as e:
 if STREAMING_API_AVAILABLE and streaming_router:
     app.include_router(streaming_router)
     logger.info("✅ Streaming API registered at /api/stream")
+
+# Register production recommendations API (Phase 2: NCF + A/B testing)
+if PRODUCTION_RECS_AVAILABLE and production_recs_router:
+    app.include_router(production_recs_router)
+    logger.info("✅ Production Recommendations API registered at /api/recommendations")
 
 # Register feedback API for thumbs up/down on chat responses
 if FEEDBACK_API_AVAILABLE and feedback_router:

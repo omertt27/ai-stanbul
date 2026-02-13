@@ -1434,13 +1434,25 @@ async def pure_llm_chat(
             final_suggestions.extend(contextual_suggestions[:2])  # Top 2 contextual
         
         # Add proactive suggestions if we still need more
+        # NOTE: proactive_suggestions are dicts with 'text' field, convert to strings
         if len(final_suggestions) < 4 and proactive_suggestions:
             remaining = 4 - len(final_suggestions)
-            final_suggestions.extend(proactive_suggestions[:remaining])
+            # Convert dict suggestions to strings immediately
+            for sug in proactive_suggestions[:remaining]:
+                if isinstance(sug, dict):
+                    final_suggestions.append(sug.get('text', str(sug)))
+                else:
+                    final_suggestions.append(sug)
         
         # Fallback to result suggestions if still empty
+        # NOTE: result['suggestions'] might also contain dicts, normalize them
         if not final_suggestions:
-            final_suggestions = result.get('suggestions', [])
+            result_suggestions = result.get('suggestions', [])
+            for sug in result_suggestions:
+                if isinstance(sug, dict):
+                    final_suggestions.append(sug.get('text', str(sug)))
+                else:
+                    final_suggestions.append(sug)
         
         # Define language-aware default suggestions
         default_suggestions_by_lang = {
@@ -1494,9 +1506,10 @@ async def pure_llm_chat(
                 for s in final_suggestions[:2])):
             final_suggestions = default_suggestions_by_lang.get(effective_language, default_suggestions_by_lang['en'])
         
-        # If proactive suggestions are dict format, extract text
-        if final_suggestions and isinstance(final_suggestions[0], dict):
-            final_suggestions = [s.get('text', str(s)) for s in final_suggestions]
+        # Safety check: If any suggestions are still dict format, extract text
+        # This should be rare now due to earlier normalization
+        if final_suggestions and len(final_suggestions) > 0 and isinstance(final_suggestions[0], dict):
+            final_suggestions = [s.get('text', str(s)) if isinstance(s, dict) else s for s in final_suggestions]
         
         # === DATA COLLECTION FOR MODEL FINE-TUNING ===
         try:
