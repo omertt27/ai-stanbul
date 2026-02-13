@@ -44,12 +44,18 @@ frontend/
 node_modules/
 
 # HUGE directories - DO NOT COPY!
-models/
-model/
-*.pth
-*.bin
+# But ALLOW NCF models which are small (<1MB)
+# Exclude large model directories
+unified_system/models/
+backend/models/llm/
+# Exclude large model formats
 *.safetensors
 *.gguf
+# Allow NCF models (small, needed for production)
+!backend/ml/deep_learning/models/*.pt
+!backend/ml/deep_learning/models/*.pth
+!backend/ml/deep_learning/models/*.onnx
+!backend/ml/deep_learning/models/*.json
 venv_*/
 phase2_*/
 data_collection/
