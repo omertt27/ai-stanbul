@@ -55,6 +55,7 @@ backend/models/llm/
 !backend/ml/deep_learning/models/*.pt
 !backend/ml/deep_learning/models/*.pth
 !backend/ml/deep_learning/models/*.onnx
+!backend/ml/deep_learning/models/*.onnx.data
 !backend/ml/deep_learning/models/*.json
 venv_*/
 phase2_*/
