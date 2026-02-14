@@ -26,12 +26,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the backend application
 COPY backend/ ./
 
-# Explicitly copy ONNX model files to ensure they're included
-# (safeguard against .dockerignore issues)
-COPY backend/ml/deep_learning/models/ncf_model.onnx* ./ml/deep_learning/models/
-COPY backend/ml/deep_learning/models/ncf_model.json ./ml/deep_learning/models/
-COPY backend/ml/deep_learning/models/ncf_model.pt ./ml/deep_learning/models/
-
 # Copy unified_system for UnifiedLLMService (required for LLM operations)
 COPY unified_system/ ./unified_system/
 
