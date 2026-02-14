@@ -45,18 +45,13 @@ node_modules/
 
 # HUGE directories - DO NOT COPY!
 # But ALLOW NCF models which are small (<1MB)
-# Exclude large model directories
-unified_system/models/
-backend/models/llm/
-# Exclude large model formats
-*.safetensors
-*.gguf
-# Allow NCF models (small, needed for production)
-!backend/ml/deep_learning/models/*.pt
-!backend/ml/deep_learning/models/*.pth
-!backend/ml/deep_learning/models/*.onnx
-!backend/ml/deep_learning/models/*.onnx.data
-!backend/ml/deep_learning/models/*.json
+# Exclude large model directories (be specific to avoid excluding NCF models)
+unified_system/models/*.safetensors
+unified_system/models/*.gguf
+backend/models/llm/*.safetensors
+backend/models/llm/*.gguf
+# NCF models in backend/ml/deep_learning/models/ are INCLUDED (not excluded)
+# No wildcard exclusions for .onnx, .pt, .json files
 venv_*/
 phase2_*/
 data_collection/
