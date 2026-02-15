@@ -1,0 +1,24 @@
+{
+  "num_users": 95,
+  "num_items": 108,
+  "embedding_dim": 64,
+  "mlp_layers": [
+    128,
+    64,
+    32
+  ],
+  "training_metrics": {},
+  "pytorch_version": "2.9.1",
+  "onnx_export": {
+    "opset_version": 14,
+    "dynamic_batch": true,
+    "model_size_bytes": 25570,
+    "comparison_metrics": {
+      "mean_abs_diff": 1.907348590179936e-08,
+      "max_abs_diff": 5.960464477539063e-08,
+      "mean_rel_diff": 4.173809031726705e-08,
+      "max_rel_diff": 1.3199652926232375e-07,
+      "correlation": 0.9999999999971335
+    }
+  }
+}
