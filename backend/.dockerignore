@@ -76,18 +76,16 @@ node_modules/
 *.ipynb
 .ipynb_checkpoints/
 
-# Data files
-*.csv
-*.json
+# Data files - be specific to avoid excluding model metadata
+# Exclude large data directories but keep model JSON files
 data/
-*.pkl
-*.pickle
+# DO NOT exclude *.json - we need model metadata files!
 
-# Model files
-*.pt
-*.pth
-*.onnx
-models/
+# Model files - EXCLUDE large models but KEEP NCF models
+# NCF models are small (<1MB each) and needed for production
+# Exclude by directory, not by extension
+models/llm/
+# DO NOT exclude *.pt, *.pth, *.onnx - we need NCF models!
 
 # Backup files
 *.bak
