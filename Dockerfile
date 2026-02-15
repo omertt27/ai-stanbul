@@ -26,6 +26,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the backend application
 COPY backend/ ./
 
+# List what was copied for debugging (ML models specifically)
+RUN echo "=== Verifying ONNX model files copied ===" && \
+    ls -lah /app/ml/deep_learning/models/ || echo "Models directory not found!" && \
+    echo "========================================="
+
 # Copy unified_system for UnifiedLLMService (required for LLM operations)
 COPY unified_system/ ./unified_system/
 

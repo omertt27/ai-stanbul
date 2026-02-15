@@ -1,0 +1,112 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Documentation  
+*.md
+!README.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+venv_*/
+backend/venv/
+backend/venv_*/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+tests/
+*_test.py
+test_*.py
+
+# Logs - exclude .log files but NOT backend/**/*.log pattern that might cause issues
+*.log
+logs/
+
+# Frontend (we only need backend for this Docker image)
+frontend/
+node_modules/
+
+# HUGE directories - DO NOT COPY!
+# But ALLOW NCF models which are small (<1MB)
+# Exclude large model directories (be specific to avoid excluding NCF models)
+unified_system/models/*.safetensors
+unified_system/models/*.gguf
+backend/models/llm/*.safetensors
+backend/models/llm/*.gguf
+# NCF models in backend/ml/deep_learning/models/ are INCLUDED (not excluded)
+# No wildcard exclusions for .onnx, .pt, .json files
+venv_*/
+phase2_*/
+data_collection/
+cache/
+backend/cache/
+images/
+backend/images/
+*.pkg
+backend/uploads/
+backend/static/
+
+# Google Cloud SDK (HUGE - don't copy to Docker!)
+Users/
+google-cloud-sdk/
+**/google-cloud-sdk/**
+**/gsutil/**
+**/platform/**
+
+# CRITICAL: Exclude database FILES by specific name, NOT by pattern
+# This ensures we don't accidentally exclude the backend/db/ source directory
+ai_stanbul.db
+app.db
+blog_analytics.db
+curation_content.db
+daily_usage.db
+enhanced_pipeline.db
+automated_pipeline.db
+vectors.db
+monitoring.db
+query_analytics.db
+lightweight_personalization.db
+istanbul_ai_analytics.db
+backend/ai_stanbul.db
+backend/app.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# Large files
+*.pem
+*.pkg
+
+# OS
+.DS_Store
+
+# Backups
+*.backup
+*.bak
+*.save
+*.old
+
+# Environment files (will be set via Cloud Run)
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+dist/
+build/
