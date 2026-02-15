@@ -23,12 +23,14 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # NOTE: spaCy removed - LLM handles language detection and intent classification
 # This saves ~30s cold start time and reduces image size
 
-# Copy the backend application
+# Copy the backend application (this should include ml/deep_learning/models/)
 COPY backend/ ./
 
-# List what was copied for debugging (ML models specifically)
+# Verify ONNX model files were copied
 RUN echo "=== Verifying ONNX model files copied ===" && \
-    ls -lah /app/ml/deep_learning/models/ || echo "Models directory not found!" && \
+    ls -lah /app/ml/deep_learning/models/ 2>&1 && \
+    echo "--- Checking for ONNX files specifically ---" && \
+    ls -lh /app/ml/deep_learning/models/ncf_model.* 2>&1 && \
     echo "========================================="
 
 # Copy unified_system for UnifiedLLMService (required for LLM operations)
